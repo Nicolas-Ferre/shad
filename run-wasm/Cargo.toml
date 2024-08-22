@@ -1,0 +1,17 @@
+[package]
+name = "run-wasm"
+version = "0.1.0"
+publish = false
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+cargo-run-wasm.workspace = true
+fs_extra.workspace = true
+pico-args.workspace = true
+
+[lints]
+workspace = true
