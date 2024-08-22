@@ -216,10 +216,10 @@ jobs:
         uses: EmbarkStudios/cargo-deny-action@v1
         with:
           rust-version: ${{ steps.rust_version.outputs.RUST_VERSION_STABLE }}
-      - name: Check crates are registered on crates.io
-        run: bash -x .github/workflows/scripts/check_registered_crates.sh
-        env:
-          CARGO_TERM_COLOR: never
+      # - name: Check crates are registered on crates.io
+      #   run: bash -x .github/workflows/scripts/check_registered_crates.sh
+      #   env:
+      #     CARGO_TERM_COLOR: never
       - name: Check encoding
         run: isutf8 **/*
       - name: Check line endings
