@@ -1,0 +1,18 @@
+[package]
+name = "shad_rust_example"
+description = "Rust example that will be later converted in Shad"
+readme = "../../README.md"
+keywords = ["language", "gpu", "shader", "rendering", "compute"]
+categories = ["compilers"]
+exclude = [".github", "README.md"]
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+
+[lints]
+workspace = true

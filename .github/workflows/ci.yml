@@ -1,0 +1,230 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - '*'
+  schedule:
+    - cron: 0 2 * * SAT
+  workflow_dispatch: { }
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  XDG_RUNTIME_DIR: "~"
+  CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: 1
+  COV_THRESHOLD: 0.0
+  CODECOV_UPLOAD: true
+
+jobs:
+  clippy:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Windows
+            os: windows-2022
+            target: x86_64-pc-windows-msvc
+          - name: Linux
+            os: ubuntu-22.04
+            target: x86_64-unknown-linux-gnu
+          - name: macOS
+            os: macos-13
+            target: x86_64-apple-darwin
+          - name: Android
+            os: ubuntu-22.04
+            target: aarch64-linux-android
+          - name: WASM
+            os: ubuntu-22.04
+            target: wasm32-unknown-unknown
+    name: Clippy - ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Retrieve minimal supported rust version
+        id: rust_version
+        run: bash -x .github/workflows/scripts/find_minimal_rust_version.sh
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: ${{ steps.rust_version.outputs.RUST_VERSION_STABLE }}
+          target: ${{ matrix.target }}
+          components: clippy
+      - name: Setup cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          cache-on-failure: true
+      - name: Install Linux general dependencies
+        run: sudo apt-get update && sudo apt-get install libudev-dev
+        if: matrix.target == 'x86_64-unknown-linux-gnu'
+      - name: Run clippy
+        run: cargo clippy --all-targets --no-deps --target ${{ matrix.target }} -- -D warnings
+
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Linux
+            os: ubuntu-22.04
+            target: x86_64-unknown-linux-gnu
+            command_prefix: xvfb-run --server-args="-screen 0 1920x1080x24"
+    name: Test - ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Retrieve minimal supported rust version
+        id: rust_version
+        run: bash -x .github/workflows/scripts/find_minimal_rust_version.sh
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: ${{ steps.rust_version.outputs.RUST_VERSION_STABLE }}
+          target: ${{ matrix.target }}
+      - name: Setup cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          cache-on-failure: true
+      - name: Install Linux general dependencies
+        run: sudo apt-get update && sudo apt-get install libudev-dev xvfb
+        if: matrix.target == 'x86_64-unknown-linux-gnu'
+      - name: Install Linux graphics dependencies
+        run: bash -x .github/workflows/scripts/install_graphic_dependencies_linux.sh
+        if: matrix.target == 'x86_64-unknown-linux-gnu'
+      - name: Install wasm-pack
+        run: cargo install wasm-pack --debug
+        if: matrix.target == 'wasm32-unknown-unknown'
+      - name: Test WASM
+        run: for crate_path in crates/*; do wasm-pack test --node "$crate_path"; done
+        if: matrix.target == 'wasm32-unknown-unknown'
+      - name: Test other
+        run: ${{ matrix.command_prefix }} cargo test --no-fail-fast
+        if: matrix.target != 'wasm32-unknown-unknown'
+
+  coverage:
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 2
+      - name: Retrieve minimal supported rust version
+        id: rust_version
+        run: bash -x .github/workflows/scripts/find_minimal_rust_version.sh
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: ${{ steps.rust_version.outputs.RUST_VERSION_STABLE }}
+          components: llvm-tools-preview
+      - name: Setup cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          cache-on-failure: true
+      - name: Install general dependencies
+        run: sudo apt-get update && sudo apt-get install libudev-dev xvfb
+      - name: Install graphics dependencies
+        run: bash -x .github/workflows/scripts/install_graphic_dependencies_linux.sh
+      - name: Install grcov
+        run: cargo install grcov --debug
+      - name: Run unit tests
+        run: xvfb-run --server-args="-screen 0 1920x1080x24" cargo test --lib --tests
+        env:
+          RUSTFLAGS: -Cinstrument-coverage -Clink-dead-code
+          LLVM_PROFILE_FILE: "%m.profraw"
+      - name: Generate HTML coverage report
+        if: ${{ env.CODECOV_UPLOAD != 'true' }}
+        run: bash -x .github/workflows/scripts/generate_coverage.sh html ./coverage/
+      - name: Upload coverage report on GitHub
+        if: ${{ env.CODECOV_UPLOAD != 'true' }}
+        uses: actions/upload-artifact@v2
+        with:
+          name: coverage
+          path: coverage
+          if-no-files-found: error
+          retention-days: 7
+      - name: Check coverage threshold
+        if: ${{ env.CODECOV_UPLOAD != 'true' }}
+        run: bash -x .github/workflows/scripts/check_coverage_html.sh
+      - name: Generate LCOV coverage report
+        if: ${{ env.CODECOV_UPLOAD == 'true' }}
+        run: bash -x .github/workflows/scripts/generate_coverage.sh lcov ./lcov.info
+      - name: Upload coverage report on Codecov
+        if: ${{ env.CODECOV_UPLOAD == 'true' }}
+        uses: codecov/codecov-action@v3
+        with:
+          files: ./lcov.info
+          fail_ci_if_error: true
+          verbose: true
+          token: ${{ secrets.CODECOV_TOKEN }}
+      - name: Check coverage threshold
+        if: ${{ env.CODECOV_UPLOAD == 'true' }}
+        run: bash -x .github/workflows/scripts/check_coverage_lcov.sh
+
+  doc:
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Retrieve minimal supported rust version
+        id: rust_version
+        run: bash -x .github/workflows/scripts/find_minimal_rust_version.sh
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: ${{ steps.rust_version.outputs.RUST_VERSION_STABLE }}
+      - name: Setup cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          cache-on-failure: true
+      - name: Install Linux general dependencies
+        run: sudo apt-get update && sudo apt-get install libudev-dev
+      - name: Generate documentation
+        run: cargo doc --no-deps
+        env:
+          RUSTDOCFLAGS: -Dwarnings
+
+  lint:
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Retrieve minimal supported rust version
+        id: rust_version
+        run: bash -x .github/workflows/scripts/find_minimal_rust_version.sh
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: ${{ steps.rust_version.outputs.RUST_VERSION_STABLE }}
+          components: rustfmt
+      - name: Setup cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          cache-on-failure: true
+      - name: Install dependencies
+        run: sudo apt-get update && sudo apt-get install libudev-dev moreutils dos2unix
+      - name: Run rustfmt
+        run: cargo fmt -- --check
+      - name: Run cargo-deny
+        uses: EmbarkStudios/cargo-deny-action@v1
+        with:
+          rust-version: ${{ steps.rust_version.outputs.RUST_VERSION_STABLE }}
+      - name: Check crates are registered on crates.io
+        run: bash -x .github/workflows/scripts/check_registered_crates.sh
+        env:
+          CARGO_TERM_COLOR: never
+      - name: Check encoding
+        run: isutf8 **/*
+      - name: Check line endings
+        run: bash -x .github/workflows/scripts/check_line_endings.sh
+      - name: Check TODOs
+        run: bash -x .github/workflows/scripts/check_todos.sh
+      - name: Check published crate list
+        run: bash -x .github/workflows/scripts/check_published_crate_list.sh
