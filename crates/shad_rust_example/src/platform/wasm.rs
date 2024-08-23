@@ -6,7 +6,7 @@ pub(crate) fn init_logging(level: log::Level) {
 }
 
 pub(crate) fn init_canvas(handle: &winit::window::Window) {
-    const CANVAS_ID: &str = "modor";
+    const CANVAS_ID: &str = "shad";
     if let Some(canvas) = handle.canvas() {
         canvas.set_id(CANVAS_ID);
         web_sys::window()

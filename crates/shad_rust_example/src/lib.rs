@@ -177,7 +177,7 @@ impl App {
 
     fn create_depth_buffer(device: &Device, size: (u32, u32)) -> TextureView {
         let texture = device.create_texture(&TextureDescriptor {
-            label: Some("modor_depth_texture"),
+            label: Some("shad_depth_texture"),
             size: Extent3d {
                 width: size.0,
                 height: size.1,
@@ -244,7 +244,7 @@ impl Context {
 
     fn create_encoder(&self) -> CommandEncoder {
         let descriptor = CommandEncoderDescriptor {
-            label: Some("modor_render_encoder"),
+            label: Some("shad_render_encoder"),
         };
         self.device.create_command_encoder(&descriptor)
     }
@@ -255,7 +255,7 @@ impl Context {
         view: &'a TextureView,
     ) -> RenderPass<'a> {
         encoder.begin_render_pass(&RenderPassDescriptor {
-            label: Some("modor_render_pass"),
+            label: Some("shad_render_pass"),
             color_attachments: &[Some(RenderPassColorAttachment {
                 view,
                 resolve_target: None,

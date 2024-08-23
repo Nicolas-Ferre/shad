@@ -1,15 +1,13 @@
-use std::sync::OnceLock;
 use winit::platform::android::EventLoopBuilderExtAndroid;
 
 #[doc(hidden)]
-pub(crate) static ANDROID_APP: std::sync::OnceLock<android_activity::AndroidApp> =
-    std::sync::OnceLock::new();
+static ANDROID_APP: std::sync::OnceLock<android_activity::AndroidApp> = std::sync::OnceLock::new();
 
 pub(crate) fn event_loop() -> winit::event_loop::EventLoop<()> {
-    let android_app = modor::ANDROID_APP
+    let android_app = ANDROID_APP
         .get()
         .cloned()
-        .expect("app not correctly initialized (maybe modor::main is not used ?)");
+        .expect("app not correctly initialized");
     winit::event_loop::EventLoop::builder()
         .with_android_app(android_app)
         .build()
