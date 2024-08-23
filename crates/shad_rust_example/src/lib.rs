@@ -25,7 +25,7 @@ macro_rules! main {
     () => {
         #[cfg(target_os = "android")]
         #[no_mangle]
-        fn android_main(app: android_activity::AndroidApp) {
+        extern "C" fn android_main(app: android_activity::AndroidApp) {
             $crate::init_android(app);
             $crate::run()
         }
