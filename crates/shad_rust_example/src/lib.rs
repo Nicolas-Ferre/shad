@@ -51,7 +51,7 @@ pub fn run() {
 
 #[cfg(target_os = "android")]
 pub fn init_android(app: android_activity::AndroidApp) {
-    let _ = ANDROID_APP.get_or_init(move || app);
+    let _ = platform::ANDROID_APP.get_or_init(move || app);
 }
 
 #[derive(Debug, Default)]
