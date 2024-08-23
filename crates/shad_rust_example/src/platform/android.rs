@@ -1,7 +1,8 @@
 use winit::platform::android::EventLoopBuilderExtAndroid;
 
 #[doc(hidden)]
-static ANDROID_APP: std::sync::OnceLock<android_activity::AndroidApp> = std::sync::OnceLock::new();
+pub(crate) static ANDROID_APP: std::sync::OnceLock<android_activity::AndroidApp> =
+    std::sync::OnceLock::new();
 
 pub(crate) fn event_loop() -> winit::event_loop::EventLoop<()> {
     let android_app = ANDROID_APP

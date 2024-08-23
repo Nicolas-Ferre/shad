@@ -20,11 +20,38 @@ use winit::window::{Window, WindowId};
 mod platform;
 mod validation;
 
+#[macro_export]
+macro_rules! main {
+    () => {
+        #[cfg(target_os = "android")]
+        #[no_mangle]
+        fn android_main(app: android_activity::AndroidApp) {
+            $crate::init_android();
+            $crate::run()
+        }
+
+        // Unused main method to remove Clippy warning
+        #[cfg(target_os = "android")]
+        #[allow(dead_code)]
+        fn main() {}
+
+        #[cfg(not(target_os = "android"))]
+        fn main() {
+            $crate::run()
+        }
+    };
+}
+
 pub fn run() {
     platform::init_logging(Level::Info);
     let event_loop = platform::event_loop();
     let app = App::default();
     platform::run_event_loop(event_loop, app);
+}
+
+#[cfg(target_os = "android")]
+pub fn init_android(app: android_activity::AndroidApp) {
+    let _ = ANDROID_APP.get_or_init(move || app);
 }
 
 #[derive(Debug, Default)]
