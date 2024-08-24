@@ -33,7 +33,7 @@ macro_rules! main {
 }
 
 pub fn run() {
-    platform::init_logging(Level::Info);
+    platform::init_logging(Level::Warn);
     let event_loop = platform::event_loop();
     let app = App::default();
     platform::run_event_loop(event_loop, app);

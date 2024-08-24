@@ -9,7 +9,7 @@ struct Sprite {
     @location(2)
     size: vec2<f32>,
     @location(3)
-    rotation: f32, // TODO: implement
+    rotation: f32,
     @location(4)
     color: vec4<f32>,
 };
@@ -23,10 +23,14 @@ struct Fragment {
 
 @vertex
 fn vs_main(vertex: Vertex, sprite: Sprite) -> Fragment {
+    let pos = vec2(
+        vertex.position.x * sprite.size.x,
+        vertex.position.y * sprite.size.y,
+    );
     return Fragment(
         vec4<f32>(
-            vertex.position.x * sprite.size.x + sprite.position.x,
-            vertex.position.y * sprite.size.y + sprite.position.y,
+            pos.x * cos(sprite.rotation) - pos.y * sin(sprite.rotation) + sprite.position.x,
+            pos.x * sin(sprite.rotation) + pos.y * cos(sprite.rotation) + sprite.position.y,
             vertex.position.z,
             1.
         ),

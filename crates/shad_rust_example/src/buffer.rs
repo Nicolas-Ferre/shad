@@ -35,29 +35,20 @@ where
             queue.write_buffer(&self.inner, 0, bytemuck::cast_slice(data));
         }
     }
-}
 
-#[derive(Debug)]
-pub(crate) struct BufferBindGroup {
-    pub(crate) inner: BindGroup,
-}
-
-impl BufferBindGroup {
-    pub(crate) fn new<T>(
+    pub(crate) fn create_bind_group(
+        &self,
         device: &Device,
         compute_shader: &ComputePipeline,
         bind_group: u32,
-        buffer: &Buffer<T>,
-    ) -> Self {
-        Self {
-            inner: device.create_bind_group(&wgpu::BindGroupDescriptor {
-                label: None,
-                layout: &compute_shader.get_bind_group_layout(bind_group),
-                entries: &[wgpu::BindGroupEntry {
-                    binding: 0,
-                    resource: buffer.inner.as_entire_binding(),
-                }],
-            }),
-        }
+    ) -> BindGroup {
+        device.create_bind_group(&wgpu::BindGroupDescriptor {
+            label: None,
+            layout: &compute_shader.get_bind_group_layout(bind_group),
+            entries: &[wgpu::BindGroupEntry {
+                binding: 0,
+                resource: self.inner.as_entire_binding(),
+            }],
+        })
     }
 }

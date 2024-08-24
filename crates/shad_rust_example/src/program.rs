@@ -1,14 +1,14 @@
 use crate::app::Gpu;
-use crate::buffer::{Buffer, BufferBindGroup};
+use crate::buffer::Buffer;
 use crate::mesh::{Mesh, Vertex};
 use crate::shader::Shader;
 use bytemuck::{Pod, Zeroable};
 use wgpu::{
-    BufferAddress, BufferUsages, ComputePipeline, Device, IndexFormat, RenderPipeline,
+    BindGroup, BufferAddress, BufferUsages, ComputePipeline, Device, IndexFormat, RenderPipeline,
     TextureFormat, VertexAttribute, VertexBufferLayout, VertexFormat, VertexStepMode,
 };
 
-const SPRITE_COUNT: u32 = 2_000_000;
+const SPRITE_COUNT: u32 = 1_000_000;
 
 #[derive(Debug)]
 pub(crate) struct Program {
@@ -16,9 +16,9 @@ pub(crate) struct Program {
     update_shader: ComputePipeline,
     mesh: Mesh,
     instances: Buffer<Sprite>,
-    updated_instances_bind_group: BufferBindGroup,
+    updated_instances_bind_group: BindGroup,
     delta: Buffer<f32>,
-    delta_bind_group: BufferBindGroup,
+    delta_bind_group: BindGroup,
 }
 
 impl Program {
@@ -34,7 +34,7 @@ impl Program {
                     i as f32 / SPRITE_COUNT as f32 * 0.5,
                     i as f32 / SPRITE_COUNT as f32 * -0.5,
                 ],
-                size: [0.02, 0.02],
+                size: [0.05, 0.05],
                 rotation: 0.,
                 _padding3: [0.],
                 _padding4: [0., 0.],
@@ -49,14 +49,13 @@ impl Program {
                 | BufferUsages::COPY_DST,
             &sprites,
         );
-        let updated_instances_bind_group =
-            BufferBindGroup::new(device, &update_shader, 0, &instances);
+        let updated_instances_bind_group = instances.create_bind_group(device, &update_shader, 0);
         let delta = Buffer::new(
             device,
             BufferUsages::UNIFORM | BufferUsages::STORAGE | BufferUsages::COPY_DST,
             &[0.],
         );
-        let delta_bind_group = BufferBindGroup::new(device, &update_shader, 1, &delta);
+        let delta_bind_group = delta.create_bind_group(device, &update_shader, 1);
         Self {
             rendering_shader,
             update_shader,
@@ -73,8 +72,8 @@ impl Program {
         self.delta.update(gpu.device, gpu.queue, &[gpu.delta * 2.]);
         let mut pass = gpu.start_compute_pass();
         pass.set_pipeline(&self.update_shader);
-        pass.set_bind_group(0, &self.updated_instances_bind_group.inner, &[]);
-        pass.set_bind_group(1, &self.delta_bind_group.inner, &[]);
+        pass.set_bind_group(0, &self.updated_instances_bind_group, &[]);
+        pass.set_bind_group(1, &self.delta_bind_group, &[]);
         pass.dispatch_workgroups((self.instances.len as u32).div_ceil(256), 1, 1);
         drop(pass);
         let mut pass = gpu.start_render_pass();
