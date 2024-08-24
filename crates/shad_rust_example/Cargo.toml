@@ -36,7 +36,7 @@ console_error_panic_hook.workspace = true
 console_log.workspace = true
 wasm-bindgen-test.workspace = true
 web-sys.workspace = true
-wgpu = { workspace = true, default-features = false, features = ["webgl", "wgsl"] }
+wgpu = { workspace = true, features = ["webgl", "wgsl"] }
 
 [lints]
 workspace = true

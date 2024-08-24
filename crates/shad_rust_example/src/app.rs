@@ -230,7 +230,7 @@ impl Context {
         let end = Instant::now();
         self.delta = (end - self.previous_rendering_end).as_secs_f32();
         self.previous_rendering_end = end;
-        println!("FPS: {:.1}", 1. / self.delta);
+        log::info!("FPS: {:.1}", 1. / self.delta);
     }
 
     fn create_surface_texture(&self) -> SurfaceTexture {

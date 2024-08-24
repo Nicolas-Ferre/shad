@@ -1,7 +1,7 @@
 use crate::app::Gpu;
 use crate::buffer::Buffer;
 use crate::mesh::{Mesh, Vertex};
-use crate::shader::Shader;
+use crate::shader;
 use bytemuck::{Pod, Zeroable};
 use wgpu::{
     BindGroup, BufferAddress, BufferUsages, ComputePipeline, Device, IndexFormat, RenderPipeline,
@@ -89,7 +89,7 @@ impl Program {
     }
 
     fn rendering_shader(device: &Device, texture_format: TextureFormat) -> RenderPipeline {
-        Shader::create_render(
+        shader::create_render_pipeline(
             device,
             texture_format,
             include_str!(concat!(
@@ -147,7 +147,7 @@ impl Program {
     }
 
     fn update_shader(device: &Device) -> ComputePipeline {
-        Shader::create_compute_pipeline(
+        shader::create_compute_pipeline(
             device,
             include_str!(concat!(
                 env!("CARGO_MANIFEST_DIR"),
