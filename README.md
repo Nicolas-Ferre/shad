@@ -1,6 +1,6 @@
 # shad
 
-[![License](https://img.shields.io/crates/l/shad)](https://github.com/Nicolas-Ferre/shad)
+[![License](https://img.shields.io/badge/license-MIT%2FApache-blue.svg)](https://github.com/Nicolas-Ferre/shad#license)
 [![CI](https://github.com/Nicolas-Ferre/shad/actions/workflows/ci.yml/badge.svg)](https://github.com/Nicolas-Ferre/shad/actions/workflows/ci.yml)
 [![Coverage with grcov](https://img.shields.io/codecov/c/gh/Nicolas-Ferre/shad)](https://app.codecov.io/gh/Nicolas-Ferre/shad)
 
