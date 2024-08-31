@@ -13,12 +13,13 @@ use std::time::Instant;
 
 fn main() {
     let code = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/examples/big.shd"));
+    let start = Instant::now();
     let parsed = Program::parse(code);
+    println!("Parsing time: {}ms", start.elapsed().as_secs_f32() * 1000.);
     match parsed {
         Ok(parsed) => {
             dbg!(parsed);
         }
-        // Ok(parsed) => println!("{parsed:?}"),
         Err(err) => println!("{err}"),
     }
 }

@@ -1,5 +1,6 @@
-use crate::parser;
-use crate::parser::Node;
+use crate::parser::{Node, ShadParser};
+use crate::{parser, Rule};
+use pest_consume::Parser;
 use std::vec;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -10,7 +11,9 @@ pub struct Program {
 impl Program {
     #[allow(clippy::result_large_err)]
     pub fn parse(input: &str) -> parser::Result<Self> {
-        parser::parse(input)
+        let mut inputs = ShadParser::parse(Rule::program, input)?;
+        let input = inputs.next().expect("internal error");
+        ShadParser::program(input)
     }
 }
 

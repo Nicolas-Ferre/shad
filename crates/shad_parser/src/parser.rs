@@ -5,27 +5,19 @@ use crate::model::{
 };
 use crate::UnaryOperator;
 use pest_consume::{match_nodes, Error, Parser};
-use std::hint::black_box;
 use std::iter;
 
 pub type Result<T> = std::result::Result<T, Error<Rule>>;
 pub(crate) type Node<'i> = pest_consume::Node<'i, Rule, ()>;
 
-#[allow(clippy::result_large_err)]
-pub(crate) fn parse(code: &str) -> Result<Program> {
-    let mut inputs = ShadParser::parse(Rule::program, code)?;
-    let input = inputs.next().expect("internal error");
-    ShadParser::program(input)
-}
-
 #[derive(Parser)]
 #[grammar = "res/shad.pest"]
-struct ShadParser;
+pub(crate) struct ShadParser;
 
 #[allow(clippy::unnecessary_wraps, clippy::used_underscore_binding)]
 #[pest_consume::parser]
 impl ShadParser {
-    fn program(input: Node<'_>) -> Result<Program> {
+    pub(crate) fn program(input: Node<'_>) -> Result<Program> {
         Ok(match_nodes!(input.into_children();
             [fn_item(items).., EOI(())] => Program { items:items.collect() },
         ))
