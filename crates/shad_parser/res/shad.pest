@@ -1,0 +1,80 @@
+program = { SOI ~ fn_item* ~ EOI }
+fn_item = {
+    (
+        fn_keyword ~ ident
+        ~ parenthesis_open ~ fn_params? ~ parenthesis_close
+        ~ (arrow ~ type_)?
+        ~ brace_open ~ statement* ~ brace_close
+    )
+    | (
+        fn_qualifier ~ fn_keyword ~ ident
+        ~ parenthesis_open ~ fn_params? ~ parenthesis_close
+        ~ (arrow ~ type_)? ~ semicolon
+    )
+}
+fn_qualifier = { cpu_keyword | gpu_keyword }
+fn_params = { fn_param ~ next_fn_param* ~ comma? }
+fn_param = { ident ~ colon ~ type_ }
+next_fn_param = { comma ~ fn_param }
+statement = {
+    let_keyword ~ ident ~ equal ~ expr ~ semicolon
+    | return_keyword ~ expr ~ semicolon
+    | for_keyword ~ ident ~ in_keyword ~ expr ~ brace_open ~ statement* ~ brace_close
+    | loop_keyword ~ brace_open ~ statement* ~ brace_close
+    | value ~ equal ~ expr ~ semicolon
+    | expr ~ semicolon
+}
+expr = {
+    expr_part ~ right_operand+
+    | expr_part
+}
+expr_part = {
+    parenthesis_open ~ expr ~ parenthesis_close
+    | expr_terminal
+}
+expr_terminal = {
+    unary_operator ~ expr_part
+    | fn_call
+    | square_bracket_open ~ expr ~ semicolon ~ expr ~ square_bracket_close
+    | value
+    | f32_literal
+    | i32_literal
+}
+right_operand = { binary_operator ~ expr_part }
+type_ = { ident ~ (angle_bracket_open ~ type_ ~ angle_bracket_close)? }
+value = { ident ~ value_attribute* ~ (square_bracket_open ~ expr ~ square_bracket_close)? }
+value_attribute = { dot ~ ident }
+fn_call = { ident ~ parenthesis_open ~ fn_call_args? ~ parenthesis_close }
+fn_call_args = { expr ~ (fn_call_next_arg)* ~ comma? }
+fn_call_next_arg = { comma ~ expr }
+
+colon = @{ ":" }
+semicolon = @{ ";" }
+equal = @{ "=" }
+comma = @{ "," }
+dot = @{ "." }
+arrow = @{ "->" }
+parenthesis_open = @{ "(" }
+parenthesis_close = @{ ")" }
+brace_open = @{ "{" }
+brace_close = @{ "}" }
+square_bracket_open = @{ "[" }
+square_bracket_close = @{ "]" }
+angle_bracket_open = @{ "<" }
+angle_bracket_close = @{ ">" }
+fn_keyword = @{ "fn" ~ " " }
+cpu_keyword = @{ "cpu" ~ " " }
+gpu_keyword = @{ "gpu" ~ " " }
+let_keyword = @{ "let" ~ " " }
+return_keyword = @{ "return" ~ " " }
+for_keyword = @{ "for" ~ " " }
+loop_keyword = @{ "loop" ~ " " }
+in_keyword = @{ "in" ~ " " }
+binary_operator = @{ "+" | "-" | "*" | "/" }
+unary_operator = @{ "-" }
+ident = @{ !ASCII_DIGIT ~ (ASCII_ALPHANUMERIC | "_")+ }
+f32_literal = @{ !"_" ~ (ASCII_DIGIT | "_")+ ~ "." ~ !"_" ~ (ASCII_DIGIT | "_")* }
+i32_literal = @{ ASCII_DIGIT ~ (ASCII_DIGIT | "_")* }
+
+WHITESPACE = _{ " " | "\t" | NEWLINE }
+COMMENT = _{ "//" ~ (!NEWLINE ~ ANY)* }

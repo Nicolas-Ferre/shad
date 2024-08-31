@@ -4,9 +4,16 @@
 [![CI](https://github.com/Nicolas-Ferre/shad/actions/workflows/ci.yml/badge.svg)](https://github.com/Nicolas-Ferre/shad/actions/workflows/ci.yml)
 [![Coverage with grcov](https://img.shields.io/codecov/c/gh/Nicolas-Ferre/shad)](https://app.codecov.io/gh/Nicolas-Ferre/shad)
 
-Shad is a programming language to run entire applications on the GPU.
+Shad is a programming language to run applications almost entirely on the GPU.
 
-It is particularly well suited for applications like games and simulations.
+It is particularly well suited for graphics applications like games.
+
+## Main language features
+
+- Strongly typed
+- Memory safe
+- Data race free
+- Hot reloadable
 
 ## ⚠️ Warning ⚠️
 
