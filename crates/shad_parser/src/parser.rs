@@ -319,6 +319,26 @@ impl ShadParser {
         })
     }
 
+    fn binary_operator(input: Node<'_>) -> Result<String> {
+        Ok(input.as_str().to_string())
+    }
+
+    fn unary_operator(input: Node<'_>) -> Result<String> {
+        Ok(input.as_str().to_string())
+    }
+
+    fn f32_literal(input: Node<'_>) -> Result<String> {
+        Ok(input.as_str().to_string())
+    }
+
+    fn i32_literal(input: Node<'_>) -> Result<String> {
+        let mut chars: Vec<_> = input.as_str().chars().collect();
+        while chars.first() == Some(&'0') && chars.get(1).is_some() {
+            chars.remove(0);
+        }
+        Ok(chars.iter().collect())
+    }
+
     fn colon(_input: Node<'_>) -> Result<()> {
         Ok(())
     }
@@ -405,26 +425,6 @@ impl ShadParser {
 
     fn in_keyword(_input: Node<'_>) -> Result<()> {
         Ok(())
-    }
-
-    fn binary_operator(input: Node<'_>) -> Result<String> {
-        Ok(input.as_str().to_string())
-    }
-
-    fn unary_operator(input: Node<'_>) -> Result<String> {
-        Ok(input.as_str().to_string())
-    }
-
-    fn f32_literal(input: Node<'_>) -> Result<String> {
-        Ok(input.as_str().to_string())
-    }
-
-    fn i32_literal(input: Node<'_>) -> Result<String> {
-        let mut chars: Vec<_> = input.as_str().chars().collect();
-        while chars.first() == Some(&'0') && chars.get(1).is_some() {
-            chars.remove(0);
-        }
-        Ok(chars.iter().collect())
     }
 
     #[allow(non_snake_case)]

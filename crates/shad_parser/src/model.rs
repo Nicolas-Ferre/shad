@@ -11,7 +11,12 @@ pub struct Program {
 impl Program {
     #[allow(clippy::result_large_err)]
     pub fn parse(input: &str) -> parser::Result<Self> {
-        let mut inputs = ShadParser::parse(Rule::program, input)?;
+        // Comments are manually removed to speed up parsing.
+        let input = input
+            .split('\n')
+            .map(|line| line.split_once("//").map_or(line, |line| line.0))
+            .collect::<String>();
+        let mut inputs = ShadParser::parse(Rule::program, &input)?;
         let input = inputs.next().expect("internal error");
         ShadParser::program(input)
     }

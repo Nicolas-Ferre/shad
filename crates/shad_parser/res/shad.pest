@@ -1,3 +1,4 @@
+// TODO: see if the grammar can be improved (more/less rules)
 program = { SOI ~ fn_item* ~ EOI }
 fn_item = {
     (
