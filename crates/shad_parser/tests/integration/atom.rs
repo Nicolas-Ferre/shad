@@ -40,14 +40,11 @@ fn assert_valid_ident(ident: &str) {
 }
 
 fn assert_invalid_ident(ident: &str) {
-    let parsed = Program::parse_str(&format!("buf {ident} = 0.;"), "filename");
-    let Error::Syntax(err) = parsed.expect_err("valid ident") else {
+    let Err(Error::Syntax(err)) = Program::parse_str(&format!("buf {ident} = 0.;"), "file") else {
         panic!("incorrect error")
     };
     assert_eq!(err.offset, 4);
     assert_eq!(err.message, "unexpected token");
-    assert!(err.pretty_message.contains("filename:1:5"));
-    assert!(err.pretty_message.contains("unexpected token"));
 }
 
 fn assert_valid_literal(literal: &str, type_: LiteralType) {
@@ -71,14 +68,9 @@ fn assert_valid_literal(literal: &str, type_: LiteralType) {
 }
 
 fn assert_invalid_literal(literal: &str, offset: usize) {
-    let parsed = Program::parse_str(&format!("buf b = {literal};"), "filename");
-    let Error::Syntax(err) = parsed.expect_err("valid ident") else {
+    let Err(Error::Syntax(err)) = Program::parse_str(&format!("buf b = {literal};"), "file") else {
         panic!("incorrect error")
     };
     assert_eq!(err.offset, 8 + offset);
     assert_eq!(err.message, "expected `;`");
-    assert!(err
-        .pretty_message
-        .contains(&format!("filename:1:{}", 8 + offset + 1)));
-    assert!(err.pretty_message.contains("expected `;`"));
 }

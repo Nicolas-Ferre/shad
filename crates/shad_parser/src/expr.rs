@@ -1,5 +1,5 @@
 use crate::common::{Token, TokenType};
-use crate::{Literal, SyntaxError, Span};
+use crate::{Literal, Span, SyntaxError};
 use logos::Lexer;
 
 /// A parsed expression.

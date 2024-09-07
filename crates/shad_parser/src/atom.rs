@@ -11,7 +11,6 @@ use logos::Lexer;
 /// # Examples
 ///
 /// - `my_buffer` will be parsed as an identifier in `buf my_buffer = 0;` Shad code.
-/// ```
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Ident {
     /// The span of the identifier.
@@ -40,7 +39,6 @@ impl Ident {
 /// - Shad code `1.` will be parsed as a `float` literal.
 /// - Shad code `1.2` will be parsed as a `float` literal.
 /// - Shad code `1_000.420_456` will be parsed as a `float` literal.
-/// ```
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Literal {
     /// The span of the literal.

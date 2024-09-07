@@ -127,6 +127,7 @@ pub(crate) enum TokenType {
 }
 
 impl TokenType {
+    // coverage: off (not all labels are used in practice)
     pub(crate) fn label(self) -> &'static str {
         match self {
             Self::Buf => "`buf`",
@@ -136,6 +137,7 @@ impl TokenType {
             Self::FloatLiteral => "float literal",
         }
     }
+    // coverage: on
 }
 
 #[derive(Debug)]

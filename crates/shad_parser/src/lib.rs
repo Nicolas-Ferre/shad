@@ -16,14 +16,14 @@
 //! # }
 //! ```
 
-mod atoms;
+mod atom;
 mod common;
 mod expr;
-mod items;
+mod item;
 mod program;
 
-pub use atoms::*;
+pub use atom::*;
 pub use common::*;
 pub use expr::*;
-pub use items::*;
+pub use item::*;
 pub use program::*;

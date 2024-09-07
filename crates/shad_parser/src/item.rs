@@ -1,4 +1,4 @@
-use crate::atoms::parse_token;
+use crate::atom::parse_token;
 use crate::common::{Token, TokenType};
 use crate::{Expr, Ident, Span, SyntaxError};
 use logos::Lexer;
