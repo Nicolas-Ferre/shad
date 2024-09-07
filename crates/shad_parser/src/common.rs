@@ -3,41 +3,58 @@ use logos::{Lexer, Logos};
 use std::fmt::{Debug, Display, Formatter};
 use std::{error, io};
 
-#[non_exhaustive]
+/// An error obtained when trying to parse a Shad code.
 #[derive(Debug)]
 pub enum Error {
-    Parsing(ParsingError),
+    /// A parsing error.
+    Syntax(SyntaxError),
+    /// An I/O error.
     Io(io::Error),
 }
+
+impl PartialEq for Error {
+    fn eq(&self, other: &Self) -> bool {
+        match (self, other) {
+            (Self::Syntax(err1), Self::Syntax(err2)) => err1 == err2,
+            (Self::Io(err1), Self::Io(err2)) => err1.to_string() == err2.to_string(),
+            _ => false,
+        }
+    }
+}
+
+impl Eq for Error {}
 
 impl Display for Error {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
-            Error::Parsing(err) => Display::fmt(err, f),
-            Error::Io(err) => Display::fmt(err, f),
+            Self::Syntax(err) => Display::fmt(err, f),
+            Self::Io(err) => Display::fmt(err, f),
         }
     }
 }
 
 impl error::Error for Error {}
 
-#[non_exhaustive]
+/// A syntax error obtained when trying to parse a Shad code.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct ParsingError {
+pub struct SyntaxError {
+    /// The byte offset where the error is located in the file.
     pub offset: usize,
+    /// The error message.
     pub message: String,
+    /// The formatted error message.
     pub pretty_message: String,
 }
 
-impl Display for ParsingError {
+impl Display for SyntaxError {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.pretty_message)
     }
 }
 
-impl error::Error for ParsingError {}
+impl error::Error for SyntaxError {}
 
-impl ParsingError {
+impl SyntaxError {
     pub(crate) fn new(offset: usize, message: impl Into<String>) -> Self {
         Self {
             offset,
@@ -67,15 +84,22 @@ impl ParsingError {
     }
 }
 
-#[non_exhaustive]
+/// The span of a group of token in a file.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Span {
+    /// The byte offset of the span start.
     pub start: usize,
+    /// The byte offset of the span end.
     pub end: usize,
 }
 
 impl Span {
-    pub(crate) fn new(span: logos::Span) -> Self {
+    /// Creates a span.
+    pub fn new(start: usize, end: usize) -> Self {
+        Self { start, end }
+    }
+
+    pub(crate) fn from_logos(span: logos::Span) -> Self {
         Self {
             start: span.start,
             end: span.end,
@@ -86,126 +110,30 @@ impl Span {
 #[derive(Logos, Debug, PartialEq, Eq, Clone, Copy)]
 #[logos(skip r"[ \t\r\n\f]+")]
 pub(crate) enum TokenType {
-    #[token("let")]
-    Let,
-
-    #[token("return")]
-    Return,
-
-    #[token("for")]
-    For,
-
-    #[token("loop")]
-    Loop,
-
-    #[token("in")]
-    In,
-
-    #[token("fn")]
-    Fn,
-
-    #[token("cpu")]
-    Cpu,
-
-    #[token("gpu")]
-    Gpu,
-
-    #[token("->")]
-    Arrow,
-
-    #[token("+")]
-    Add,
-
-    #[token("-")]
-    Sub,
-
-    #[token("*")]
-    Mul,
-
-    #[token("/")]
-    Div,
+    #[token("buf")]
+    Buf,
 
     #[token("=")]
     Equal,
 
-    #[token(",")]
-    Comma,
-
     #[token(";")]
     SemiColon,
-
-    #[token(":")]
-    Colon,
-
-    #[token(".")]
-    Dot,
-
-    #[token("(")]
-    OpenParenthesis,
-
-    #[token(")")]
-    CloseParenthesis,
-
-    #[token("{")]
-    OpenBrace,
-
-    #[token("}")]
-    CloseBrace,
-
-    #[token("[")]
-    OpenSquareBracket,
-
-    #[token("]")]
-    CloseSquareBracket,
-
-    #[token("<")]
-    OpenAngleBracket,
-
-    #[token(">")]
-    CloseAngleBracket,
 
     #[regex("[a-zA-Z_][a-zA-Z0-9_]*")]
     Ident,
 
     #[regex("[0-9][0-9_]*\\.([0-9][0-9_]*)?")]
     FloatLiteral,
-
-    #[regex("[0-9][0-9_]*")]
-    IntLiteral,
 }
 
 impl TokenType {
     pub(crate) fn label(self) -> &'static str {
         match self {
-            Self::Let => "`let`",
-            Self::Return => "`return`",
-            Self::For => "`for`",
-            Self::Loop => "`loop`",
-            Self::In => "`in`",
-            Self::Fn => "`fn`",
-            Self::Cpu => "`cpu`",
-            Self::Gpu => "`gpu`",
-            Self::Arrow => "`->`",
-            Self::Add => "`+`",
-            Self::Sub => "`-`",
-            Self::Mul => "`*`",
-            Self::Div => "`/`",
+            Self::Buf => "`buf`",
             Self::Equal => "`=`",
-            Self::Comma => "`,`",
-            Self::SemiColon => "`:`",
-            Self::Colon => "`;`",
-            Self::Dot => "`.`",
-            Self::OpenParenthesis => "`(`",
-            Self::CloseParenthesis => "`)`",
-            Self::OpenBrace => "`{`",
-            Self::CloseBrace => "`}`",
-            Self::OpenSquareBracket => "`[`",
-            Self::CloseSquareBracket => "`]`",
-            Self::OpenAngleBracket => "`<`",
-            Self::CloseAngleBracket => "`>`",
+            Self::SemiColon => "`;`",
             Self::Ident => "identifier",
             Self::FloatLiteral => "float literal",
-            Self::IntLiteral => "int literal",
         }
     }
 }
@@ -218,12 +146,12 @@ pub(crate) struct Token<'a> {
 }
 
 impl<'a> Token<'a> {
-    pub(crate) fn next(lexer: &mut Lexer<'a, TokenType>) -> Result<Self, ParsingError> {
+    pub(crate) fn next(lexer: &mut Lexer<'a, TokenType>) -> Result<Self, SyntaxError> {
         Ok(Self {
             type_: lexer
                 .next()
-                .ok_or_else(|| ParsingError::new(lexer.span().start, "unexpected end of file"))?
-                .map_err(|()| ParsingError::new(lexer.span().start, "unexpected token"))?,
+                .ok_or_else(|| SyntaxError::new(lexer.span().start, "unexpected end of file"))?
+                .map_err(|()| SyntaxError::new(lexer.span().start, "unexpected token"))?,
             span: lexer.span(),
             slice: lexer.slice(),
         })

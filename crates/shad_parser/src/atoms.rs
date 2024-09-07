@@ -1,5 +1,5 @@
 use crate::common::{Span, Token, TokenType};
-use crate::ParsingError;
+use crate::SyntaxError;
 use logos::Lexer;
 
 /// A parsed identifier.
@@ -10,24 +10,21 @@ use logos::Lexer;
 ///
 /// # Examples
 ///
-/// `my_func` will be parsed as an identifier in the following Shad code:
-/// ```custom,rust
-/// fn my_func() {}
+/// - `my_buffer` will be parsed as an identifier in `buf my_buffer = 0;` Shad code.
 /// ```
-#[non_exhaustive]
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Ident {
-    /// The span.
+    /// The span of the identifier.
     pub span: Span,
     /// The identifier as a string.
     pub label: String,
 }
 
 impl Ident {
-    pub(crate) fn parse(lexer: &mut Lexer<'_, TokenType>) -> Result<Self, ParsingError> {
+    pub(crate) fn parse(lexer: &mut Lexer<'_, TokenType>) -> Result<Self, SyntaxError> {
         let token = parse_token(lexer, TokenType::Ident)?;
         Ok(Self {
-            span: Span::new(token.span),
+            span: Span::from_logos(token.span),
             label: token.slice.to_string(),
         })
     }
@@ -37,17 +34,16 @@ impl Ident {
 ///
 /// The following literals are recognized:
 /// - `float` literal, following regex `[0-9][0-9_]*\\.([0-9][0-9_]*)?`.
-/// - `int` literal, following regex `[a-zA-Z_][a-zA-Z0-9_]*` and representing a decimal value.
 ///
 /// # Examples
 ///
-/// `1_000_000` will be parsed as an integer literal in the following Shad code:
-/// ```custom,rust
-/// let value = 1_000_000;
+/// - Shad code `1.` will be parsed as a `float` literal.
+/// - Shad code `1.2` will be parsed as a `float` literal.
+/// - Shad code `1_000.420_456` will be parsed as a `float` literal.
 /// ```
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Literal {
-    /// The span.
+    /// The span of the literal.
     pub span: Span,
     /// The cleaned value of the literal.
     ///
@@ -58,25 +54,12 @@ pub struct Literal {
 }
 
 impl Literal {
-    pub(crate) fn parse_float(lexer: &mut Lexer<'_, TokenType>) -> Result<Self, ParsingError> {
+    pub(crate) fn parse_float(lexer: &mut Lexer<'_, TokenType>) -> Result<Self, SyntaxError> {
         let token = parse_token(lexer, TokenType::FloatLiteral)?;
         Ok(Self {
-            span: Span::new(token.span),
+            span: Span::from_logos(token.span),
             value: token.slice.to_string(),
             type_: LiteralType::Float,
-        })
-    }
-
-    pub(crate) fn parse_int(lexer: &mut Lexer<'_, TokenType>) -> Result<Self, ParsingError> {
-        let token = parse_token(lexer, TokenType::IntLiteral)?;
-        let mut chars: Vec<_> = token.slice.chars().collect();
-        while chars.first() == Some(&'0') && chars.get(1).is_some() {
-            chars.remove(0);
-        }
-        Ok(Self {
-            span: Span::new(token.span),
-            value: chars.iter().collect(),
-            type_: LiteralType::Int,
         })
     }
 }
@@ -84,21 +67,19 @@ impl Literal {
 /// The type of a literal.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum LiteralType {
-    /// `float` primitive type.
+    /// The `float` primitive type.
     Float,
-    /// `int` primitive type.
-    Int,
 }
 
 pub(crate) fn parse_token<'a>(
     lexer: &mut Lexer<'a, TokenType>,
     expected_type: TokenType,
-) -> Result<Token<'a>, ParsingError> {
+) -> Result<Token<'a>, SyntaxError> {
     let token = Token::next(lexer)?;
     if token.type_ == expected_type {
         Ok(token)
     } else {
-        Err(ParsingError::new(
+        Err(SyntaxError::new(
             token.span.start,
             format!("expected {}", expected_type.label()),
         ))

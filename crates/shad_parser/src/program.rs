@@ -1,33 +1,51 @@
 use crate::common::{Token, TokenType};
-use crate::{Error, FnItem, ParsingError};
+use crate::{Error, Item, SyntaxError};
 use logos::{Lexer, Logos};
+use std::path::Path;
 use std::{fs, io, iter};
 
-#[non_exhaustive]
+/// A parsed Shad program.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Program {
-    pub items: Vec<FnItem>,
+    /// All the items.
+    pub items: Vec<Item>,
 }
 
 impl Program {
-    pub fn parse_file(path: &str) -> Result<Self, Error> {
-        let raw_code = Self::retrieve_code(path).map_err(Error::Io)?;
-        let cleaned_code = Self::remove_comments(&raw_code);
-        let mut lexer = TokenType::lexer(&cleaned_code);
-        Self::parse(&mut lexer)
-            .map_err(|e| e.with_pretty_message(path, &raw_code))
-            .map_err(Error::Parsing)
+    /// Parses a file containing Shad code.
+    ///
+    /// # Errors
+    ///
+    /// An error is returned if the parsing has failed.
+    pub fn parse_file(path: impl AsRef<Path>) -> Result<Self, Error> {
+        let code = Self::retrieve_code(&path).map_err(Error::Io)?;
+        Self::parse_str(&code, path.as_ref().to_str().unwrap_or_default())
     }
 
-    fn parse(lexer: &mut Lexer<'_, TokenType>) -> Result<Self, ParsingError> {
+    /// Parses a string containing Shad code.
+    ///
+    /// A `path` can be provided to improve formatted error messages.
+    ///
+    /// # Errors
+    ///
+    /// An error is returned if the parsing has failed.
+    pub fn parse_str(code: &str, path: &str) -> Result<Self, Error> {
+        let cleaned_code = Self::remove_comments(code);
+        let mut lexer = TokenType::lexer(&cleaned_code);
+        Self::parse(&mut lexer)
+            .map_err(|e| e.with_pretty_message(path, code))
+            .map_err(Error::Syntax)
+    }
+
+    fn parse(lexer: &mut Lexer<'_, TokenType>) -> Result<Self, SyntaxError> {
         let mut items = vec![];
         while Token::next(&mut lexer.clone()).is_ok() {
-            items.push(FnItem::parse(lexer)?);
+            items.push(Item::parse(lexer)?);
         }
         Ok(Self { items })
     }
 
-    fn retrieve_code(path: &str) -> io::Result<String> {
+    fn retrieve_code(path: &impl AsRef<Path>) -> io::Result<String> {
         fs::read_to_string(path)
     }
 

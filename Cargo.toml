@@ -1,5 +1,5 @@
 [workspace]
-members = ["crates/*", "run-wasm"]
+members = ["crates/*", "tmp/*", "run-wasm"]
 resolver = "2"
 
 [workspace.package]
