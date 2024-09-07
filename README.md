@@ -10,10 +10,10 @@ It is particularly well suited for graphics applications like games.
 
 ## Main language features
 
-- Strongly typed
-- Memory safe
-- Data race free
-- Hot reloadable
+- 🔥 Maximize execution on GPU side
+- 💪 Strongly typed
+- 🔀 Data race free
+- 🔄 Hot reloadable
 
 ## ⚠️ Warning ⚠️
 

@@ -13,9 +13,8 @@ repository.workspace = true
 rust-version.workspace = true
 
 [dependencies]
-pest.workspace = true
-pest_consume.workspace = true
-pest_derive.workspace = true
+annotate-snippets.workspace = true
+logos.workspace = true
 
 [lints]
 workspace = true
