@@ -1,4 +1,5 @@
-use shad_parser::{BufferItem, Error, Expr, Ident, Item, Literal, LiteralType, Program, Span};
+use shad_parser::Error;
+use shad_parser::{BufferItem, Expr, Ident, Item, Literal, LiteralType, ParsedProgram, Span};
 
 #[test]
 fn parse_ident() {
@@ -21,8 +22,8 @@ fn parse_float_literal() {
 
 fn assert_valid_ident(ident: &str) {
     assert_eq!(
-        Program::parse_str(&format!("buf {ident} = 0.;"), ""),
-        Ok(Program {
+        ParsedProgram::parse_str(&format!("buf {ident} = 0.;"), ""),
+        Ok(ParsedProgram {
             items: vec![Item::Buffer(BufferItem {
                 span: Span::new(0, 10 + ident.len()),
                 name: Ident {
@@ -40,7 +41,7 @@ fn assert_valid_ident(ident: &str) {
 }
 
 fn assert_invalid_ident(ident: &str) {
-    let Err(Error::Syntax(err)) = Program::parse_str(&format!("buf {ident} = 0.;"), "file") else {
+    let Err(Error::Syntax(err)) = ParsedProgram::parse_str(&format!("buf {ident} = 0.;"), "file") else {
         panic!("incorrect error")
     };
     assert_eq!(err.offset, 4);
@@ -49,8 +50,8 @@ fn assert_invalid_ident(ident: &str) {
 
 fn assert_valid_literal(literal: &str, type_: LiteralType) {
     assert_eq!(
-        Program::parse_str(&format!("buf b = {literal};"), ""),
-        Ok(Program {
+        ParsedProgram::parse_str(&format!("buf b = {literal};"), ""),
+        Ok(ParsedProgram {
             items: vec![Item::Buffer(BufferItem {
                 span: Span::new(0, 9 + literal.len()),
                 name: Ident {
@@ -68,7 +69,7 @@ fn assert_valid_literal(literal: &str, type_: LiteralType) {
 }
 
 fn assert_invalid_literal(literal: &str, offset: usize) {
-    let Err(Error::Syntax(err)) = Program::parse_str(&format!("buf b = {literal};"), "file") else {
+    let Err(Error::Syntax(err)) = ParsedProgram::parse_str(&format!("buf b = {literal};"), "file") else {
         panic!("incorrect error")
     };
     assert_eq!(err.offset, 8 + offset);

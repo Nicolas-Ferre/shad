@@ -1,13 +1,14 @@
-use shad_parser::{BufferItem, Error, Expr, Ident, Item, Literal, LiteralType, Program, Span};
+use shad_parser::{BufferItem, Expr, Ident, Item, Literal, LiteralType, ParsedProgram, Span};
+use shad_parser::Error;
 
 #[test]
 fn parse_existing_file() {
     assert_eq!(
-        Program::parse_file(concat!(
+        ParsedProgram::parse_file(concat!(
             env!("CARGO_MANIFEST_DIR"),
             "/tests/res/example.shd"
         )),
-        Ok(Program {
+        Ok(ParsedProgram {
             items: vec![Item::Buffer(BufferItem {
                 span: Span::new(0, 11),
                 name: Ident {
@@ -27,7 +28,7 @@ fn parse_existing_file() {
 #[test]
 fn parse_missing_file() {
     assert!(matches!(
-        Program::parse_file(concat!(
+        ParsedProgram::parse_file(concat!(
             env!("CARGO_MANIFEST_DIR"),
             "/tests/res/missing.shd"
         )),

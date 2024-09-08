@@ -1,5 +1,5 @@
 use crate::common::{Span, Token, TokenType};
-use crate::SyntaxError;
+use crate::error::SyntaxError;
 use logos::Lexer;
 
 /// A parsed identifier.
@@ -43,9 +43,7 @@ impl Ident {
 pub struct Literal {
     /// The span of the literal.
     pub span: Span,
-    /// The cleaned value of the literal.
-    ///
-    /// All leading zeros are removed from an integer literal (except for `0` literal).
+    /// The value of the literal.
     pub value: String,
     /// The type of the literal.
     pub type_: LiteralType,

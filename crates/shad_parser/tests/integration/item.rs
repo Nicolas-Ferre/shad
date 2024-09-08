@@ -1,8 +1,9 @@
-use shad_parser::{BufferItem, Error, Expr, Ident, Item, Literal, LiteralType, Program, Span};
+use shad_parser::{BufferItem, Expr, Ident, Item, Literal, LiteralType, ParsedProgram, Span};
+use shad_parser::Error;
 
 #[test]
 fn parse_buffer_item2() {
-    let Ok(Program { items }) = Program::parse_str("buf my_buffer = 0.;", "") else {
+    let Ok(ParsedProgram { items }) = ParsedProgram::parse_str("buf my_buffer = 0.;", "") else {
         panic!("invalid item")
     };
     assert_eq!(
@@ -26,8 +27,8 @@ fn parse_buffer_item2() {
 #[test]
 fn parse_multiple_items() {
     assert_eq!(
-        Program::parse_str("buf my_buffer = 0.;\nbuf other = 1.2;", ""),
-        Ok(Program {
+        ParsedProgram::parse_str("buf my_buffer = 0.;\nbuf other = 1.2;", ""),
+        Ok(ParsedProgram {
             items: vec![
                 Item::Buffer(BufferItem {
                     span: Span::new(0, 19),
@@ -60,7 +61,7 @@ fn parse_multiple_items() {
 
 #[test]
 fn parse_invalid_item() {
-    let Err(Error::Syntax(err)) = Program::parse_str("var b = 0.;", "file") else {
+    let Err(Error::Syntax(err)) = ParsedProgram::parse_str("var b = 0.;", "file") else {
         panic!("incorrect error")
     };
     assert_eq!(err.offset, 0);

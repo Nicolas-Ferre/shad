@@ -1,8 +1,9 @@
-use shad_parser::{Error, Item, Program, Span};
+use shad_parser::Error;
+use shad_parser::{Item, ParsedProgram, Span};
 
 #[test]
 fn parse_literal() {
-    let Ok(Program { items }) = Program::parse_str("buf b = 0.;", "") else {
+    let Ok(ParsedProgram { items }) = ParsedProgram::parse_str("buf b = 0.;", "") else {
         panic!("invalid item")
     };
     let Item::Buffer(item) = &items[0];
@@ -11,7 +12,7 @@ fn parse_literal() {
 
 #[test]
 fn parse_invalid_expr() {
-    let Err(Error::Syntax(err)) = Program::parse_str("buf b = buf;", "file") else {
+    let Err(Error::Syntax(err)) = ParsedProgram::parse_str("buf b = buf;", "file") else {
         panic!("incorrect error")
     };
     assert_eq!(err.offset, 8);

@@ -1,17 +1,22 @@
 use crate::common::{Token, TokenType};
-use crate::{Error, Item, SyntaxError};
+use crate::error::{Error, SyntaxError};
+use crate::Item;
 use logos::{Lexer, Logos};
 use std::path::Path;
 use std::{fs, io, iter};
 
 /// A parsed Shad program.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Program {
+pub struct ParsedProgram {
+    /// The raw Shad code.
+    pub code: String,
+    /// The path to the Shad code file.
+    pub path: String,
     /// All the items.
     pub items: Vec<Item>,
 }
 
-impl Program {
+impl ParsedProgram {
     /// Parses a file containing Shad code.
     ///
     /// # Errors
@@ -32,17 +37,25 @@ impl Program {
     pub fn parse_str(code: &str, path: &str) -> Result<Self, Error> {
         let cleaned_code = Self::remove_comments(code);
         let mut lexer = TokenType::lexer(&cleaned_code);
-        Self::parse(&mut lexer)
+        Self::parse(&mut lexer, code, path)
             .map_err(|e| e.with_pretty_message(path, code))
             .map_err(Error::Syntax)
     }
 
-    fn parse(lexer: &mut Lexer<'_, TokenType>) -> Result<Self, SyntaxError> {
+    fn parse(
+        lexer: &mut Lexer<'_, TokenType>,
+        code: &str,
+        path: &str,
+    ) -> Result<Self, SyntaxError> {
         let mut items = vec![];
         while Token::next(&mut lexer.clone()).is_ok() {
             items.push(Item::parse(lexer)?);
         }
-        Ok(Self { items })
+        Ok(Self {
+            code: code.to_string(),
+            path: path.to_string(),
+            items,
+        })
     }
 
     fn retrieve_code(path: &impl AsRef<Path>) -> io::Result<String> {
