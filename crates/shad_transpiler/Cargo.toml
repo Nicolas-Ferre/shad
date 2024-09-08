@@ -1,0 +1,24 @@
+[package]
+name = "shad_transpiler"
+description = "Shad language transpiler to WGSL"
+readme = "../../README.md"
+keywords = ["language", "gpu", "rendering", "compute", "shader"]
+categories = ["compilers"]
+exclude = [".github", "README.md"]
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+annotate-snippets.workspace = true
+fxhash.workspace = true
+shad_analyzer.workspace = true
+
+[dev-dependencies]
+shad_parser.workspace = true
+
+[lints]
+workspace = true

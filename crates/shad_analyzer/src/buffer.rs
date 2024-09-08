@@ -1,57 +1,64 @@
 use crate::type_::Type;
 use crate::{AnalyzedTypes, ErrorLevel, LocatedMessage, SemanticError};
 use fxhash::FxHashMap;
-use shad_parser::{BufferItem, Item, ParsedProgram, Span};
+use shad_parser::{BufferItem, Ident, Item, ParsedProgram};
 use std::rc::Rc;
 
 /// All buffers found when analysing a Shad program.
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub struct AnalyzedBuffers {
     /// The buffers.
-    pub buffers: FxHashMap<String, Rc<Buffer>>,
+    pub buffers: Vec<Rc<Buffer>>,
+    /// The mapping between Shad buffer names and buffer index.
+    pub buffer_name_indexes: FxHashMap<String, usize>,
     /// The semantic errors related to buffers.
     pub errors: Vec<SemanticError>,
 }
 
 impl AnalyzedBuffers {
     pub(crate) fn new(parsed: &ParsedProgram, types: &AnalyzedTypes) -> Self {
-        let mut buffers = FxHashMap::default();
+        let mut buffers = vec![];
+        let mut buffer_name_indexes = FxHashMap::default();
         let mut errors = vec![];
         for item in &parsed.items {
             let Item::Buffer(buffer) = item;
+            let buffer_index = buffers.len();
             let value_type = types.expr_type(&buffer.value);
-            let existing_buffer = buffers.insert(
-                buffer.name.label.clone(),
-                Rc::new(Buffer::new(buffer, buffers.len(), value_type)),
-            );
-            if let Some(existing_buffer) = existing_buffer {
-                errors.push(duplicated_name_error(buffer, &existing_buffer, parsed));
+            let existing_index =
+                buffer_name_indexes.insert(buffer.name.label.clone(), buffer_index);
+            buffers.push(Rc::new(Buffer::new(buffer, buffer_index, value_type)));
+            if let Some(index) = existing_index {
+                errors.push(duplicated_name_error(buffer, &buffers[index], parsed));
             }
         }
-        Self { buffers, errors }
+        Self {
+            buffers,
+            buffer_name_indexes,
+            errors,
+        }
     }
 }
 
 /// An analyzed buffer.
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub struct Buffer {
-    /// The final name that will be used in shaders.
-    pub final_name: String,
+    /// The unique buffer index.
+    pub index: usize,
     /// The buffer type.
     pub type_: Rc<Type>,
     /// The buffer initial value.
     pub value: shad_parser::Expr,
-    /// The span of the buffer name in the initial Shad code.
-    pub name_span: Span,
+    /// The buffer name in the initial Shad code.
+    pub name: Ident,
 }
 
 impl Buffer {
     pub(crate) fn new(buffer: &BufferItem, index: usize, value_type: &Rc<Type>) -> Self {
         Self {
-            final_name: format!("buf{index}"),
+            index,
             type_: value_type.clone(),
             value: buffer.value.clone(),
-            name_span: buffer.name.span,
+            name: buffer.name.clone(),
         }
     }
 }
@@ -74,7 +81,7 @@ pub(crate) fn duplicated_name_error(
             ),
             LocatedMessage::new(
                 ErrorLevel::Info,
-                existing_buffer.name_span,
+                existing_buffer.name.span,
                 "buffer with same name is defined here",
             ),
         ],

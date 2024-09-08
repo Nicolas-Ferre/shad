@@ -1,21 +1,6 @@
-//! Analyzer for the Shader programming language.
+//! Analyzer for the Shad programming language.
 //!
 //! This crate provides utilities to analyze parsed Shad code.
-//!
-//! # Examples
-//!
-//! ```rust
-//! # use shad_parser::ParsedProgram;
-//! #
-//! # fn no_run() {
-//! let parsed = shad_parser::ParsedProgram::parse_file("myapp.shd");
-//! let analyzed = ParsedProgram::analyze(&parsed);
-//! match analyzed {
-//!     Ok(parsed) => println!("{parsed:#?}"),
-//!     Err(err) => println!("{err}"),
-//! }
-//! # }
-//! ```
 
 mod buffer;
 mod error;

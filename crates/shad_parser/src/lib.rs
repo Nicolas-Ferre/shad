@@ -1,4 +1,4 @@
-//! Parser for the Shader programming language.
+//! Parser for the Shad programming language.
 //!
 //! This crate provides utilities to parse Shad syntax.
 //!

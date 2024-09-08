@@ -11,7 +11,7 @@ pub struct GeneratedInitComputeShaders {
 impl GeneratedInitComputeShaders {
     pub(crate) fn new(buffers: &AnalyzedBuffers) -> Self {
         let mut shaders = vec![];
-        for buffer in buffers.buffers.values() {
+        for buffer in &buffers.buffers {
             shaders.push(ComputeShader {
                 buffers: vec![buffer.clone()],
                 statements: vec![match &buffer.value {
