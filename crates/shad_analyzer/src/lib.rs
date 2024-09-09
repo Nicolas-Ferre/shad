@@ -1,7 +1,7 @@
 //! Analyzer for the Shad programming language.
 //!
 //! This crate provides utilities to analyze parsed Shad code.
-//! 
+//!
 //! # Examples
 //!
 //! ```rust

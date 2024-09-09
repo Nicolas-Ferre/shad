@@ -1,7 +1,7 @@
 //! Parser for the Shad programming language.
-//! 
+//!
 //! # Examples
-//! 
+//!
 //! ```rust
 //! # use shad_runner::*;
 //! #

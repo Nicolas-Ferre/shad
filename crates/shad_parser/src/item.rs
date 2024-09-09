@@ -1,8 +1,8 @@
 use crate::atom::parse_token;
 use crate::common::{Token, TokenType};
+use crate::error::SyntaxError;
 use crate::{Expr, Ident, Span};
 use logos::Lexer;
-use crate::error::SyntaxError;
 
 /// A parsed item.
 ///

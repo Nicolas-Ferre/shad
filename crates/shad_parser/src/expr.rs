@@ -1,7 +1,7 @@
 use crate::common::{Token, TokenType};
+use crate::error::SyntaxError;
 use crate::{Literal, Span};
 use logos::Lexer;
-use crate::error::SyntaxError;
 
 /// A parsed expression.
 ///
