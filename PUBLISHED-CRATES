@@ -1,1 +1,4 @@
-shad_rust_example
+shad_parser
+shad_analyzer
+shad_transpiler
+shad_runner

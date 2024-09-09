@@ -1,0 +1,25 @@
+[package]
+name = "shad_runner"
+description = "Shad language runner"
+readme = "../../README.md"
+keywords = ["language", "gpu", "rendering", "compute", "shader"]
+categories = ["compilers"]
+exclude = [".github", "README.md"]
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+futures.workspace = true
+wgpu.workspace = true
+annotate-snippets.workspace = true
+fxhash.workspace = true
+shad_analyzer.workspace = true
+shad_parser.workspace = true
+shad_transpiler.workspace = true
+
+[lints]
+workspace = true

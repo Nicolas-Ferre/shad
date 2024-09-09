@@ -1,5 +1,5 @@
 [workspace]
-members = ["crates/*", "run-wasm"]
+members = ["crates/*", "tmp/*", "run-wasm"]
 resolver = "2"
 
 [workspace.package]
@@ -13,6 +13,7 @@ rust-version = "1.80.1"
 [workspace.dependencies]
 android-activity = { version = "0.6", features = ["native-activity"] }
 android_logger = "0.14"
+annotate-snippets = "0.11"
 async-std = "1.12"
 bytemuck = { version = "1.15", features = ["derive"] }
 cargo-run-wasm = "0.4"
@@ -24,6 +25,7 @@ fxhash = "0.2"
 image = "0.25"
 instant = "0.1"
 log = "0.4"
+logos = "0.14"
 pico-args = "0.5"
 pretty_env_logger = "0.5"
 reqwest = "0.12"
@@ -33,6 +35,11 @@ wasm-bindgen-test = "0.3"
 web-sys = { version = "0.3", features = ["Location"] }
 wgpu = "22.0"
 winit = "0.30"
+
+shad_parser = { version = "0.1.0", path = "crates/shad_parser" }
+shad_analyzer = { version = "0.1.0", path = "crates/shad_analyzer" }
+shad_transpiler = { version = "0.1.0", path = "crates/shad_transpiler" }
+shad_runner = { version = "0.1.0", path = "crates/shad_runner" }
 
 [workspace.lints.rust]
 anonymous_parameters = "warn"

@@ -1,0 +1,20 @@
+[package]
+name = "shad_parser"
+description = "Shad language parser"
+readme = "../../README.md"
+keywords = ["language", "gpu", "rendering", "compute", "shader"]
+categories = ["compilers"]
+exclude = [".github", "README.md"]
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+annotate-snippets.workspace = true
+logos.workspace = true
+
+[lints]
+workspace = true
