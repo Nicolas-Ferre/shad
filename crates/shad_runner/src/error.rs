@@ -14,6 +14,7 @@ pub enum Error {
     Io(io::Error),
 }
 
+// coverage: off (not critical logic)
 impl Display for Error {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
@@ -28,5 +29,6 @@ impl Display for Error {
         }
     }
 }
+// coverage: on
 
 impl error::Error for Error {}

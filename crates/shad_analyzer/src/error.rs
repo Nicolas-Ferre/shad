@@ -14,11 +14,13 @@ pub struct SemanticError {
     pub pretty_message: String,
 }
 
+// coverage: off (not critical logic)
 impl Display for SemanticError {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.pretty_message)
     }
 }
+// coverage: on
 
 impl error::Error for SemanticError {}
 

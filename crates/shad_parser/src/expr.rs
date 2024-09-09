@@ -1,6 +1,6 @@
 use crate::common::{Token, TokenType};
 use crate::error::SyntaxError;
-use crate::{Literal, Span};
+use crate::Literal;
 use logos::Lexer;
 
 /// A parsed expression.
@@ -15,13 +15,6 @@ pub enum Expr {
 }
 
 impl Expr {
-    /// Returns the span of the expression.
-    pub fn span(&self) -> Span {
-        match self {
-            Self::Literal(expr) => expr.span,
-        }
-    }
-
     #[allow(clippy::wildcard_enum_match_arm)]
     pub(crate) fn parse(lexer: &mut Lexer<'_, TokenType>) -> Result<Self, SyntaxError> {
         let token = Token::next(&mut lexer.clone())?;

@@ -11,18 +11,7 @@ pub enum Error {
     Io(io::Error),
 }
 
-impl PartialEq for Error {
-    fn eq(&self, other: &Self) -> bool {
-        match (self, other) {
-            (Self::Syntax(err1), Self::Syntax(err2)) => err1 == err2,
-            (Self::Io(err1), Self::Io(err2)) => err1.to_string() == err2.to_string(),
-            _ => false,
-        }
-    }
-}
-
-impl Eq for Error {}
-
+// coverage: off (not critical logic)
 impl Display for Error {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
@@ -31,6 +20,7 @@ impl Display for Error {
         }
     }
 }
+// coverage: on
 
 impl error::Error for Error {}
 
@@ -45,11 +35,13 @@ pub struct SyntaxError {
     pub pretty_message: String,
 }
 
+// coverage: off (not critical logic)
 impl Display for SyntaxError {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.pretty_message)
     }
 }
+// coverage: on
 
 impl error::Error for SyntaxError {}
 

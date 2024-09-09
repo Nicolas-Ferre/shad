@@ -16,13 +16,6 @@ pub enum Item {
 }
 
 impl Item {
-    /// Returns the span of the item.
-    pub fn span(&self) -> Span {
-        match self {
-            Self::Buffer(item) => item.span,
-        }
-    }
-
     #[allow(clippy::wildcard_enum_match_arm)]
     pub(crate) fn parse(lexer: &mut Lexer<'_, TokenType>) -> Result<Self, SyntaxError> {
         let token = Token::next(&mut lexer.clone())?;

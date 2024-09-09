@@ -4,8 +4,9 @@ use shad_analyzer::LocatedMessage;
 use shad_runner::{Error, Runner};
 
 mod buffer;
+mod comment;
 mod expr;
-mod io;
+mod runner;
 
 fn snippet_path(filename: &str) -> String {
     concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snippets/").to_string() + filename
