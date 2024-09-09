@@ -28,7 +28,7 @@ impl AnalyzedBuffers {
                 buffer_name_indexes.insert(buffer.name.label.clone(), buffer_index);
             buffers.push(Rc::new(Buffer::new(buffer, buffer_index, value_type)));
             if let Some(index) = existing_index {
-                errors.push(duplicated_name_error(buffer, &buffers[index], parsed));
+                errors.push(Self::duplicated_name_error(buffer, &buffers[index], parsed));
             }
         }
         Self {
@@ -36,6 +36,32 @@ impl AnalyzedBuffers {
             buffer_name_indexes,
             errors,
         }
+    }
+
+    fn duplicated_name_error(
+        buffer: &BufferItem,
+        existing_buffer: &Buffer,
+        parsed: &ParsedProgram,
+    ) -> SemanticError {
+        SemanticError::new(
+            format!(
+                "buffer with name `{}` is defined multiple times",
+                buffer.name.label
+            ),
+            vec![
+                LocatedMessage {
+                    level: ErrorLevel::Error,
+                    span: buffer.name.span,
+                    text: "duplicated buffer name".into(),
+                },
+                LocatedMessage {
+                    level: ErrorLevel::Info,
+                    span: existing_buffer.name.span,
+                    text: "buffer with same name is defined here".into(),
+                },
+            ],
+            parsed,
+        )
     }
 }
 
@@ -61,30 +87,4 @@ impl Buffer {
             name: buffer.name.clone(),
         }
     }
-}
-
-pub(crate) fn duplicated_name_error(
-    buffer: &BufferItem,
-    existing_buffer: &Buffer,
-    parsed: &ParsedProgram,
-) -> SemanticError {
-    SemanticError::new(
-        format!(
-            "buffer with name `{}` is defined multiple times",
-            buffer.name.label
-        ),
-        vec![
-            LocatedMessage::new(
-                ErrorLevel::Error,
-                buffer.name.span,
-                "duplicated buffer name",
-            ),
-            LocatedMessage::new(
-                ErrorLevel::Info,
-                existing_buffer.name.span,
-                "buffer with same name is defined here",
-            ),
-        ],
-        parsed,
-    )
 }

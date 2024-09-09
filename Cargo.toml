@@ -38,6 +38,8 @@ winit = "0.30"
 
 shad_parser = { version = "0.1.0", path = "crates/shad_parser" }
 shad_analyzer = { version = "0.1.0", path = "crates/shad_analyzer" }
+shad_transpiler = { version = "0.1.0", path = "crates/shad_transpiler" }
+shad_runner = { version = "0.1.0", path = "crates/shad_runner" }
 
 [workspace.lints.rust]
 anonymous_parameters = "warn"

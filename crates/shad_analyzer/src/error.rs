@@ -64,17 +64,6 @@ pub struct LocatedMessage {
     pub text: String,
 }
 
-impl LocatedMessage {
-    /// Creates a located message.
-    pub fn new(level: ErrorLevel, span: Span, text: impl Into<String>) -> Self {
-        Self {
-            level,
-            span,
-            text: text.into(),
-        }
-    }
-}
-
 /// The level of a message.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ErrorLevel {

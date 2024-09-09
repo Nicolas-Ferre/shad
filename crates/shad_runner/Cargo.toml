@@ -1,6 +1,6 @@
 [package]
-name = "shad_transpiler"
-description = "Shad language transpiler to WGSL"
+name = "shad_runner"
+description = "Shad language runner"
 readme = "../../README.md"
 keywords = ["language", "gpu", "rendering", "compute", "shader"]
 categories = ["compilers"]
@@ -13,9 +13,13 @@ repository.workspace = true
 rust-version.workspace = true
 
 [dependencies]
+futures.workspace = true
+wgpu.workspace = true
 annotate-snippets.workspace = true
 fxhash.workspace = true
 shad_analyzer.workspace = true
+shad_parser.workspace = true
+shad_transpiler.workspace = true
 
 [lints]
 workspace = true

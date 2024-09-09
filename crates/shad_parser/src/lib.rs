@@ -5,15 +5,15 @@
 //! # Examples
 //!
 //! ```rust
-//! # use shad_parser::ParsedProgram;
+//! # use shad_parser::*;
 //! #
-//! # fn no_run() {
-//! let parsed = ParsedProgram::parse_file("myapp.shd");
-//! match parsed {
-//!     Ok(parsed) => println!("{parsed:#?}"),
-//!     Err(err) => println!("{err}"),
+//! fn parse_shad_program(path: &str) {
+//!     let parsed = ParsedProgram::parse_file(path);
+//!     match parsed {
+//!         Ok(parsed) => println!("{parsed:#?}"),
+//!         Err(err) => println!("{err}"),
+//!     }
 //! }
-//! # }
 //! ```
 
 mod atom;

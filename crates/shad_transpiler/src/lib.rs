@@ -7,7 +7,7 @@ const IDENT_UNIT: usize = 4;
 /// Generates a WGSL shader from a Shad shader definition.
 pub fn generate_wgsl_compute_shader(shader: &ComputeShader) -> String {
     format!(
-        "{}\n\nfn main() {{\n{}\n}}",
+        "{}\n\n@compute @workgroup_size(1, 1, 1) fn main() {{\n{}\n}}",
         buffer_definitions(shader),
         statements(shader)
     )
@@ -63,7 +63,7 @@ fn value(assigned: &Value) -> String {
 
 fn expr(expr: &Expr) -> String {
     match expr {
-        Expr::Literal(literal) => literal.into(),
+        Expr::Literal(literal) => literal.clone(),
     }
 }
 

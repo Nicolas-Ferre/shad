@@ -14,10 +14,10 @@ pub struct AnalyzedProgram {
 
 impl AnalyzedProgram {
     /// Analyzes a parsed Shad program.
-    pub fn new(parsed: &ParsedProgram) -> Self {
+    pub fn analyze(parsed: &ParsedProgram) -> Self {
         let types = AnalyzedTypes::new();
         let buffers = AnalyzedBuffers::new(parsed, &types);
-        let init_compute_shaders = GeneratedInitComputeShaders::new(&buffers);
+        let init_compute_shaders = GeneratedInitComputeShaders::new(parsed, &buffers);
         Self {
             types,
             buffers,
@@ -27,6 +27,9 @@ impl AnalyzedProgram {
 
     /// Iterates on all semantic errors.
     pub fn errors(&self) -> impl Iterator<Item = &SemanticError> + '_ {
-        self.buffers.errors.iter()
+        self.buffers
+            .errors
+            .iter()
+            .chain(&self.init_compute_shaders.errors)
     }
 }

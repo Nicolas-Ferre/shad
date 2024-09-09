@@ -1,0 +1,5 @@
+buf float_zero = 0.0;
+buf float_no_frac_part = 0.;
+buf float_many_digits = 123456700.123456789;
+buf float_max_int_digits = 12345678901234567890123456789012345678.;
+buf float_underscores = 1_2345______670_0_.1_234_567_89____;
