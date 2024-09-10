@@ -50,6 +50,7 @@ pub struct Literal {
 }
 
 impl Literal {
+    #[allow(clippy::wildcard_enum_match_arm)]
     pub(crate) fn parse(
         lexer: &mut Lexer<'_, TokenType>,
         type_: TokenType,
