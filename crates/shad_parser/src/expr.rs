@@ -19,7 +19,7 @@ impl Expr {
     pub(crate) fn parse(lexer: &mut Lexer<'_, TokenType>) -> Result<Self, SyntaxError> {
         let token = Token::next(&mut lexer.clone())?;
         match token.type_ {
-            TokenType::FloatLiteral => Ok(Self::Literal(Literal::parse_float(lexer)?)),
+            TokenType::F32Literal => Ok(Self::Literal(Literal::parse_f32(lexer)?)),
             _ => Err(SyntaxError::new(token.span.start, "expected expression")),
         }
     }

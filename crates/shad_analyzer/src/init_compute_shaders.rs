@@ -12,7 +12,7 @@ pub struct GeneratedInitComputeShaders {
 }
 
 impl GeneratedInitComputeShaders {
-    const FLOAT_INT_PART_LIMIT: usize = 38;
+    const F32_INT_PART_LIMIT: usize = 38;
 
     pub(crate) fn new(parsed: &ParsedProgram, buffers: &AnalyzedBuffers) -> Self {
         let mut shaders = vec![];
@@ -24,7 +24,7 @@ impl GeneratedInitComputeShaders {
                     shad_parser::Expr::Literal(literal) => Statement::Assignment(Assignment {
                         assigned: Value::Buffer(buffer.clone()),
                         value: {
-                            errors.extend(Self::too_many_float_digits_error(literal, parsed));
+                            errors.extend(Self::too_many_f32_digits_error(literal, parsed));
                             Expr::Literal(literal.value.replace('_', ""))
                         },
                     }),
@@ -35,18 +35,18 @@ impl GeneratedInitComputeShaders {
         Self { shaders, errors }
     }
 
-    fn too_many_float_digits_error(
+    fn too_many_f32_digits_error(
         literal: &Literal,
         parsed: &ParsedProgram,
     ) -> Option<SemanticError> {
         let digit_count = literal
             .value
             .find('.')
-            .expect("internal error: `.` not found in float literal");
-        (digit_count > Self::FLOAT_INT_PART_LIMIT).then(|| {
+            .expect("internal error: `.` not found in `f32` literal");
+        (digit_count > Self::F32_INT_PART_LIMIT).then(|| {
             let span = Span::new(literal.span.start, literal.span.start + digit_count);
             SemanticError::new(
-                "float literal with too many digits in integer part",
+                "`f32` literal with too many digits in integer part",
                 vec![
                     LocatedMessage {
                         level: ErrorLevel::Error,
@@ -56,7 +56,7 @@ impl GeneratedInitComputeShaders {
                     LocatedMessage {
                         level: ErrorLevel::Info,
                         span,
-                        text: format!("maximum {} digits are expected", Self::FLOAT_INT_PART_LIMIT),
+                        text: format!("maximum {} digits are expected", Self::F32_INT_PART_LIMIT),
                     },
                 ],
                 parsed,

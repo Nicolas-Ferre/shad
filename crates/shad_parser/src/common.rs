@@ -41,7 +41,7 @@ pub(crate) enum TokenType {
     Ident,
 
     #[regex("[0-9][0-9_]*\\.([0-9][0-9_]*)?")]
-    FloatLiteral,
+    F32Literal,
 }
 
 impl TokenType {
@@ -52,7 +52,7 @@ impl TokenType {
             Self::Equal => "`=`",
             Self::SemiColon => "`;`",
             Self::Ident => "identifier",
-            Self::FloatLiteral => "float literal",
+            Self::F32Literal => "`f32` literal",
         }
     }
     // coverage: on

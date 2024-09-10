@@ -3,7 +3,7 @@ use shad_parser::LiteralType;
 use std::iter;
 use std::rc::Rc;
 
-const FLOAT_TYPE: &str = "float";
+const F32_TYPE: &str = "f32";
 
 /// All types found when analysing a Shad program.
 #[derive(Debug, PartialEq, Eq, Clone)]
@@ -16,9 +16,9 @@ impl AnalyzedTypes {
     pub(crate) fn new() -> Self {
         Self {
             types: iter::once((
-                FLOAT_TYPE.into(),
+                F32_TYPE.into(),
                 Rc::new(Type {
-                    final_name: "f32".into(),
+                    final_name: F32_TYPE.into(),
                     size: 4,
                 }),
             ))
@@ -29,7 +29,7 @@ impl AnalyzedTypes {
     pub(crate) fn expr_type(&self, expr: &shad_parser::Expr) -> &Rc<Type> {
         match expr {
             shad_parser::Expr::Literal(literal) => match literal.type_ {
-                LiteralType::Float => &self.types[FLOAT_TYPE],
+                LiteralType::F32 => &self.types[F32_TYPE],
             },
         }
     }
