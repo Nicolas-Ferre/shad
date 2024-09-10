@@ -63,7 +63,7 @@ fn value(assigned: &Value) -> String {
 
 fn expr(expr: &Expr) -> String {
     match expr {
-        Expr::Literal(literal) => literal.clone(),
+        Expr::Literal(literal) => format!("{}({})", literal.type_.final_name, literal.value),
     }
 }
 

@@ -1,9 +1,10 @@
-use crate::{assert_semantic_error, assert_syntax_error, f32_buffer, snippet_path};
+use crate::{assert_semantic_error, assert_syntax_error, f32_buffer, i32_buffer, snippet_path};
 use shad_analyzer::{ErrorLevel, LocatedMessage};
 use shad_parser::Span;
 use shad_runner::Runner;
 
 #[test]
+#[allow(clippy::decimal_literal_representation)]
 fn run_valid() {
     let runner = Runner::new(snippet_path("expr_valid.shd")).unwrap();
     runner.run();
@@ -12,6 +13,9 @@ fn run_valid() {
     assert_eq!(f32_buffer(&runner, "f32_many_digits"), 123_456_700.);
     assert_eq!(f32_buffer(&runner, "f32_max_int_digits"), 1.234_567_8e37);
     assert_eq!(f32_buffer(&runner, "f32_underscores"), 123_456_700.);
+    assert_eq!(i32_buffer(&runner, "i32_zero"), 0);
+    assert_eq!(i32_buffer(&runner, "i32_underscores"), 123_456_789);
+    assert_eq!(i32_buffer(&runner, "i32_max_value"), 2_147_483_647);
 }
 
 #[test]
@@ -27,18 +31,28 @@ fn run_invalid_semantic() {
     let result = Runner::new(snippet_path("expr_invalid_semantic.shd"));
     assert_semantic_error(
         &result,
-        &["`f32` literal with too many digits in integer part"],
-        &[&vec![
-            LocatedMessage {
+        &[
+            "`f32` literal with too many digits in integer part",
+            "`i32` literal overflow",
+        ],
+        &[
+            &vec![
+                LocatedMessage {
+                    level: ErrorLevel::Error,
+                    span: Span { start: 26, end: 65 },
+                    text: "found 39 digits".into(),
+                },
+                LocatedMessage {
+                    level: ErrorLevel::Info,
+                    span: Span { start: 26, end: 65 },
+                    text: "maximum 38 digits are expected".into(),
+                },
+            ],
+            &vec![LocatedMessage {
                 level: ErrorLevel::Error,
-                span: Span { start: 26, end: 65 },
-                text: "found 39 digits".into(),
-            },
-            LocatedMessage {
-                level: ErrorLevel::Info,
-                span: Span { start: 26, end: 65 },
-                text: "maximum 38 digits are expected".into(),
-            },
-        ]],
+                span: Span { start: 86, end: 99 },
+                text: "value is outside allowed range for `i32` type".into(),
+            }],
+        ],
     );
 }

@@ -50,12 +50,19 @@ pub struct Literal {
 }
 
 impl Literal {
-    pub(crate) fn parse_f32(lexer: &mut Lexer<'_, TokenType>) -> Result<Self, SyntaxError> {
-        let token = parse_token(lexer, TokenType::F32Literal)?;
+    pub(crate) fn parse(
+        lexer: &mut Lexer<'_, TokenType>,
+        type_: TokenType,
+    ) -> Result<Self, SyntaxError> {
+        let token = parse_token(lexer, type_)?;
         Ok(Self {
             span: Span::from_logos(token.span),
             value: token.slice.to_string(),
-            type_: LiteralType::F32,
+            type_: match type_ {
+                TokenType::F32Literal => LiteralType::F32,
+                TokenType::I32Literal => LiteralType::I32,
+                _ => unreachable!("internal error: not supported literal"),
+            },
         })
     }
 }
@@ -65,6 +72,8 @@ impl Literal {
 pub enum LiteralType {
     /// The `f32` primitive type.
     F32,
+    /// The `i32` primitive type.
+    I32,
 }
 
 pub(crate) fn parse_token<'a>(
