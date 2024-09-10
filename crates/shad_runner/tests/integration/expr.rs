@@ -1,4 +1,4 @@
-use crate::{assert_semantic_error, assert_syntax_error, f32_buffer, i32_buffer, snippet_path};
+use crate::{assert_semantic_error, assert_syntax_error, f32_buffer, snippet_path, u32_buffer};
 use shad_analyzer::{ErrorLevel, LocatedMessage};
 use shad_parser::Span;
 use shad_runner::Runner;
@@ -13,16 +13,23 @@ fn run_valid() {
     assert_eq!(f32_buffer(&runner, "f32_many_digits"), 123_456_700.);
     assert_eq!(f32_buffer(&runner, "f32_max_int_digits"), 1.234_567_8e37);
     assert_eq!(f32_buffer(&runner, "f32_underscores"), 123_456_700.);
-    assert_eq!(i32_buffer(&runner, "i32_zero"), 0);
-    assert_eq!(i32_buffer(&runner, "i32_underscores"), 123_456_789);
-    assert_eq!(i32_buffer(&runner, "i32_max_value"), 2_147_483_647);
+    assert_eq!(u32_buffer(&runner, "u32_zero"), 0);
+    assert_eq!(u32_buffer(&runner, "u32_underscores"), 123_456_789);
+    assert_eq!(u32_buffer(&runner, "u32_max_value"), 4_294_967_295);
+    assert_eq!(u32_buffer(&runner, "i32_zero"), 0);
+    assert_eq!(u32_buffer(&runner, "i32_underscores"), 123_456_789);
+    assert_eq!(u32_buffer(&runner, "i32_max_value"), 2_147_483_647);
 }
 
 #[test]
-fn run_invalid_f32_literal_syntax() {
-    let result = Runner::new(snippet_path("expr_invalid_f32_underscore_frac_part.shd"));
+fn run_invalid_syntax() {
+    let result = Runner::new(snippet_path("expr_invalid_underscore_f32_frac_part.shd"));
     assert_syntax_error(&result, "expected `;`", 16);
-    let result = Runner::new(snippet_path("expr_invalid_f32_underscore_int_part.shd"));
+    let result = Runner::new(snippet_path("expr_invalid_underscore_f32_int_part.shd"));
+    assert_syntax_error(&result, "expected expression", 12);
+    let result = Runner::new(snippet_path("expr_invalid_underscore_u32.shd"));
+    assert_syntax_error(&result, "expected expression", 12);
+    let result = Runner::new(snippet_path("expr_invalid_underscore_i32.shd"));
     assert_syntax_error(&result, "expected expression", 12);
 }
 
@@ -33,7 +40,8 @@ fn run_invalid_semantic() {
         &result,
         &[
             "`f32` literal with too many digits in integer part",
-            "`i32` literal overflow",
+            "`u32` literal out of range",
+            "`i32` literal out of range",
         ],
         &[
             &vec![
@@ -50,7 +58,18 @@ fn run_invalid_semantic() {
             ],
             &vec![LocatedMessage {
                 level: ErrorLevel::Error,
-                span: Span { start: 86, end: 99 },
+                span: Span {
+                    start: 86,
+                    end: 100,
+                },
+                text: "value is outside allowed range for `u32` type".into(),
+            }],
+            &vec![LocatedMessage {
+                level: ErrorLevel::Error,
+                span: Span {
+                    start: 120,
+                    end: 133,
+                },
                 text: "value is outside allowed range for `i32` type".into(),
             }],
         ],

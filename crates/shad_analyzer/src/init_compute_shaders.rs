@@ -25,10 +25,10 @@ impl GeneratedInitComputeShaders {
                     shad_parser::Expr::Literal(literal) => Statement::Assignment(Assignment {
                         assigned: Value::Buffer(buffer.clone()),
                         value: {
-                            let cleaned_value = literal.value.replace('_', "");
-                            errors.extend(Self::literal_error(literal, &cleaned_value, parsed));
+                            let final_value = literal.value.replace('_', "");
+                            errors.extend(Self::literal_error(literal, &final_value, parsed));
                             Expr::Literal(Literal {
-                                value: cleaned_value,
+                                value: final_value,
                                 type_: buffer.type_.clone(),
                             })
                         },
@@ -42,21 +42,25 @@ impl GeneratedInitComputeShaders {
 
     fn literal_error(
         literal: &shad_parser::Literal,
-        cleaned_value: &str,
+        final_value: &str,
         parsed: &ParsedProgram,
     ) -> Option<SemanticError> {
         match literal.type_ {
-            LiteralType::F32 => Self::f32_literal_error(literal, cleaned_value, parsed),
-            LiteralType::I32 => Self::i32_literal_error(literal, cleaned_value, parsed),
+            LiteralType::F32 => Self::f32_literal_error(literal, final_value, parsed),
+            LiteralType::U32 => {
+                let digits = &final_value[..final_value.len() - 1];
+                Self::int_literal_error::<u32>(literal, digits, "u32", parsed)
+            }
+            LiteralType::I32 => Self::int_literal_error::<i32>(literal, final_value, "i32", parsed),
         }
     }
 
     fn f32_literal_error(
         literal: &shad_parser::Literal,
-        cleaned_value: &str,
+        final_value: &str,
         parsed: &ParsedProgram,
     ) -> Option<SemanticError> {
-        let digit_count = cleaned_value
+        let digit_count = final_value
             .find('.')
             .expect("internal error: `.` not found in `f32` literal");
         (digit_count > Self::F32_INT_PART_LIMIT).then(|| {
@@ -80,19 +84,23 @@ impl GeneratedInitComputeShaders {
         })
     }
 
-    fn i32_literal_error(
+    fn int_literal_error<T>(
         literal: &shad_parser::Literal,
-        cleaned_value: &str,
+        final_value: &str,
+        type_name: &str,
         parsed: &ParsedProgram,
-    ) -> Option<SemanticError> {
-        let is_literal_invalid = i32::from_str(cleaned_value).is_err();
+    ) -> Option<SemanticError>
+    where
+        T: FromStr,
+    {
+        let is_literal_invalid = T::from_str(final_value).is_err();
         is_literal_invalid.then(|| {
             SemanticError::new(
-                "`i32` literal overflow",
+                format!("`{type_name}` literal out of range"),
                 vec![LocatedMessage {
                     level: ErrorLevel::Error,
                     span: literal.span,
-                    text: "value is outside allowed range for `i32` type".into(),
+                    text: format!("value is outside allowed range for `{type_name}` type"),
                 }],
                 parsed,
             )

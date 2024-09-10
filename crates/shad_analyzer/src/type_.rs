@@ -3,6 +3,7 @@ use shad_parser::LiteralType;
 use std::rc::Rc;
 
 const F32_TYPE: &str = "f32";
+const U32_TYPE: &str = "u32";
 const I32_TYPE: &str = "i32";
 
 /// All types found when analysing a Shad program.
@@ -24,6 +25,13 @@ impl AnalyzedTypes {
                     }),
                 ),
                 (
+                    U32_TYPE.into(),
+                    Rc::new(Type {
+                        final_name: U32_TYPE.into(),
+                        size: 4,
+                    }),
+                ),
+                (
                     I32_TYPE.into(),
                     Rc::new(Type {
                         final_name: I32_TYPE.into(),
@@ -40,6 +48,7 @@ impl AnalyzedTypes {
         match expr {
             shad_parser::Expr::Literal(literal) => match literal.type_ {
                 LiteralType::F32 => &self.types[F32_TYPE],
+                LiteralType::U32 => &self.types[U32_TYPE],
                 LiteralType::I32 => &self.types[I32_TYPE],
             },
         }

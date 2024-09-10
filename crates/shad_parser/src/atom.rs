@@ -33,12 +33,16 @@ impl Ident {
 ///
 /// The following literals are recognized:
 /// - `f32` literal, following regex `[0-9][0-9_]*\\.([0-9][0-9_]*)?`.
+/// - `u32` literal, following regex `[0-9][0-9_]*u`.
+/// - `i32` literal, following regex `[0-9][0-9_]*`.
 ///
 /// # Examples
 ///
-/// - Shad code `1.` will be parsed as a `f32` literal.
-/// - Shad code `1.2` will be parsed as a `f32` literal.
-/// - Shad code `1_000.420_456` will be parsed as a `f32` literal.
+/// - Shad code `1.` will be parsed as an `f32` literal.
+/// - Shad code `1.2` will be parsed as an `f32` literal.
+/// - Shad code `1_000.420_456` will be parsed as an `f32` literal.
+/// - Shad code `123u` will be parsed as a `u32` literal.
+/// - Shad code `123` will be parsed as an `i32` literal.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Literal {
     /// The span of the literal.
@@ -61,6 +65,7 @@ impl Literal {
             value: token.slice.to_string(),
             type_: match type_ {
                 TokenType::F32Literal => LiteralType::F32,
+                TokenType::U32Literal => LiteralType::U32,
                 TokenType::I32Literal => LiteralType::I32,
                 _ => unreachable!("internal error: not supported literal"),
             },
@@ -73,6 +78,8 @@ impl Literal {
 pub enum LiteralType {
     /// The `f32` primitive type.
     F32,
+    /// The `u32` primitive type.
+    U32,
     /// The `i32` primitive type.
     I32,
 }

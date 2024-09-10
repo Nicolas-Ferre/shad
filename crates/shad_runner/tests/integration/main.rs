@@ -19,11 +19,11 @@ fn f32_buffer(runner: &Runner, buffer_name: &str) -> f32 {
     f32::from_ne_bytes(bytes)
 }
 
-fn i32_buffer(runner: &Runner, buffer_name: &str) -> i32 {
+fn u32_buffer(runner: &Runner, buffer_name: &str) -> u32 {
     let bytes = runner.buffer(buffer_name);
     assert_eq!(bytes.len(), 4);
     let bytes = [bytes[0], bytes[1], bytes[2], bytes[3]];
-    i32::from_ne_bytes(bytes)
+    u32::from_ne_bytes(bytes)
 }
 
 fn assert_semantic_error(
