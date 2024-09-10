@@ -144,7 +144,7 @@ jobs:
         run: bash -x .github/workflows/scripts/generate_coverage.sh html ./coverage/
       - name: Upload coverage report on GitHub
         if: ${{ env.CODECOV_UPLOAD != 'true' }}
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v4
         with:
           name: coverage
           path: coverage

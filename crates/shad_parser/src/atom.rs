@@ -32,13 +32,13 @@ impl Ident {
 /// A parsed literal.
 ///
 /// The following literals are recognized:
-/// - `float` literal, following regex `[0-9][0-9_]*\\.([0-9][0-9_]*)?`.
+/// - `f32` literal, following regex `[0-9][0-9_]*\\.([0-9][0-9_]*)?`.
 ///
 /// # Examples
 ///
-/// - Shad code `1.` will be parsed as a `float` literal.
-/// - Shad code `1.2` will be parsed as a `float` literal.
-/// - Shad code `1_000.420_456` will be parsed as a `float` literal.
+/// - Shad code `1.` will be parsed as a `f32` literal.
+/// - Shad code `1.2` will be parsed as a `f32` literal.
+/// - Shad code `1_000.420_456` will be parsed as a `f32` literal.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Literal {
     /// The span of the literal.
@@ -50,12 +50,20 @@ pub struct Literal {
 }
 
 impl Literal {
-    pub(crate) fn parse_float(lexer: &mut Lexer<'_, TokenType>) -> Result<Self, SyntaxError> {
-        let token = parse_token(lexer, TokenType::FloatLiteral)?;
+    #[allow(clippy::wildcard_enum_match_arm)]
+    pub(crate) fn parse(
+        lexer: &mut Lexer<'_, TokenType>,
+        type_: TokenType,
+    ) -> Result<Self, SyntaxError> {
+        let token = parse_token(lexer, type_)?;
         Ok(Self {
             span: Span::from_logos(token.span),
             value: token.slice.to_string(),
-            type_: LiteralType::Float,
+            type_: match type_ {
+                TokenType::F32Literal => LiteralType::F32,
+                TokenType::I32Literal => LiteralType::I32,
+                _ => unreachable!("internal error: not supported literal"),
+            },
         })
     }
 }
@@ -63,8 +71,10 @@ impl Literal {
 /// The type of a literal.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum LiteralType {
-    /// The `float` primitive type.
-    Float,
+    /// The `f32` primitive type.
+    F32,
+    /// The `i32` primitive type.
+    I32,
 }
 
 pub(crate) fn parse_token<'a>(

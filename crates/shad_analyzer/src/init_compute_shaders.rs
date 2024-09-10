@@ -1,6 +1,7 @@
-use crate::{AnalyzedBuffers, Buffer, ErrorLevel, LocatedMessage, SemanticError};
-use shad_parser::{Literal, ParsedProgram, Span};
+use crate::{AnalyzedBuffers, Buffer, ErrorLevel, LocatedMessage, SemanticError, Type};
+use shad_parser::{LiteralType, ParsedProgram, Span};
 use std::rc::Rc;
+use std::str::FromStr;
 
 /// All compute shaders run at startup generated from a Shad program.
 #[derive(Debug, PartialEq, Eq, Clone)]
@@ -12,7 +13,7 @@ pub struct GeneratedInitComputeShaders {
 }
 
 impl GeneratedInitComputeShaders {
-    const FLOAT_INT_PART_LIMIT: usize = 38;
+    const F32_INT_PART_LIMIT: usize = 38;
 
     pub(crate) fn new(parsed: &ParsedProgram, buffers: &AnalyzedBuffers) -> Self {
         let mut shaders = vec![];
@@ -24,8 +25,12 @@ impl GeneratedInitComputeShaders {
                     shad_parser::Expr::Literal(literal) => Statement::Assignment(Assignment {
                         assigned: Value::Buffer(buffer.clone()),
                         value: {
-                            errors.extend(Self::too_many_float_digits_error(literal, parsed));
-                            Expr::Literal(literal.value.replace('_', ""))
+                            let cleaned_value = literal.value.replace('_', "");
+                            errors.extend(Self::literal_error(literal, &cleaned_value, parsed));
+                            Expr::Literal(Literal {
+                                value: cleaned_value,
+                                type_: buffer.type_.clone(),
+                            })
                         },
                     }),
                 }],
@@ -35,18 +40,29 @@ impl GeneratedInitComputeShaders {
         Self { shaders, errors }
     }
 
-    fn too_many_float_digits_error(
-        literal: &Literal,
+    fn literal_error(
+        literal: &shad_parser::Literal,
+        cleaned_value: &str,
         parsed: &ParsedProgram,
     ) -> Option<SemanticError> {
-        let digit_count = literal
-            .value
+        match literal.type_ {
+            LiteralType::F32 => Self::f32_literal_error(literal, cleaned_value, parsed),
+            LiteralType::I32 => Self::i32_literal_error(literal, cleaned_value, parsed),
+        }
+    }
+
+    fn f32_literal_error(
+        literal: &shad_parser::Literal,
+        cleaned_value: &str,
+        parsed: &ParsedProgram,
+    ) -> Option<SemanticError> {
+        let digit_count = cleaned_value
             .find('.')
-            .expect("internal error: `.` not found in float literal");
-        (digit_count > Self::FLOAT_INT_PART_LIMIT).then(|| {
+            .expect("internal error: `.` not found in `f32` literal");
+        (digit_count > Self::F32_INT_PART_LIMIT).then(|| {
             let span = Span::new(literal.span.start, literal.span.start + digit_count);
             SemanticError::new(
-                "float literal with too many digits in integer part",
+                "`f32` literal with too many digits in integer part",
                 vec![
                     LocatedMessage {
                         level: ErrorLevel::Error,
@@ -56,9 +72,28 @@ impl GeneratedInitComputeShaders {
                     LocatedMessage {
                         level: ErrorLevel::Info,
                         span,
-                        text: format!("maximum {} digits are expected", Self::FLOAT_INT_PART_LIMIT),
+                        text: format!("maximum {} digits are expected", Self::F32_INT_PART_LIMIT),
                     },
                 ],
+                parsed,
+            )
+        })
+    }
+
+    fn i32_literal_error(
+        literal: &shad_parser::Literal,
+        cleaned_value: &str,
+        parsed: &ParsedProgram,
+    ) -> Option<SemanticError> {
+        let is_literal_invalid = i32::from_str(cleaned_value).is_err();
+        is_literal_invalid.then(|| {
+            SemanticError::new(
+                "`i32` literal overflow",
+                vec![LocatedMessage {
+                    level: ErrorLevel::Error,
+                    span: literal.span,
+                    text: "value is outside allowed range for `i32` type".into(),
+                }],
                 parsed,
             )
         })
@@ -103,5 +138,14 @@ pub enum Value {
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub enum Expr {
     /// A literal.
-    Literal(String),
+    Literal(Literal),
+}
+
+/// A literal value.
+#[derive(Debug, PartialEq, Eq, Clone)]
+pub struct Literal {
+    /// The literal value.
+    pub value: String,
+    /// The literal type.
+    pub type_: Rc<Type>,
 }
