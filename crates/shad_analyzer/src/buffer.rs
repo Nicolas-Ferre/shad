@@ -5,7 +5,7 @@ use shad_parser::{BufferItem, Ident, Item, ParsedProgram};
 use std::rc::Rc;
 
 /// All buffers found when analysing a Shad program.
-#[derive(Debug, PartialEq, Eq, Clone)]
+#[derive(Default, Debug, PartialEq, Eq, Clone)]
 pub struct AnalyzedBuffers {
     /// The buffers.
     pub buffers: Vec<Rc<Buffer>>,
@@ -16,31 +16,33 @@ pub struct AnalyzedBuffers {
 }
 
 impl AnalyzedBuffers {
-    pub(crate) fn new(parsed: &ParsedProgram, types: &AnalyzedTypes) -> Self {
-        let mut buffers = vec![];
-        let mut buffer_name_indexes = FxHashMap::default();
-        let mut errors = vec![];
+    pub(crate) fn init(&mut self, parsed: &ParsedProgram, types: &AnalyzedTypes) {
         for item in &parsed.items {
             let Item::Buffer(buffer) = item;
-            let buffer_index = buffers.len();
-            let value_type = types.expr_type(&buffer.value);
-            let existing_index =
-                buffer_name_indexes.insert(buffer.name.label.clone(), buffer_index);
-            buffers.push(Rc::new(Buffer::new(buffer, buffer_index, value_type)));
+            let buffer_index = self.buffers.len();
+            let value_type = types.expr_type(&buffer.value, self);
+            let existing_index = self
+                .buffer_name_indexes
+                .insert(buffer.name.label.clone(), buffer_index);
+            self.buffers
+                .push(Rc::new(Buffer::new(buffer, buffer_index, value_type)));
             if let Some(index) = existing_index {
-                errors.push(Self::duplicated_name_error(buffer, &buffers[index], parsed));
+                self.errors
+                    .push(self.duplicated_name_error(buffer, index, parsed));
             }
-        }
-        Self {
-            buffers,
-            buffer_name_indexes,
-            errors,
         }
     }
 
+    pub(crate) fn find(&self, name: &str) -> Option<&Rc<Buffer>> {
+        self.buffer_name_indexes
+            .get(name)
+            .map(|&index| &self.buffers[index])
+    }
+
     fn duplicated_name_error(
+        &self,
         buffer: &BufferItem,
-        existing_buffer: &Buffer,
+        existing_index: usize,
         parsed: &ParsedProgram,
     ) -> SemanticError {
         SemanticError::new(
@@ -56,7 +58,7 @@ impl AnalyzedBuffers {
                 },
                 LocatedMessage {
                     level: ErrorLevel::Info,
-                    span: existing_buffer.name.span,
+                    span: self.buffers[existing_index].name.span,
                     text: "buffer with same name is defined here".into(),
                 },
             ],
@@ -79,10 +81,10 @@ pub struct Buffer {
 }
 
 impl Buffer {
-    pub(crate) fn new(buffer: &BufferItem, index: usize, value_type: &Rc<Type>) -> Self {
+    pub(crate) fn new(buffer: &BufferItem, index: usize, value_type: Rc<Type>) -> Self {
         Self {
             index,
-            type_: value_type.clone(),
+            type_: value_type,
             value: buffer.value.clone(),
             name: buffer.name.clone(),
         }

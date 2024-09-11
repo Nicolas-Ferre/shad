@@ -1,6 +1,6 @@
 //! Transpiler to convert Shad expressions to WGSL.
 
-use shad_analyzer::{Buffer, ComputeShader, Expr, Statement, Value};
+use shad_analyzer::{Buffer, ComputeShader, Expr, Ident, Statement, Value};
 
 const IDENT_UNIT: usize = 4;
 
@@ -64,6 +64,7 @@ fn value(assigned: &Value) -> String {
 fn expr(expr: &Expr) -> String {
     match expr {
         Expr::Literal(literal) => format!("{}({})", literal.type_.final_name, literal.value),
+        Expr::Ident(Ident::Buffer(buffer)) => buffer_name(buffer),
     }
 }
 

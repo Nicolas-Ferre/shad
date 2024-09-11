@@ -16,7 +16,8 @@ impl AnalyzedProgram {
     /// Analyzes a parsed Shad program.
     pub fn analyze(parsed: &ParsedProgram) -> Self {
         let types = AnalyzedTypes::new();
-        let buffers = AnalyzedBuffers::new(parsed, &types);
+        let mut buffers = AnalyzedBuffers::default();
+        buffers.init(parsed, &types);
         let init_compute_shaders = GeneratedInitComputeShaders::new(parsed, &buffers);
         Self {
             types,

@@ -5,10 +5,6 @@ use crate::{Expr, Ident, Span};
 use logos::Lexer;
 
 /// A parsed item.
-///
-/// # Examples
-///
-/// - Shad code `buf my_buffer = 2;` will be parsed as an [`Item::Buffer`].
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Item {
     /// A buffer definition.
@@ -27,6 +23,10 @@ impl Item {
 }
 
 /// A parsed buffer definition.
+///
+/// # Examples
+///
+/// Shad code `buf my_buffer = 2;` will be parsed as a buffer definition.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct BufferItem {
     /// The span of the buffer definition.

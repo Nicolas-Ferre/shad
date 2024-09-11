@@ -1,17 +1,15 @@
 use crate::common::{Token, TokenType};
 use crate::error::SyntaxError;
-use crate::Literal;
+use crate::{Ident, Literal};
 use logos::Lexer;
 
 /// A parsed expression.
-///
-/// # Examples
-///
-/// - Shad code `3.14` will be parsed as an [`Expr::Literal`].
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Expr {
     /// A literal.
     Literal(Literal),
+    /// An identifier.
+    Ident(Ident),
 }
 
 impl Expr {
@@ -22,6 +20,7 @@ impl Expr {
             type_ @ (TokenType::F32Literal | TokenType::U32Literal | TokenType::I32Literal) => {
                 Ok(Self::Literal(Literal::parse(lexer, type_)?))
             }
+            TokenType::Ident => Ok(Self::Ident(Ident::parse(lexer)?)),
             _ => Err(SyntaxError::new(token.span.start, "expected expression")),
         }
     }

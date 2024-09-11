@@ -19,18 +19,17 @@ fn run_valid() {
     assert_eq!(u32_buffer(&runner, "i32_zero"), 0);
     assert_eq!(u32_buffer(&runner, "i32_underscores"), 123_456_789);
     assert_eq!(u32_buffer(&runner, "i32_max_value"), 2_147_483_647);
+    assert_eq!(u32_buffer(&runner, "copied_buffer"), 2_147_483_647);
 }
 
 #[test]
 fn run_invalid_syntax() {
+    let result = Runner::new(snippet_path("expr_invalid_empty.shd"));
+    assert_syntax_error(&result, "expected expression", 12);
     let result = Runner::new(snippet_path("expr_invalid_underscore_f32_frac_part.shd"));
     assert_syntax_error(&result, "expected `;`", 16);
     let result = Runner::new(snippet_path("expr_invalid_underscore_f32_int_part.shd"));
-    assert_syntax_error(&result, "expected expression", 12);
-    let result = Runner::new(snippet_path("expr_invalid_underscore_u32.shd"));
-    assert_syntax_error(&result, "expected expression", 12);
-    let result = Runner::new(snippet_path("expr_invalid_underscore_i32.shd"));
-    assert_syntax_error(&result, "expected expression", 12);
+    assert_syntax_error(&result, "unexpected token", 16);
 }
 
 #[test]
@@ -39,36 +38,54 @@ fn run_invalid_semantic() {
     assert_semantic_error(
         &result,
         &[
+            "could not find `undefined` value",
+            "could not find `f32_too_many_digits` value",
             "`f32` literal with too many digits in integer part",
             "`u32` literal out of range",
             "`i32` literal out of range",
         ],
         &[
+            &vec![LocatedMessage {
+                level: ErrorLevel::Error,
+                span: Span { start: 22, end: 31 },
+                text: "undefined identifier".into(),
+            }],
+            &vec![LocatedMessage {
+                level: ErrorLevel::Error,
+                span: Span { start: 55, end: 74 },
+                text: "undefined identifier".into(),
+            }],
             &vec![
                 LocatedMessage {
                     level: ErrorLevel::Error,
-                    span: Span { start: 26, end: 65 },
+                    span: Span {
+                        start: 102,
+                        end: 141,
+                    },
                     text: "found 39 digits".into(),
                 },
                 LocatedMessage {
                     level: ErrorLevel::Info,
-                    span: Span { start: 26, end: 65 },
+                    span: Span {
+                        start: 102,
+                        end: 141,
+                    },
                     text: "maximum 38 digits are expected".into(),
                 },
             ],
             &vec![LocatedMessage {
                 level: ErrorLevel::Error,
                 span: Span {
-                    start: 86,
-                    end: 100,
+                    start: 162,
+                    end: 176,
                 },
                 text: "value is outside allowed range for `u32` type".into(),
             }],
             &vec![LocatedMessage {
                 level: ErrorLevel::Error,
                 span: Span {
-                    start: 120,
-                    end: 133,
+                    start: 196,
+                    end: 209,
                 },
                 text: "value is outside allowed range for `i32` type".into(),
             }],
