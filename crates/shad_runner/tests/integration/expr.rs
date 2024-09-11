@@ -24,6 +24,8 @@ fn run_valid() {
 
 #[test]
 fn run_invalid_syntax() {
+    let result = Runner::new(snippet_path("expr_invalid_empty.shd"));
+    assert_syntax_error(&result, "expected expression", 12);
     let result = Runner::new(snippet_path("expr_invalid_underscore_f32_frac_part.shd"));
     assert_syntax_error(&result, "expected `;`", 16);
     let result = Runner::new(snippet_path("expr_invalid_underscore_f32_int_part.shd"));
@@ -56,12 +58,18 @@ fn run_invalid_semantic() {
             &vec![
                 LocatedMessage {
                     level: ErrorLevel::Error,
-                    span: Span { start: 102, end: 141 },
+                    span: Span {
+                        start: 102,
+                        end: 141,
+                    },
                     text: "found 39 digits".into(),
                 },
                 LocatedMessage {
                     level: ErrorLevel::Info,
-                    span: Span { start: 102, end: 141 },
+                    span: Span {
+                        start: 102,
+                        end: 141,
+                    },
                     text: "maximum 38 digits are expected".into(),
                 },
             ],
