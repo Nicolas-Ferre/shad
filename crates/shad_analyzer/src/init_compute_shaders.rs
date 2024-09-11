@@ -20,24 +20,59 @@ impl GeneratedInitComputeShaders {
         let mut errors = vec![];
         for buffer in &buffers.buffers {
             shaders.push(ComputeShader {
-                buffers: vec![buffer.clone()],
-                statements: vec![match &buffer.value {
-                    shad_parser::Expr::Literal(literal) => Statement::Assignment(Assignment {
-                        assigned: Value::Buffer(buffer.clone()),
-                        value: {
-                            let final_value = literal.value.replace('_', "");
-                            errors.extend(Self::literal_error(literal, &final_value, parsed));
-                            Expr::Literal(Literal {
-                                value: final_value,
-                                type_: buffer.type_.clone(),
-                            })
-                        },
-                    }),
-                }],
+                buffers: Self::buffers(buffer, buffers),
+                statements: Self::statements(buffer, buffers, parsed, &mut errors),
                 name: format!("buffer_init:{}", buffer.name.label),
             });
         }
         Self { shaders, errors }
+    }
+
+    fn buffers(current_buffer: &Rc<Buffer>, buffers: &AnalyzedBuffers) -> Vec<Rc<Buffer>> {
+        match &current_buffer.value {
+            shad_parser::Expr::Literal(_) => vec![current_buffer.clone()],
+            shad_parser::Expr::Ident(ident) => match buffers.find(&ident.label) {
+                Some(assigned_buffer) => vec![current_buffer.clone(), assigned_buffer.clone()],
+                None => vec![],
+            },
+        }
+    }
+
+    fn statements(
+        current_buffer: &Rc<Buffer>,
+        buffers: &AnalyzedBuffers,
+        parsed: &ParsedProgram,
+        errors: &mut Vec<SemanticError>,
+    ) -> Vec<Statement> {
+        match &current_buffer.value {
+            shad_parser::Expr::Literal(literal) => {
+                vec![Statement::Assignment(Assignment {
+                    assigned: Value::Buffer(current_buffer.clone()),
+                    value: {
+                        let final_value = literal.value.replace('_', "");
+                        errors.extend(Self::literal_error(literal, &final_value, parsed));
+                        Expr::Literal(Literal {
+                            value: final_value,
+                            type_: current_buffer.type_.clone(),
+                        })
+                    },
+                })]
+            }
+            shad_parser::Expr::Ident(ident) => {
+                if let Some(assigned_buffer) = buffers.find(&ident.label) {
+                    if current_buffer.index < assigned_buffer.index {
+                        errors.push(Self::not_found_ident(ident, parsed));
+                    }
+                    vec![Statement::Assignment(Assignment {
+                        assigned: Value::Buffer(current_buffer.clone()),
+                        value: { Expr::Ident(Ident::Buffer(assigned_buffer.clone())) },
+                    })]
+                } else {
+                    errors.push(Self::not_found_ident(ident, parsed));
+                    vec![]
+                }
+            }
+        }
     }
 
     fn literal_error(
@@ -53,6 +88,18 @@ impl GeneratedInitComputeShaders {
             }
             LiteralType::I32 => Self::int_literal_error::<i32>(literal, final_value, "i32", parsed),
         }
+    }
+
+    fn not_found_ident(ident: &shad_parser::Ident, parsed: &ParsedProgram) -> SemanticError {
+        SemanticError::new(
+            format!("could not find `{}` value", ident.label),
+            vec![LocatedMessage {
+                level: ErrorLevel::Error,
+                span: ident.span,
+                text: "undefined identifier".into(),
+            }],
+            parsed,
+        )
     }
 
     fn f32_literal_error(
@@ -147,6 +194,8 @@ pub enum Value {
 pub enum Expr {
     /// A literal.
     Literal(Literal),
+    /// An identifier.
+    Ident(Ident),
 }
 
 /// A literal value.
@@ -156,4 +205,11 @@ pub struct Literal {
     pub value: String,
     /// The literal type.
     pub type_: Rc<Type>,
+}
+
+/// An identifier.
+#[derive(Debug, PartialEq, Eq, Clone)]
+pub enum Ident {
+    /// A buffer identifier.
+    Buffer(Rc<Buffer>),
 }
