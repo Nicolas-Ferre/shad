@@ -1,5 +1,5 @@
 use crate::{AnalyzedBuffers, AnalyzedTypes, GeneratedInitComputeShaders, SemanticError};
-use shad_parser::ParsedProgram;
+use shad_parser::Ast;
 
 /// An analyzed Shad program.
 #[derive(Debug, PartialEq, Eq, Clone)]
@@ -13,12 +13,12 @@ pub struct AnalyzedProgram {
 }
 
 impl AnalyzedProgram {
-    /// Analyzes a parsed Shad program.
-    pub fn analyze(parsed: &ParsedProgram) -> Self {
+    /// Analyzes a Shad AST.
+    pub fn analyze(ast: &Ast) -> Self {
         let types = AnalyzedTypes::new();
         let mut buffers = AnalyzedBuffers::default();
-        buffers.init(parsed, &types);
-        let init_compute_shaders = GeneratedInitComputeShaders::new(parsed, &buffers);
+        buffers.init(ast, &types);
+        let init_compute_shaders = GeneratedInitComputeShaders::new(ast, &buffers);
         Self {
             types,
             buffers,

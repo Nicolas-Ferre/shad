@@ -1,6 +1,6 @@
 use crate::AnalyzedBuffers;
 use fxhash::FxHashMap;
-use shad_parser::LiteralType;
+use shad_parser::AstLiteralType;
 use std::rc::Rc;
 
 const UNDEFINED_TYPE: &str = "<undefined>";
@@ -55,16 +55,16 @@ impl AnalyzedTypes {
 
     pub(crate) fn expr_type(
         &self,
-        expr: &shad_parser::Expr,
+        expr: &shad_parser::AstExpr,
         buffers: &AnalyzedBuffers,
     ) -> Rc<Type> {
         match expr {
-            shad_parser::Expr::Literal(literal) => match literal.type_ {
-                LiteralType::F32 => self.types[F32_TYPE].clone(),
-                LiteralType::U32 => self.types[U32_TYPE].clone(),
-                LiteralType::I32 => self.types[I32_TYPE].clone(),
+            shad_parser::AstExpr::Literal(literal) => match literal.type_ {
+                AstLiteralType::F32 => self.types[F32_TYPE].clone(),
+                AstLiteralType::U32 => self.types[U32_TYPE].clone(),
+                AstLiteralType::I32 => self.types[I32_TYPE].clone(),
             },
-            shad_parser::Expr::Ident(ident) => match buffers.find(&ident.label) {
+            shad_parser::AstExpr::Ident(ident) => match buffers.find(&ident.label) {
                 Some(buffer) => buffer.type_.clone(),
                 None => self.types[UNDEFINED_TYPE].clone(),
             },

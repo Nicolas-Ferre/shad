@@ -1,5 +1,5 @@
 use crate::{AnalyzedBuffers, Buffer, ErrorLevel, LocatedMessage, SemanticError, Type};
-use shad_parser::{LiteralType, ParsedProgram, Span};
+use shad_parser::{Ast, AstLiteralType, Span};
 use std::rc::Rc;
 use std::str::FromStr;
 
@@ -15,13 +15,13 @@ pub struct GeneratedInitComputeShaders {
 impl GeneratedInitComputeShaders {
     const F32_INT_PART_LIMIT: usize = 38;
 
-    pub(crate) fn new(parsed: &ParsedProgram, buffers: &AnalyzedBuffers) -> Self {
+    pub(crate) fn new(ast: &Ast, buffers: &AnalyzedBuffers) -> Self {
         let mut shaders = vec![];
         let mut errors = vec![];
         for buffer in &buffers.buffers {
             shaders.push(ComputeShader {
                 buffers: Self::buffers(buffer, buffers),
-                statements: Self::statements(buffer, buffers, parsed, &mut errors),
+                statements: Self::statements(buffer, buffers, ast, &mut errors),
                 name: format!("buffer_init:{}", buffer.name.label),
             });
         }
@@ -30,8 +30,8 @@ impl GeneratedInitComputeShaders {
 
     fn buffers(current_buffer: &Rc<Buffer>, buffers: &AnalyzedBuffers) -> Vec<Rc<Buffer>> {
         match &current_buffer.value {
-            shad_parser::Expr::Literal(_) => vec![current_buffer.clone()],
-            shad_parser::Expr::Ident(ident) => match buffers.find(&ident.label) {
+            shad_parser::AstExpr::Literal(_) => vec![current_buffer.clone()],
+            shad_parser::AstExpr::Ident(ident) => match buffers.find(&ident.label) {
                 Some(assigned_buffer) => vec![current_buffer.clone(), assigned_buffer.clone()],
                 None => vec![],
             },
@@ -41,16 +41,16 @@ impl GeneratedInitComputeShaders {
     fn statements(
         current_buffer: &Rc<Buffer>,
         buffers: &AnalyzedBuffers,
-        parsed: &ParsedProgram,
+        ast: &Ast,
         errors: &mut Vec<SemanticError>,
     ) -> Vec<Statement> {
         match &current_buffer.value {
-            shad_parser::Expr::Literal(literal) => {
+            shad_parser::AstExpr::Literal(literal) => {
                 vec![Statement::Assignment(Assignment {
                     assigned: Value::Buffer(current_buffer.clone()),
                     value: {
                         let final_value = literal.value.replace('_', "");
-                        errors.extend(Self::literal_error(literal, &final_value, parsed));
+                        errors.extend(Self::literal_error(literal, &final_value, ast));
                         Expr::Literal(Literal {
                             value: final_value,
                             type_: current_buffer.type_.clone(),
@@ -58,17 +58,17 @@ impl GeneratedInitComputeShaders {
                     },
                 })]
             }
-            shad_parser::Expr::Ident(ident) => {
+            shad_parser::AstExpr::Ident(ident) => {
                 if let Some(assigned_buffer) = buffers.find(&ident.label) {
                     if current_buffer.index < assigned_buffer.index {
-                        errors.push(Self::not_found_ident(ident, parsed));
+                        errors.push(Self::not_found_ident(ident, ast));
                     }
                     vec![Statement::Assignment(Assignment {
                         assigned: Value::Buffer(current_buffer.clone()),
                         value: { Expr::Ident(Ident::Buffer(assigned_buffer.clone())) },
                     })]
                 } else {
-                    errors.push(Self::not_found_ident(ident, parsed));
+                    errors.push(Self::not_found_ident(ident, ast));
                     vec![]
                 }
             }
@@ -76,21 +76,21 @@ impl GeneratedInitComputeShaders {
     }
 
     fn literal_error(
-        literal: &shad_parser::Literal,
+        literal: &shad_parser::AstLiteral,
         final_value: &str,
-        parsed: &ParsedProgram,
+        ast: &Ast,
     ) -> Option<SemanticError> {
         match literal.type_ {
-            LiteralType::F32 => Self::f32_literal_error(literal, final_value, parsed),
-            LiteralType::U32 => {
+            AstLiteralType::F32 => Self::f32_literal_error(literal, final_value, ast),
+            AstLiteralType::U32 => {
                 let digits = &final_value[..final_value.len() - 1];
-                Self::int_literal_error::<u32>(literal, digits, "u32", parsed)
+                Self::int_literal_error::<u32>(literal, digits, "u32", ast)
             }
-            LiteralType::I32 => Self::int_literal_error::<i32>(literal, final_value, "i32", parsed),
+            AstLiteralType::I32 => Self::int_literal_error::<i32>(literal, final_value, "i32", ast),
         }
     }
 
-    fn not_found_ident(ident: &shad_parser::Ident, parsed: &ParsedProgram) -> SemanticError {
+    fn not_found_ident(ident: &shad_parser::AstIdent, ast: &Ast) -> SemanticError {
         SemanticError::new(
             format!("could not find `{}` value", ident.label),
             vec![LocatedMessage {
@@ -98,14 +98,14 @@ impl GeneratedInitComputeShaders {
                 span: ident.span,
                 text: "undefined identifier".into(),
             }],
-            parsed,
+            ast,
         )
     }
 
     fn f32_literal_error(
-        literal: &shad_parser::Literal,
+        literal: &shad_parser::AstLiteral,
         final_value: &str,
-        parsed: &ParsedProgram,
+        ast: &Ast,
     ) -> Option<SemanticError> {
         let digit_count = final_value
             .find('.')
@@ -126,16 +126,16 @@ impl GeneratedInitComputeShaders {
                         text: format!("maximum {} digits are expected", Self::F32_INT_PART_LIMIT),
                     },
                 ],
-                parsed,
+                ast,
             )
         })
     }
 
     fn int_literal_error<T>(
-        literal: &shad_parser::Literal,
+        literal: &shad_parser::AstLiteral,
         final_value: &str,
         type_name: &str,
-        parsed: &ParsedProgram,
+        ast: &Ast,
     ) -> Option<SemanticError>
     where
         T: FromStr,
@@ -149,7 +149,7 @@ impl GeneratedInitComputeShaders {
                     span: literal.span,
                     text: format!("value is outside allowed range for `{type_name}` type"),
                 }],
-                parsed,
+                ast,
             )
         })
     }

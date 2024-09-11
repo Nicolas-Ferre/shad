@@ -8,9 +8,9 @@
 //! # use shad_parser::*;
 //! #
 //! fn parse_shad_program(path: &str) {
-//!     let parsed = ParsedProgram::parse_file(path);
-//!     match parsed {
-//!         Ok(parsed) => println!("{parsed:#?}"),
+//!     let ast = Ast::from_file(path);
+//!     match ast {
+//!         Ok(ast) => println!("{ast:#?}"),
 //!         Err(err) => println!("{err}"),
 //!     }
 //! }

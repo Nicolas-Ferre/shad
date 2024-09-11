@@ -1,7 +1,7 @@
 use crate::error::Error;
 use futures::executor;
 use shad_analyzer::AnalyzedProgram;
-use shad_parser::ParsedProgram;
+use shad_parser::Ast;
 use std::path::Path;
 use wgpu::{
     Adapter, Backends, BindGroup, Buffer, BufferDescriptor, BufferUsages, CommandEncoder,
@@ -113,11 +113,11 @@ struct Program {
 
 impl Program {
     fn new(path: impl AsRef<Path>, device: &Device) -> Result<Self, Error> {
-        let parsed = ParsedProgram::parse_file(path).map_err(|err| match err {
+        let ast = Ast::from_file(path).map_err(|err| match err {
             shad_parser::Error::Syntax(err) => Error::Syntax(err),
             shad_parser::Error::Io(err) => Error::Io(err),
         })?;
-        let analyzed = AnalyzedProgram::analyze(&parsed);
+        let analyzed = AnalyzedProgram::analyze(&ast);
         if analyzed.errors().next().is_some() {
             return Err(Error::Semantic(analyzed.errors().cloned().collect()));
         }

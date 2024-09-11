@@ -1,7 +1,7 @@
 use crate::type_::Type;
 use crate::{AnalyzedTypes, ErrorLevel, LocatedMessage, SemanticError};
 use fxhash::FxHashMap;
-use shad_parser::{BufferItem, Ident, Item, ParsedProgram};
+use shad_parser::{Ast, AstBufferItem, AstIdent, AstItem};
 use std::rc::Rc;
 
 /// All buffers found when analysing a Shad program.
@@ -16,9 +16,9 @@ pub struct AnalyzedBuffers {
 }
 
 impl AnalyzedBuffers {
-    pub(crate) fn init(&mut self, parsed: &ParsedProgram, types: &AnalyzedTypes) {
-        for item in &parsed.items {
-            let Item::Buffer(buffer) = item;
+    pub(crate) fn init(&mut self, ast: &Ast, types: &AnalyzedTypes) {
+        for item in &ast.items {
+            let AstItem::Buffer(buffer) = item;
             let buffer_index = self.buffers.len();
             let value_type = types.expr_type(&buffer.value, self);
             let existing_index = self
@@ -28,7 +28,7 @@ impl AnalyzedBuffers {
                 .push(Rc::new(Buffer::new(buffer, buffer_index, value_type)));
             if let Some(index) = existing_index {
                 self.errors
-                    .push(self.duplicated_name_error(buffer, index, parsed));
+                    .push(self.duplicated_name_error(buffer, index, ast));
             }
         }
     }
@@ -41,9 +41,9 @@ impl AnalyzedBuffers {
 
     fn duplicated_name_error(
         &self,
-        buffer: &BufferItem,
+        buffer: &AstBufferItem,
         existing_index: usize,
-        parsed: &ParsedProgram,
+        ast: &Ast,
     ) -> SemanticError {
         SemanticError::new(
             format!(
@@ -62,7 +62,7 @@ impl AnalyzedBuffers {
                     text: "buffer with same name is defined here".into(),
                 },
             ],
-            parsed,
+            ast,
         )
     }
 }
@@ -75,13 +75,13 @@ pub struct Buffer {
     /// The buffer type.
     pub type_: Rc<Type>,
     /// The buffer initial value.
-    pub value: shad_parser::Expr,
+    pub value: shad_parser::AstExpr,
     /// The buffer name in the initial Shad code.
-    pub name: Ident,
+    pub name: AstIdent,
 }
 
 impl Buffer {
-    pub(crate) fn new(buffer: &BufferItem, index: usize, value_type: Rc<Type>) -> Self {
+    pub(crate) fn new(buffer: &AstBufferItem, index: usize, value_type: Rc<Type>) -> Self {
         Self {
             index,
             type_: value_type,

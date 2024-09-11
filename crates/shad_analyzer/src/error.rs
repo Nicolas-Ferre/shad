@@ -3,7 +3,7 @@ use shad_parser::Span;
 use std::error;
 use std::fmt::{Display, Formatter};
 
-/// A semantic error obtained when analyzing a parsed Shad code.
+/// A semantic error obtained when analyzing a Shad AST.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SemanticError {
     /// Main error message.
@@ -28,14 +28,12 @@ impl SemanticError {
     pub(crate) fn new(
         message: impl Into<String>,
         located_messages: Vec<LocatedMessage>,
-        parsed: &shad_parser::ParsedProgram,
+        ast: &shad_parser::Ast,
     ) -> Self {
-        let mut snippet = Snippet::source(&parsed.code)
-            .fold(true)
-            .origin(&parsed.path);
+        let mut snippet = Snippet::source(&ast.code).fold(true).origin(&ast.path);
         for message in &located_messages {
-            let start = message.span.start.min(parsed.code.len());
-            let end = message.span.end.min(parsed.code.len());
+            let start = message.span.start.min(ast.code.len());
+            let end = message.span.end.min(ast.code.len());
             snippet = snippet.annotation(
                 Level::from(message.level)
                     .span(start..end)

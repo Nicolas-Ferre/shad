@@ -1,6 +1,6 @@
 //! Analyzer for the Shad programming language.
 //!
-//! This crate provides utilities to analyze parsed Shad code.
+//! This crate provides utilities to analyze a Shad AST.
 //!
 //! # Examples
 //!
@@ -8,14 +8,14 @@
 //! # use shad_parser::*;
 //! # use shad_analyzer::*;
 //! #
-//! fn analyze_shad_program(parsed: ParsedProgram) {
-//!     let analyzed = AnalyzedProgram::analyze(&parsed);
+//! fn analyze_shad_program(ast: Ast) {
+//!     let analyzed = AnalyzedProgram::analyze(&ast);
 //!     if analyzed.errors().next().is_some() {
 //!         for err in analyzed.errors() {
 //!             println!("{err}");
 //!         }
 //!     } else {
-//!         println!("{parsed:#?}")
+//!         println!("{analyzed:#?}")
 //!     }
 //! }
 //! ```
