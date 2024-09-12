@@ -1,29 +1,6 @@
-use crate::error::SyntaxError;
 use logos::{Lexer, Logos};
+use shad_error::SyntaxError;
 use std::fmt::Debug;
-
-/// The span of a group of token in a file.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct Span {
-    /// The byte offset of the span start.
-    pub start: usize,
-    /// The byte offset of the span end.
-    pub end: usize,
-}
-
-impl Span {
-    /// Creates a span.
-    pub fn new(start: usize, end: usize) -> Self {
-        Self { start, end }
-    }
-
-    pub(crate) fn from_logos(span: logos::Span) -> Self {
-        Self {
-            start: span.start,
-            end: span.end,
-        }
-    }
-}
 
 #[derive(Logos, Debug, PartialEq, Eq, Clone, Copy)]
 #[logos(skip r"[ \t\r\n\f]+")]

@@ -36,6 +36,7 @@ web-sys = { version = "0.3", features = ["Location"] }
 wgpu = "22.0"
 winit = "0.30"
 
+shad_error = { version = "0.1.0", path = "crates/shad_error" }
 shad_parser = { version = "0.1.0", path = "crates/shad_parser" }
 shad_analyzer = { version = "0.1.0", path = "crates/shad_analyzer" }
 shad_transpiler = { version = "0.1.0", path = "crates/shad_transpiler" }

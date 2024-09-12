@@ -1,6 +1,5 @@
 use crate::{assert_semantic_error, assert_syntax_error, f32_buffer, snippet_path, u32_buffer};
-use shad_analyzer::{ErrorLevel, LocatedMessage};
-use shad_parser::Span;
+use shad_error::{ErrorLevel, LocatedMessage, Span};
 use shad_runner::Runner;
 
 #[test]
@@ -47,46 +46,34 @@ fn run_invalid_semantic() {
         &[
             &vec![LocatedMessage {
                 level: ErrorLevel::Error,
-                span: Span { start: 22, end: 31 },
+                span: Span::new(22, 31),
                 text: "undefined identifier".into(),
             }],
             &vec![LocatedMessage {
                 level: ErrorLevel::Error,
-                span: Span { start: 55, end: 74 },
+                span: Span::new(55, 74),
                 text: "undefined identifier".into(),
             }],
             &vec![
                 LocatedMessage {
                     level: ErrorLevel::Error,
-                    span: Span {
-                        start: 102,
-                        end: 141,
-                    },
+                    span: Span::new(102, 141),
                     text: "found 39 digits".into(),
                 },
                 LocatedMessage {
                     level: ErrorLevel::Info,
-                    span: Span {
-                        start: 102,
-                        end: 141,
-                    },
+                    span: Span::new(102, 141),
                     text: "maximum 38 digits are expected".into(),
                 },
             ],
             &vec![LocatedMessage {
                 level: ErrorLevel::Error,
-                span: Span {
-                    start: 162,
-                    end: 176,
-                },
+                span: Span::new(162, 176),
                 text: "value is outside allowed range for `u32` type".into(),
             }],
             &vec![LocatedMessage {
                 level: ErrorLevel::Error,
-                span: Span {
-                    start: 196,
-                    end: 209,
-                },
+                span: Span::new(196, 209),
                 text: "value is outside allowed range for `i32` type".into(),
             }],
         ],

@@ -1,5 +1,6 @@
 use crate::snippet_path;
-use shad_runner::{Error, Runner};
+use shad_error::Error;
+use shad_runner::Runner;
 
 #[test]
 fn run_missing_file() {

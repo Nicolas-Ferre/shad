@@ -9,25 +9,25 @@
 //! # use shad_analyzer::*;
 //! #
 //! fn analyze_shad_program(ast: Ast) {
-//!     let analyzed = AnalyzedProgram::analyze(&ast);
-//!     if analyzed.errors().next().is_some() {
-//!         for err in analyzed.errors() {
+//!     let asg = Asg::analyze(&ast);
+//!     if asg.errors().next().is_some() {
+//!         for err in asg.errors() {
 //!             println!("{err}");
 //!         }
 //!     } else {
-//!         println!("{analyzed:#?}")
+//!         println!("{asg:#?}")
 //!     }
 //! }
 //! ```
 
+mod asg;
 mod buffer;
-mod error;
-mod init_compute_shaders;
-mod program;
+mod expr;
+mod shader;
 mod type_;
 
+pub use asg::*;
 pub use buffer::*;
-pub use error::*;
-pub use init_compute_shaders::*;
-pub use program::*;
+pub use expr::*;
+pub use shader::*;
 pub use type_::*;

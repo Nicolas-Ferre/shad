@@ -1,6 +1,6 @@
 [package]
-name = "shad_runner"
-description = "Shad language runner"
+name = "shad_error"
+description = "Shad language errors"
 readme = "../../README.md"
 keywords = ["language", "gpu", "rendering", "compute", "shader"]
 categories = ["compilers"]
@@ -13,14 +13,7 @@ repository.workspace = true
 rust-version.workspace = true
 
 [dependencies]
-shad_error.workspace = true
-shad_parser.workspace = true
-shad_transpiler.workspace = true
-shad_analyzer.workspace = true
-futures.workspace = true
-wgpu.workspace = true
 annotate-snippets.workspace = true
-fxhash.workspace = true
 
 [lints]
 workspace = true

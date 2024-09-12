@@ -1,8 +1,8 @@
 use crate::atom::parse_token;
 use crate::common::{Token, TokenType};
-use crate::error::SyntaxError;
-use crate::{AstExpr, AstIdent, Span};
+use crate::{AstExpr, AstIdent};
 use logos::Lexer;
+use shad_error::{Span, SyntaxError};
 
 /// A parsed item.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -46,10 +46,7 @@ impl AstBufferItem {
         let value = AstExpr::parse(lexer)?;
         let semi_colon = parse_token(lexer, TokenType::SemiColon)?;
         Ok(Self {
-            span: Span {
-                start: buf_.span.start,
-                end: semi_colon.span.end,
-            },
+            span: Span::new(buf_.span.start, semi_colon.span.end),
             name,
             value,
         })

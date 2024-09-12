@@ -1,7 +1,7 @@
 #![allow(clippy::unwrap_used, clippy::float_cmp)]
 
-use shad_analyzer::LocatedMessage;
-use shad_runner::{Error, Runner};
+use shad_error::{Error, LocatedMessage};
+use shad_runner::Runner;
 
 mod buffer;
 mod comment;

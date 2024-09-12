@@ -1,28 +1,6 @@
 use annotate_snippets::{Level, Renderer, Snippet};
+use std::error;
 use std::fmt::{Display, Formatter};
-use std::{error, io};
-
-/// An error obtained when trying to parse a Shad code.
-#[derive(Debug)]
-pub enum Error {
-    /// A parsing error.
-    Syntax(SyntaxError),
-    /// An I/O error.
-    Io(io::Error),
-}
-
-// coverage: off (not critical logic)
-impl Display for Error {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Self::Syntax(err) => Display::fmt(err, f),
-            Self::Io(err) => Display::fmt(err, f),
-        }
-    }
-}
-// coverage: on
-
-impl error::Error for Error {}
 
 /// A syntax error obtained when trying to parse a Shad code.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -46,7 +24,8 @@ impl Display for SyntaxError {
 impl error::Error for SyntaxError {}
 
 impl SyntaxError {
-    pub(crate) fn new(offset: usize, message: impl Into<String>) -> Self {
+    /// Creates a syntax error.
+    pub fn new(offset: usize, message: impl Into<String>) -> Self {
         Self {
             offset,
             message: message.into(),
@@ -54,8 +33,9 @@ impl SyntaxError {
         }
     }
 
+    /// Generates the formatted error string.
     #[allow(clippy::range_plus_one)]
-    pub(crate) fn with_pretty_message(self, file_path: &str, code: &str) -> Self {
+    pub fn with_pretty_message(self, file_path: &str, code: &str) -> Self {
         let message = Level::Error.title(&self.message).snippet(
             Snippet::source(code)
                 .fold(true)

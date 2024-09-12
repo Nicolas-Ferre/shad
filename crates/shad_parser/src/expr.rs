@@ -1,7 +1,7 @@
 use crate::common::{Token, TokenType};
-use crate::error::SyntaxError;
 use crate::{AstIdent, AstLiteral};
 use logos::Lexer;
+use shad_error::SyntaxError;
 
 /// A parsed expression.
 #[derive(Debug, Clone, PartialEq, Eq)]

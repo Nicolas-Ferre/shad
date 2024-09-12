@@ -13,6 +13,7 @@ repository.workspace = true
 rust-version.workspace = true
 
 [dependencies]
+shad_error.workspace = true
 annotate-snippets.workspace = true
 logos.workspace = true
 

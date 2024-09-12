@@ -1,6 +1,7 @@
-use crate::error::Error;
 use futures::executor;
-use shad_analyzer::AnalyzedProgram;
+use fxhash::FxHashMap;
+use shad_analyzer::{Asg, AsgBuffer, AsgComputeShader};
+use shad_error::Error;
 use shad_parser::Ast;
 use std::path::Path;
 use wgpu::{
@@ -44,8 +45,11 @@ impl Runner {
 
     /// Retrieves the bytes of the buffer with a specific Shad `name`.
     pub fn buffer(&self, name: &str) -> Vec<u8> {
-        if let Some(&index) = self.program.analyzed.buffers.buffer_name_indexes.get(name) {
-            let size = self.program.analyzed.buffers.buffers[index].type_.size as u64;
+        if let (Some(asg_buffer), Some(wgpu_buffer)) = (
+            self.program.asg.buffers.get(name),
+            self.program.buffers.get(name),
+        ) {
+            let size = asg_buffer.expr.type_(&self.program.asg).size as u64;
             let tmp_buffer = self.device.create_buffer(&BufferDescriptor {
                 label: Some("modor_texture_buffer"),
                 size,
@@ -57,7 +61,7 @@ impl Runner {
                 .create_command_encoder(&CommandEncoderDescriptor {
                     label: Some("shad:buffer_retrieval"),
                 });
-            encoder.copy_buffer_to_buffer(&self.program.buffers[index], 0, &tmp_buffer, 0, size);
+            encoder.copy_buffer_to_buffer(wgpu_buffer, 0, &tmp_buffer, 0, size);
             let submission_index = self.queue.submit(Some(encoder.finish()));
             let slice = tmp_buffer.slice(..);
             slice.map_async(MapMode::Read, |_| ());
@@ -106,44 +110,40 @@ impl Runner {
 
 #[derive(Debug)]
 struct Program {
-    analyzed: AnalyzedProgram,
-    buffers: Vec<Buffer>,
-    init_compute_shaders: Vec<ComputeShader>,
+    asg: Asg,
+    buffers: FxHashMap<String, Buffer>,
+    init_shaders: Vec<ComputeShader>,
 }
 
 impl Program {
+    #[allow(clippy::similar_names)]
     fn new(path: impl AsRef<Path>, device: &Device) -> Result<Self, Error> {
-        let ast = Ast::from_file(path).map_err(|err| match err {
-            shad_parser::Error::Syntax(err) => Error::Syntax(err),
-            shad_parser::Error::Io(err) => Error::Io(err),
-        })?;
-        let analyzed = AnalyzedProgram::analyze(&ast);
-        if analyzed.errors().next().is_some() {
-            return Err(Error::Semantic(analyzed.errors().cloned().collect()));
+        let ast = Ast::from_file(path)?;
+        let asg = Asg::analyze(&ast);
+        if !asg.errors.is_empty() {
+            return Err(Error::Semantic(asg.errors));
         }
-        let buffers: Vec<_> = analyzed
-            .buffers
+        let buffers: FxHashMap<_, _> = asg
             .buffers
             .iter()
-            .map(|buffer| Self::create_buffer(buffer, device))
+            .map(|(name, buffer)| (name.clone(), Self::create_buffer(&asg, buffer, device)))
             .collect();
-        let init_compute_shaders = analyzed
-            .init_compute_shaders
-            .shaders
+        let init_compute_shaders = asg
+            .init_shaders
             .iter()
-            .map(|shader| ComputeShader::new(shader, &buffers, device))
+            .map(|shader| ComputeShader::new(&asg, shader, &buffers, device))
             .collect();
         Ok(Self {
-            analyzed,
+            asg,
             buffers,
-            init_compute_shaders,
+            init_shaders: init_compute_shaders,
         })
     }
 
     fn init(&self, device: &Device, queue: &Queue) {
         let mut encoder = Self::create_encoder(device);
         let mut pass = Self::start_compute_pass(&mut encoder);
-        for shader in &self.init_compute_shaders {
+        for shader in &self.init_shaders {
             pass.set_pipeline(&shader.pipeline);
             pass.set_bind_group(0, &shader.bind_group, &[]);
             pass.dispatch_workgroups(1, 1, 1);
@@ -152,10 +152,10 @@ impl Program {
         queue.submit(Some(encoder.finish()));
     }
 
-    fn create_buffer(buffer: &shad_analyzer::Buffer, device: &Device) -> Buffer {
+    fn create_buffer(asg: &Asg, buffer: &AsgBuffer, device: &Device) -> Buffer {
         device.create_buffer(&BufferDescriptor {
             label: Some(&format!("shad:buffer:{}", buffer.name.label)),
-            size: buffer.type_.size as u64,
+            size: buffer.expr.type_(asg).size as u64,
             usage: BufferUsages::STORAGE | BufferUsages::COPY_SRC,
             mapped_at_creation: false,
         })
@@ -182,8 +182,13 @@ struct ComputeShader {
 }
 
 impl ComputeShader {
-    fn new(shader: &shad_analyzer::ComputeShader, buffers: &[Buffer], device: &Device) -> Self {
-        let pipeline = Self::create_pipeline(shader, device);
+    fn new(
+        asg: &Asg,
+        shader: &AsgComputeShader,
+        buffers: &FxHashMap<String, Buffer>,
+        device: &Device,
+    ) -> Self {
+        let pipeline = Self::create_pipeline(asg, shader, device);
         let bind_group = Self::create_bind_group(&pipeline, shader, buffers, device);
         Self {
             pipeline,
@@ -191,8 +196,8 @@ impl ComputeShader {
         }
     }
 
-    fn create_pipeline(shader: &shad_analyzer::ComputeShader, device: &Device) -> ComputePipeline {
-        let code = shad_transpiler::generate_wgsl_compute_shader(shader);
+    fn create_pipeline(asg: &Asg, shader: &AsgComputeShader, device: &Device) -> ComputePipeline {
+        let code = shad_transpiler::generate_wgsl_compute_shader(asg, shader);
         let module = device.create_shader_module(ShaderModuleDescriptor {
             label: Some("shad_shader"),
             source: wgpu::ShaderSource::Wgsl(code.into()),
@@ -210,8 +215,8 @@ impl ComputeShader {
     #[allow(clippy::cast_possible_truncation)]
     fn create_bind_group(
         pipeline: &ComputePipeline,
-        shader: &shad_analyzer::ComputeShader,
-        buffers: &[Buffer],
+        shader: &AsgComputeShader,
+        buffers: &FxHashMap<String, Buffer>,
         device: &Device,
     ) -> BindGroup {
         device.create_bind_group(&wgpu::BindGroupDescriptor {
@@ -223,7 +228,7 @@ impl ComputeShader {
                 .enumerate()
                 .map(|(index, buffer)| wgpu::BindGroupEntry {
                     binding: index as u32,
-                    resource: buffers[buffer.index].as_entire_binding(),
+                    resource: buffers[&buffer.name.label].as_entire_binding(),
                 })
                 .collect::<Vec<_>>(),
         })

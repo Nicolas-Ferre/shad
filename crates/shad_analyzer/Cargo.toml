@@ -13,9 +13,10 @@ repository.workspace = true
 rust-version.workspace = true
 
 [dependencies]
+shad_error.workspace = true
+shad_parser.workspace = true
 annotate-snippets.workspace = true
 fxhash.workspace = true
-shad_parser.workspace = true
 
 [lints]
 workspace = true

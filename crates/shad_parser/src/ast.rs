@@ -1,11 +1,11 @@
 use crate::common::{Token, TokenType};
-use crate::error::{Error, SyntaxError};
 use crate::AstItem;
 use logos::{Lexer, Logos};
+use shad_error::{Error, SyntaxError};
 use std::path::Path;
 use std::{fs, io, iter};
 
-/// The AST of a parsed Shad code.
+/// The Abstract Syntax Tree of a parsed Shad code.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Ast {
     /// The raw Shad code.
