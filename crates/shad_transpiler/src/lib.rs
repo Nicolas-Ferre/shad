@@ -65,7 +65,9 @@ fn expr(expr: &AsgExpr) -> String {
     match expr {
         AsgExpr::Literal(literal) => format!("{}({})", literal.type_.final_name, literal.value),
         AsgExpr::Ident(AsgIdent::Buffer(buffer)) => buffer_name(buffer),
+        // coverage: off (unreachable in `shad_runner` crate)
         AsgExpr::Ident(AsgIdent::Invalid) => "<invalid_ident>".into(),
+        // coverage: on
     }
 }
 

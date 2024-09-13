@@ -11,7 +11,7 @@
 //! fn analyze_shad_program(ast: Ast) {
 //!     let asg = Asg::analyze(&ast);
 //!     if asg.errors().next().is_some() {
-//!         for err in asg.errors() {
+//!         for err in &asg.errors {
 //!             println!("{err}");
 //!         }
 //!     } else {

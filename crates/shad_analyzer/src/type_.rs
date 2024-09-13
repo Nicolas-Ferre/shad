@@ -42,9 +42,11 @@ pub(crate) fn primitive_types() -> FxHashMap<String, Rc<AsgType>> {
     .collect()
 }
 
+// coverage: off (unreachable in `shad_runner` crate)
 pub(crate) fn undefined(asg: &Asg) -> &Rc<AsgType> {
     &asg.types[UNDEFINED_TYPE]
 }
+// coverage: on
 
 pub(crate) fn find<'a>(asg: &'a Asg, type_name: &str) -> &'a Rc<AsgType> {
     asg.types

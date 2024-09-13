@@ -157,7 +157,9 @@ impl AsgIdent {
     fn type_<'a>(&'a self, asg: &'a Asg) -> &Rc<AsgType> {
         match self {
             Self::Buffer(buffer) => buffer.expr.type_(asg),
+            // coverage: off (unreachable in `shad_runner` crate)
             Self::Invalid => type_::undefined(asg),
+            // coverage: on
         }
     }
 
