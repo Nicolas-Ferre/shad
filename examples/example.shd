@@ -1,0 +1,4 @@
+buf buffer_f32 = 1.;
+buf buffer_i32 = 1;
+buf buffer_u32 = 1u;
+buf buffer_copy = buffer_f32;

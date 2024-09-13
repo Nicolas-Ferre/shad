@@ -54,8 +54,8 @@ fn not_found_ident_error(asg: &Asg, ident: &AstIdent) -> SemanticError {
             span: ident.span,
             text: "undefined identifier".into(),
         }],
-        &asg.ast.code,
-        &asg.ast.path,
+        &asg.code,
+        &asg.path,
     )
 }
 
@@ -79,8 +79,8 @@ fn f32_literal_error(asg: &Asg, literal: &AstLiteral, final_value: &str) -> Opti
                     text: format!("maximum {F32_INT_PART_LIMIT} digits are expected"),
                 },
             ],
-            &asg.ast.code,
-            &asg.ast.path,
+            &asg.code,
+            &asg.path,
         )
     })
 }
@@ -103,8 +103,8 @@ where
                 span: literal.span,
                 text: format!("value is outside allowed range for `{type_name}` type"),
             }],
-            &asg.ast.code,
-            &asg.ast.path,
+            &asg.code,
+            &asg.path,
         )
     })
 }
