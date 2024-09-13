@@ -1,7 +1,17 @@
-use shad_analyzer::SemanticError;
-use shad_parser::SyntaxError;
+//! Errors for the Shad programming language.
+//!
+//! This crate provides error types used by Shad parser and analyzer.
+
 use std::fmt::{Display, Formatter};
 use std::{error, io};
+
+mod semantic;
+mod span;
+mod syntax;
+
+pub use semantic::*;
+pub use span::*;
+pub use syntax::*;
 
 /// An error returned when during Shad code compilation before running it.
 #[derive(Debug)]

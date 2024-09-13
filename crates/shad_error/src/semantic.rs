@@ -1,9 +1,9 @@
+use crate::Span;
 use annotate_snippets::{Level, Renderer, Snippet};
-use shad_parser::Span;
 use std::error;
 use std::fmt::{Display, Formatter};
 
-/// A semantic error obtained when analyzing a parsed Shad code.
+/// A semantic error obtained when analyzing a Shad AST.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SemanticError {
     /// Main error message.
@@ -25,17 +25,17 @@ impl Display for SemanticError {
 impl error::Error for SemanticError {}
 
 impl SemanticError {
-    pub(crate) fn new(
+    /// Creates a semantic error.
+    pub fn new(
         message: impl Into<String>,
         located_messages: Vec<LocatedMessage>,
-        parsed: &shad_parser::ParsedProgram,
+        code: &str,
+        path: &str,
     ) -> Self {
-        let mut snippet = Snippet::source(&parsed.code)
-            .fold(true)
-            .origin(&parsed.path);
+        let mut snippet = Snippet::source(code).fold(true).origin(path);
         for message in &located_messages {
-            let start = message.span.start.min(parsed.code.len());
-            let end = message.span.end.min(parsed.code.len());
+            let start = message.span.start.min(code.len());
+            let end = message.span.end.min(code.len());
             snippet = snippet.annotation(
                 Level::from(message.level)
                     .span(start..end)

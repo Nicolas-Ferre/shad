@@ -1,22 +1,22 @@
 use crate::atom::parse_token;
 use crate::common::{Token, TokenType};
-use crate::error::SyntaxError;
-use crate::{Expr, Ident, Span};
+use crate::{AstExpr, AstIdent};
 use logos::Lexer;
+use shad_error::{Span, SyntaxError};
 
 /// A parsed item.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub enum Item {
+pub enum AstItem {
     /// A buffer definition.
-    Buffer(BufferItem),
+    Buffer(AstBufferItem),
 }
 
-impl Item {
+impl AstItem {
     #[allow(clippy::wildcard_enum_match_arm)]
     pub(crate) fn parse(lexer: &mut Lexer<'_, TokenType>) -> Result<Self, SyntaxError> {
         let token = Token::next(&mut lexer.clone())?;
         match token.type_ {
-            TokenType::Buf => Ok(Self::Buffer(BufferItem::parse(lexer)?)),
+            TokenType::Buf => Ok(Self::Buffer(AstBufferItem::parse(lexer)?)),
             _ => Err(SyntaxError::new(token.span.start, "expected item")),
         }
     }
@@ -28,28 +28,25 @@ impl Item {
 ///
 /// Shad code `buf my_buffer = 2;` will be parsed as a buffer definition.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct BufferItem {
+pub struct AstBufferItem {
     /// The span of the buffer definition.
     pub span: Span,
     /// The name of the buffer.
-    pub name: Ident,
+    pub name: AstIdent,
     /// The initial value of the buffer.
-    pub value: Expr,
+    pub value: AstExpr,
 }
 
-impl BufferItem {
+impl AstBufferItem {
     #[allow(clippy::wildcard_enum_match_arm)]
     pub(crate) fn parse(lexer: &mut Lexer<'_, TokenType>) -> Result<Self, SyntaxError> {
         let buf_ = parse_token(lexer, TokenType::Buf)?;
-        let name = Ident::parse(lexer)?;
+        let name = AstIdent::parse(lexer)?;
         parse_token(lexer, TokenType::Equal)?;
-        let value = Expr::parse(lexer)?;
+        let value = AstExpr::parse(lexer)?;
         let semi_colon = parse_token(lexer, TokenType::SemiColon)?;
         Ok(Self {
-            span: Span {
-                start: buf_.span.start,
-                end: semi_colon.span.end,
-            },
+            span: Span::new(buf_.span.start, semi_colon.span.end),
             name,
             value,
         })

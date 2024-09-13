@@ -1,26 +1,26 @@
 use crate::common::{Token, TokenType};
-use crate::error::SyntaxError;
-use crate::{Ident, Literal};
+use crate::{AstIdent, AstLiteral};
 use logos::Lexer;
+use shad_error::SyntaxError;
 
 /// A parsed expression.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub enum Expr {
+pub enum AstExpr {
     /// A literal.
-    Literal(Literal),
+    Literal(AstLiteral),
     /// An identifier.
-    Ident(Ident),
+    Ident(AstIdent),
 }
 
-impl Expr {
+impl AstExpr {
     #[allow(clippy::wildcard_enum_match_arm)]
     pub(crate) fn parse(lexer: &mut Lexer<'_, TokenType>) -> Result<Self, SyntaxError> {
         let token = Token::next(&mut lexer.clone())?;
         match token.type_ {
             type_ @ (TokenType::F32Literal | TokenType::U32Literal | TokenType::I32Literal) => {
-                Ok(Self::Literal(Literal::parse(lexer, type_)?))
+                Ok(Self::Literal(AstLiteral::parse(lexer, type_)?))
             }
-            TokenType::Ident => Ok(Self::Ident(Ident::parse(lexer)?)),
+            TokenType::Ident => Ok(Self::Ident(AstIdent::parse(lexer)?)),
             _ => Err(SyntaxError::new(token.span.start, "expected expression")),
         }
     }

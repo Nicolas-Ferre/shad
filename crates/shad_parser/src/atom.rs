@@ -1,6 +1,6 @@
-use crate::common::{Span, Token, TokenType};
-use crate::error::SyntaxError;
+use crate::common::{Token, TokenType};
 use logos::Lexer;
+use shad_error::{Span, SyntaxError};
 
 /// A parsed identifier.
 ///
@@ -12,18 +12,19 @@ use logos::Lexer;
 ///
 /// - `my_buffer` will be parsed as an identifier in `buf my_buffer = 0;` Shad code.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Ident {
+pub struct AstIdent {
     /// The span of the identifier.
     pub span: Span,
     /// The identifier as a string.
     pub label: String,
 }
 
-impl Ident {
+impl AstIdent {
     pub(crate) fn parse(lexer: &mut Lexer<'_, TokenType>) -> Result<Self, SyntaxError> {
         let token = parse_token(lexer, TokenType::Ident)?;
+        let span = token.span;
         Ok(Self {
-            span: Span::from_logos(token.span),
+            span: Span::new(span.start, span.end),
             label: token.slice.to_string(),
         })
     }
@@ -44,29 +45,30 @@ impl Ident {
 /// - Shad code `123u` will be parsed as a `u32` literal.
 /// - Shad code `123` will be parsed as an `i32` literal.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Literal {
+pub struct AstLiteral {
     /// The span of the literal.
     pub span: Span,
     /// The value of the literal.
     pub value: String,
     /// The type of the literal.
-    pub type_: LiteralType,
+    pub type_: AstLiteralType,
 }
 
-impl Literal {
+impl AstLiteral {
     #[allow(clippy::wildcard_enum_match_arm)]
     pub(crate) fn parse(
         lexer: &mut Lexer<'_, TokenType>,
         type_: TokenType,
     ) -> Result<Self, SyntaxError> {
         let token = parse_token(lexer, type_)?;
+        let span = token.span;
         Ok(Self {
-            span: Span::from_logos(token.span),
+            span: Span::new(span.start, span.end),
             value: token.slice.to_string(),
             type_: match type_ {
-                TokenType::F32Literal => LiteralType::F32,
-                TokenType::U32Literal => LiteralType::U32,
-                TokenType::I32Literal => LiteralType::I32,
+                TokenType::F32Literal => AstLiteralType::F32,
+                TokenType::U32Literal => AstLiteralType::U32,
+                TokenType::I32Literal => AstLiteralType::I32,
                 _ => unreachable!("internal error: not supported literal"),
             },
         })
@@ -75,7 +77,7 @@ impl Literal {
 
 /// The type of a literal.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum LiteralType {
+pub enum AstLiteralType {
     /// The `f32` primitive type.
     F32,
     /// The `u32` primitive type.

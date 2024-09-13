@@ -13,9 +13,9 @@ repository.workspace = true
 rust-version.workspace = true
 
 [dependencies]
+shad_analyzer.workspace = true
 annotate-snippets.workspace = true
 fxhash.workspace = true
-shad_analyzer.workspace = true
 
 [lints]
 workspace = true
