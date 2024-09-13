@@ -10,12 +10,13 @@
 //! #
 //! fn analyze_shad_program(ast: Ast) {
 //!     let asg = Asg::analyze(&ast);
-//!     if asg.errors().next().is_some() {
+//!     if asg.errors.is_empty() {
+//!         println!("{asg:#?}")
+//!         
+//!     } else {
 //!         for err in &asg.errors {
 //!             println!("{err}");
 //!         }
-//!     } else {
-//!         println!("{asg:#?}")
 //!     }
 //! }
 //! ```
