@@ -7,8 +7,10 @@ use std::rc::Rc;
 /// The Abstract Semantic Graph of an analyzed Shad code.
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub struct Asg {
-    /// The source AST.
-    pub ast: Ast,
+    /// The raw Shad code.
+    pub code: String,
+    /// The path to the Shad code file.
+    pub path: String,
     /// The analyzed types.
     pub types: FxHashMap<String, Rc<AsgType>>,
     /// The mapping between Shad buffer names and buffer index.
@@ -24,7 +26,8 @@ impl Asg {
     /// Analyzes a Shad AST.
     pub fn analyze(ast: &Ast) -> Self {
         let mut asg = Self {
-            ast: ast.clone(),
+            code: ast.code.clone(),
+            path: ast.path.clone(),
             types: FxHashMap::default(),
             buffers: FxHashMap::default(),
             init_shaders: vec![],

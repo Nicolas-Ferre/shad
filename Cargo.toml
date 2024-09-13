@@ -17,6 +17,7 @@ annotate-snippets = "0.11"
 async-std = "1.12"
 bytemuck = { version = "1.15", features = ["derive"] }
 cargo-run-wasm = "0.4"
+clap = { version = "4", features = ["derive"] }
 console_error_panic_hook = "0.1"
 console_log = "1.0"
 fs_extra = "1.2"
@@ -41,6 +42,7 @@ shad_parser = { version = "0.1.0", path = "crates/shad_parser" }
 shad_analyzer = { version = "0.1.0", path = "crates/shad_analyzer" }
 shad_transpiler = { version = "0.1.0", path = "crates/shad_transpiler" }
 shad_runner = { version = "0.1.0", path = "crates/shad_runner" }
+shad = { version = "0.1.0", path = "crates/shad" }
 
 [workspace.lints.rust]
 anonymous_parameters = "warn"

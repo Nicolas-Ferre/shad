@@ -32,8 +32,8 @@ pub(crate) fn duplicated_name_error(
                 text: "buffer with same name is defined here".into(),
             },
         ],
-        &asg.ast.code,
-        &asg.ast.path,
+        &asg.code,
+        &asg.path,
     )
 }
 
