@@ -5,6 +5,7 @@ use clap::Parser;
 use shad_analyzer::Asg;
 use shad_parser::Ast;
 use shad_runner::Runner;
+use std::process;
 
 // coverage: off (not simple to test)
 
@@ -52,7 +53,10 @@ impl RunArgs {
                     println!("Buffer `{buffer}`: {:?}", runner.buffer(buffer));
                 }
             }
-            Err(err) => println!("{err}"),
+            Err(err) => {
+                println!("{err}");
+                process::exit(1);
+            }
         }
     }
 }
@@ -68,7 +72,10 @@ impl AstArgs {
     fn run(self) {
         match Ast::from_file(self.path) {
             Ok(ast) => println!("{ast:#?}"),
-            Err(err) => println!("{err}"),
+            Err(err) => {
+                println!("{err}");
+                process::exit(1);
+            }
         }
     }
 }
@@ -87,7 +94,7 @@ impl AsgArgs {
             Ok(ast) => ast,
             Err(err) => {
                 println!("{err}");
-                return;
+                process::exit(1);
             }
         };
         let asg = Asg::analyze(&ast);
@@ -97,6 +104,7 @@ impl AsgArgs {
             for err in &asg.errors {
                 println!("{err}");
             }
+            process::exit(1);
         }
     }
 }
