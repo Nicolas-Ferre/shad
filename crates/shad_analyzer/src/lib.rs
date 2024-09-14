@@ -24,11 +24,13 @@
 mod asg;
 mod buffer;
 mod expr;
+mod function;
 mod shader;
 mod type_;
 
 pub use asg::*;
 pub use buffer::*;
 pub use expr::*;
+pub use function::*;
 pub use shader::*;
 pub use type_::*;

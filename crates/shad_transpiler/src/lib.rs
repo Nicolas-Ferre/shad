@@ -47,7 +47,7 @@ fn statement(statement: &AsgStatement, indent: usize) -> String {
             format!(
                 "{empty: >width$}{} = {};",
                 value(&assignment.assigned),
-                expr(&assignment.value),
+                expression(&assignment.value),
                 empty = "",
                 width = indent * IDENT_UNIT,
             )
@@ -61,13 +61,23 @@ fn value(assigned: &AsgValue) -> String {
     }
 }
 
-fn expr(expr: &AsgExpr) -> String {
+fn expression(expr: &AsgExpr) -> String {
     match expr {
+        // coverage: off (unreachable in `shad_runner` crate)
+        AsgExpr::Invalid => "<invalid>".into(),
+        // coverage: on
         AsgExpr::Literal(literal) => format!("{}({})", literal.type_.final_name, literal.value),
         AsgExpr::Ident(AsgIdent::Buffer(buffer)) => buffer_name(buffer),
-        // coverage: off (unreachable in `shad_runner` crate)
-        AsgExpr::Ident(AsgIdent::Invalid) => "<invalid_ident>".into(),
-        // coverage: on
+        AsgExpr::FnCall(fn_call) => format!(
+            "{}({})",
+            fn_call.fn_.name.label,
+            fn_call
+                .args
+                .iter()
+                .map(expression)
+                .collect::<Vec<_>>()
+                .join(", ")
+        ),
     }
 }
 

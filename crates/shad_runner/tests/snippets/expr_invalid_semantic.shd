@@ -3,3 +3,8 @@ buf not_yet_defined = f32_too_many_digits;
 buf f32_too_many_digits = 123456789012345678901234567890123456789.;
 buf u32_too_big = 4_294_967_296u;
 buf i32_too_big = 2_147_483_648;
+buf undefined_fn = pow(10., 2);
+buf invalid_return_type = a(a(0.));
+
+gpu fn pow(base: f32, power: f32) -> f32;
+gpu fn a(value: f32) -> i32;

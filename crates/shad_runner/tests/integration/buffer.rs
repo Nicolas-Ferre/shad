@@ -1,13 +1,6 @@
-use crate::{assert_semantic_error, assert_syntax_error, f32_buffer, snippet_path};
+use crate::{assert_semantic_error, assert_syntax_error, snippet_path};
 use shad_error::{ErrorLevel, LocatedMessage, Span};
 use shad_runner::Runner;
-
-#[test]
-fn run_valid() {
-    let runner = Runner::new(snippet_path("buffer_valid.shd")).unwrap();
-    runner.run();
-    assert_eq!(f32_buffer(&runner, "buffer_name"), 42.);
-}
 
 #[test]
 fn run_invalid_syntax() {

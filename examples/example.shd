@@ -2,3 +2,6 @@ buf buffer_f32 = 1.;
 buf buffer_i32 = 1;
 buf buffer_u32 = 1u;
 buf buffer_copy = buffer_f32;
+buf buffer_fn = pow(12. 2.);
+
+gpu fn pow(base: f32, power: f32) -> f32;

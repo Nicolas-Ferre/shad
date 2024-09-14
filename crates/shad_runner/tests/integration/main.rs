@@ -6,6 +6,7 @@ use shad_runner::Runner;
 mod buffer;
 mod comment;
 mod expr;
+mod gpu_fn;
 mod runner;
 
 fn snippet_path(filename: &str) -> String {

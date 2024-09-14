@@ -9,6 +9,6 @@ fn run_missing_file() {
 
 #[test]
 fn access_invalid_buffer() {
-    let runner = Runner::new(snippet_path("buffer_valid.shd")).unwrap();
+    let runner = Runner::new(snippet_path("expr_valid.shd")).unwrap();
     assert!(runner.buffer("invalid_name").is_empty());
 }
