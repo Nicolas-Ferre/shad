@@ -63,7 +63,9 @@ fn value(assigned: &AsgValue) -> String {
 
 fn expression(expr: &AsgExpr) -> String {
     match expr {
+        // coverage: off (unreachable in `shad_runner` crate)
         AsgExpr::Invalid => "<invalid>".into(),
+        // coverage: on
         AsgExpr::Literal(literal) => format!("{}({})", literal.type_.final_name, literal.value),
         AsgExpr::Ident(AsgIdent::Buffer(buffer)) => buffer_name(buffer),
         AsgExpr::FnCall(fn_call) => format!(

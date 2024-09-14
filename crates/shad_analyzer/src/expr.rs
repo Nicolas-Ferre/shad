@@ -32,7 +32,9 @@ impl AsgExpr {
     /// Returns the type of the expression.
     pub fn type_<'a>(&'a self, asg: &'a Asg) -> &Rc<AsgType> {
         match self {
+            // coverage: off (unreachable in `shad_runner` crate)
             Self::Invalid => type_::undefined(asg),
+            // coverage: on
             Self::Literal(expr) => &expr.type_,
             Self::Ident(expr) => expr.type_(asg),
             Self::FnCall(expr) => expr.type_(),
