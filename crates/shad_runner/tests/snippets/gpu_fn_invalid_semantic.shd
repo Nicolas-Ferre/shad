@@ -1,0 +1,4 @@
+gpu fn duplicated_param(param: f32, param: f32) -> f32;
+gpu fn duplicated_fn(param1: u32, param2: u32) -> i32;
+gpu fn duplicated_fn(param3: u32, param4: u32) -> i32;
+gpu fn undefined_type(param: undef) -> f32;

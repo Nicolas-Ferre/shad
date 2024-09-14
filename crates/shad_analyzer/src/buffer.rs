@@ -1,16 +1,29 @@
-use crate::{expr, Asg, AsgExpr};
+use crate::{Asg, AsgExpr};
 use shad_error::{ErrorLevel, LocatedMessage, SemanticError};
 use shad_parser::{AstBufferItem, AstIdent};
 
-pub(crate) fn analyze(asg: &mut Asg, buffer: &AstBufferItem) -> AsgBuffer {
-    AsgBuffer {
-        name: buffer.name.clone(),
-        index: asg.buffers.len(),
-        expr: expr::analyze(asg, &buffer.value),
+/// An analyzed buffer.
+#[derive(Debug, PartialEq, Eq, Clone)]
+pub struct AsgBuffer {
+    /// The buffer name in the initial Shad code.
+    pub name: AstIdent,
+    /// The unique buffer index.
+    pub index: usize,
+    /// The initial value of the buffer.
+    pub expr: AsgExpr,
+}
+
+impl AsgBuffer {
+    pub(crate) fn new(asg: &mut Asg, buffer: &AstBufferItem) -> Self {
+        Self {
+            name: buffer.name.clone(),
+            index: asg.buffers.len(),
+            expr: AsgExpr::new(asg, &buffer.value),
+        }
     }
 }
 
-pub(crate) fn duplicated_name_error(
+pub(crate) fn duplicated_error(
     asg: &Asg,
     duplicated_buffer: &AstBufferItem,
     existing_buffer: &AsgBuffer,
@@ -35,15 +48,4 @@ pub(crate) fn duplicated_name_error(
         &asg.code,
         &asg.path,
     )
-}
-
-/// An analyzed buffer.
-#[derive(Debug, PartialEq, Eq, Clone)]
-pub struct AsgBuffer {
-    /// The buffer name in the initial Shad code.
-    pub name: AstIdent,
-    /// The unique buffer index.
-    pub index: usize,
-    /// The initial value of the buffer.
-    pub expr: AsgExpr,
 }

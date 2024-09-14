@@ -2,19 +2,6 @@ use crate::{AsgBuffer, AsgExpr};
 use std::iter;
 use std::rc::Rc;
 
-pub(crate) fn buffer_init_shader(buffer: &Rc<AsgBuffer>) -> AsgComputeShader {
-    AsgComputeShader {
-        buffers: iter::once(buffer.clone())
-            .chain(buffer.expr.buffers())
-            .collect(),
-        statements: vec![AsgStatement::Assignment(AsgAssignment {
-            assigned: AsgValue::Buffer(buffer.clone()),
-            value: buffer.expr.clone(),
-        })],
-        name: format!("buffer_init:{}", buffer.name.label),
-    }
-}
-
 /// An analyzed compute shader definition.
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub struct AsgComputeShader {
@@ -24,6 +11,21 @@ pub struct AsgComputeShader {
     pub statements: Vec<AsgStatement>,
     /// The name of the shader.
     pub name: String,
+}
+
+impl AsgComputeShader {
+    pub(crate) fn buffer_init(buffer: &Rc<AsgBuffer>) -> Self {
+        Self {
+            buffers: iter::once(buffer.clone())
+                .chain(buffer.expr.buffers())
+                .collect(),
+            statements: vec![AsgStatement::Assignment(AsgAssignment {
+                assigned: AsgValue::Buffer(buffer.clone()),
+                value: buffer.expr.clone(),
+            })],
+            name: format!("buffer_init:{}", buffer.name.label),
+        }
+    }
 }
 
 /// An analyzed statement definition.

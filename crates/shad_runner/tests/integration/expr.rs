@@ -8,7 +8,7 @@ fn run_valid() {
     let runner = Runner::new(snippet_path("expr_valid.shd")).unwrap();
     runner.run();
     assert_eq!(f32_buffer(&runner, "f32_zero"), 0.);
-    assert_eq!(f32_buffer(&runner, "f32_no_frac_part"), 0.);
+    assert_eq!(f32_buffer(&runner, "f32_no_frac_part"), 2.);
     assert_eq!(f32_buffer(&runner, "f32_many_digits"), 123_456_700.);
     assert_eq!(f32_buffer(&runner, "f32_max_int_digits"), 1.234_567_8e37);
     assert_eq!(f32_buffer(&runner, "f32_underscores"), 123_456_700.);
@@ -19,6 +19,7 @@ fn run_valid() {
     assert_eq!(u32_buffer(&runner, "i32_underscores"), 123_456_789);
     assert_eq!(u32_buffer(&runner, "i32_max_value"), 2_147_483_647);
     assert_eq!(u32_buffer(&runner, "copied_buffer"), 2_147_483_647);
+    assert_eq!(f32_buffer(&runner, "fn_call"), 16.);
 }
 
 #[test]
@@ -42,6 +43,8 @@ fn run_invalid_semantic() {
             "`f32` literal with too many digits in integer part",
             "`u32` literal out of range",
             "`i32` literal out of range",
+            "could not find `pow(f32, i32)` function",
+            "could not find `a(i32)` function",
         ],
         &[
             &vec![LocatedMessage {
@@ -75,6 +78,16 @@ fn run_invalid_semantic() {
                 level: ErrorLevel::Error,
                 span: Span::new(196, 209),
                 text: "value is outside allowed range for `i32` type".into(),
+            }],
+            &vec![LocatedMessage {
+                level: ErrorLevel::Error,
+                span: Span::new(230, 233),
+                text: "undefined function".into(),
+            }],
+            &vec![LocatedMessage {
+                level: ErrorLevel::Error,
+                span: Span::new(269, 270),
+                text: "undefined function".into(),
             }],
         ],
     );
