@@ -2,10 +2,11 @@ buf buffer_f32 = 1.;
 buf buffer_i32 = 1;
 buf buffer_u32 = 1u;
 buf buffer_copy = buffer_f32;
-buf buffer_fn = pow(12. 2.);
+buf buffer_fn = pow(12., 2.);
 
 gpu fn pow(base: f32, power: f32) -> f32;
 
 run {
-    buffer_f32 = 2.;
+    var val = 0.;
+    buffer_f32 = pow(val, 2.);
 }

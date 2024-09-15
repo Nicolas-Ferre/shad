@@ -11,5 +11,6 @@ run {
 }
 
 run {
-    value3 = value2;
+    var val = value2;
+    value3 = val;
 }

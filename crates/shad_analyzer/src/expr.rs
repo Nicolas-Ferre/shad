@@ -1,4 +1,5 @@
-use crate::{asg, function, type_, Asg, AsgBuffer, AsgFn, AsgFnSignature, AsgType};
+use crate::shader::AsgStatements;
+use crate::{asg, function, type_, Asg, AsgBuffer, AsgFn, AsgFnSignature, AsgType, AsgVariable};
 use shad_error::{ErrorLevel, LocatedMessage, SemanticError, Span};
 use shad_parser::{AstExpr, AstFnCall, AstIdent, AstLiteral, AstLiteralType};
 use std::rc::Rc;
@@ -20,11 +21,11 @@ pub enum AsgExpr {
 }
 
 impl AsgExpr {
-    pub(crate) fn new(asg: &mut Asg, expr: &AstExpr) -> Self {
+    pub(crate) fn new(asg: &mut Asg, ctx: &AsgStatements, expr: &AstExpr) -> Self {
         match expr {
             AstExpr::Literal(expr) => Some(Self::Literal(AsgLiteral::new(asg, expr))),
-            AstExpr::Ident(expr) => AsgIdent::new(asg, expr).map(Self::Ident),
-            AstExpr::FnCall(expr) => AsgFnCall::new(asg, expr).map(Self::FnCall),
+            AstExpr::Ident(expr) => Some(Self::Ident(AsgIdent::new(asg, ctx, expr))),
+            AstExpr::FnCall(expr) => AsgFnCall::new(asg, ctx, expr).map(Self::FnCall),
         }
         .unwrap_or(Self::Invalid)
     }
@@ -73,29 +74,53 @@ impl AsgLiteral {
 /// An analyzed identifier.
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub enum AsgIdent {
+    /// An invalid identifier.
+    Invalid,
     /// A buffer identifier.
     Buffer(Rc<AsgBuffer>),
+    /// A variable identifier.
+    Var(Rc<AsgVariable>),
 }
 
 impl AsgIdent {
-    fn new(asg: &mut Asg, ident: &AstIdent) -> Option<Self> {
-        if let Some(buffer) = asg.buffers.get(&ident.label) {
-            Some(Self::Buffer(buffer.clone()))
+    pub(crate) fn new(asg: &mut Asg, ctx: &AsgStatements, ident: &AstIdent) -> Self {
+        if let Some(variable) = ctx.variables.get(&ident.label) {
+            Self::Var(variable.clone())
+        } else if let Some(buffer) = asg.buffers.get(&ident.label) {
+            Self::Buffer(buffer.clone())
         } else {
             asg.errors.push(asg::not_found_ident_error(asg, ident));
-            None
+            Self::Invalid
         }
     }
 
-    fn type_<'a>(&'a self, asg: &'a Asg) -> &Rc<AsgType> {
+    pub(crate) fn type_<'a>(&'a self, asg: &'a Asg) -> &Rc<AsgType> {
         match self {
+            // coverage: off (unreachable in `shad_runner` crate)
+            Self::Invalid => type_::undefined(asg),
+            // coverage: on
             Self::Buffer(buffer) => buffer.expr.type_(asg),
+            Self::Var(variable) => variable.expr.type_(asg),
         }
     }
 
-    fn buffers(&self) -> Vec<(String, Rc<AsgBuffer>)> {
+    pub(crate) fn buffers(&self) -> Vec<(String, Rc<AsgBuffer>)> {
         match self {
+            // coverage: off (unreachable in `shad_runner` crate)
+            Self::Invalid => vec![],
+            // coverage: on
             Self::Buffer(buffer) => vec![(buffer.name.label.clone(), buffer.clone())],
+            Self::Var(variable) => variable.expr.buffers(),
+        }
+    }
+
+    pub(crate) fn name(&self) -> Option<&str> {
+        match self {
+            // coverage: off (unreachable in `shad_runner` crate)
+            Self::Invalid => None,
+            // coverage: on
+            Self::Buffer(buffer) => Some(&buffer.name.label),
+            Self::Var(variable) => Some(&variable.name.label),
         }
     }
 }
@@ -110,11 +135,11 @@ pub struct AsgFnCall {
 }
 
 impl AsgFnCall {
-    fn new(asg: &mut Asg, fn_call: &AstFnCall) -> Option<Self> {
+    fn new(asg: &mut Asg, ctx: &AsgStatements, fn_call: &AstFnCall) -> Option<Self> {
         let args: Vec<_> = fn_call
             .args
             .iter()
-            .map(|arg| AsgExpr::new(asg, arg))
+            .map(|arg| AsgExpr::new(asg, ctx, arg))
             .collect();
         let signature = AsgFnSignature::from_call(asg, &fn_call.name, &args);
         Some(Self {

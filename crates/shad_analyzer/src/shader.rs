@@ -1,9 +1,10 @@
-use crate::{asg, Asg, AsgBuffer, AsgExpr};
+use crate::{type_, Asg, AsgBuffer, AsgExpr, AsgIdent};
 use fxhash::FxHashMap;
-use shad_parser::{AstAssignment, AstIdent, AstRunItem, AstStatement};
+use shad_error::{ErrorLevel, LocatedMessage, SemanticError, Span};
+use shad_parser::{AstAssignment, AstExpr, AstIdent, AstRunItem, AstStatement, AstVarDefinition};
 use std::rc::Rc;
 
-/// An analyzed compute shader definition.
+/// An analyzed compute shader.
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub struct AsgComputeShader {
     /// The buffers used in the shader.
@@ -15,11 +16,10 @@ pub struct AsgComputeShader {
 }
 
 impl AsgComputeShader {
-    pub(crate) fn buffer_init(buffer: &Rc<AsgBuffer>) -> Self {
-        let statements = vec![AsgStatement::Assignment(AsgAssignment {
-            assigned: AsgValue::Buffer(buffer.clone()),
-            value: buffer.expr.clone(),
-        })];
+    pub(crate) fn buffer_init(asg: &mut Asg, buffer: &Rc<AsgBuffer>, expr: &AstExpr) -> Self {
+        let statements = vec![AsgStatement::Assignment(AsgAssignment::buffer_init(
+            asg, buffer, expr,
+        ))];
         Self {
             buffers: Self::buffers(&statements),
             statements,
@@ -28,14 +28,14 @@ impl AsgComputeShader {
     }
 
     pub(crate) fn step(asg: &mut Asg, ast_run: &AstRunItem) -> Self {
-        let statements: Vec<_> = ast_run
-            .statements
-            .iter()
-            .map(|statement| AsgStatement::new(asg, statement))
-            .collect();
+        let mut ctx = AsgStatements::default();
+        for ast_statement in &ast_run.statements {
+            let statement = AsgStatement::new(asg, &mut ctx, ast_statement);
+            ctx.statements.push(statement);
+        }
         Self {
-            buffers: Self::buffers(&statements),
-            statements,
+            buffers: Self::buffers(&ctx.statements),
+            statements: ctx.statements,
             name: "run".into(),
         }
     }
@@ -46,18 +46,29 @@ impl AsgComputeShader {
     }
 }
 
-/// An analyzed statement definition.
+/// Analyzed statements.
+#[derive(Default, Debug, PartialEq, Eq, Clone)]
+pub(crate) struct AsgStatements {
+    statements: Vec<AsgStatement>,
+    pub(crate) variables: FxHashMap<String, Rc<AsgVariable>>,
+    next_variable_index: usize,
+}
+
+/// An analyzed statement.
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub enum AsgStatement {
+    /// A variable definition.
+    Var(Rc<AsgVariable>),
     /// A variable assignment.
     Assignment(AsgAssignment),
 }
 
 impl AsgStatement {
-    fn new(asg: &mut Asg, statement: &AstStatement) -> Self {
+    fn new(asg: &mut Asg, ctx: &mut AsgStatements, statement: &AstStatement) -> Self {
         match statement {
-            AstStatement::Assignment(assigment) => {
-                Self::Assignment(AsgAssignment::new(asg, assigment))
+            AstStatement::Var(statement) => Self::Var(AsgVariable::new(asg, ctx, statement)),
+            AstStatement::Assignment(statement) => {
+                Self::Assignment(AsgAssignment::new(asg, ctx, statement))
             }
         }
     }
@@ -65,59 +76,117 @@ impl AsgStatement {
     fn buffers(&self) -> Vec<(String, Rc<AsgBuffer>)> {
         match self {
             Self::Assignment(statement) => statement.buffers(),
+            Self::Var(statement) => statement.buffers(),
         }
     }
 }
 
-/// An analyzed assignment statement definition.
+/// An analyzed assignment statement.
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub struct AsgAssignment {
-    /// A statement definition.
-    pub assigned: AsgValue,
-    /// The assigned value.
-    pub value: AsgExpr,
+    /// The updated variable.
+    pub assigned: AsgIdent,
+    /// The new value.
+    pub expr: AsgExpr,
+    /// The span of the updated variable.
+    pub assigned_span: Span,
+    /// The span of the new value.
+    pub expr_span: Span,
 }
 
 impl AsgAssignment {
-    fn new(asg: &mut Asg, assignment: &AstAssignment) -> Self {
-        Self {
-            assigned: AsgValue::new(asg, &assignment.value),
-            value: AsgExpr::new(asg, &assignment.expr),
+    fn new(asg: &mut Asg, ctx: &AsgStatements, assignment: &AstAssignment) -> Self {
+        let expr = AsgExpr::new(asg, ctx, &assignment.expr);
+        Self::checked(
+            Self {
+                assigned: AsgIdent::new(asg, ctx, &assignment.value),
+                expr,
+                assigned_span: assignment.value.span,
+                expr_span: assignment.expr.span(),
+            },
+            asg,
+        )
+    }
+
+    fn buffer_init(asg: &mut Asg, buffer: &Rc<AsgBuffer>, expr: &AstExpr) -> Self {
+        Self::checked(
+            Self {
+                assigned: AsgIdent::Buffer(buffer.clone()),
+                expr: buffer.expr.clone(),
+                assigned_span: buffer.name.span,
+                expr_span: expr.span(),
+            },
+            asg,
+        )
+    }
+
+    fn checked(self, asg: &mut Asg) -> Self {
+        if self.assigned.type_(asg) != self.expr.type_(asg) {
+            asg.errors.extend(self.mismatching_type_error(asg));
         }
+        self
     }
 
     fn buffers(&self) -> Vec<(String, Rc<AsgBuffer>)> {
         let mut buffers = self.assigned.buffers();
-        buffers.extend(self.value.buffers());
+        buffers.extend(self.expr.buffers());
         buffers
+    }
+
+    pub(crate) fn mismatching_type_error(&self, asg: &Asg) -> Option<SemanticError> {
+        self.assigned.name().and_then(|name| {
+            let expected_type = self.assigned.type_(asg);
+            let actual_type = self.expr.type_(asg);
+            if expected_type == type_::undefined(asg) || actual_type == type_::undefined(asg) {
+                None
+            } else {
+                Some(SemanticError::new(
+                    format!("expression assigned to `{name}` has invalid type"),
+                    vec![
+                        LocatedMessage {
+                            level: ErrorLevel::Error,
+                            span: self.expr_span,
+                            text: format!("expression of type `{}`", actual_type.name()),
+                        },
+                        LocatedMessage {
+                            level: ErrorLevel::Info,
+                            span: self.assigned_span,
+                            text: format!("expected type `{}`", expected_type.name()),
+                        },
+                    ],
+                    &asg.code,
+                    &asg.path,
+                ))
+            }
+        })
     }
 }
 
-/// An analyzed value definition.
+/// An analyzed variable.
 #[derive(Debug, PartialEq, Eq, Clone)]
-pub enum AsgValue {
-    /// An invalid value.
-    Invalid,
-    /// A buffer.
-    Buffer(Rc<AsgBuffer>),
+pub struct AsgVariable {
+    /// The name of the variable.
+    pub name: AstIdent,
+    /// The unique index of the variable in the shader.
+    pub index: usize,
+    /// The initial value of the variable.
+    pub expr: AsgExpr,
 }
 
-impl AsgValue {
-    fn new(asg: &mut Asg, value: &AstIdent) -> Self {
-        if let Some(buffer) = asg.buffers.get(&value.label) {
-            Self::Buffer(buffer.clone())
-        } else {
-            asg.errors.push(asg::not_found_ident_error(asg, value));
-            Self::Invalid
-        }
+impl AsgVariable {
+    fn new(asg: &mut Asg, ctx: &mut AsgStatements, variable: &AstVarDefinition) -> Rc<Self> {
+        let final_variable = Rc::new(Self {
+            name: variable.name.clone(),
+            index: ctx.next_variable_index,
+            expr: AsgExpr::new(asg, ctx, &variable.expr),
+        });
+        ctx.next_variable_index += 1;
+        ctx.variables
+            .insert(variable.name.label.clone(), final_variable.clone());
+        final_variable
     }
 
     fn buffers(&self) -> Vec<(String, Rc<AsgBuffer>)> {
-        match self {
-            // coverage: off (unreachable in `shad_runner` crate)
-            Self::Invalid => vec![],
-            // coverage: on
-            Self::Buffer(buffer) => vec![(buffer.name.label.clone(), buffer.clone())],
-        }
+        self.expr.buffers()
     }
 }

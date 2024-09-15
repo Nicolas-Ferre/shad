@@ -17,6 +17,9 @@ pub(crate) enum TokenType {
     #[token("gpu")]
     Gpu,
 
+    #[token("var")]
+    Var,
+
     #[token("=")]
     Equal,
 
@@ -65,6 +68,7 @@ impl TokenType {
             Self::Run => "`run`",
             Self::Fn => "`fn`",
             Self::Gpu => "`gpu`",
+            Self::Var => "`var`",
             Self::Equal => "`=`",
             Self::Comma => "`,`",
             Self::SemiColon => "`;`",

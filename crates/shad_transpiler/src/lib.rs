@@ -1,6 +1,8 @@
 //! Transpiler to convert Shad expressions to WGSL.
 
-use shad_analyzer::{Asg, AsgBuffer, AsgComputeShader, AsgExpr, AsgIdent, AsgStatement, AsgValue};
+use shad_analyzer::{
+    Asg, AsgBuffer, AsgComputeShader, AsgExpr, AsgIdent, AsgStatement, AsgVariable,
+};
 
 const IDENT_UNIT: usize = 4;
 
@@ -43,24 +45,24 @@ fn statements(shader: &AsgComputeShader) -> String {
 
 fn statement(statement: &AsgStatement, indent: usize) -> String {
     match statement {
-        AsgStatement::Assignment(assignment) => {
+        AsgStatement::Var(assignment) => {
             format!(
-                "{empty: >width$}{} = {};",
-                value(&assignment.assigned),
-                expression(&assignment.value),
+                "{empty: >width$}var {} = {};",
+                variable_name(assignment),
+                expression(&assignment.expr),
                 empty = "",
                 width = indent * IDENT_UNIT,
             )
         }
-    }
-}
-
-fn value(assigned: &AsgValue) -> String {
-    match assigned {
-        // coverage: off (unreachable in `shad_runner` crate)
-        AsgValue::Invalid => "<invalid>".into(),
-        // coverage: on
-        AsgValue::Buffer(buffer) => buffer_name(buffer),
+        AsgStatement::Assignment(assignment) => {
+            format!(
+                "{empty: >width$}{} = {};",
+                ident(&assignment.assigned),
+                expression(&assignment.expr),
+                empty = "",
+                width = indent * IDENT_UNIT,
+            )
+        }
     }
 }
 
@@ -69,13 +71,12 @@ fn expression(expr: &AsgExpr) -> String {
         // coverage: off (unreachable in `shad_runner` crate)
         AsgExpr::Invalid => "<invalid>".into(),
         // coverage: on
-        AsgExpr::Literal(literal) => format!("{}({})", literal.type_.final_name, literal.value),
-        AsgExpr::Ident(AsgIdent::Buffer(buffer)) => buffer_name(buffer),
-        AsgExpr::FnCall(fn_call) => format!(
+        AsgExpr::Literal(expr) => format!("{}({})", expr.type_.final_name, expr.value),
+        AsgExpr::Ident(expr) => ident(expr),
+        AsgExpr::FnCall(expr) => format!(
             "{}({})",
-            fn_call.fn_.name.label,
-            fn_call
-                .args
+            expr.fn_.name.label,
+            expr.args
                 .iter()
                 .map(expression)
                 .collect::<Vec<_>>()
@@ -84,6 +85,20 @@ fn expression(expr: &AsgExpr) -> String {
     }
 }
 
+fn ident(ident: &AsgIdent) -> String {
+    match ident {
+        // coverage: off (unreachable in `shad_runner` crate)
+        AsgIdent::Invalid => "<invalid>".into(),
+        // coverage: on
+        AsgIdent::Buffer(buffer) => buffer_name(buffer),
+        AsgIdent::Var(variable) => variable_name(variable),
+    }
+}
+
 fn buffer_name(buffer: &AsgBuffer) -> String {
     format!("{}_{}", buffer.name.label, buffer.index)
+}
+
+fn variable_name(variable: &AsgVariable) -> String {
+    format!("{}_{}", variable.name.label, variable.index)
 }

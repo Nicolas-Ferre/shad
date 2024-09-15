@@ -1,0 +1,6 @@
+buf value1 = 0.;
+buf value2 = 0;
+
+run {
+    value1 = value2;
+}

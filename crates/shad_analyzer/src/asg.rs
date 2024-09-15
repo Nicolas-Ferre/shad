@@ -1,3 +1,4 @@
+use crate::shader::AsgStatements;
 use crate::{buffer, function, type_, AsgBuffer, AsgComputeShader, AsgFn, AsgFnSignature, AsgType};
 use fxhash::FxHashMap;
 use shad_error::{ErrorLevel, LocatedMessage, SemanticError};
@@ -54,7 +55,7 @@ impl Asg {
                 let signature = AsgFnSignature::new(&fn_);
                 if let Some(existing_fn) = asg.functions.insert(signature, fn_) {
                     asg.errors
-                        .push(function::duplicated_error(asg, ast_fn, &existing_fn));
+                        .extend(function::duplicated_error(asg, ast_fn, &existing_fn));
                 }
             }
         }
@@ -64,8 +65,9 @@ impl Asg {
         for item in &ast.items {
             if let AstItem::Buffer(ast_buffer) = item {
                 let name = ast_buffer.name.label.clone();
-                let buffer = Rc::new(AsgBuffer::new(asg, ast_buffer));
-                let init_shader = AsgComputeShader::buffer_init(&buffer);
+                let statements = AsgStatements::default();
+                let buffer = Rc::new(AsgBuffer::new(asg, &statements, ast_buffer));
+                let init_shader = AsgComputeShader::buffer_init(asg, &buffer, &ast_buffer.value);
                 asg.init_shaders.push(init_shader);
                 if let Some(existing_buffer) = asg.buffers.insert(name, buffer) {
                     asg.errors
