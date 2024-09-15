@@ -4,6 +4,7 @@ use shad_analyzer::{Asg, AsgBuffer, AsgComputeShader};
 use shad_error::Error;
 use shad_parser::Ast;
 use std::path::Path;
+use std::time::{Duration, Instant};
 use wgpu::{
     Adapter, Backends, BindGroup, Buffer, BufferDescriptor, BufferUsages, CommandEncoder,
     CommandEncoderDescriptor, ComputePass, ComputePassDescriptor, ComputePipeline,
@@ -18,6 +19,9 @@ pub struct Runner {
     device: Device,
     queue: Queue,
     program: Program,
+    is_started: bool,
+    last_delta: Duration,
+    last_step_end: Instant,
 }
 
 impl Runner {
@@ -35,12 +39,28 @@ impl Runner {
             device,
             queue,
             program,
+            is_started: false,
+            last_delta: Duration::ZERO,
+            last_step_end: Instant::now(),
         })
     }
 
-    /// Starts the runner.
-    pub fn run(&self) {
-        self.program.init(&self.device, &self.queue);
+    /// Runs a step of the application.
+    pub fn run_step(&mut self) {
+        let start = Instant::now();
+        if !self.is_started {
+            self.program.init(&self.device, &self.queue);
+            self.is_started = true;
+        }
+        self.program.run_step(&self.device, &self.queue);
+        let end = Instant::now();
+        self.last_delta = end - start;
+        self.last_step_end = end;
+    }
+
+    /// Returns the time taken by the latest step.
+    pub fn delta(&self) -> Duration {
+        self.last_delta
     }
 
     /// Retrieves the bytes of the buffer with a specific Shad `name`.
@@ -113,6 +133,7 @@ struct Program {
     asg: Asg,
     buffers: FxHashMap<String, Buffer>,
     init_shaders: Vec<ComputeShader>,
+    step_shaders: Vec<ComputeShader>,
 }
 
 impl Program {
@@ -128,15 +149,21 @@ impl Program {
             .iter()
             .map(|(name, buffer)| (name.clone(), Self::create_buffer(&asg, buffer, device)))
             .collect();
-        let init_compute_shaders = asg
+        let init_shaders = asg
             .init_shaders
+            .iter()
+            .map(|shader| ComputeShader::new(&asg, shader, &buffers, device))
+            .collect();
+        let step_shaders = asg
+            .step_shaders
             .iter()
             .map(|shader| ComputeShader::new(&asg, shader, &buffers, device))
             .collect();
         Ok(Self {
             asg,
             buffers,
-            init_shaders: init_compute_shaders,
+            init_shaders,
+            step_shaders,
         })
     }
 
@@ -145,7 +172,23 @@ impl Program {
         let mut pass = Self::start_compute_pass(&mut encoder);
         for shader in &self.init_shaders {
             pass.set_pipeline(&shader.pipeline);
-            pass.set_bind_group(0, &shader.bind_group, &[]);
+            if let Some(bind_group) = &shader.bind_group {
+                pass.set_bind_group(0, bind_group, &[]);
+            }
+            pass.dispatch_workgroups(1, 1, 1);
+        }
+        drop(pass);
+        queue.submit(Some(encoder.finish()));
+    }
+
+    fn run_step(&self, device: &Device, queue: &Queue) {
+        let mut encoder = Self::create_encoder(device);
+        let mut pass = Self::start_compute_pass(&mut encoder);
+        for shader in &self.step_shaders {
+            pass.set_pipeline(&shader.pipeline);
+            if let Some(bind_group) = &shader.bind_group {
+                pass.set_bind_group(0, bind_group, &[]);
+            }
             pass.dispatch_workgroups(1, 1, 1);
         }
         drop(pass);
@@ -178,7 +221,7 @@ impl Program {
 #[derive(Debug)]
 struct ComputeShader {
     pipeline: ComputePipeline,
-    bind_group: BindGroup,
+    bind_group: Option<BindGroup>,
 }
 
 impl ComputeShader {
@@ -189,7 +232,8 @@ impl ComputeShader {
         device: &Device,
     ) -> Self {
         let pipeline = Self::create_pipeline(asg, shader, device);
-        let bind_group = Self::create_bind_group(&pipeline, shader, buffers, device);
+        let bind_group = (!shader.buffers.is_empty())
+            .then(|| Self::create_bind_group(&pipeline, shader, buffers, device));
         Self {
             pipeline,
             bind_group,
@@ -224,7 +268,7 @@ impl ComputeShader {
             layout: &pipeline.get_bind_group_layout(0),
             entries: &shader
                 .buffers
-                .iter()
+                .values()
                 .enumerate()
                 .map(|(index, buffer)| wgpu::BindGroupEntry {
                     binding: index as u32,

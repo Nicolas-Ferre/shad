@@ -5,8 +5,8 @@ use shad_runner::Runner;
 #[test]
 #[allow(clippy::decimal_literal_representation)]
 fn run_valid() {
-    let runner = Runner::new(snippet_path("expr_valid.shd")).unwrap();
-    runner.run();
+    let mut runner = Runner::new(snippet_path("expr_valid.shd")).unwrap();
+    runner.run_step();
     assert_eq!(f32_buffer(&runner, "f32_zero"), 0.);
     assert_eq!(f32_buffer(&runner, "f32_no_frac_part"), 2.);
     assert_eq!(f32_buffer(&runner, "f32_many_digits"), 123_456_700.);

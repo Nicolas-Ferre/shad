@@ -7,7 +7,7 @@
 //! #
 //! # fn no_run() {
 //! let runner = Runner::new("path/to/myscript.shd").unwrap();
-//! runner.run();
+//! runner.run_step();
 //! # }
 //! ```
 

@@ -8,6 +8,8 @@ mod comment;
 mod expr;
 mod gpu_fn;
 mod runner;
+mod statement;
+mod value;
 
 fn snippet_path(filename: &str) -> String {
     concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snippets/").to_string() + filename

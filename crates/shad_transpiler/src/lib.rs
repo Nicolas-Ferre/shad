@@ -16,7 +16,7 @@ pub fn generate_wgsl_compute_shader(asg: &Asg, shader: &AsgComputeShader) -> Str
 fn buffer_definitions(asg: &Asg, shader: &AsgComputeShader) -> String {
     shader
         .buffers
-        .iter()
+        .values()
         .enumerate()
         .map(|(index, buffer)| buffer_definition(asg, buffer, index))
         .collect::<Vec<_>>()
@@ -57,6 +57,9 @@ fn statement(statement: &AsgStatement, indent: usize) -> String {
 
 fn value(assigned: &AsgValue) -> String {
     match assigned {
+        // coverage: off (unreachable in `shad_runner` crate)
+        AsgValue::Invalid => "<invalid>".into(),
+        // coverage: on
         AsgValue::Buffer(buffer) => buffer_name(buffer),
     }
 }

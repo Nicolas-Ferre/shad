@@ -1,0 +1,5 @@
+buf value1 = 0.;
+
+run {
+    undefined = value1;
+}

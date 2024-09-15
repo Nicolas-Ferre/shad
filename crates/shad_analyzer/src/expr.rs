@@ -1,4 +1,4 @@
-use crate::{function, type_, Asg, AsgBuffer, AsgFn, AsgFnSignature, AsgType};
+use crate::{asg, function, type_, Asg, AsgBuffer, AsgFn, AsgFnSignature, AsgType};
 use shad_error::{ErrorLevel, LocatedMessage, SemanticError, Span};
 use shad_parser::{AstExpr, AstFnCall, AstIdent, AstLiteral, AstLiteralType};
 use std::rc::Rc;
@@ -41,7 +41,7 @@ impl AsgExpr {
         }
     }
 
-    pub(crate) fn buffers(&self) -> Vec<Rc<AsgBuffer>> {
+    pub(crate) fn buffers(&self) -> Vec<(String, Rc<AsgBuffer>)> {
         match self {
             Self::Invalid | Self::Literal(_) => vec![],
             Self::Ident(expr) => expr.buffers(),
@@ -82,7 +82,7 @@ impl AsgIdent {
         if let Some(buffer) = asg.buffers.get(&ident.label) {
             Some(Self::Buffer(buffer.clone()))
         } else {
-            asg.errors.push(not_found_ident_error(asg, ident));
+            asg.errors.push(asg::not_found_ident_error(asg, ident));
             None
         }
     }
@@ -93,9 +93,9 @@ impl AsgIdent {
         }
     }
 
-    fn buffers(&self) -> Vec<Rc<AsgBuffer>> {
+    fn buffers(&self) -> Vec<(String, Rc<AsgBuffer>)> {
         match self {
-            Self::Buffer(buffer) => vec![buffer.clone()],
+            Self::Buffer(buffer) => vec![(buffer.name.label.clone(), buffer.clone())],
         }
     }
 }
@@ -127,7 +127,7 @@ impl AsgFnCall {
         &self.fn_.return_type
     }
 
-    fn buffers(&self) -> Vec<Rc<AsgBuffer>> {
+    fn buffers(&self) -> Vec<(String, Rc<AsgBuffer>)> {
         self.args.iter().flat_map(AsgExpr::buffers).collect()
     }
 }
@@ -149,19 +149,6 @@ fn literal_error(asg: &Asg, literal: &AstLiteral, final_value: &str) -> Option<S
         }
         AstLiteralType::I32 => int_literal_error::<i32>(asg, literal, final_value, "i32"),
     }
-}
-
-fn not_found_ident_error(asg: &Asg, ident: &AstIdent) -> SemanticError {
-    SemanticError::new(
-        format!("could not find `{}` value", ident.label),
-        vec![LocatedMessage {
-            level: ErrorLevel::Error,
-            span: ident.span,
-            text: "undefined identifier".into(),
-        }],
-        &asg.code,
-        &asg.path,
-    )
 }
 
 fn f32_literal_error(asg: &Asg, literal: &AstLiteral, final_value: &str) -> Option<SemanticError> {
