@@ -37,7 +37,7 @@ Shad may also work on some other platforms, but they have not been tested.
 Shad scripts can be run with the following command:
 
 ```shell
-cargo run --bin shad -- run <script path>
+cargo run --release --bin shad -- run <script path>
 ```
 
 Examples of Shad scripts are located in the `examples` folder.

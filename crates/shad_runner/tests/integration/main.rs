@@ -8,6 +8,8 @@ mod comment;
 mod expr;
 mod gpu_fn;
 mod runner;
+mod statement;
+mod value;
 
 fn snippet_path(filename: &str) -> String {
     concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snippets/").to_string() + filename
@@ -25,6 +27,13 @@ fn u32_buffer(runner: &Runner, buffer_name: &str) -> u32 {
     assert_eq!(bytes.len(), 4);
     let bytes = [bytes[0], bytes[1], bytes[2], bytes[3]];
     u32::from_ne_bytes(bytes)
+}
+
+fn i32_buffer(runner: &Runner, buffer_name: &str) -> i32 {
+    let bytes = runner.buffer(buffer_name);
+    assert_eq!(bytes.len(), 4);
+    let bytes = [bytes[0], bytes[1], bytes[2], bytes[3]];
+    i32::from_ne_bytes(bytes)
 }
 
 fn assert_semantic_error(

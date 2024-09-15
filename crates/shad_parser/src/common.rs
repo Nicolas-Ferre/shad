@@ -8,6 +8,9 @@ pub(crate) enum TokenType {
     #[token("buf")]
     Buf,
 
+    #[token("run")]
+    Run,
+
     #[token("fn")]
     Fn,
 
@@ -35,6 +38,12 @@ pub(crate) enum TokenType {
     #[token(")")]
     CloseParenthesis,
 
+    #[token("{")]
+    OpenBrace,
+
+    #[token("}")]
+    CloseBrace,
+
     #[regex("[a-zA-Z_][a-zA-Z0-9_]*")]
     Ident,
 
@@ -53,6 +62,7 @@ impl TokenType {
     pub(crate) fn label(self) -> &'static str {
         match self {
             Self::Buf => "`buf`",
+            Self::Run => "`run`",
             Self::Fn => "`fn`",
             Self::Gpu => "`gpu`",
             Self::Equal => "`=`",
@@ -62,6 +72,8 @@ impl TokenType {
             Self::Arrow => "`->`",
             Self::OpenParenthesis => "`(`",
             Self::CloseParenthesis => "`)`",
+            Self::OpenBrace => "`{`",
+            Self::CloseBrace => "`}`",
             Self::Ident => "identifier",
             Self::F32Literal => "`f32` literal",
             Self::U32Literal => "`u32` literal",

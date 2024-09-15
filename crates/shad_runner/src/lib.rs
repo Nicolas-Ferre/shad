@@ -6,8 +6,8 @@
 //! # use shad_runner::*;
 //! #
 //! # fn no_run() {
-//! let runner = Runner::new("path/to/myscript.shd").unwrap();
-//! runner.run();
+//! let mut runner = Runner::new("path/to/myscript.shd").unwrap();
+//! runner.run_step();
 //! # }
 //! ```
 

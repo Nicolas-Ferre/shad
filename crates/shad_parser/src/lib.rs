@@ -21,8 +21,10 @@ mod atom;
 mod common;
 mod expr;
 mod item;
+mod statement;
 
 pub use ast::*;
 pub use atom::*;
 pub use expr::*;
 pub use item::*;
+pub use statement::*;

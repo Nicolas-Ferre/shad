@@ -1,0 +1,15 @@
+buf value1 = 0.;
+buf value2 = 1;
+buf value3 = 0;
+
+run {
+}
+
+run {
+    value1 = 2.;
+    value2 = 3;
+}
+
+run {
+    value3 = value2;
+}

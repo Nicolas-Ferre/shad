@@ -2,7 +2,7 @@ use crate::atom::parse_token;
 use crate::common::{Token, TokenType};
 use crate::{AstIdent, AstLiteral};
 use logos::Lexer;
-use shad_error::{Span, SyntaxError};
+use shad_error::SyntaxError;
 
 /// A parsed expression.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -52,8 +52,6 @@ impl AstExpr {
 #[non_exhaustive]
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AstFnCall {
-    /// The span.
-    pub span: Span,
     /// The function name.
     pub name: AstIdent,
     /// The arguments passed to the function.
@@ -66,20 +64,13 @@ impl AstFnCall {
         let name = AstIdent::parse(lexer)?;
         parse_token(lexer, TokenType::OpenParenthesis)?;
         let mut args = vec![];
-        while Token::next(&mut lexer.clone())?.type_ != TokenType::CloseParenthesis {
+        while parse_token(&mut lexer.clone(), TokenType::CloseParenthesis).is_err() {
             args.push(AstExpr::parse(lexer)?);
-            if Token::next(&mut lexer.clone())?.type_ == TokenType::Comma {
-                Token::next(lexer)?;
+            if parse_token(&mut lexer.clone(), TokenType::Comma).is_ok() {
+                parse_token(lexer, TokenType::Comma)?;
             }
         }
-        let close_parenthesis = parse_token(lexer, TokenType::CloseParenthesis)?;
-        Ok(Self {
-            span: Span {
-                start: name.span.start,
-                end: close_parenthesis.span.end,
-            },
-            name,
-            args,
-        })
+        parse_token(lexer, TokenType::CloseParenthesis)?;
+        Ok(Self { name, args })
     }
 }

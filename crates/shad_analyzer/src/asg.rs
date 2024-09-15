@@ -1,7 +1,7 @@
 use crate::{buffer, function, type_, AsgBuffer, AsgComputeShader, AsgFn, AsgFnSignature, AsgType};
 use fxhash::FxHashMap;
-use shad_error::SemanticError;
-use shad_parser::{Ast, AstItem};
+use shad_error::{ErrorLevel, LocatedMessage, SemanticError};
+use shad_parser::{Ast, AstIdent, AstItem};
 use std::rc::Rc;
 
 /// The Abstract Semantic Graph of an analyzed Shad code.
@@ -19,6 +19,8 @@ pub struct Asg {
     pub buffers: FxHashMap<String, Rc<AsgBuffer>>,
     /// The initialization shaders.
     pub init_shaders: Vec<AsgComputeShader>,
+    /// The shaders run during each step of the application loop.
+    pub step_shaders: Vec<AsgComputeShader>,
     /// The semantic errors that occurred during the analysis.
     pub errors: Vec<SemanticError>,
 }
@@ -34,11 +36,13 @@ impl Asg {
             functions: FxHashMap::default(),
             buffers: FxHashMap::default(),
             init_shaders: vec![],
+            step_shaders: vec![],
             errors: vec![],
         };
         asg.types = type_::primitive_types();
         Self::analyze_functions(&mut asg, ast);
         Self::analyze_buffers(&mut asg, ast);
+        Self::analyze_step_shaders(&mut asg, ast);
         asg
     }
 
@@ -70,4 +74,26 @@ impl Asg {
             }
         }
     }
+
+    fn analyze_step_shaders(asg: &mut Self, ast: &Ast) {
+        for item in &ast.items {
+            if let AstItem::Run(ast_run) = item {
+                let shader = AsgComputeShader::step(asg, ast_run);
+                asg.step_shaders.push(shader);
+            }
+        }
+    }
+}
+
+pub(crate) fn not_found_ident_error(asg: &Asg, ident: &AstIdent) -> SemanticError {
+    SemanticError::new(
+        format!("could not find `{}` value", ident.label),
+        vec![LocatedMessage {
+            level: ErrorLevel::Error,
+            span: ident.span,
+            text: "undefined identifier".into(),
+        }],
+        &asg.code,
+        &asg.path,
+    )
 }

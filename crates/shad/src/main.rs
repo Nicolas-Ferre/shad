@@ -42,15 +42,23 @@ struct RunArgs {
     /// List of buffers to display at the end
     #[arg(short, long, num_args(0..), default_values_t = Vec::<String>::new())]
     buffer: Vec<String>,
+    /// Number of steps to run (0 to run indefinitely)
+    #[arg(short, long, default_value_t = 0)]
+    steps: u32,
 }
 
 impl RunArgs {
     fn run(self) {
         match Runner::new(&self.path) {
-            Ok(runner) => {
-                runner.run();
-                for buffer in &self.buffer {
-                    println!("Buffer `{buffer}`: {:?}", runner.buffer(buffer));
+            Ok(mut runner) => {
+                if self.steps == 0 {
+                    loop {
+                        self.run_step(&mut runner);
+                    }
+                } else {
+                    for _ in 0..self.steps {
+                        self.run_step(&mut runner);
+                    }
                 }
             }
             Err(err) => {
@@ -58,6 +66,14 @@ impl RunArgs {
                 process::exit(1);
             }
         }
+    }
+
+    fn run_step(&self, runner: &mut Runner) {
+        runner.run_step();
+        for buffer in &self.buffer {
+            println!("Buffer `{buffer}`: {:?}", runner.buffer(buffer));
+        }
+        println!("Step duration: {}µs", runner.delta().as_micros());
     }
 }
 
