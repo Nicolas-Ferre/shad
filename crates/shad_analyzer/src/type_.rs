@@ -4,7 +4,6 @@ use shad_error::{ErrorLevel, LocatedMessage, SemanticError};
 use shad_parser::AstIdent;
 use std::rc::Rc;
 
-const UNDEFINED_TYPE: &str = "<undefined>";
 const F32_TYPE: &str = "f32";
 const U32_TYPE: &str = "u32";
 const I32_TYPE: &str = "i32";
@@ -30,14 +29,6 @@ impl AsgType {
 
 pub(crate) fn primitive_types() -> FxHashMap<String, Rc<AsgType>> {
     [
-        (
-            UNDEFINED_TYPE.into(),
-            Rc::new(AsgType {
-                name: None,
-                final_name: UNDEFINED_TYPE.into(),
-                size: 0,
-            }),
-        ),
         (
             F32_TYPE.into(),
             Rc::new(AsgType {
@@ -67,18 +58,12 @@ pub(crate) fn primitive_types() -> FxHashMap<String, Rc<AsgType>> {
     .collect()
 }
 
-// coverage: off (unreachable in `shad_runner` crate)
-pub(crate) fn undefined(asg: &Asg) -> &Rc<AsgType> {
-    &asg.types[UNDEFINED_TYPE]
-}
-// coverage: on
-
-pub(crate) fn find<'a>(asg: &'a mut Asg, name: &AstIdent) -> &'a Rc<AsgType> {
+pub(crate) fn find<'a>(asg: &'a mut Asg, name: &AstIdent) -> Result<&'a Rc<AsgType>, ()> {
     if let Some(type_) = asg.types.get(&name.label) {
-        type_
+        Ok(type_)
     } else {
         asg.errors.push(not_found_type_error(asg, name));
-        &asg.types[UNDEFINED_TYPE]
+        Err(())
     }
 }
 

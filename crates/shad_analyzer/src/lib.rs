@@ -27,6 +27,7 @@ mod expr;
 mod function;
 mod shader;
 mod type_;
+mod utils;
 
 pub use asg::*;
 pub use buffer::*;

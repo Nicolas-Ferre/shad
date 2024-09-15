@@ -1,4 +1,4 @@
-use crate::{type_, Asg, AsgBuffer, AsgExpr, AsgIdent};
+use crate::{utils, Asg, AsgBuffer, AsgExpr, AsgIdent, AsgType};
 use fxhash::FxHashMap;
 use shad_error::{ErrorLevel, LocatedMessage, SemanticError, Span};
 use shad_parser::{AstAssignment, AstExpr, AstIdent, AstRunItem, AstStatement, AstVarDefinition};
@@ -85,9 +85,9 @@ impl AsgStatement {
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub struct AsgAssignment {
     /// The updated variable.
-    pub assigned: AsgIdent,
+    pub assigned: Result<AsgIdent, ()>,
     /// The new value.
-    pub expr: AsgExpr,
+    pub expr: Result<AsgExpr, ()>,
     /// The span of the updated variable.
     pub assigned_span: Span,
     /// The span of the new value.
@@ -111,7 +111,7 @@ impl AsgAssignment {
     fn buffer_init(asg: &mut Asg, buffer: &Rc<AsgBuffer>, expr: &AstExpr) -> Self {
         Self::checked(
             Self {
-                assigned: AsgIdent::Buffer(buffer.clone()),
+                assigned: Ok(AsgIdent::Buffer(buffer.clone())),
                 expr: buffer.expr.clone(),
                 assigned_span: buffer.name.span,
                 expr_span: expr.span(),
@@ -121,44 +121,60 @@ impl AsgAssignment {
     }
 
     fn checked(self, asg: &mut Asg) -> Self {
-        if self.assigned.type_(asg) != self.expr.type_(asg) {
-            asg.errors.extend(self.mismatching_type_error(asg));
+        if let (Ok(assigned), Ok(expr)) = (&self.assigned, &self.expr) {
+            if let (Ok(assigned_type), Ok(expr_type)) = (assigned.type_(asg), expr.type_(asg)) {
+                if assigned_type != expr_type {
+                    asg.errors.push(self.mismatching_type_error(
+                        asg,
+                        assigned,
+                        assigned_type,
+                        expr_type,
+                    ));
+                }
+            }
         }
         self
     }
 
     fn buffers(&self) -> Vec<(String, Rc<AsgBuffer>)> {
-        let mut buffers = self.assigned.buffers();
-        buffers.extend(self.expr.buffers());
+        let mut buffers = utils::result_ref(&self.assigned)
+            .map(AsgIdent::buffers)
+            .unwrap_or_default();
+        buffers.append(
+            &mut utils::result_ref(&self.expr)
+                .map(AsgExpr::buffers)
+                .unwrap_or_default(),
+        );
         buffers
     }
 
-    pub(crate) fn mismatching_type_error(&self, asg: &Asg) -> Option<SemanticError> {
-        self.assigned.name().and_then(|name| {
-            let expected_type = self.assigned.type_(asg);
-            let actual_type = self.expr.type_(asg);
-            if expected_type == type_::undefined(asg) || actual_type == type_::undefined(asg) {
-                None
-            } else {
-                Some(SemanticError::new(
-                    format!("expression assigned to `{name}` has invalid type"),
-                    vec![
-                        LocatedMessage {
-                            level: ErrorLevel::Error,
-                            span: self.expr_span,
-                            text: format!("expression of type `{}`", actual_type.name()),
-                        },
-                        LocatedMessage {
-                            level: ErrorLevel::Info,
-                            span: self.assigned_span,
-                            text: format!("expected type `{}`", expected_type.name()),
-                        },
-                    ],
-                    &asg.code,
-                    &asg.path,
-                ))
-            }
-        })
+    pub(crate) fn mismatching_type_error(
+        &self,
+        asg: &Asg,
+        assigned: &AsgIdent,
+        assigned_type: &AsgType,
+        expr_type: &AsgType,
+    ) -> SemanticError {
+        SemanticError::new(
+            format!(
+                "expression assigned to `{}` has invalid type",
+                assigned.name()
+            ),
+            vec![
+                LocatedMessage {
+                    level: ErrorLevel::Error,
+                    span: self.expr_span,
+                    text: format!("expression of type `{}`", expr_type.name()),
+                },
+                LocatedMessage {
+                    level: ErrorLevel::Info,
+                    span: self.assigned_span,
+                    text: format!("expected type `{}`", assigned_type.name()),
+                },
+            ],
+            &asg.code,
+            &asg.path,
+        )
     }
 }
 
@@ -170,7 +186,7 @@ pub struct AsgVariable {
     /// The unique index of the variable in the shader.
     pub index: usize,
     /// The initial value of the variable.
-    pub expr: AsgExpr,
+    pub expr: Result<AsgExpr, ()>,
 }
 
 impl AsgVariable {
@@ -187,6 +203,8 @@ impl AsgVariable {
     }
 
     fn buffers(&self) -> Vec<(String, Rc<AsgBuffer>)> {
-        self.expr.buffers()
+        utils::result_ref(&self.expr)
+            .map(AsgExpr::buffers)
+            .unwrap_or_default()
     }
 }

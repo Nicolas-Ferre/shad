@@ -69,7 +69,13 @@ impl Runner {
             self.program.asg.buffers.get(name),
             self.program.buffers.get(name),
         ) {
-            let size = asg_buffer.expr.type_(&self.program.asg).size as u64;
+            let size = asg_buffer
+                .expr
+                .as_ref()
+                .expect("internal error: invalid expr")
+                .type_(&self.program.asg)
+                .expect("internal error: invalid type")
+                .size as u64;
             let tmp_buffer = self.device.create_buffer(&BufferDescriptor {
                 label: Some("modor_texture_buffer"),
                 size,
@@ -198,7 +204,13 @@ impl Program {
     fn create_buffer(asg: &Asg, buffer: &AsgBuffer, device: &Device) -> Buffer {
         device.create_buffer(&BufferDescriptor {
             label: Some(&format!("shad:buffer:{}", buffer.name.label)),
-            size: buffer.expr.type_(asg).size as u64,
+            size: buffer
+                .expr
+                .as_ref()
+                .expect("internal error: invalid expr")
+                .type_(asg)
+                .expect("internal error: invalid type")
+                .size as u64,
             usage: BufferUsages::STORAGE | BufferUsages::COPY_SRC,
             mapped_at_creation: false,
         })
@@ -241,7 +253,8 @@ impl ComputeShader {
     }
 
     fn create_pipeline(asg: &Asg, shader: &AsgComputeShader, device: &Device) -> ComputePipeline {
-        let code = shad_transpiler::generate_wgsl_compute_shader(asg, shader);
+        let code = shad_transpiler::generate_wgsl_compute_shader(asg, shader)
+            .expect("internal error: invalid shader code");
         let module = device.create_shader_module(ShaderModuleDescriptor {
             label: Some("shad_shader"),
             source: wgpu::ShaderSource::Wgsl(code.into()),

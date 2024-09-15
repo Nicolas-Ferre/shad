@@ -52,10 +52,10 @@ impl Asg {
             if let AstItem::GpuFn(ast_fn) = item {
                 let asg_fn = AsgFn::new(asg, ast_fn);
                 let fn_ = Rc::new(asg_fn);
-                let signature = AsgFnSignature::new(&fn_);
+                let signature = AsgFnSignature::new(ast_fn);
                 if let Some(existing_fn) = asg.functions.insert(signature, fn_) {
                     asg.errors
-                        .extend(function::duplicated_error(asg, ast_fn, &existing_fn));
+                        .push(function::duplicated_error(asg, ast_fn, &existing_fn));
                 }
             }
         }

@@ -11,7 +11,7 @@ pub struct AsgBuffer {
     /// The unique buffer index.
     pub index: usize,
     /// The initial value of the buffer.
-    pub expr: AsgExpr,
+    pub expr: Result<AsgExpr, ()>,
 }
 
 impl AsgBuffer {
