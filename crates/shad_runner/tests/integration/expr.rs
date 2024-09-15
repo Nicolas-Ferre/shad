@@ -1,4 +1,6 @@
-use crate::{assert_semantic_error, assert_syntax_error, f32_buffer, snippet_path, u32_buffer};
+use crate::{
+    assert_semantic_error, assert_syntax_error, f32_buffer, i32_buffer, snippet_path, u32_buffer,
+};
 use shad_error::{ErrorLevel, LocatedMessage, Span};
 use shad_runner::Runner;
 
@@ -15,10 +17,10 @@ fn run_valid() {
     assert_eq!(u32_buffer(&runner, "u32_zero"), 0);
     assert_eq!(u32_buffer(&runner, "u32_underscores"), 123_456_789);
     assert_eq!(u32_buffer(&runner, "u32_max_value"), 4_294_967_295);
-    assert_eq!(u32_buffer(&runner, "i32_zero"), 0);
-    assert_eq!(u32_buffer(&runner, "i32_underscores"), 123_456_789);
-    assert_eq!(u32_buffer(&runner, "i32_max_value"), 2_147_483_647);
-    assert_eq!(u32_buffer(&runner, "copied_buffer"), 2_147_483_647);
+    assert_eq!(i32_buffer(&runner, "i32_zero"), 0);
+    assert_eq!(i32_buffer(&runner, "i32_underscores"), 123_456_789);
+    assert_eq!(i32_buffer(&runner, "i32_max_value"), 2_147_483_647);
+    assert_eq!(i32_buffer(&runner, "copied_buffer"), 2_147_483_647);
     assert_eq!(f32_buffer(&runner, "fn_call"), 16.);
 }
 
