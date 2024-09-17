@@ -1,0 +1,8 @@
+buf f32_val = 0.;
+buf i32_val = 0;
+
+run {
+    f32_val = i32_val;
+    var local_f32_val = 0.;
+    local_f32_val = i32_val;
+}

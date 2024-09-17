@@ -10,7 +10,7 @@ fn run_invalid_semantic() {
         &["could not find `undefined` value"],
         &[&vec![LocatedMessage {
             level: ErrorLevel::Error,
-            span: Span::new(28, 37),
+            span: Span::new(27, 36),
             text: "undefined identifier".into(),
         }]],
     );

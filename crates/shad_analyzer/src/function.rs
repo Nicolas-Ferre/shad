@@ -14,25 +14,25 @@ pub struct AsgFnSignature {
 }
 
 impl AsgFnSignature {
-    pub(crate) fn new(fn_: &AsgFn) -> Self {
+    pub(crate) fn new(fn_: &AstGpuFnItem) -> Self {
         Self {
             name: fn_.name.label.clone(),
             param_types: fn_
                 .params
                 .iter()
-                .map(|param| param.type_.name().into())
+                .map(|param| param.type_.label.clone())
                 .collect(),
         }
     }
 
-    pub(crate) fn from_call(asg: &Asg, name: &AstIdent, args: &[AsgExpr]) -> Self {
-        Self {
+    pub(crate) fn from_call(asg: &Asg, name: &AstIdent, args: &[AsgExpr]) -> Result<Self, ()> {
+        Ok(Self {
             name: name.label.clone(),
             param_types: args
                 .iter()
-                .map(|arg| arg.type_(asg).name().into())
-                .collect(),
-        }
+                .map(|arg| Ok(arg.type_(asg)?.name().into()))
+                .collect::<Result<_, ()>>()?,
+        })
     }
 }
 
@@ -44,7 +44,7 @@ pub struct AsgFn {
     /// The function name in the initial Shad code.
     pub params: Vec<AsgFnParam>,
     /// The function returned type.
-    pub return_type: Rc<AsgType>,
+    pub return_type: Result<Rc<AsgType>, ()>,
 }
 
 impl AsgFn {
@@ -57,7 +57,7 @@ impl AsgFn {
                 .iter()
                 .map(|param| AsgFnParam::new(asg, param))
                 .collect(),
-            return_type: type_::find(asg, &fn_.return_type).clone(),
+            return_type: type_::find(asg, &fn_.return_type).cloned(),
         }
     }
 
@@ -106,14 +106,14 @@ pub struct AsgFnParam {
     /// The parameter name in the initial Shad code.
     pub name: AstIdent,
     /// The parameter type.
-    pub type_: Rc<AsgType>,
+    pub type_: Result<Rc<AsgType>, ()>,
 }
 
 impl AsgFnParam {
     fn new(asg: &mut Asg, param: &AstFnParam) -> Self {
         Self {
             name: param.name.clone(),
-            type_: type_::find(asg, &param.type_).clone(),
+            type_: type_::find(asg, &param.type_).cloned(),
         }
     }
 }
@@ -122,12 +122,12 @@ pub(crate) fn find<'a>(
     asg: &'a mut Asg,
     name: &AstIdent,
     signature: &AsgFnSignature,
-) -> Option<&'a Rc<AsgFn>> {
+) -> Result<&'a Rc<AsgFn>, ()> {
     if let Some(function) = asg.functions.get(signature) {
-        Some(function)
+        Ok(function)
     } else {
         asg.errors.push(not_found_error(asg, name, signature));
-        None
+        Err(())
     }
 }
 
