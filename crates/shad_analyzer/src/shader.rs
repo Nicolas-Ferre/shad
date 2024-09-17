@@ -121,16 +121,18 @@ impl AsgAssignment {
     }
 
     fn checked(self, asg: &mut Asg) -> Self {
-        if let (Ok(assigned), Ok(expr)) = (&self.assigned, &self.expr) {
-            if let (Ok(assigned_type), Ok(expr_type)) = (assigned.type_(asg), expr.type_(asg)) {
-                if assigned_type != expr_type {
-                    asg.errors.push(self.mismatching_type_error(
-                        asg,
-                        assigned,
-                        assigned_type,
-                        expr_type,
-                    ));
-                }
+        if let (Ok(assigned), Ok(assigned_type), Ok(expr_type)) = (
+            &self.assigned,
+            utils::result_ref(&self.assigned).and_then(|e| e.type_(asg)),
+            utils::result_ref(&self.expr).and_then(|e| e.type_(asg)),
+        ) {
+            if assigned_type != expr_type {
+                asg.errors.push(self.mismatching_type_error(
+                    asg,
+                    assigned,
+                    assigned_type,
+                    expr_type,
+                ));
             }
         }
         self
