@@ -21,7 +21,7 @@ pub struct AsgType {
     /// The final name that will be used for buffers.
     pub buf_final_name: String,
     /// The final name that will be used for variables.
-    pub var_final_name: String,
+    pub expr_final_name: String,
     /// The size in bytes of the type.
     pub size: usize,
 }
@@ -49,7 +49,7 @@ pub(crate) fn primitive_types() -> FxHashMap<String, Rc<AsgType>> {
             Rc::new(AsgType {
                 name: AsgTypeName::Primitive(F32_TYPE),
                 buf_final_name: F32_TYPE.into(),
-                var_final_name: F32_TYPE.into(),
+                expr_final_name: F32_TYPE.into(),
                 size: 4,
             }),
         ),
@@ -58,7 +58,7 @@ pub(crate) fn primitive_types() -> FxHashMap<String, Rc<AsgType>> {
             Rc::new(AsgType {
                 name: AsgTypeName::Primitive(U32_TYPE),
                 buf_final_name: U32_TYPE.into(),
-                var_final_name: U32_TYPE.into(),
+                expr_final_name: U32_TYPE.into(),
                 size: 4,
             }),
         ),
@@ -67,7 +67,7 @@ pub(crate) fn primitive_types() -> FxHashMap<String, Rc<AsgType>> {
             Rc::new(AsgType {
                 name: AsgTypeName::Primitive(I32_TYPE),
                 buf_final_name: I32_TYPE.into(),
-                var_final_name: I32_TYPE.into(),
+                expr_final_name: I32_TYPE.into(),
                 size: 4,
             }),
         ),
@@ -76,7 +76,7 @@ pub(crate) fn primitive_types() -> FxHashMap<String, Rc<AsgType>> {
             Rc::new(AsgType {
                 name: AsgTypeName::Primitive(BOOL_TYPE),
                 buf_final_name: U32_TYPE.into(),
-                var_final_name: BOOL_TYPE.into(),
+                expr_final_name: BOOL_TYPE.into(),
                 size: 4,
             }),
         ),

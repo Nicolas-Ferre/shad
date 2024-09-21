@@ -5,7 +5,7 @@ use shad_error::{ErrorLevel, LocatedMessage, Span};
 use shad_runner::Runner;
 
 #[test]
-#[allow(clippy::decimal_literal_representation)]
+#[allow(clippy::decimal_literal_representation, clippy::cognitive_complexity)]
 fn run_valid() {
     let mut runner = Runner::new(snippet_path("expr_valid.shd")).unwrap();
     runner.run_step();
@@ -24,6 +24,31 @@ fn run_valid() {
     assert_eq!(u32_buffer(&runner, "true_val"), 1);
     assert_eq!(i32_buffer(&runner, "copied_buffer"), 2_147_483_647);
     assert_eq!(f32_buffer(&runner, "fn_call"), 16.);
+    assert_eq!(i32_buffer(&runner, "operator_add"), 6);
+    assert_eq!(i32_buffer(&runner, "operator_sub"), 2);
+    assert_eq!(i32_buffer(&runner, "operator_mul"), 8);
+    assert_eq!(i32_buffer(&runner, "operator_div"), 2);
+    assert_eq!(i32_buffer(&runner, "operator_mod"), 1);
+    assert_eq!(i32_buffer(&runner, "operator_eq_true"), 1);
+    assert_eq!(i32_buffer(&runner, "operator_eq_false"), 0);
+    assert_eq!(i32_buffer(&runner, "operator_ne_true"), 1);
+    assert_eq!(i32_buffer(&runner, "operator_ne_false"), 0);
+    assert_eq!(i32_buffer(&runner, "operator_gt_true"), 1);
+    assert_eq!(i32_buffer(&runner, "operator_gt_false"), 0);
+    assert_eq!(i32_buffer(&runner, "operator_lt_true"), 1);
+    assert_eq!(i32_buffer(&runner, "operator_lt_false"), 0);
+    assert_eq!(i32_buffer(&runner, "operator_ge_true1"), 1);
+    assert_eq!(i32_buffer(&runner, "operator_ge_true2"), 1);
+    assert_eq!(i32_buffer(&runner, "operator_ge_false"), 0);
+    assert_eq!(i32_buffer(&runner, "operator_le_true1"), 1);
+    assert_eq!(i32_buffer(&runner, "operator_le_true2"), 1);
+    assert_eq!(i32_buffer(&runner, "operator_le_false"), 0);
+    assert_eq!(i32_buffer(&runner, "operator_and_true"), 1);
+    assert_eq!(i32_buffer(&runner, "operator_and_false"), 0);
+    assert_eq!(i32_buffer(&runner, "operator_or_true"), 1);
+    assert_eq!(i32_buffer(&runner, "operator_or_false"), 0);
+    assert_eq!(i32_buffer(&runner, "operator_neg"), -2);
+    assert_eq!(i32_buffer(&runner, "operator_not"), 1);
 }
 
 #[test]
