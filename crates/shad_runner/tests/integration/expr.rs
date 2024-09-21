@@ -5,7 +5,7 @@ use shad_error::{ErrorLevel, LocatedMessage, Span};
 use shad_runner::Runner;
 
 #[test]
-#[allow(clippy::decimal_literal_representation)]
+#[allow(clippy::decimal_literal_representation, clippy::cognitive_complexity)]
 fn run_valid() {
     let mut runner = Runner::new(snippet_path("expr_valid.shd")).unwrap();
     runner.run_step();
