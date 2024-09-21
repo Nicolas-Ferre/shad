@@ -30,7 +30,10 @@ impl AsgFnSignature {
             name: name.label.clone(),
             param_types: args
                 .iter()
-                .map(|arg| Ok(arg.type_(asg)?.name().into()))
+                .map(|arg| {
+                    let self1 = &arg.type_(asg)?;
+                    Ok(self1.name.as_str().into())
+                })
                 .collect::<Result<_, ()>>()?,
         })
     }

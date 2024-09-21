@@ -20,6 +20,8 @@ fn run_valid() {
     assert_eq!(i32_buffer(&runner, "i32_zero"), 0);
     assert_eq!(i32_buffer(&runner, "i32_underscores"), 123_456_789);
     assert_eq!(i32_buffer(&runner, "i32_max_value"), 2_147_483_647);
+    assert_eq!(u32_buffer(&runner, "false_val"), 0);
+    assert_eq!(u32_buffer(&runner, "true_val"), 1);
     assert_eq!(i32_buffer(&runner, "copied_buffer"), 2_147_483_647);
     assert_eq!(f32_buffer(&runner, "fn_call"), 16.);
 }

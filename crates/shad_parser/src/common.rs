@@ -20,6 +20,12 @@ pub(crate) enum TokenType {
     #[token("var")]
     Var,
 
+    #[token("true")]
+    True,
+
+    #[token("false")]
+    False,
+
     #[token("=")]
     Equal,
 
@@ -69,6 +75,8 @@ impl TokenType {
             Self::Fn => "`fn`",
             Self::Gpu => "`gpu`",
             Self::Var => "`var`",
+            Self::True => "`true`",
+            Self::False => "`false`",
             Self::Equal => "`=`",
             Self::Comma => "`,`",
             Self::SemiColon => "`;`",

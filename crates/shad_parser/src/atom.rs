@@ -69,6 +69,7 @@ impl AstLiteral {
                 TokenType::F32Literal => AstLiteralType::F32,
                 TokenType::U32Literal => AstLiteralType::U32,
                 TokenType::I32Literal => AstLiteralType::I32,
+                TokenType::True | TokenType::False => AstLiteralType::Bool,
                 _ => unreachable!("internal error: not supported literal"),
             },
         })
@@ -84,6 +85,8 @@ pub enum AstLiteralType {
     U32,
     /// The `i32` primitive type.
     I32,
+    /// The `bool` primitive type.
+    Bool,
 }
 
 pub(crate) fn parse_token<'a>(

@@ -23,3 +23,15 @@ run {
     var aliased_var = 2.;
     aliased_value = aliased_var;
 }
+
+buf buffer_bool = true;
+
+gpu fn all(value: bool) -> bool;
+
+run {
+    var local_bool1 = false;
+    var local_bool2 = buffer_bool;
+    var value = all(buffer_bool);
+    var value = all(local_bool1);
+    var value = all(local_bool2);
+}

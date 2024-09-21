@@ -10,3 +10,15 @@ run {
     var val = 0.;
     buffer_f32 = pow(val, 2.);
 }
+
+gpu fn all(value: bool) -> bool;
+
+buf buffer_bool = true;
+
+run {
+    var local_bool1 = false;
+    var local_bool2 = buffer_bool;
+    var value = all(buffer_bool);
+    var value = all(local_bool1);
+    var value = all(local_bool2);
+}
