@@ -4,6 +4,12 @@ use shad_error::{ErrorLevel, LocatedMessage, SemanticError};
 use shad_parser::{AstFnParam, AstGpuFnItem, AstIdent};
 use std::rc::Rc;
 
+const SPECIAL_UNARY_FNS: [&str; 2] = ["__neg__", "__not__"];
+const SPECIAL_BINARY_FNS: [&str; 13] = [
+    "__add__", "__sub__", "__mul__", "__div__", "__mod__", "__eq__", "__ne__", "__gt__", "__lt__",
+    "__ge__", "__le__", "__and__", "__or__",
+];
+
 /// An analyzed function signature.
 #[derive(Debug, PartialEq, Eq, Hash, Clone)]
 pub struct AsgFnSignature {
@@ -53,6 +59,12 @@ pub struct AsgFn {
 impl AsgFn {
     pub(crate) fn new(asg: &mut Asg, fn_: &AstGpuFnItem) -> Self {
         Self::check_duplicated_params(asg, fn_);
+        if SPECIAL_UNARY_FNS.contains(&fn_.name.label.as_str()) {
+            Self::check_unary_fn(asg, fn_);
+        }
+        if SPECIAL_BINARY_FNS.contains(&fn_.name.label.as_str()) {
+            Self::check_binary_fn(asg, fn_);
+        }
         Self {
             name: fn_.name.clone(),
             params: fn_
@@ -72,6 +84,28 @@ impl AsgFn {
                 asg.errors
                     .push(Self::duplicated_param_error(asg, &param.name, existing));
             }
+        }
+    }
+
+    fn check_unary_fn(asg: &mut Asg, fn_: &AstGpuFnItem) {
+        const EXPECTED_PARAM_COUNT: usize = 1;
+        if fn_.params.len() != EXPECTED_PARAM_COUNT {
+            asg.errors.push(Self::invalid_param_count_error(
+                asg,
+                fn_,
+                EXPECTED_PARAM_COUNT,
+            ));
+        }
+    }
+
+    fn check_binary_fn(asg: &mut Asg, fn_: &AstGpuFnItem) {
+        const EXPECTED_PARAM_COUNT: usize = 2;
+        if fn_.params.len() != EXPECTED_PARAM_COUNT {
+            asg.errors.push(Self::invalid_param_count_error(
+                asg,
+                fn_,
+                EXPECTED_PARAM_COUNT,
+            ));
         }
     }
 
@@ -97,6 +131,29 @@ impl AsgFn {
                     text: "parameter with same name is defined here".into(),
                 },
             ],
+            &asg.code,
+            &asg.path,
+        )
+    }
+
+    fn invalid_param_count_error(
+        asg: &Asg,
+        fn_: &AstGpuFnItem,
+        expected_count: usize,
+    ) -> SemanticError {
+        SemanticError::new(
+            format!(
+                "function `{}` has an invalid number of parameters",
+                fn_.name.label,
+            ),
+            vec![LocatedMessage {
+                level: ErrorLevel::Error,
+                span: fn_.name.span,
+                text: format!(
+                    "found {} parameters, expected {expected_count}",
+                    fn_.params.len()
+                ),
+            }],
             &asg.code,
             &asg.path,
         )

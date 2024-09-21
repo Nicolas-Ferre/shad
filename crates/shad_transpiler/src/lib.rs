@@ -1,7 +1,7 @@
 //! Transpiler to convert Shad expressions to WGSL.
 
 use shad_analyzer::{
-    Asg, AsgBuffer, AsgComputeShader, AsgExpr, AsgIdent, AsgStatement, AsgVariable, BOOL_TYPE,
+    Asg, AsgBuffer, AsgComputeShader, AsgExpr, AsgFnCall, AsgIdent, AsgStatement, AsgVariable,
 };
 
 const IDENT_UNIT: usize = 4;
@@ -34,7 +34,7 @@ fn buffer_definition(asg: &Asg, buffer: &AsgBuffer, index: usize) -> Result<Stri
     Ok(format!(
         "@group(0) @binding({}) var<storage, read_write> {}: {};",
         index,
-        buffer_name(asg, buffer, false),
+        buffer_name(buffer),
         result_ref(&buffer.expr)?.type_(asg)?.buf_final_name
     ))
 }
@@ -54,20 +54,23 @@ fn statement(asg: &Asg, statement: &AsgStatement, indent: usize) -> Result<Strin
             format!(
                 "{empty: >width$}var {} = {};",
                 variable_name(assignment),
-                expression(asg, result_ref(&assignment.expr)?, false),
+                expression(asg, result_ref(&assignment.expr)?)?,
                 empty = "",
                 width = indent * IDENT_UNIT,
             )
         }
         AsgStatement::Assignment(assignment) => {
+            let is_buffer = matches!(assignment.assigned, Ok(AsgIdent::Buffer(_)));
+            let type_ = result_ref(&assignment.expr)?.type_(asg)?;
+            let cast = if is_buffer && type_.buf_final_name != type_.expr_final_name {
+                &type_.buf_final_name
+            } else {
+                ""
+            };
             format!(
-                "{empty: >width$}{} = {};",
-                ident(asg, result_ref(&assignment.assigned)?, false),
-                expression(
-                    asg,
-                    result_ref(&assignment.expr)?,
-                    matches!(assignment.assigned, Ok(AsgIdent::Buffer(_))),
-                ),
+                "{empty: >width$}{} = {cast}({});",
+                ident(asg, result_ref(&assignment.assigned)?, false)?,
+                expression(asg, result_ref(&assignment.expr)?)?,
                 empty = "",
                 width = indent * IDENT_UNIT,
             )
@@ -75,45 +78,80 @@ fn statement(asg: &Asg, statement: &AsgStatement, indent: usize) -> Result<Strin
     })
 }
 
-fn expression(asg: &Asg, expr: &AsgExpr, is_buffer: bool) -> String {
-    match expr {
-        AsgExpr::Literal(expr) => {
-            let type_name = if is_buffer {
-                &expr.type_.buf_final_name
+fn expression(asg: &Asg, expr: &AsgExpr) -> Result<String, ()> {
+    Ok(match expr {
+        AsgExpr::Literal(expr) => format!("{}({})", expr.type_.expr_final_name, expr.value),
+        AsgExpr::Ident(expr) => ident(asg, expr, true)?,
+        AsgExpr::FnCall(expr) => fn_call(asg, expr)?,
+    })
+}
+
+fn ident(asg: &Asg, ident: &AsgIdent, is_expr: bool) -> Result<String, ()> {
+    Ok(match ident {
+        AsgIdent::Buffer(buffer) => {
+            let type_ = result_ref(&buffer.expr)?.type_(asg)?;
+            if is_expr && type_.buf_final_name != type_.expr_final_name {
+                format!("{}({})", type_.expr_final_name, buffer_name(buffer))
             } else {
-                &expr.type_.var_final_name
-            };
-            format!("{}({})", type_name, expr.value)
+                buffer_name(buffer)
+            }
         }
-        AsgExpr::Ident(expr) => ident(asg, expr, true),
-        AsgExpr::FnCall(expr) => format!(
+        AsgIdent::Var(variable) => variable_name(variable),
+    })
+}
+
+fn fn_call(asg: &Asg, expr: &AsgFnCall) -> Result<String, ()> {
+    Ok(if let Some(operator) = unary_operator(expr) {
+        format!("({}{})", operator, expression(asg, &expr.args[0])?)
+    } else if let Some(operator) = binary_operator(expr) {
+        format!(
+            "({} {} {})",
+            expression(asg, &expr.args[0])?,
+            operator,
+            expression(asg, &expr.args[1])?
+        )
+    } else {
+        format!(
             "{}({})",
             expr.fn_.name.label,
             expr.args
                 .iter()
-                .map(|arg| expression(asg, arg, false))
-                .collect::<Vec<_>>()
+                .map(|arg| expression(asg, arg))
+                .collect::<Result<Vec<_>, ()>>()?
                 .join(", ")
-        ),
+        )
+    })
+}
+
+fn unary_operator(expr: &AsgFnCall) -> Option<&str> {
+    match expr.fn_.name.label.as_str() {
+        "__neg__" => Some("-"),
+        "__not__" => Some("!"),
+        _ => None,
     }
 }
 
-fn ident(asg: &Asg, ident: &AsgIdent, is_expr: bool) -> String {
-    match ident {
-        AsgIdent::Buffer(buffer) => buffer_name(asg, buffer, is_expr),
-        AsgIdent::Var(variable) => variable_name(variable),
+fn binary_operator(expr: &AsgFnCall) -> Option<&str> {
+    match expr.fn_.name.label.as_str() {
+        "__add__" => Some("+"),
+        "__sub__" => Some("-"),
+        "__mul__" => Some("*"),
+        "__div__" => Some("/"),
+        "__mod__" => Some("%"),
+        "__eq__" => Some("=="),
+        "__ne__" => Some("!="),
+        "__gt__" => Some(">"),
+        "__lt__" => Some("<"),
+        "__ge__" => Some(">="),
+        "__le__" => Some("<="),
+        "__and__" => Some("&&"),
+        "__or__" => Some("||"),
+        _ => None,
     }
 }
 
-fn buffer_name(asg: &Asg, buffer: &AsgBuffer, is_expr: bool) -> String {
-    let type_name = result_ref(&buffer.expr)
-        .and_then(|expr| expr.type_(asg))
-        .map(|type_| type_.name.as_str());
-    if type_name == Ok(BOOL_TYPE) && is_expr {
-        format!("bool({}_{})", buffer.name.label, buffer.index)
-    } else {
-        format!("{}_{}", buffer.name.label, buffer.index)
-    }
+fn buffer_name(buffer: &AsgBuffer) -> String {
+    format!("{}_{}", buffer.name.label, buffer.index)
 }
 
 fn variable_name(variable: &AsgVariable) -> String {

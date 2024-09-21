@@ -11,6 +11,8 @@ fn run_invalid_semantic() {
             "parameter `param` is defined multiple times",
             "function with signature `duplicated_fn(u32, u32)` is defined multiple times",
             "could not find `undef` type",
+            "function `__add__` has an invalid number of parameters",
+            "function `__neg__` has an invalid number of parameters",
         ],
         &[
             &vec![
@@ -41,6 +43,16 @@ fn run_invalid_semantic() {
                 level: ErrorLevel::Error,
                 span: Span::new(195, 200),
                 text: "undefined type".into(),
+            }],
+            &vec![LocatedMessage {
+                level: ErrorLevel::Error,
+                span: Span::new(217, 224),
+                text: "found 1 parameters, expected 2".into(),
+            }],
+            &vec![LocatedMessage {
+                level: ErrorLevel::Error,
+                span: Span::new(252, 259),
+                text: "found 2 parameters, expected 1".into(),
             }],
         ],
     );
