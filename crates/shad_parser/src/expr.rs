@@ -31,9 +31,11 @@ impl AstExpr {
         let token = Token::next(&mut tmp_lexer)?;
         let next_token = Token::next(&mut tmp_lexer)?;
         match token.type_ {
-            type_ @ (TokenType::F32Literal | TokenType::U32Literal | TokenType::I32Literal) => {
-                Ok(Self::Literal(AstLiteral::parse(lexer, type_)?))
-            }
+            type_ @ (TokenType::F32Literal
+            | TokenType::U32Literal
+            | TokenType::I32Literal
+            | TokenType::True
+            | TokenType::False) => Ok(Self::Literal(AstLiteral::parse(lexer, type_)?)),
             TokenType::Ident => {
                 if next_token.type_ == TokenType::OpenParenthesis {
                     Ok(Self::FnCall(AstFnCall::parse(lexer)?))

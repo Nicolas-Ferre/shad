@@ -166,12 +166,12 @@ impl AsgAssignment {
                 LocatedMessage {
                     level: ErrorLevel::Error,
                     span: self.expr_span,
-                    text: format!("expression of type `{}`", expr_type.name()),
+                    text: format!("expression of type `{}`", expr_type.name.as_str()),
                 },
                 LocatedMessage {
                     level: ErrorLevel::Info,
                     span: self.assigned_span,
-                    text: format!("expected type `{}`", assigned_type.name()),
+                    text: format!("expected type `{}`", assigned_type.name.as_str()),
                 },
             ],
             &asg.code,

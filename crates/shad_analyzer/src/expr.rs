@@ -152,6 +152,7 @@ fn literal_type_str(literal: &AstLiteral) -> &str {
         AstLiteralType::F32 => "f32",
         AstLiteralType::U32 => "u32",
         AstLiteralType::I32 => "i32",
+        AstLiteralType::Bool => "bool",
     }
 }
 
@@ -163,6 +164,7 @@ fn literal_error(asg: &Asg, literal: &AstLiteral, final_value: &str) -> Option<S
             int_literal_error::<u32>(asg, literal, digits, "u32")
         }
         AstLiteralType::I32 => int_literal_error::<i32>(asg, literal, final_value, "i32"),
+        AstLiteralType::Bool => None,
     }
 }
 
