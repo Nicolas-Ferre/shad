@@ -29,8 +29,6 @@ pub struct AsgType {
 /// The name of an analyzed type.
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub enum AsgTypeName {
-    /// An identifier.
-    Ident(AstIdent),
     /// A primitive type.
     Primitive(&'static str),
 }
@@ -39,7 +37,6 @@ impl AsgTypeName {
     /// Returns the type name as a string.
     pub fn as_str(&self) -> &str {
         match self {
-            Self::Ident(name) => &name.label,
             Self::Primitive(name) => name,
         }
     }
