@@ -1,5 +1,5 @@
 use crate::atom::parse_token;
-use crate::common::{Token, TokenType};
+use crate::token::{Token, TokenType};
 use crate::{AstExpr, AstIdent, AstStatement};
 use logos::Lexer;
 use shad_error::SyntaxError;
@@ -46,7 +46,7 @@ impl AstBufferItem {
     pub(crate) fn parse(lexer: &mut Lexer<'_, TokenType>) -> Result<Self, SyntaxError> {
         parse_token(lexer, TokenType::Buf)?;
         let name = AstIdent::parse(lexer)?;
-        parse_token(lexer, TokenType::Equal)?;
+        parse_token(lexer, TokenType::Assigment)?;
         let value = AstExpr::parse(lexer)?;
         parse_token(lexer, TokenType::SemiColon)?;
         Ok(Self { name, value })

@@ -1,13 +1,42 @@
 use crate::{type_, Asg, AsgExpr, AsgType};
 use fxhash::FxHashMap;
-use shad_error::{ErrorLevel, LocatedMessage, SemanticError};
+use shad_error::{ErrorLevel, LocatedMessage, SemanticError, Span};
 use shad_parser::{AstFnParam, AstGpuFnItem, AstIdent};
 use std::rc::Rc;
 
-const SPECIAL_UNARY_FNS: [&str; 2] = ["__neg__", "__not__"];
+/// The function name corresponding to unary `-` operator behavior.
+pub const NEG_FN: &str = "__neg__";
+/// The function name corresponding to unary `!` operator behavior.
+pub const NOT_FN: &str = "__not__";
+/// The function name corresponding to binary `+` operator behavior.
+pub const ADD_FN: &str = "__add__";
+/// The function name corresponding to binary `-` operator behavior.
+pub const SUB_FN: &str = "__sub__";
+/// The function name corresponding to binary `*` operator behavior.
+pub const MUL_FN: &str = "__mul__";
+/// The function name corresponding to binary `/` operator behavior.
+pub const DIV_FN: &str = "__div__";
+/// The function name corresponding to binary `%` operator behavior.
+pub const MOD_FN: &str = "__mod__";
+/// The function name corresponding to binary `==` operator behavior.
+pub const EQ_FN: &str = "__eq__";
+/// The function name corresponding to binary `!=` operator behavior.
+pub const NE_FN: &str = "__ne__";
+/// The function name corresponding to binary `>` operator behavior.
+pub const GT_FN: &str = "__gt__";
+/// The function name corresponding to binary `<` operator behavior.
+pub const LT_FN: &str = "__lt__";
+/// The function name corresponding to binary `>=` operator behavior.
+pub const GE_FN: &str = "__ge__";
+/// The function name corresponding to binary `<=` operator behavior.
+pub const LE_FN: &str = "__le__";
+/// The function name corresponding to binary `&&` operator behavior.
+pub const AND_FN: &str = "__and__";
+/// The function name corresponding to binary `||` operator behavior.
+pub const OR_FN: &str = "__or__";
+const SPECIAL_UNARY_FNS: [&str; 2] = [NEG_FN, NOT_FN];
 const SPECIAL_BINARY_FNS: [&str; 13] = [
-    "__add__", "__sub__", "__mul__", "__div__", "__mod__", "__eq__", "__ne__", "__gt__", "__lt__",
-    "__ge__", "__le__", "__and__", "__or__",
+    ADD_FN, SUB_FN, MUL_FN, DIV_FN, MOD_FN, EQ_FN, NE_FN, GT_FN, LT_FN, GE_FN, LE_FN, AND_FN, OR_FN,
 ];
 
 /// An analyzed function signature.
@@ -31,9 +60,9 @@ impl AsgFnSignature {
         }
     }
 
-    pub(crate) fn from_call(asg: &Asg, name: &AstIdent, args: &[AsgExpr]) -> Result<Self, ()> {
+    pub(crate) fn from_call(asg: &Asg, name: &str, args: &[AsgExpr]) -> Result<Self, ()> {
         Ok(Self {
-            name: name.label.clone(),
+            name: name.to_string(),
             param_types: args
                 .iter()
                 .map(|arg| {
@@ -180,13 +209,13 @@ impl AsgFnParam {
 
 pub(crate) fn find<'a>(
     asg: &'a mut Asg,
-    name: &AstIdent,
+    span: Span,
     signature: &AsgFnSignature,
 ) -> Result<&'a Rc<AsgFn>, ()> {
     if let Some(function) = asg.functions.get(signature) {
         Ok(function)
     } else {
-        asg.errors.push(not_found_error(asg, name, signature));
+        asg.errors.push(not_found_error(asg, span, signature));
         Err(())
     }
 }
@@ -224,7 +253,7 @@ pub(crate) fn duplicated_error(
     )
 }
 
-fn not_found_error(asg: &Asg, name: &AstIdent, signature: &AsgFnSignature) -> SemanticError {
+fn not_found_error(asg: &Asg, span: Span, signature: &AsgFnSignature) -> SemanticError {
     SemanticError::new(
         format!(
             "could not find `{}({})` function",
@@ -233,7 +262,7 @@ fn not_found_error(asg: &Asg, name: &AstIdent, signature: &AsgFnSignature) -> Se
         ),
         vec![LocatedMessage {
             level: ErrorLevel::Error,
-            span: name.span,
+            span,
             text: "undefined function".into(),
         }],
         &asg.code,

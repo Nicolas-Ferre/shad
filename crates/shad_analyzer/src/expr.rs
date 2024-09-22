@@ -1,7 +1,14 @@
 use crate::shader::AsgStatements;
-use crate::{asg, function, utils, Asg, AsgBuffer, AsgFn, AsgFnSignature, AsgType, AsgVariable};
+use crate::{
+    asg, function, utils, Asg, AsgBuffer, AsgFn, AsgFnSignature, AsgType, AsgVariable, ADD_FN,
+    AND_FN, DIV_FN, EQ_FN, GE_FN, GT_FN, LE_FN, LT_FN, MOD_FN, MUL_FN, NEG_FN, NE_FN, NOT_FN,
+    OR_FN, SUB_FN,
+};
 use shad_error::{ErrorLevel, LocatedMessage, SemanticError, Span};
-use shad_parser::{AstExpr, AstFnCall, AstIdent, AstLiteral, AstLiteralType};
+use shad_parser::{
+    AstBinaryOperation, AstBinaryOperator, AstExpr, AstFnCall, AstIdent, AstLiteral,
+    AstLiteralType, AstUnaryOperation, AstUnaryOperator,
+};
 use std::rc::Rc;
 use std::str::FromStr;
 
@@ -24,6 +31,12 @@ impl AsgExpr {
             AstExpr::Literal(expr) => Ok(Self::Literal(AsgLiteral::new(asg, expr))),
             AstExpr::Ident(expr) => AsgIdent::new(asg, ctx, expr).map(Self::Ident),
             AstExpr::FnCall(expr) => AsgFnCall::new(asg, ctx, expr).map(Self::FnCall),
+            AstExpr::UnaryOperation(expr) => {
+                AsgFnCall::from_unary_op(asg, ctx, expr).map(Self::FnCall)
+            }
+            AstExpr::BinaryOperation(expr) => {
+                AsgFnCall::from_binary_op(asg, ctx, expr).map(Self::FnCall)
+            }
         }
     }
 
@@ -131,9 +144,57 @@ impl AsgFnCall {
             .iter()
             .map(|arg| AsgExpr::new(asg, ctx, arg))
             .collect::<Result<Vec<AsgExpr>, ()>>()?;
-        let signature = AsgFnSignature::from_call(asg, &fn_call.name, &args)?;
+        let signature = AsgFnSignature::from_call(asg, &fn_call.name.label, &args)?;
         Ok(Self {
-            fn_: function::find(asg, &fn_call.name, &signature)?.clone(),
+            fn_: function::find(asg, fn_call.name.span, &signature)?.clone(),
+            args,
+        })
+    }
+
+    fn from_unary_op(
+        asg: &mut Asg,
+        ctx: &AsgStatements,
+        operation: &AstUnaryOperation,
+    ) -> Result<Self, ()> {
+        let args = vec![AsgExpr::new(asg, ctx, &operation.expr)?];
+        let fn_name = match operation.operator {
+            AstUnaryOperator::Neg => NEG_FN,
+            AstUnaryOperator::Not => NOT_FN,
+        };
+        let signature = AsgFnSignature::from_call(asg, fn_name, &args)?;
+        Ok(Self {
+            fn_: function::find(asg, operation.operator_span, &signature)?.clone(),
+            args,
+        })
+    }
+
+    fn from_binary_op(
+        asg: &mut Asg,
+        ctx: &AsgStatements,
+        operation: &AstBinaryOperation,
+    ) -> Result<Self, ()> {
+        let args = vec![
+            AsgExpr::new(asg, ctx, &operation.left)?,
+            AsgExpr::new(asg, ctx, &operation.right)?,
+        ];
+        let fn_name = match operation.operator {
+            AstBinaryOperator::Add => ADD_FN,
+            AstBinaryOperator::Sub => SUB_FN,
+            AstBinaryOperator::Mul => MUL_FN,
+            AstBinaryOperator::Div => DIV_FN,
+            AstBinaryOperator::Mod => MOD_FN,
+            AstBinaryOperator::Eq => EQ_FN,
+            AstBinaryOperator::NotEq => NE_FN,
+            AstBinaryOperator::GreaterThan => GT_FN,
+            AstBinaryOperator::LessThan => LT_FN,
+            AstBinaryOperator::GreaterThanOrEq => GE_FN,
+            AstBinaryOperator::LessThanOrEq => LE_FN,
+            AstBinaryOperator::And => AND_FN,
+            AstBinaryOperator::Or => OR_FN,
+        };
+        let signature = AsgFnSignature::from_call(asg, fn_name, &args)?;
+        Ok(Self {
+            fn_: function::find(asg, operation.operator_span, &signature)?.clone(),
             args,
         })
     }

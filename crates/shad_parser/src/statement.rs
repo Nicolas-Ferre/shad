@@ -1,5 +1,5 @@
 use crate::atom::parse_token;
-use crate::common::{Token, TokenType};
+use crate::token::{Token, TokenType};
 use crate::{AstExpr, AstIdent};
 use logos::Lexer;
 use shad_error::SyntaxError;
@@ -41,7 +41,7 @@ pub struct AstAssignment {
 impl AstAssignment {
     fn parse(lexer: &mut Lexer<'_, TokenType>) -> Result<Self, SyntaxError> {
         let value = AstIdent::parse(lexer)?;
-        parse_token(lexer, TokenType::Equal)?;
+        parse_token(lexer, TokenType::Assigment)?;
         let expr = AstExpr::parse(lexer)?;
         parse_token(lexer, TokenType::SemiColon)?;
         Ok(Self { value, expr })
@@ -65,7 +65,7 @@ impl AstVarDefinition {
     fn parse(lexer: &mut Lexer<'_, TokenType>) -> Result<Self, SyntaxError> {
         parse_token(lexer, TokenType::Var)?;
         let name = AstIdent::parse(lexer)?;
-        parse_token(lexer, TokenType::Equal)?;
+        parse_token(lexer, TokenType::Assigment)?;
         let expr = AstExpr::parse(lexer)?;
         parse_token(lexer, TokenType::SemiColon)?;
         Ok(Self { name, expr })
