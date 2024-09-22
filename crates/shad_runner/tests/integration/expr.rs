@@ -74,6 +74,8 @@ fn run_valid() {
     assert_eq!(i32_buffer(&runner, "operator_or_false"), 0);
     assert_eq!(i32_buffer(&runner, "operator_neg"), -2);
     assert_eq!(i32_buffer(&runner, "operator_not"), 1);
+    assert_eq!(i32_buffer(&runner, "operator_priority1"), 16);
+    assert_eq!(i32_buffer(&runner, "operator_priority2"), -6);
 }
 
 #[test]

@@ -71,6 +71,9 @@ buf operator_or_false = false || false;
 buf operator_neg = -2;
 buf operator_not = !false;
 
+buf operator_priority1 = 2 + 4 * 5 - 6;
+buf operator_priority2 = (2 + 4) * (5 - 6);
+
 gpu fn pow(base: f32, power: f32) -> f32;
 gpu fn __add__(left: i32, right: i32) -> i32;
 gpu fn __sub__(left: i32, right: i32) -> i32;
