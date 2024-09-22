@@ -1,4 +1,4 @@
-use crate::common::{Token, TokenType};
+use crate::token::{Token, TokenType};
 use logos::Lexer;
 use shad_error::{Span, SyntaxError};
 
@@ -22,9 +22,8 @@ pub struct AstIdent {
 impl AstIdent {
     pub(crate) fn parse(lexer: &mut Lexer<'_, TokenType>) -> Result<Self, SyntaxError> {
         let token = parse_token(lexer, TokenType::Ident)?;
-        let span = token.span;
         Ok(Self {
-            span: Span::new(span.start, span.end),
+            span: token.span,
             label: token.slice.to_string(),
         })
     }
@@ -61,9 +60,8 @@ impl AstLiteral {
         type_: TokenType,
     ) -> Result<Self, SyntaxError> {
         let token = parse_token(lexer, type_)?;
-        let span = token.span;
         Ok(Self {
-            span: Span::new(span.start, span.end),
+            span: token.span,
             value: token.slice.to_string(),
             type_: match type_ {
                 TokenType::F32Literal => AstLiteralType::F32,

@@ -2,6 +2,8 @@
 
 use shad_analyzer::{
     Asg, AsgBuffer, AsgComputeShader, AsgExpr, AsgFnCall, AsgIdent, AsgStatement, AsgVariable,
+    ADD_FN, AND_FN, DIV_FN, EQ_FN, GE_FN, GT_FN, LE_FN, LT_FN, MOD_FN, MUL_FN, NEG_FN, NE_FN,
+    NOT_FN, OR_FN, SUB_FN,
 };
 
 const IDENT_UNIT: usize = 4;
@@ -125,27 +127,27 @@ fn fn_call(asg: &Asg, expr: &AsgFnCall) -> Result<String, ()> {
 
 fn unary_operator(expr: &AsgFnCall) -> Option<&str> {
     match expr.fn_.name.label.as_str() {
-        "__neg__" => Some("-"),
-        "__not__" => Some("!"),
+        n if n == NEG_FN => Some("-"),
+        n if n == NOT_FN => Some("!"),
         _ => None,
     }
 }
 
 fn binary_operator(expr: &AsgFnCall) -> Option<&str> {
     match expr.fn_.name.label.as_str() {
-        "__add__" => Some("+"),
-        "__sub__" => Some("-"),
-        "__mul__" => Some("*"),
-        "__div__" => Some("/"),
-        "__mod__" => Some("%"),
-        "__eq__" => Some("=="),
-        "__ne__" => Some("!="),
-        "__gt__" => Some(">"),
-        "__lt__" => Some("<"),
-        "__ge__" => Some(">="),
-        "__le__" => Some("<="),
-        "__and__" => Some("&&"),
-        "__or__" => Some("||"),
+        n if n == ADD_FN => Some("+"),
+        n if n == SUB_FN => Some("-"),
+        n if n == MUL_FN => Some("*"),
+        n if n == DIV_FN => Some("/"),
+        n if n == MOD_FN => Some("%"),
+        n if n == EQ_FN => Some("=="),
+        n if n == NE_FN => Some("!="),
+        n if n == GT_FN => Some(">"),
+        n if n == LT_FN => Some("<"),
+        n if n == GE_FN => Some(">="),
+        n if n == LE_FN => Some("<="),
+        n if n == AND_FN => Some("&&"),
+        n if n == OR_FN => Some("||"),
         _ => None,
     }
 }

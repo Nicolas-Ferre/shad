@@ -1,4 +1,4 @@
-use crate::common::{Token, TokenType};
+use crate::token::{Token, TokenType};
 use crate::AstItem;
 use logos::{Lexer, Logos};
 use shad_error::{Error, SyntaxError};

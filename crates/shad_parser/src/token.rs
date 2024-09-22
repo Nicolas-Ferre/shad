@@ -1,5 +1,5 @@
 use logos::{Lexer, Logos};
-use shad_error::SyntaxError;
+use shad_error::{Span, SyntaxError};
 use std::fmt::Debug;
 
 #[derive(Logos, Debug, PartialEq, Eq, Clone, Copy)]
@@ -26,8 +26,44 @@ pub(crate) enum TokenType {
     #[token("false")]
     False,
 
+    #[token("+")]
+    Plus,
+
+    #[token("-")]
+    Minus,
+
+    #[token("*")]
+    Star,
+
+    #[token("/")]
+    Slash,
+
+    #[token("%")]
+    Percent,
+
+    #[token("!")]
+    Not,
+
+    #[token("==")]
+    Eq,
+
+    #[token("!=")]
+    NotEq,
+
+    #[token(">=")]
+    GreaterThanOrEq,
+
+    #[token("<=")]
+    LessThanOrEq,
+
+    #[token("&&")]
+    And,
+
+    #[token("||")]
+    Or,
+
     #[token("=")]
-    Equal,
+    Assigment,
 
     #[token(",")]
     Comma,
@@ -53,6 +89,12 @@ pub(crate) enum TokenType {
     #[token("}")]
     CloseBrace,
 
+    #[token("<")]
+    OpenAngleBracket,
+
+    #[token(">")]
+    CloseAngleBracket,
+
     #[regex("[a-zA-Z_][a-zA-Z0-9_]*")]
     Ident,
 
@@ -77,7 +119,19 @@ impl TokenType {
             Self::Var => "`var`",
             Self::True => "`true`",
             Self::False => "`false`",
-            Self::Equal => "`=`",
+            Self::Plus => "`+`",
+            Self::Minus => "`-`",
+            Self::Star => "`*`",
+            Self::Slash => "`/`",
+            Self::Percent => "`%`",
+            Self::Not => "`!`",
+            Self::Eq => "`==`",
+            Self::NotEq => "`!=`",
+            Self::GreaterThanOrEq => "`>=`",
+            Self::LessThanOrEq => "`<=`",
+            Self::And => "`&&`",
+            Self::Or => "`||`",
+            Self::Assigment => "`=`",
             Self::Comma => "`,`",
             Self::SemiColon => "`;`",
             Self::Colon => "`:`",
@@ -86,6 +140,8 @@ impl TokenType {
             Self::CloseParenthesis => "`)`",
             Self::OpenBrace => "`{`",
             Self::CloseBrace => "`}`",
+            Self::OpenAngleBracket => "`<`",
+            Self::CloseAngleBracket => "`>`",
             Self::Ident => "identifier",
             Self::F32Literal => "`f32` literal",
             Self::U32Literal => "`u32` literal",
@@ -98,7 +154,7 @@ impl TokenType {
 #[derive(Debug)]
 pub(crate) struct Token<'a> {
     pub(crate) type_: TokenType,
-    pub(crate) span: logos::Span,
+    pub(crate) span: Span,
     pub(crate) slice: &'a str,
 }
 
@@ -109,7 +165,7 @@ impl<'a> Token<'a> {
                 .next()
                 .ok_or_else(|| SyntaxError::new(lexer.span().start, "unexpected end of file"))?
                 .map_err(|()| SyntaxError::new(lexer.span().start, "unexpected token"))?,
-            span: lexer.span(),
+            span: Span::new(lexer.span().start, lexer.span().end),
             slice: lexer.slice(),
         })
     }
