@@ -26,6 +26,7 @@ mod buffer;
 mod expr;
 mod function;
 mod shader;
+mod statement;
 mod type_;
 mod utils;
 
@@ -34,4 +35,5 @@ pub use buffer::*;
 pub use expr::*;
 pub use function::*;
 pub use shader::*;
+pub use statement::*;
 pub use type_::*;

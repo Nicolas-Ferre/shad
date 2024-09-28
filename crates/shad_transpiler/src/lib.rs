@@ -1,10 +1,11 @@
 //! Transpiler to convert Shad expressions to WGSL.
 
 use shad_analyzer::{
-    Asg, AsgBuffer, AsgComputeShader, AsgExpr, AsgFnCall, AsgIdent, AsgStatement, AsgVariable,
-    ADD_FN, AND_FN, DIV_FN, EQ_FN, GE_FN, GT_FN, LE_FN, LT_FN, MOD_FN, MUL_FN, NEG_FN, NE_FN,
-    NOT_FN, OR_FN, SUB_FN,
+    Asg, AsgBuffer, AsgComputeShader, AsgExpr, AsgFn, AsgFnCall, AsgFnParam, AsgIdent,
+    AsgStatement, AsgVariable, ADD_FN, AND_FN, DIV_FN, EQ_FN, GE_FN, GT_FN, LE_FN, LT_FN, MOD_FN,
+    MUL_FN, NEG_FN, NE_FN, NOT_FN, OR_FN, SUB_FN,
 };
+use shad_parser::AstFnQualifier;
 
 const IDENT_UNIT: usize = 4;
 
@@ -16,47 +17,87 @@ const IDENT_UNIT: usize = 4;
 #[allow(clippy::result_unit_err)]
 pub fn generate_wgsl_compute_shader(asg: &Asg, shader: &AsgComputeShader) -> Result<String, ()> {
     Ok(format!(
-        "{}\n\n@compute @workgroup_size(1, 1, 1) fn main() {{\n{}\n}}",
-        buffer_definitions(asg, shader)?,
-        statements(asg, shader)?
+        "{}\n\n{}\n\n@compute @workgroup_size(1, 1, 1) fn main() {{\n{}\n}}",
+        wgsl_buf_definitions(asg, shader)?,
+        wgsl_fn_definitions(asg, shader)?,
+        wgsl_statements(asg, &shader.statements)?
     ))
 }
 
-fn buffer_definitions(asg: &Asg, shader: &AsgComputeShader) -> Result<String, ()> {
+fn wgsl_buf_definitions(asg: &Asg, shader: &AsgComputeShader) -> Result<String, ()> {
     Ok(shader
         .buffers
-        .values()
+        .iter()
         .enumerate()
-        .map(|(index, buffer)| buffer_definition(asg, buffer, index))
+        .map(|(index, buffer)| wgsl_buf_definition(asg, buffer, index))
         .collect::<Result<Vec<_>, ()>>()?
         .join("\n"))
 }
 
-fn buffer_definition(asg: &Asg, buffer: &AsgBuffer, index: usize) -> Result<String, ()> {
+fn wgsl_buf_definition(asg: &Asg, buffer: &AsgBuffer, binding_index: usize) -> Result<String, ()> {
     Ok(format!(
         "@group(0) @binding({}) var<storage, read_write> {}: {};",
-        index,
-        buffer_name(buffer),
+        binding_index,
+        buf_name(buffer),
         result_ref(&buffer.expr)?.type_(asg)?.buf_final_name
     ))
 }
 
-fn statements(asg: &Asg, shader: &AsgComputeShader) -> Result<String, ()> {
+fn wgsl_fn_definitions(asg: &Asg, shader: &AsgComputeShader) -> Result<String, ()> {
     Ok(shader
-        .statements
+        .functions
         .iter()
-        .map(|stmt| statement(asg, stmt, 1))
+        .map(|fn_| wgsl_fn_definition(asg, fn_))
         .collect::<Result<Vec<_>, ()>>()?
         .join("\n"))
 }
 
-fn statement(asg: &Asg, statement: &AsgStatement, indent: usize) -> Result<String, ()> {
+fn wgsl_fn_definition(asg: &Asg, fn_: &AsgFn) -> Result<String, ()> {
+    Ok(if fn_.ast.qualifier == AstFnQualifier::Gpu {
+        String::new()
+    } else {
+        format!(
+            "fn {}({}) -> {} {{\n{}\n}}",
+            fn_name(fn_),
+            wgsl_fn_params(fn_)?,
+            result_ref(&fn_.return_type)?.expr_final_name,
+            wgsl_statements(asg, &asg.function_bodies[&fn_.signature].statements)?
+        )
+    })
+}
+
+fn wgsl_fn_params(fn_: &AsgFn) -> Result<String, ()> {
+    Ok(fn_
+        .params
+        .iter()
+        .map(|param| wgsl_fn_param(param))
+        .collect::<Result<Vec<_>, ()>>()?
+        .join(", "))
+}
+
+fn wgsl_fn_param(param: &AsgFnParam) -> Result<String, ()> {
+    Ok(format!(
+        "{}: {}",
+        fn_param_name(param),
+        result_ref(&param.type_)?.expr_final_name
+    ))
+}
+
+fn wgsl_statements(asg: &Asg, statements: &[AsgStatement]) -> Result<String, ()> {
+    Ok(statements
+        .iter()
+        .map(|statement| wgsl_statement(asg, statement, 1))
+        .collect::<Result<Vec<_>, ()>>()?
+        .join("\n"))
+}
+
+fn wgsl_statement(asg: &Asg, statement: &AsgStatement, indent: usize) -> Result<String, ()> {
     Ok(match statement {
         AsgStatement::Var(assignment) => {
             format!(
                 "{empty: >width$}var {} = {};",
-                variable_name(assignment),
-                expression(asg, result_ref(&assignment.expr)?)?,
+                var_name(assignment),
+                wgsl_expr(asg, result_ref(&assignment.expr)?)?,
                 empty = "",
                 width = indent * IDENT_UNIT,
             )
@@ -71,93 +112,115 @@ fn statement(asg: &Asg, statement: &AsgStatement, indent: usize) -> Result<Strin
             };
             format!(
                 "{empty: >width$}{} = {cast}({});",
-                ident(asg, result_ref(&assignment.assigned)?, false)?,
-                expression(asg, result_ref(&assignment.expr)?)?,
+                wgsl_ident(asg, result_ref(&assignment.assigned)?, false)?,
+                wgsl_expr(asg, result_ref(&assignment.expr)?)?,
                 empty = "",
                 width = indent * IDENT_UNIT,
             )
         }
+        AsgStatement::Return(expr) => format!("return {};", wgsl_expr(asg, result_ref(expr)?)?,),
     })
 }
 
-fn expression(asg: &Asg, expr: &AsgExpr) -> Result<String, ()> {
+fn wgsl_expr(asg: &Asg, expr: &AsgExpr) -> Result<String, ()> {
     Ok(match expr {
         AsgExpr::Literal(expr) => format!("{}({})", expr.type_.expr_final_name, expr.value),
-        AsgExpr::Ident(expr) => ident(asg, expr, true)?,
-        AsgExpr::FnCall(expr) => fn_call(asg, expr)?,
+        AsgExpr::Ident(expr) => wgsl_ident(asg, expr, true)?,
+        AsgExpr::FnCall(expr) => wgsl_fn_call(asg, expr)?,
     })
 }
 
-fn ident(asg: &Asg, ident: &AsgIdent, is_expr: bool) -> Result<String, ()> {
+fn wgsl_ident(asg: &Asg, ident: &AsgIdent, is_expr: bool) -> Result<String, ()> {
     Ok(match ident {
         AsgIdent::Buffer(buffer) => {
             let type_ = result_ref(&buffer.expr)?.type_(asg)?;
             if is_expr && type_.buf_final_name != type_.expr_final_name {
-                format!("{}({})", type_.expr_final_name, buffer_name(buffer))
+                format!("{}({})", type_.expr_final_name, buf_name(buffer))
             } else {
-                buffer_name(buffer)
+                buf_name(buffer)
             }
         }
-        AsgIdent::Var(variable) => variable_name(variable),
+        AsgIdent::Var(variable) => var_name(variable),
+        AsgIdent::Param(param) => fn_param_name(param),
     })
 }
 
-fn fn_call(asg: &Asg, expr: &AsgFnCall) -> Result<String, ()> {
-    Ok(if let Some(operator) = unary_operator(expr) {
-        format!("({}{})", operator, expression(asg, &expr.args[0])?)
-    } else if let Some(operator) = binary_operator(expr) {
+fn wgsl_fn_call(asg: &Asg, call: &AsgFnCall) -> Result<String, ()> {
+    Ok(if let Some(operator) = wgsl_unary_operator(call) {
+        format!("({}{})", operator, wgsl_expr(asg, &call.args[0])?)
+    } else if let Some(operator) = wgsl_binary_operator(call) {
         format!(
             "({} {} {})",
-            expression(asg, &expr.args[0])?,
+            wgsl_expr(asg, &call.args[0])?,
             operator,
-            expression(asg, &expr.args[1])?
+            wgsl_expr(asg, &call.args[1])?
         )
     } else {
         format!(
             "{}({})",
-            expr.fn_.name.label,
-            expr.args
+            fn_name(&call.fn_),
+            call.args
                 .iter()
-                .map(|arg| expression(asg, arg))
+                .map(|arg| wgsl_expr(asg, arg))
                 .collect::<Result<Vec<_>, ()>>()?
                 .join(", ")
         )
     })
 }
 
-fn unary_operator(expr: &AsgFnCall) -> Option<&str> {
-    match expr.fn_.name.label.as_str() {
-        n if n == NEG_FN => Some("-"),
-        n if n == NOT_FN => Some("!"),
-        _ => None,
+fn wgsl_unary_operator(expr: &AsgFnCall) -> Option<&str> {
+    if expr.fn_.ast.qualifier == AstFnQualifier::Gpu {
+        match expr.fn_.ast.name.label.as_str() {
+            n if n == NEG_FN => Some("-"),
+            n if n == NOT_FN => Some("!"),
+            _ => None,
+        }
+    } else {
+        None
     }
 }
 
-fn binary_operator(expr: &AsgFnCall) -> Option<&str> {
-    match expr.fn_.name.label.as_str() {
-        n if n == ADD_FN => Some("+"),
-        n if n == SUB_FN => Some("-"),
-        n if n == MUL_FN => Some("*"),
-        n if n == DIV_FN => Some("/"),
-        n if n == MOD_FN => Some("%"),
-        n if n == EQ_FN => Some("=="),
-        n if n == NE_FN => Some("!="),
-        n if n == GT_FN => Some(">"),
-        n if n == LT_FN => Some("<"),
-        n if n == GE_FN => Some(">="),
-        n if n == LE_FN => Some("<="),
-        n if n == AND_FN => Some("&&"),
-        n if n == OR_FN => Some("||"),
-        _ => None,
+fn wgsl_binary_operator(expr: &AsgFnCall) -> Option<&str> {
+    if expr.fn_.ast.qualifier == AstFnQualifier::Gpu {
+        match expr.fn_.ast.name.label.as_str() {
+            n if n == ADD_FN => Some("+"),
+            n if n == SUB_FN => Some("-"),
+            n if n == MUL_FN => Some("*"),
+            n if n == DIV_FN => Some("/"),
+            n if n == MOD_FN => Some("%"),
+            n if n == EQ_FN => Some("=="),
+            n if n == NE_FN => Some("!="),
+            n if n == GT_FN => Some(">"),
+            n if n == LT_FN => Some("<"),
+            n if n == GE_FN => Some(">="),
+            n if n == LE_FN => Some("<="),
+            n if n == AND_FN => Some("&&"),
+            n if n == OR_FN => Some("||"),
+            _ => None,
+        }
+    } else {
+        None
     }
 }
 
-fn buffer_name(buffer: &AsgBuffer) -> String {
-    format!("{}_{}", buffer.name.label, buffer.index)
+fn buf_name(buffer: &AsgBuffer) -> String {
+    format!("b{}_{}", buffer.index, buffer.ast.name.label)
 }
 
-fn variable_name(variable: &AsgVariable) -> String {
-    format!("{}_{}", variable.name.label, variable.index)
+fn fn_name(fn_: &AsgFn) -> String {
+    if fn_.ast.qualifier == AstFnQualifier::Gpu {
+        fn_.ast.name.label.clone()
+    } else {
+        format!("f{}_{}", fn_.index, fn_.ast.name.label)
+    }
+}
+
+fn fn_param_name(param: &AsgFnParam) -> String {
+    format!("p{}", param.name.label)
+}
+
+fn var_name(variable: &AsgVariable) -> String {
+    format!("v{}_{}", variable.index, variable.name.label)
 }
 
 fn result_ref<T>(result: &Result<T, ()>) -> Result<&T, ()> {

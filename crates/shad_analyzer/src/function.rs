@@ -1,7 +1,8 @@
+use crate::statement::{AsgStatement, AsgStatementScopeType, AsgStatements};
 use crate::{type_, Asg, AsgExpr, AsgType};
 use fxhash::FxHashMap;
 use shad_error::{ErrorLevel, LocatedMessage, SemanticError, Span};
-use shad_parser::{AstFnParam, AstGpuFnItem, AstIdent};
+use shad_parser::{AstFnItem, AstFnParam, AstFnQualifier, AstIdent};
 use std::rc::Rc;
 
 /// The function name corresponding to unary `-` operator behavior.
@@ -49,7 +50,7 @@ pub struct AsgFnSignature {
 }
 
 impl AsgFnSignature {
-    pub(crate) fn new(fn_: &AstGpuFnItem) -> Self {
+    pub(crate) fn new(fn_: &AstFnItem) -> Self {
         Self {
             name: fn_.name.label.clone(),
             param_types: fn_
@@ -77,16 +78,20 @@ impl AsgFnSignature {
 /// An analyzed function.
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub struct AsgFn {
+    /// The parsed function.
+    pub ast: AstFnItem,
+    /// The function signature.
+    pub signature: AsgFnSignature,
+    /// The unique function index.
+    pub index: usize,
     /// The function name in the initial Shad code.
-    pub name: AstIdent,
-    /// The function name in the initial Shad code.
-    pub params: Vec<AsgFnParam>,
+    pub params: Vec<Rc<AsgFnParam>>,
     /// The function returned type.
     pub return_type: Result<Rc<AsgType>, ()>,
 }
 
 impl AsgFn {
-    pub(crate) fn new(asg: &mut Asg, fn_: &AstGpuFnItem) -> Self {
+    pub(crate) fn new(asg: &mut Asg, fn_: &AstFnItem) -> Self {
         Self::check_duplicated_params(asg, fn_);
         if SPECIAL_UNARY_FNS.contains(&fn_.name.label.as_str()) {
             Self::check_unary_fn(asg, fn_);
@@ -94,18 +99,21 @@ impl AsgFn {
         if SPECIAL_BINARY_FNS.contains(&fn_.name.label.as_str()) {
             Self::check_binary_fn(asg, fn_);
         }
+        let params: Vec<_> = fn_
+            .params
+            .iter()
+            .map(|param| Rc::new(AsgFnParam::new(asg, param)))
+            .collect();
         Self {
-            name: fn_.name.clone(),
-            params: fn_
-                .params
-                .iter()
-                .map(|param| AsgFnParam::new(asg, param))
-                .collect(),
+            ast: fn_.clone(),
+            signature: AsgFnSignature::new(fn_),
+            index: asg.functions.len(),
+            params,
             return_type: type_::find(asg, &fn_.return_type).cloned(),
         }
     }
 
-    fn check_duplicated_params(asg: &mut Asg, fn_: &AstGpuFnItem) {
+    fn check_duplicated_params(asg: &mut Asg, fn_: &AstFnItem) {
         let mut names = FxHashMap::default();
         for param in &fn_.params {
             let existing = names.insert(&param.name.label, &param.name);
@@ -116,7 +124,7 @@ impl AsgFn {
         }
     }
 
-    fn check_unary_fn(asg: &mut Asg, fn_: &AstGpuFnItem) {
+    fn check_unary_fn(asg: &mut Asg, fn_: &AstFnItem) {
         const EXPECTED_PARAM_COUNT: usize = 1;
         if fn_.params.len() != EXPECTED_PARAM_COUNT {
             asg.errors.push(Self::invalid_param_count_error(
@@ -127,7 +135,7 @@ impl AsgFn {
         }
     }
 
-    fn check_binary_fn(asg: &mut Asg, fn_: &AstGpuFnItem) {
+    fn check_binary_fn(asg: &mut Asg, fn_: &AstFnItem) {
         const EXPECTED_PARAM_COUNT: usize = 2;
         if fn_.params.len() != EXPECTED_PARAM_COUNT {
             asg.errors.push(Self::invalid_param_count_error(
@@ -167,7 +175,7 @@ impl AsgFn {
 
     fn invalid_param_count_error(
         asg: &Asg,
-        fn_: &AstGpuFnItem,
+        fn_: &AstFnItem,
         expected_count: usize,
     ) -> SemanticError {
         SemanticError::new(
@@ -186,6 +194,30 @@ impl AsgFn {
             &asg.code,
             &asg.path,
         )
+    }
+}
+
+/// An analyzed function body.
+#[derive(Debug, PartialEq, Eq, Clone)]
+pub struct AsgFnBody {
+    /// The statements in the function body.
+    pub statements: Vec<AsgStatement>,
+}
+
+impl AsgFnBody {
+    pub(crate) fn new(asg: &mut Asg, fn_: &AsgFn) -> Self {
+        Self {
+            statements: AsgStatements::parse(
+                asg,
+                &fn_.ast.statements,
+                match fn_.ast.qualifier {
+                    AstFnQualifier::None | AstFnQualifier::Gpu => {
+                        AsgStatementScopeType::FnBody(fn_)
+                    }
+                    AstFnQualifier::Buf => AsgStatementScopeType::BufFnBody(fn_),
+                },
+            ),
+        }
     }
 }
 
@@ -220,21 +252,27 @@ pub(crate) fn find<'a>(
     }
 }
 
+pub(crate) fn signature_str(fn_: &AstFnItem) -> String {
+    format!(
+        "{}({})",
+        &fn_.name.label,
+        fn_.params
+            .iter()
+            .map(|param| param.type_.label.clone())
+            .collect::<Vec<_>>()
+            .join(", ")
+    )
+}
+
 pub(crate) fn duplicated_error(
     asg: &Asg,
-    duplicated_fn: &AstGpuFnItem,
+    duplicated_fn: &AstFnItem,
     existing_fn: &AsgFn,
 ) -> SemanticError {
     SemanticError::new(
         format!(
-            "function with signature `{}({})` is defined multiple times",
-            &duplicated_fn.name.label,
-            duplicated_fn
-                .params
-                .iter()
-                .map(|param| param.type_.label.clone())
-                .collect::<Vec<_>>()
-                .join(", ")
+            "function `{}` is defined multiple times",
+            signature_str(duplicated_fn)
         ),
         vec![
             LocatedMessage {
@@ -244,7 +282,7 @@ pub(crate) fn duplicated_error(
             },
             LocatedMessage {
                 level: ErrorLevel::Info,
-                span: existing_fn.name.span,
+                span: existing_fn.ast.name.span,
                 text: "function with same signature is defined here".into(),
             },
         ],

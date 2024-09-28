@@ -1,0 +1,33 @@
+buf result_from_fn = double(2.);
+
+run {
+    result_from_fn = transformed_buffer();
+}
+
+buf fn transformed_buffer() -> f32 {
+    var a = square(result_from_fn);
+    var b = double(result_from_fn);
+    return a + b;
+}
+
+buf fn square(value: f32) -> f32 {
+    return value * value;
+}
+
+fn double(value: f32) -> f32 {
+    return value * 2.;
+}
+
+buf operator_result = 0.;
+
+run {
+    operator_result = 10. + 3;
+}
+
+fn __add__(left: f32, right: i32) -> f32 {
+    return left + f32(right);
+}
+
+gpu fn f32(value: i32) -> f32;
+gpu fn __add__(left: f32, right: f32) -> f32;
+gpu fn __mul__(left: f32, right: f32) -> f32;

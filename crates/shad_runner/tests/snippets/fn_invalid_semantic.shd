@@ -1,0 +1,41 @@
+gpu fn duplicated_param(param: f32, param: f32) -> f32;
+gpu fn duplicated_fn(param1: u32, param2: u32) -> i32;
+gpu fn duplicated_fn(param3: u32, param4: u32) -> i32;
+gpu fn undefined_type(param: undef) -> f32;
+gpu fn __add__(param: u32) -> u32;
+gpu fn __neg__(left: u32, right: u32) -> u32;
+
+buf buffer = 0;
+
+fn use_buffer() -> i32 {
+    return buffer;
+}
+
+buf invalid_init = buffer_fn();
+
+buf fn buffer_fn() -> i32 {
+    return 0;
+}
+
+fn buf_fn_in_fn() -> i32 {
+    return buffer_fn();
+}
+
+fn invalid_return_type(param: f32) -> i32 {
+    return param;
+}
+
+fn statement_after_return() -> i32 {
+    return 0;
+    var a = 1.;
+    var b = 1.;
+}
+
+fn invalid_param_type(param: f32) -> i32 {
+    param = 0;
+    return 0;
+}
+
+run {
+    return 0;
+}

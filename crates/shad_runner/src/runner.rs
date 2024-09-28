@@ -203,7 +203,7 @@ impl Program {
 
     fn create_buffer(asg: &Asg, buffer: &AsgBuffer, device: &Device) -> Buffer {
         device.create_buffer(&BufferDescriptor {
-            label: Some(&format!("shad:buffer:{}", buffer.name.label)),
+            label: Some(&format!("shad:buffer:{}", buffer.ast.name.label)),
             size: buffer
                 .expr
                 .as_ref()
@@ -281,11 +281,11 @@ impl ComputeShader {
             layout: &pipeline.get_bind_group_layout(0),
             entries: &shader
                 .buffers
-                .values()
+                .iter()
                 .enumerate()
                 .map(|(index, buffer)| wgpu::BindGroupEntry {
                     binding: index as u32,
-                    resource: buffers[&buffer.name.label].as_entire_binding(),
+                    resource: buffers[&buffer.ast.name.label].as_entire_binding(),
                 })
                 .collect::<Vec<_>>(),
         })
