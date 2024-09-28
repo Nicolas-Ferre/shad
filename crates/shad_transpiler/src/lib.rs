@@ -93,18 +93,18 @@ fn wgsl_statements(asg: &Asg, statements: &[AsgStatement]) -> Result<String, ()>
 
 fn wgsl_statement(asg: &Asg, statement: &AsgStatement, indent: usize) -> Result<String, ()> {
     Ok(match statement {
-        AsgStatement::Var(assignment) => {
+        AsgStatement::Var(statement) => {
             format!(
                 "{empty: >width$}var {} = {};",
-                var_name(assignment),
-                wgsl_expr(asg, result_ref(&assignment.expr)?)?,
+                var_name(statement),
+                wgsl_expr(asg, result_ref(&statement.expr)?)?,
                 empty = "",
                 width = indent * IDENT_UNIT,
             )
         }
-        AsgStatement::Assignment(assignment) => {
-            let is_buffer = matches!(assignment.assigned, Ok(AsgIdent::Buffer(_)));
-            let type_ = result_ref(&assignment.expr)?.type_(asg)?;
+        AsgStatement::Assignment(statement) => {
+            let is_buffer = matches!(statement.assigned, Ok(AsgIdent::Buffer(_)));
+            let type_ = result_ref(&statement.expr)?.type_(asg)?;
             let cast = if is_buffer && type_.buf_final_name != type_.expr_final_name {
                 &type_.buf_final_name
             } else {
@@ -112,13 +112,18 @@ fn wgsl_statement(asg: &Asg, statement: &AsgStatement, indent: usize) -> Result<
             };
             format!(
                 "{empty: >width$}{} = {cast}({});",
-                wgsl_ident(asg, result_ref(&assignment.assigned)?, false)?,
-                wgsl_expr(asg, result_ref(&assignment.expr)?)?,
+                wgsl_ident(asg, result_ref(&statement.assigned)?, false)?,
+                wgsl_expr(asg, result_ref(&statement.expr)?)?,
                 empty = "",
                 width = indent * IDENT_UNIT,
             )
         }
-        AsgStatement::Return(expr) => format!("return {};", wgsl_expr(asg, result_ref(expr)?)?,),
+        AsgStatement::Return(statement) => {
+            format!("return {};", wgsl_expr(asg, result_ref(statement)?)?)
+        }
+        AsgStatement::FnCall(statement) => {
+            format!("{};", wgsl_fn_call(asg, result_ref(statement)?)?)
+        }
     })
 }
 

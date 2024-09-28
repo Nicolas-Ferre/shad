@@ -1,6 +1,6 @@
 use crate::atom::parse_token;
 use crate::token::{Token, TokenType};
-use crate::{AstExpr, AstIdent};
+use crate::{AstExpr, AstFnCall, AstIdent};
 use logos::Lexer;
 use shad_error::{Span, SyntaxError};
 
@@ -13,6 +13,8 @@ pub enum AstStatement {
     Var(AstVarDefinition),
     /// A return statement.
     Return(AstReturn),
+    /// A function call.
+    FnCall(AstFnCallStatement),
 }
 
 impl AstStatement {
@@ -23,15 +25,24 @@ impl AstStatement {
             Self::Assignment(statement) => statement.span,
             Self::Var(statement) => statement.span,
             Self::Return(statement) => statement.span,
+            Self::FnCall(statement) => statement.span,
         }
     }
     // coverage: on
 
     #[allow(clippy::wildcard_enum_match_arm)]
     pub(crate) fn parse(lexer: &mut Lexer<'_, TokenType>) -> Result<Self, SyntaxError> {
-        let token = Token::next(&mut lexer.clone())?;
+        let tmp_lexer = &mut lexer.clone();
+        let token = Token::next(tmp_lexer)?;
+        let next_token = Token::next(tmp_lexer)?;
         match token.type_ {
-            TokenType::Ident => Ok(Self::Assignment(AstAssignment::parse(lexer)?)),
+            TokenType::Ident => {
+                if next_token.type_ == TokenType::OpenParenthesis {
+                    Ok(Self::FnCall(AstFnCallStatement::parse(lexer)?))
+                } else {
+                    Ok(Self::Assignment(AstAssignment::parse(lexer)?))
+                }
+            }
             TokenType::Var => Ok(Self::Var(AstVarDefinition::parse(lexer)?)),
             TokenType::Return => Ok(Self::Return(AstReturn::parse(lexer)?)),
             _ => Err(SyntaxError::new(token.span.start, "expected statement")),
@@ -119,6 +130,30 @@ impl AstReturn {
         Ok(Self {
             span: Span::new(return_.span.start, semi_colon.span.end),
             expr,
+        })
+    }
+}
+
+/// A function call statement.
+///
+/// # Examples
+///
+/// The Shad code `my_func(42);` will be parsed as a function call statement.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct AstFnCallStatement {
+    /// The span of the statement.
+    pub span: Span,
+    /// The function call.
+    pub call: AstFnCall,
+}
+
+impl AstFnCallStatement {
+    fn parse(lexer: &mut Lexer<'_, TokenType>) -> Result<Self, SyntaxError> {
+        let call = AstFnCall::parse(lexer)?;
+        let semi_colon = parse_token(lexer, TokenType::SemiColon)?;
+        Ok(Self {
+            span: Span::new(call.span.start, semi_colon.span.end),
+            call,
         })
     }
 }

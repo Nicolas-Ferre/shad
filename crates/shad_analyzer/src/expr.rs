@@ -1,9 +1,10 @@
 use crate::function::signature_str;
 use crate::statement::{AsgStatements, AsgVariable};
+use crate::utils::result_ref;
 use crate::{
-    asg, function, utils, Asg, AsgBuffer, AsgFn, AsgFnParam, AsgFnSignature, AsgType, ADD_FN,
-    AND_FN, DIV_FN, EQ_FN, GE_FN, GT_FN, LE_FN, LT_FN, MOD_FN, MUL_FN, NEG_FN, NE_FN, NOT_FN,
-    OR_FN, SUB_FN,
+    asg, function, Asg, AsgBuffer, AsgFn, AsgFnParam, AsgFnSignature, AsgType, ADD_FN, AND_FN,
+    DIV_FN, EQ_FN, GE_FN, GT_FN, LE_FN, LT_FN, MOD_FN, MUL_FN, NEG_FN, NE_FN, NOT_FN, OR_FN,
+    SUB_FN,
 };
 use shad_error::{ErrorLevel, LocatedMessage, SemanticError, Span};
 use shad_parser::{
@@ -200,9 +201,9 @@ impl AsgIdent {
 
     pub(crate) fn type_<'a>(&'a self, asg: &'a Asg) -> Result<&Rc<AsgType>, ()> {
         match self {
-            Self::Buffer(buffer) => utils::result_ref(&buffer.expr)?.type_(asg),
-            Self::Var(variable) => utils::result_ref(&variable.expr)?.type_(asg),
-            Self::Param(param) => utils::result_ref(&param.type_),
+            Self::Buffer(buffer) => result_ref(&buffer.expr)?.type_(asg),
+            Self::Var(variable) => result_ref(&variable.expr)?.type_(asg),
+            Self::Param(param) => result_ref(&param.type_),
         }
     }
 
@@ -234,7 +235,11 @@ pub struct AsgFnCall {
 }
 
 impl AsgFnCall {
-    fn new(asg: &mut Asg, ctx: &AsgStatements<'_>, fn_call: &AstFnCall) -> Result<Self, ()> {
+    pub(crate) fn new(
+        asg: &mut Asg,
+        ctx: &AsgStatements<'_>,
+        fn_call: &AstFnCall,
+    ) -> Result<Self, ()> {
         let args = fn_call
             .args
             .iter()
@@ -301,11 +306,7 @@ impl AsgFnCall {
         .check(asg, ctx))
     }
 
-    fn type_(&self) -> Result<&Rc<AsgType>, ()> {
-        utils::result_ref(&self.fn_.return_type)
-    }
-
-    fn buffers(&self, asg: &Asg) -> Vec<Rc<AsgBuffer>> {
+    pub(crate) fn buffers(&self, asg: &Asg) -> Vec<Rc<AsgBuffer>> {
         self.args
             .iter()
             .flat_map(|arg| arg.buffers(asg))
@@ -318,7 +319,7 @@ impl AsgFnCall {
             .collect()
     }
 
-    fn functions(&self, asg: &Asg) -> Vec<Rc<AsgFn>> {
+    pub(crate) fn functions(&self, asg: &Asg) -> Vec<Rc<AsgFn>> {
         self.args
             .iter()
             .flat_map(|arg| arg.functions(asg))
@@ -330,6 +331,10 @@ impl AsgFnCall {
             )
             .chain(iter::once(self.fn_.clone()))
             .collect()
+    }
+
+    fn type_(&self) -> Result<&Rc<AsgType>, ()> {
+        result_ref(&self.fn_.return_type)
     }
 
     fn check(self, asg: &mut Asg, ctx: &AsgStatements<'_>) -> Self {

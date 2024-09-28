@@ -1,4 +1,5 @@
-use crate::{utils, Asg, AsgBuffer, AsgExpr, AsgFn, AsgFnParam, AsgIdent, AsgType};
+use crate::utils::result_ref;
+use crate::{Asg, AsgBuffer, AsgExpr, AsgFn, AsgFnCall, AsgFnParam, AsgIdent, AsgType};
 use fxhash::FxHashMap;
 use shad_error::{ErrorLevel, LocatedMessage, SemanticError, Span};
 use shad_parser::{AstAssignment, AstIdent, AstReturn, AstStatement, AstVarDefinition};
@@ -96,6 +97,8 @@ pub enum AsgStatement {
     Assignment(AsgAssignment),
     /// A return statement.
     Return(Result<AsgExpr, ()>),
+    /// An expression statement.
+    FnCall(Result<AsgFnCall, ()>),
 }
 
 impl AsgStatement {
@@ -121,6 +124,9 @@ impl AsgStatement {
                 AstStatement::Return(statement) => {
                     Self::Return(Self::analyze_return(asg, ctx, statement))
                 }
+                AstStatement::FnCall(statement) => {
+                    Self::FnCall(AsgFnCall::new(asg, ctx, &statement.call))
+                }
             })
         }
     }
@@ -133,6 +139,9 @@ impl AsgStatement {
                 .as_ref()
                 .map(|expr| expr.buffers(asg))
                 .unwrap_or_default(),
+            Self::FnCall(statement) => result_ref(statement)
+                .map(|call| call.buffers(asg))
+                .unwrap_or_default(),
         }
     }
 
@@ -143,6 +152,9 @@ impl AsgStatement {
             Self::Return(statement) => statement
                 .as_ref()
                 .map(|expr| expr.functions(asg))
+                .unwrap_or_default(),
+            Self::FnCall(statement) => result_ref(statement)
+                .map(|call| call.functions(asg))
                 .unwrap_or_default(),
         }
     }
@@ -283,8 +295,8 @@ impl AsgAssignment {
     fn checked(self, asg: &mut Asg) -> Self {
         if let (Ok(assigned), Ok(assigned_type), Ok(expr_type)) = (
             &self.assigned,
-            utils::result_ref(&self.assigned).and_then(|e| e.type_(asg)),
-            utils::result_ref(&self.expr).and_then(|e| e.type_(asg)),
+            result_ref(&self.assigned).and_then(|e| e.type_(asg)),
+            result_ref(&self.expr).and_then(|e| e.type_(asg)),
         ) {
             if assigned_type != expr_type {
                 asg.errors.push(self.mismatching_type_error(
@@ -299,11 +311,11 @@ impl AsgAssignment {
     }
 
     fn buffers(&self, asg: &Asg) -> Vec<Rc<AsgBuffer>> {
-        let mut buffers = utils::result_ref(&self.assigned)
+        let mut buffers = result_ref(&self.assigned)
             .map(AsgIdent::buffers)
             .unwrap_or_default();
         buffers.append(
-            &mut utils::result_ref(&self.expr)
+            &mut result_ref(&self.expr)
                 .map(|expr| expr.buffers(asg))
                 .unwrap_or_default(),
         );
@@ -311,7 +323,7 @@ impl AsgAssignment {
     }
 
     fn functions(&self, asg: &Asg) -> Vec<Rc<AsgFn>> {
-        utils::result_ref(&self.expr)
+        result_ref(&self.expr)
             .map(|expr| expr.functions(asg))
             .unwrap_or_default()
     }
@@ -371,13 +383,13 @@ impl AsgVariable {
     }
 
     fn buffers(&self, asg: &Asg) -> Vec<Rc<AsgBuffer>> {
-        utils::result_ref(&self.expr)
+        result_ref(&self.expr)
             .map(|expr| expr.buffers(asg))
             .unwrap_or_default()
     }
 
     fn functions(&self, asg: &Asg) -> Vec<Rc<AsgFn>> {
-        utils::result_ref(&self.expr)
+        result_ref(&self.expr)
             .map(|expr| expr.functions(asg))
             .unwrap_or_default()
     }
