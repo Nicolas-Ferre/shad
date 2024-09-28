@@ -85,8 +85,6 @@ pub struct AsgFn {
     /// The unique function index.
     pub index: usize,
     /// The function name in the initial Shad code.
-    pub name: AstIdent, // TODO: remove
-    /// The function name in the initial Shad code.
     pub params: Vec<Rc<AsgFnParam>>,
     /// The function returned type.
     pub return_type: Result<Rc<AsgType>, ()>,
@@ -110,7 +108,6 @@ impl AsgFn {
             ast: fn_.clone(),
             signature: AsgFnSignature::new(fn_),
             index: asg.functions.len(),
-            name: fn_.name.clone(),
             params,
             return_type: type_::find(asg, &fn_.return_type).cloned(),
         }
@@ -285,7 +282,7 @@ pub(crate) fn duplicated_error(
             },
             LocatedMessage {
                 level: ErrorLevel::Info,
-                span: existing_fn.name.span,
+                span: existing_fn.ast.name.span,
                 text: "function with same signature is defined here".into(),
             },
         ],

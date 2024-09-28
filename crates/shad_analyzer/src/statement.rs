@@ -273,7 +273,7 @@ impl AsgAssignment {
             Self {
                 assigned: Ok(AsgIdent::Buffer(buffer.clone())),
                 expr: buffer.expr.clone(),
-                assigned_span: buffer.name.span,
+                assigned_span: buffer.ast.name.span,
                 expr_span: buffer.ast.value.span(),
             },
             asg,

@@ -215,7 +215,7 @@ impl AsgIdent {
 
     pub(crate) fn name(&self) -> &str {
         match self {
-            Self::Buffer(buffer) => &buffer.name.label,
+            Self::Buffer(buffer) => &buffer.ast.name.label,
             Self::Var(variable) => &variable.name.label,
             Self::Param(param) => &param.name.label,
         }

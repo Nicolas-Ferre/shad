@@ -1,16 +1,13 @@
 use crate::statement::AsgStatements;
 use crate::{Asg, AsgExpr};
 use shad_error::{ErrorLevel, LocatedMessage, SemanticError};
-use shad_parser::{AstBufferItem, AstIdent};
+use shad_parser::AstBufferItem;
 
 /// An analyzed buffer.
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub struct AsgBuffer {
     /// The parsed buffer.
     pub ast: AstBufferItem,
-    // TODO: delete
-    /// The buffer name in the initial Shad code.
-    pub name: AstIdent,
     /// The unique buffer index.
     pub index: usize,
     /// The initial value of the buffer.
@@ -21,7 +18,6 @@ impl AsgBuffer {
     pub(crate) fn new(asg: &mut Asg, ctx: &AsgStatements<'_>, buffer: &AstBufferItem) -> Self {
         Self {
             ast: buffer.clone(),
-            name: buffer.name.clone(),
             index: asg.buffers.len(),
             expr: AsgExpr::new(asg, ctx, &buffer.value),
         }
@@ -46,7 +42,7 @@ pub(crate) fn duplicated_error(
             },
             LocatedMessage {
                 level: ErrorLevel::Info,
-                span: existing_buffer.name.span,
+                span: existing_buffer.ast.name.span,
                 text: "buffer with same name is defined here".into(),
             },
         ],

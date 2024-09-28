@@ -26,7 +26,7 @@ impl AsgComputeShader {
             buffers: Self::buffers(&statements, asg),
             functions: Self::functions(&statements, asg),
             statements,
-            name: format!("buffer_init:{}", buffer.name.label),
+            name: format!("buffer_init:{}", buffer.ast.name.label),
         }
     }
 

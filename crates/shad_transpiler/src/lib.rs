@@ -9,8 +9,6 @@ use shad_parser::AstFnQualifier;
 
 const IDENT_UNIT: usize = 4;
 
-// TODO: split this file
-
 /// Generates a WGSL shader from a Shad shader definition.
 ///
 /// # Errors
@@ -172,7 +170,7 @@ fn wgsl_fn_call(asg: &Asg, call: &AsgFnCall) -> Result<String, ()> {
 
 fn wgsl_unary_operator(expr: &AsgFnCall) -> Option<&str> {
     if expr.fn_.ast.qualifier == AstFnQualifier::Gpu {
-        match expr.fn_.name.label.as_str() {
+        match expr.fn_.ast.name.label.as_str() {
             n if n == NEG_FN => Some("-"),
             n if n == NOT_FN => Some("!"),
             _ => None,
@@ -184,7 +182,7 @@ fn wgsl_unary_operator(expr: &AsgFnCall) -> Option<&str> {
 
 fn wgsl_binary_operator(expr: &AsgFnCall) -> Option<&str> {
     if expr.fn_.ast.qualifier == AstFnQualifier::Gpu {
-        match expr.fn_.name.label.as_str() {
+        match expr.fn_.ast.name.label.as_str() {
             n if n == ADD_FN => Some("+"),
             n if n == SUB_FN => Some("-"),
             n if n == MUL_FN => Some("*"),
@@ -206,14 +204,14 @@ fn wgsl_binary_operator(expr: &AsgFnCall) -> Option<&str> {
 }
 
 fn buf_name(buffer: &AsgBuffer) -> String {
-    format!("b{}_{}", buffer.index, buffer.name.label)
+    format!("b{}_{}", buffer.index, buffer.ast.name.label)
 }
 
 fn fn_name(fn_: &AsgFn) -> String {
     if fn_.ast.qualifier == AstFnQualifier::Gpu {
-        fn_.name.label.clone()
+        fn_.ast.name.label.clone()
     } else {
-        format!("f{}_{}", fn_.index, fn_.name.label)
+        format!("f{}_{}", fn_.index, fn_.ast.name.label)
     }
 }
 
