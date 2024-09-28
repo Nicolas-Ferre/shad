@@ -7,7 +7,8 @@ use shad_runner::Runner;
 fn run_valid() {
     let mut runner = Runner::new(snippet_path("fn_valid.shd")).unwrap();
     runner.run_step();
-    assert_eq!(f32_buffer(&runner, "buffer"), 24.);
+    assert_eq!(f32_buffer(&runner, "result_from_fn"), 24.);
+    assert_eq!(f32_buffer(&runner, "operator_result"), 13.);
 }
 
 #[test]
@@ -26,6 +27,7 @@ fn run_invalid_semantic() {
             "invalid type for returned expression",
             "statement found after `return` statement",
             "`buf` function `buffer_fn()` called in invalid context",
+            "expression assigned to `param` has invalid type",
             "could not find `buffer` value",
             "`return` statement used outside function",
         ],
@@ -86,14 +88,14 @@ fn run_invalid_semantic() {
             &vec![
                 LocatedMessage {
                     level: ErrorLevel::Error,
-                    span: Span::new(533, 535),
+                    span: Span::new(543, 548),
                     text: "expression of type `f32`".into(),
                 },
                 LocatedMessage {
                     level: ErrorLevel::Info,
                     span: Span {
-                        start: 516,
-                        end: 519,
+                        start: 526,
+                        end: 529,
                     },
                     text: "expected type `i32`".into(),
                 },
@@ -101,12 +103,12 @@ fn run_invalid_semantic() {
             &vec![
                 LocatedMessage {
                     level: ErrorLevel::Error,
-                    span: Span::new(595, 606),
+                    span: Span::new(608, 619),
                     text: "this statement cannot be defined after a `return` statement".into(),
                 },
                 LocatedMessage {
                     level: ErrorLevel::Info,
-                    span: Span::new(581, 590),
+                    span: Span::new(594, 603),
                     text: "`return` statement defined here".into(),
                 },
             ],
@@ -124,6 +126,18 @@ fn run_invalid_semantic() {
                             .into(),
                 },
             ],
+            &vec![
+                LocatedMessage {
+                    level: ErrorLevel::Error,
+                    span: Span::new(694, 695),
+                    text: "expression of type `i32`".into(),
+                },
+                LocatedMessage {
+                    level: ErrorLevel::Info,
+                    span: Span::new(686, 691),
+                    text: "expected type `f32`".into(),
+                },
+            ],
             &vec![LocatedMessage {
                 level: ErrorLevel::Error,
                 span: Span::new(345, 351),
@@ -131,7 +145,7 @@ fn run_invalid_semantic() {
             }],
             &vec![LocatedMessage {
                 level: ErrorLevel::Error,
-                span: Span::new(636, 645),
+                span: Span::new(724, 733),
                 text: "invalid statement".into(),
             }],
         ],

@@ -45,7 +45,6 @@ fn wgsl_buf_definition(asg: &Asg, buffer: &AsgBuffer, binding_index: usize) -> R
     ))
 }
 
-// TODO: only define functions actually used in the shader
 fn wgsl_fn_definitions(asg: &Asg, shader: &AsgComputeShader) -> Result<String, ()> {
     Ok(shader
         .functions
@@ -172,29 +171,37 @@ fn wgsl_fn_call(asg: &Asg, call: &AsgFnCall) -> Result<String, ()> {
 }
 
 fn wgsl_unary_operator(expr: &AsgFnCall) -> Option<&str> {
-    match expr.fn_.name.label.as_str() {
-        n if n == NEG_FN => Some("-"),
-        n if n == NOT_FN => Some("!"),
-        _ => None,
+    if expr.fn_.ast.qualifier == AstFnQualifier::Gpu {
+        match expr.fn_.name.label.as_str() {
+            n if n == NEG_FN => Some("-"),
+            n if n == NOT_FN => Some("!"),
+            _ => None,
+        }
+    } else {
+        None
     }
 }
 
 fn wgsl_binary_operator(expr: &AsgFnCall) -> Option<&str> {
-    match expr.fn_.name.label.as_str() {
-        n if n == ADD_FN => Some("+"),
-        n if n == SUB_FN => Some("-"),
-        n if n == MUL_FN => Some("*"),
-        n if n == DIV_FN => Some("/"),
-        n if n == MOD_FN => Some("%"),
-        n if n == EQ_FN => Some("=="),
-        n if n == NE_FN => Some("!="),
-        n if n == GT_FN => Some(">"),
-        n if n == LT_FN => Some("<"),
-        n if n == GE_FN => Some(">="),
-        n if n == LE_FN => Some("<="),
-        n if n == AND_FN => Some("&&"),
-        n if n == OR_FN => Some("||"),
-        _ => None,
+    if expr.fn_.ast.qualifier == AstFnQualifier::Gpu {
+        match expr.fn_.name.label.as_str() {
+            n if n == ADD_FN => Some("+"),
+            n if n == SUB_FN => Some("-"),
+            n if n == MUL_FN => Some("*"),
+            n if n == DIV_FN => Some("/"),
+            n if n == MOD_FN => Some("%"),
+            n if n == EQ_FN => Some("=="),
+            n if n == NE_FN => Some("!="),
+            n if n == GT_FN => Some(">"),
+            n if n == LT_FN => Some("<"),
+            n if n == GE_FN => Some(">="),
+            n if n == LE_FN => Some("<="),
+            n if n == AND_FN => Some("&&"),
+            n if n == OR_FN => Some("||"),
+            _ => None,
+        }
+    } else {
+        None
     }
 }
 
