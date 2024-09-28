@@ -1,5 +1,7 @@
-use crate::shader::AsgStatements;
-use crate::{buffer, function, type_, AsgBuffer, AsgComputeShader, AsgFn, AsgFnSignature, AsgType};
+use crate::statement::AsgStatements;
+use crate::{
+    buffer, function, type_, AsgBuffer, AsgComputeShader, AsgFn, AsgFnBody, AsgFnSignature, AsgType,
+};
 use fxhash::FxHashMap;
 use shad_error::{ErrorLevel, LocatedMessage, SemanticError};
 use shad_parser::{Ast, AstIdent, AstItem};
@@ -16,6 +18,8 @@ pub struct Asg {
     pub types: FxHashMap<String, Rc<AsgType>>,
     /// The analyzed functions.
     pub functions: FxHashMap<AsgFnSignature, Rc<AsgFn>>,
+    /// The analyzed function bodies.
+    pub function_bodies: FxHashMap<AsgFnSignature, AsgFnBody>,
     /// The mapping between Shad buffer names and buffer index.
     pub buffers: FxHashMap<String, Rc<AsgBuffer>>,
     /// The initialization shaders.
@@ -35,53 +39,69 @@ impl Asg {
             path: ast.path.clone(),
             types: FxHashMap::default(),
             functions: FxHashMap::default(),
+            function_bodies: FxHashMap::default(),
             buffers: FxHashMap::default(),
             init_shaders: vec![],
             step_shaders: vec![],
             errors: vec![],
         };
         asg.types = type_::primitive_types();
-        Self::analyze_functions(&mut asg, ast);
-        Self::analyze_buffers(&mut asg, ast);
-        Self::analyze_step_shaders(&mut asg, ast);
+        asg.analyze_functions(ast);
+        asg.analyze_buffers(ast);
+        asg.analyze_function_bodies();
+        asg.analyze_init_shaders();
+        asg.analyze_step_shaders(ast);
         asg
     }
 
-    fn analyze_functions(asg: &mut Self, ast: &Ast) {
+    fn analyze_functions(&mut self, ast: &Ast) {
         for item in &ast.items {
-            if let AstItem::GpuFn(ast_fn) = item {
-                let asg_fn = AsgFn::new(asg, ast_fn);
+            if let AstItem::Fn(ast_fn) = item {
+                let asg_fn = AsgFn::new(self, ast_fn);
                 let fn_ = Rc::new(asg_fn);
-                let signature = AsgFnSignature::new(ast_fn);
-                if let Some(existing_fn) = asg.functions.insert(signature, fn_) {
-                    asg.errors
-                        .push(function::duplicated_error(asg, ast_fn, &existing_fn));
+                let signature = fn_.signature.clone();
+                if let Some(existing_fn) = self.functions.insert(signature, fn_) {
+                    self.errors
+                        .push(function::duplicated_error(self, ast_fn, &existing_fn));
                 }
             }
         }
     }
 
-    fn analyze_buffers(asg: &mut Self, ast: &Ast) {
+    fn analyze_buffers(&mut self, ast: &Ast) {
         for item in &ast.items {
             if let AstItem::Buffer(ast_buffer) = item {
                 let name = ast_buffer.name.label.clone();
-                let statements = AsgStatements::default();
-                let buffer = Rc::new(AsgBuffer::new(asg, &statements, ast_buffer));
-                let init_shader = AsgComputeShader::buffer_init(asg, &buffer, &ast_buffer.value);
-                asg.init_shaders.push(init_shader);
-                if let Some(existing_buffer) = asg.buffers.insert(name, buffer) {
-                    asg.errors
-                        .push(buffer::duplicated_error(asg, ast_buffer, &existing_buffer));
+                let statements = AsgStatements::buffer_scope();
+                let buffer = Rc::new(AsgBuffer::new(self, &statements, ast_buffer));
+                if let Some(existing_buffer) = self.buffers.insert(name, buffer) {
+                    self.errors
+                        .push(buffer::duplicated_error(self, ast_buffer, &existing_buffer));
                 }
             }
         }
     }
 
-    fn analyze_step_shaders(asg: &mut Self, ast: &Ast) {
+    fn analyze_function_bodies(&mut self) {
+        for (signature, fn_) in self.functions.clone() {
+            let body = AsgFnBody::new(self, &fn_);
+            self.function_bodies.insert(signature, body);
+        }
+    }
+
+    #[allow(clippy::needless_collect)]
+    fn analyze_init_shaders(&mut self) {
+        for buffer in self.buffers.values().cloned().collect::<Vec<_>>() {
+            let init_shader = AsgComputeShader::buffer_init(self, &buffer);
+            self.init_shaders.push(init_shader);
+        }
+    }
+
+    fn analyze_step_shaders(&mut self, ast: &Ast) {
         for item in &ast.items {
             if let AstItem::Run(ast_run) = item {
-                let shader = AsgComputeShader::step(asg, ast_run);
-                asg.step_shaders.push(shader);
+                let shader = AsgComputeShader::step(self, ast_run);
+                self.step_shaders.push(shader);
             }
         }
     }

@@ -1,0 +1,22 @@
+buf buffer = double(2.);
+
+run {
+    buffer = transformed_buffer();
+}
+
+buf fn transformed_buffer() -> f32 {
+    var a = square(buffer);
+    var b = double(buffer);
+    return a + b;
+}
+
+buf fn square(value: f32) -> f32 {
+    return value * value;
+}
+
+fn double(value: f32) -> f32 {
+    return value * 2.;
+}
+
+gpu fn __add__(left: f32, right: f32) -> f32;
+gpu fn __mul__(left: f32, right: f32) -> f32;

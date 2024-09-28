@@ -6,7 +6,7 @@ use shad_runner::Runner;
 mod buffer;
 mod comment;
 mod expr;
-mod gpu_fn;
+mod function;
 mod runner;
 mod statement;
 mod value;

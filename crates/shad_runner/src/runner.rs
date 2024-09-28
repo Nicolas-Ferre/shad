@@ -281,7 +281,7 @@ impl ComputeShader {
             layout: &pipeline.get_bind_group_layout(0),
             entries: &shader
                 .buffers
-                .values()
+                .iter()
                 .enumerate()
                 .map(|(index, buffer)| wgpu::BindGroupEntry {
                     binding: index as u32,
