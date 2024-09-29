@@ -13,14 +13,13 @@ run {
     var val = 0.;
     buffer_f32 = pow(val, 2.);
     var doubled_value = double(buffer_f32);
-    var _ = act();
+    update_buffer();
 }
 
-buf fn double(value: f32) -> f32 {
+fn double(value: f32) -> f32 {
     return value * 2.;
 }
 
-buf fn act()->i32 {
+buf fn update_buffer() {
     buffer_f32 = pow(3., 2.);
-    return 0;
 }

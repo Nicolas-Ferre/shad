@@ -1,0 +1,35 @@
+gpu fn pow(base: f32, power: f32) -> f32;
+gpu fn a(value: f32) -> i32;
+gpu fn __add__(param: u32) -> u32;
+gpu fn __neg__(left: u32, right: u32) -> u32;
+
+buf undefined_fn = pow(10., 2);
+buf invalid_return_type = a(a(0.));
+
+buf buffer = 0;
+
+fn use_buffer_in_not_buf_fn() -> i32 {
+    return buffer;
+}
+
+buf invalid_init = buffer_fn();
+
+buf fn buffer_fn() -> i32 {
+    return 0;
+}
+
+fn buf_fn_in_fn() -> i32 {
+    return buffer_fn();
+}
+
+fn without_return_type() {
+}
+
+fn with_return_type() -> i32 {
+    return 0;
+}
+
+run {
+    with_return_type();
+    var x = without_return_type();
+}

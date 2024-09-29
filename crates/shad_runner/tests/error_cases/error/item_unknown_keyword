@@ -1,0 +1,6 @@
+error: expected item
+ --> ./tests/error_cases/code/item_unknown_keyword.shd:1:1
+  |
+1 | buffer buffer_name = 42.;
+  | ^ here
+  |

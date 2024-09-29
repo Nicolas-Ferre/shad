@@ -22,5 +22,8 @@ wgpu.workspace = true
 annotate-snippets.workspace = true
 fxhash.workspace = true
 
+[dev-dependencies]
+strip-ansi-escapes.workspace = true
+
 [lints]
 workspace = true
