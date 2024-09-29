@@ -74,7 +74,7 @@ pub struct AstFnItem {
     /// The parameters of the function.
     pub params: Vec<AstFnParam>,
     /// The return type of the function.
-    pub return_type: AstIdent,
+    pub return_type: Option<AstIdent>,
     /// The qualifier of the function.
     pub qualifier: AstFnQualifier,
     /// The qualifier of the function.
@@ -92,8 +92,7 @@ impl AstFnItem {
         parse_token(lexer, TokenType::Fn)?;
         let name = AstIdent::parse(lexer)?;
         let params = Self::parse_params(lexer)?;
-        parse_token(lexer, TokenType::Arrow)?;
-        let return_type = AstIdent::parse(lexer)?;
+        let return_type = Self::parse_return_type(lexer)?;
         let statements = parse_statement_block(lexer)?;
         Ok(Self {
             name,
@@ -113,8 +112,7 @@ impl AstFnItem {
         parse_token(lexer, TokenType::Fn)?;
         let name = AstIdent::parse(lexer)?;
         let params = Self::parse_params(lexer)?;
-        parse_token(lexer, TokenType::Arrow)?;
-        let return_type = AstIdent::parse(lexer)?;
+        let return_type = Self::parse_return_type(lexer)?;
         parse_token(lexer, TokenType::SemiColon)?;
         Ok(Self {
             name,
@@ -136,6 +134,17 @@ impl AstFnItem {
         }
         parse_token(lexer, TokenType::CloseParenthesis)?;
         Ok(params)
+    }
+
+    fn parse_return_type(
+        lexer: &mut Lexer<'_, TokenType>,
+    ) -> Result<Option<AstIdent>, SyntaxError> {
+        if parse_token(&mut lexer.clone(), TokenType::Arrow).is_ok() {
+            parse_token(lexer, TokenType::Arrow)?;
+            Ok(Some(AstIdent::parse(lexer)?))
+        } else {
+            Ok(None)
+        }
     }
 }
 

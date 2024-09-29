@@ -124,9 +124,10 @@ impl AsgStatement {
                 AstStatement::Return(statement) => {
                     Self::Return(Self::analyze_return(asg, ctx, statement))
                 }
-                AstStatement::FnCall(statement) => {
-                    Self::FnCall(AsgFnCall::new(asg, ctx, &statement.call))
-                }
+                AstStatement::FnCall(statement) => Self::FnCall(
+                    AsgFnCall::new(asg, ctx, &statement.call)
+                        .map(|call| call.check_as_statement(asg)),
+                ),
             })
         }
     }
@@ -176,14 +177,19 @@ impl AsgStatement {
             ctx.scope.fn_().and_then(|f| f.return_type.as_ref().ok()),
             ctx.scope.fn_(),
         ) {
-            if actual_type != expected_type {
-                asg.errors.push(Self::mismatch_type(
-                    asg,
-                    statement,
-                    fn_,
-                    actual_type,
-                    expected_type,
-                ));
+            if let Some(expected_type) = expected_type {
+                if actual_type != expected_type {
+                    asg.errors.push(Self::mismatch_type(
+                        asg,
+                        statement,
+                        fn_,
+                        actual_type,
+                        expected_type,
+                    ));
+                }
+            } else {
+                asg.errors
+                    .push(Self::return_without_return_type_error(asg, statement));
             }
         }
         Ok(expr)
@@ -219,7 +225,12 @@ impl AsgStatement {
                 },
                 LocatedMessage {
                     level: ErrorLevel::Info,
-                    span: fn_.ast.return_type.span,
+                    span: fn_
+                        .ast
+                        .return_type
+                        .as_ref()
+                        .expect("internal error: no return type")
+                        .span,
                     text: format!("expected type `{}`", expected.name.as_str()),
                 },
             ],
@@ -247,6 +258,19 @@ impl AsgStatement {
                     text: "`return` statement defined here".into(),
                 },
             ],
+            &asg.code,
+            &asg.path,
+        )
+    }
+
+    fn return_without_return_type_error(asg: &Asg, statement: &AstReturn) -> SemanticError {
+        SemanticError::new(
+            "use of `return` in a function with no return type",
+            vec![LocatedMessage {
+                level: ErrorLevel::Error,
+                span: statement.span,
+                text: "invalid statement".into(),
+            }],
             &asg.code,
             &asg.path,
         )

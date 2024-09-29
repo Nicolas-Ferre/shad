@@ -28,6 +28,16 @@ fn __add__(left: f32, right: i32) -> f32 {
     return left + f32(right);
 }
 
+buf no_return_value_result = 0;
+
+run {
+    update_buffer();
+}
+
+buf fn update_buffer() {
+    no_return_value_result = 1;
+}
+
 gpu fn f32(value: i32) -> f32;
 gpu fn __add__(left: f32, right: f32) -> f32;
 gpu fn __mul__(left: f32, right: f32) -> f32;

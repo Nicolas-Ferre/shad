@@ -33,13 +33,15 @@ impl AsgExpr {
         match expr {
             AstExpr::Literal(expr) => Ok(Self::Literal(AsgLiteral::new(asg, expr))),
             AstExpr::Ident(expr) => AsgIdent::new(asg, ctx, expr).map(Self::Ident),
-            AstExpr::FnCall(expr) => AsgFnCall::new(asg, ctx, expr).map(Self::FnCall),
-            AstExpr::UnaryOperation(expr) => {
-                AsgFnCall::from_unary_op(asg, ctx, expr).map(Self::FnCall)
-            }
-            AstExpr::BinaryOperation(expr) => {
-                AsgFnCall::from_binary_op(asg, ctx, expr).map(Self::FnCall)
-            }
+            AstExpr::FnCall(expr) => AsgFnCall::new(asg, ctx, expr)
+                .map(|call| call.check_as_expr(asg))
+                .map(Self::FnCall),
+            AstExpr::UnaryOperation(expr) => AsgFnCall::from_unary_op(asg, ctx, expr)
+                .map(|call| call.check_as_expr(asg))
+                .map(Self::FnCall),
+            AstExpr::BinaryOperation(expr) => AsgFnCall::from_binary_op(asg, ctx, expr)
+                .map(|call| call.check_as_expr(asg))
+                .map(Self::FnCall),
         }
     }
 
@@ -334,12 +336,32 @@ impl AsgFnCall {
     }
 
     fn type_(&self) -> Result<&Rc<AsgType>, ()> {
-        result_ref(&self.fn_.return_type)
+        if let Some(type_) = result_ref(&self.fn_.return_type)? {
+            Ok(type_)
+        } else {
+            Err(())
+        }
     }
 
     fn check(self, asg: &mut Asg, ctx: &AsgStatements<'_>) -> Self {
         if self.fn_.ast.qualifier == AstFnQualifier::Buf && !ctx.scope.are_buffer_fns_allowed() {
             asg.errors.push(self.invalid_buf_fn_usage_error(asg));
+        }
+        self
+    }
+
+    fn check_as_expr(self, asg: &mut Asg) -> Self {
+        if self.fn_.return_type == Ok(None) {
+            asg.errors
+                .push(self.fn_call_without_return_type_in_expr_error(asg));
+        }
+        self
+    }
+
+    pub(crate) fn check_as_statement(self, asg: &mut Asg) -> Self {
+        if self.fn_.return_type != Ok(None) {
+            asg.errors
+                .push(self.fn_call_with_return_type_in_statement_error(asg));
         }
         self
     }
@@ -364,6 +386,38 @@ impl AsgFnCall {
                             .into(),
                 },
             ],
+            &asg.code,
+            &asg.path,
+        )
+    }
+
+    fn fn_call_without_return_type_in_expr_error(&self, asg: &Asg) -> SemanticError {
+        SemanticError::new(
+            format!(
+                "function `{}` in an expression while not having a return type",
+                signature_str(&self.fn_.ast)
+            ),
+            vec![LocatedMessage {
+                level: ErrorLevel::Error,
+                span: self.span,
+                text: "this function cannot be called here".into(),
+            }],
+            &asg.code,
+            &asg.path,
+        )
+    }
+
+    fn fn_call_with_return_type_in_statement_error(&self, asg: &Asg) -> SemanticError {
+        SemanticError::new(
+            format!(
+                "function `{}` called as a statement while having a return type",
+                signature_str(&self.fn_.ast)
+            ),
+            vec![LocatedMessage {
+                level: ErrorLevel::Error,
+                span: self.span,
+                text: "returned value needs to be stored in a variable".into(),
+            }],
             &asg.code,
             &asg.path,
         )

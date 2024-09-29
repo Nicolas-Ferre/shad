@@ -2,10 +2,11 @@
 
 use shad_analyzer::{
     Asg, AsgBuffer, AsgComputeShader, AsgExpr, AsgFn, AsgFnCall, AsgFnParam, AsgIdent,
-    AsgStatement, AsgVariable, ADD_FN, AND_FN, DIV_FN, EQ_FN, GE_FN, GT_FN, LE_FN, LT_FN, MOD_FN,
-    MUL_FN, NEG_FN, NE_FN, NOT_FN, OR_FN, SUB_FN,
+    AsgStatement, AsgType, AsgVariable, ADD_FN, AND_FN, DIV_FN, EQ_FN, GE_FN, GT_FN, LE_FN, LT_FN,
+    MOD_FN, MUL_FN, NEG_FN, NE_FN, NOT_FN, OR_FN, SUB_FN,
 };
 use shad_parser::AstFnQualifier;
+use std::rc::Rc;
 
 const IDENT_UNIT: usize = 4;
 
@@ -57,13 +58,21 @@ fn wgsl_fn_definition(asg: &Asg, fn_: &AsgFn) -> Result<String, ()> {
         String::new()
     } else {
         format!(
-            "fn {}({}) -> {} {{\n{}\n}}",
+            "fn {}({}){} {{\n{}\n}}",
             fn_name(fn_),
             wgsl_fn_params(fn_)?,
-            result_ref(&fn_.return_type)?.expr_final_name,
+            wgsl_return_type(result_ref(&fn_.return_type)?),
             wgsl_statements(asg, &asg.function_bodies[&fn_.signature].statements)?
         )
     })
+}
+
+fn wgsl_return_type(type_: &Option<Rc<AsgType>>) -> String {
+    if let Some(type_) = type_ {
+        format!(" -> {}", type_.expr_final_name)
+    } else {
+        String::new()
+    }
 }
 
 fn wgsl_fn_params(fn_: &AsgFn) -> Result<String, ()> {

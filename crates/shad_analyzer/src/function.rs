@@ -87,7 +87,7 @@ pub struct AsgFn {
     /// The function name in the initial Shad code.
     pub params: Vec<Rc<AsgFnParam>>,
     /// The function returned type.
-    pub return_type: Result<Rc<AsgType>, ()>,
+    pub return_type: Result<Option<Rc<AsgType>>, ()>,
 }
 
 impl AsgFn {
@@ -109,7 +109,11 @@ impl AsgFn {
             signature: AsgFnSignature::new(fn_),
             index: asg.functions.len(),
             params,
-            return_type: type_::find(asg, &fn_.return_type).cloned(),
+            return_type: if let Some(type_) = &fn_.return_type {
+                type_::find(asg, type_).cloned().map(Some)
+            } else {
+                Ok(None)
+            },
         }
     }
 
