@@ -1,0 +1,3 @@
+fn function() {
+    var value = undefined;
+}
