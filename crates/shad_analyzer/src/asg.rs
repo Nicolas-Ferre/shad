@@ -1,3 +1,4 @@
+use crate::function::FnRecursionChecker;
 use crate::statement::AsgStatements;
 use crate::{
     buffer, function, type_, AsgBuffer, AsgComputeShader, AsgFn, AsgFnBody, AsgFnSignature, AsgType,
@@ -87,6 +88,13 @@ impl Asg {
             let body = AsgFnBody::new(self, &fn_);
             self.function_bodies.insert(signature, body);
         }
+        let mut checker = FnRecursionChecker::default();
+        for fn_ in self.functions.values() {
+            checker.current_fn = Some(fn_.clone());
+            checker.calls.clear();
+            let _ = fn_.check_recursion(self, &mut checker);
+        }
+        self.errors.extend(checker.errors);
     }
 
     fn analyze_init_shaders(&mut self) {

@@ -1,6 +1,6 @@
 use crate::statement::{AsgStatement, AsgStatementScopeType, AsgStatements};
 use crate::{type_, Asg, AsgExpr, AsgType};
-use fxhash::FxHashMap;
+use fxhash::{FxHashMap, FxHashSet};
 use shad_error::{ErrorLevel, LocatedMessage, SemanticError, Span};
 use shad_parser::{AstFnItem, AstFnParam, AstFnQualifier, AstIdent};
 use std::rc::Rc;
@@ -117,6 +117,18 @@ impl AsgFn {
         }
     }
 
+    pub(crate) fn check_recursion(
+        &self,
+        asg: &Asg,
+        ctx: &mut FnRecursionChecker,
+    ) -> Result<(), ()> {
+        ctx.check(asg)?;
+        for statement in &asg.function_bodies[&self.signature].statements {
+            statement.check_recursion(asg, ctx)?;
+        }
+        Ok(())
+    }
+
     fn check_duplicated_params(asg: &mut Asg, fn_: &AstFnItem) {
         let mut names = FxHashMap::default();
         for param in &fn_.params {
@@ -211,7 +223,7 @@ pub struct AsgFnBody {
 impl AsgFnBody {
     pub(crate) fn new(asg: &mut Asg, fn_: &AsgFn) -> Self {
         Self {
-            statements: AsgStatements::parse(
+            statements: AsgStatements::analyze(
                 asg,
                 &fn_.ast.statements,
                 match fn_.ast.qualifier {
@@ -240,6 +252,78 @@ impl AsgFnParam {
             name: param.name.clone(),
             type_: type_::find(asg, &param.type_).cloned(),
         }
+    }
+}
+
+#[derive(Default, Debug)]
+pub(crate) struct FnRecursionChecker {
+    pub(crate) current_fn: Option<Rc<AsgFn>>,
+    pub(crate) calls: Vec<(Span, Rc<AsgFn>)>,
+    pub(crate) errored_fn_indexes: FxHashSet<usize>,
+    pub(crate) errors: Vec<SemanticError>,
+}
+
+impl FnRecursionChecker {
+    pub(crate) fn check(&mut self, asg: &Asg) -> Result<(), ()> {
+        let current_fn = self
+            .current_fn
+            .as_ref()
+            .expect("internal error: no current function");
+        if !self.is_last_call_recursive(current_fn) {
+            Ok(())
+        } else if self.is_error_already_generated(current_fn) {
+            Err(())
+        } else {
+            for (_, fn_) in &self.calls {
+                self.errored_fn_indexes.insert(fn_.index);
+            }
+            self.errored_fn_indexes.insert(current_fn.index);
+            self.errors.push(self.recursion_error(asg, current_fn));
+            Err(())
+        }
+    }
+
+    fn is_last_call_recursive(&self, current_fn: &Rc<AsgFn>) -> bool {
+        self.calls
+            .last()
+            .map_or(false, |(_, last_call)| last_call == current_fn)
+    }
+
+    fn is_error_already_generated(&self, current_fn: &Rc<AsgFn>) -> bool {
+        for (_, fn_) in &self.calls {
+            if self.errored_fn_indexes.contains(&fn_.index) {
+                return true;
+            }
+        }
+        self.errored_fn_indexes.contains(&current_fn.index)
+    }
+
+    fn recursion_error(&self, asg: &Asg, current_fn: &Rc<AsgFn>) -> SemanticError {
+        SemanticError::new(
+            format!(
+                "function `{}` defined recursively",
+                signature_str(&current_fn.ast)
+            ),
+            self.calls
+                .iter()
+                .flat_map(|(span, fn_)| {
+                    [
+                        LocatedMessage {
+                            level: ErrorLevel::Error,
+                            span: *span,
+                            text: format!("`{}` function called here", signature_str(&fn_.ast)),
+                        },
+                        LocatedMessage {
+                            level: ErrorLevel::Error,
+                            span: fn_.ast.name.span,
+                            text: format!("`{}` function defined here", signature_str(&fn_.ast)),
+                        },
+                    ]
+                })
+                .collect(),
+            &asg.code,
+            &asg.path,
+        )
     }
 }
 
