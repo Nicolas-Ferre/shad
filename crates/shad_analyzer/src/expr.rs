@@ -1,9 +1,10 @@
 use crate::function::signature_str;
 use crate::statement::{AsgStatements, AsgVariable};
+use crate::utils::result_ref;
 use crate::{
-    asg, function, utils, Asg, AsgBuffer, AsgFn, AsgFnParam, AsgFnSignature, AsgType, ADD_FN,
-    AND_FN, DIV_FN, EQ_FN, GE_FN, GT_FN, LE_FN, LT_FN, MOD_FN, MUL_FN, NEG_FN, NE_FN, NOT_FN,
-    OR_FN, SUB_FN,
+    asg, function, Asg, AsgBuffer, AsgFn, AsgFnParam, AsgFnSignature, AsgType, ADD_FN, AND_FN,
+    DIV_FN, EQ_FN, GE_FN, GT_FN, LE_FN, LT_FN, MOD_FN, MUL_FN, NEG_FN, NE_FN, NOT_FN, OR_FN,
+    SUB_FN,
 };
 use shad_error::{ErrorLevel, LocatedMessage, SemanticError, Span};
 use shad_parser::{
@@ -32,13 +33,15 @@ impl AsgExpr {
         match expr {
             AstExpr::Literal(expr) => Ok(Self::Literal(AsgLiteral::new(asg, expr))),
             AstExpr::Ident(expr) => AsgIdent::new(asg, ctx, expr).map(Self::Ident),
-            AstExpr::FnCall(expr) => AsgFnCall::new(asg, ctx, expr).map(Self::FnCall),
-            AstExpr::UnaryOperation(expr) => {
-                AsgFnCall::from_unary_op(asg, ctx, expr).map(Self::FnCall)
-            }
-            AstExpr::BinaryOperation(expr) => {
-                AsgFnCall::from_binary_op(asg, ctx, expr).map(Self::FnCall)
-            }
+            AstExpr::FnCall(expr) => AsgFnCall::new(asg, ctx, expr)
+                .map(|call| call.check_as_expr(asg))
+                .map(Self::FnCall),
+            AstExpr::UnaryOperation(expr) => AsgFnCall::from_unary_op(asg, ctx, expr)
+                .map(|call| call.check_as_expr(asg))
+                .map(Self::FnCall),
+            AstExpr::BinaryOperation(expr) => AsgFnCall::from_binary_op(asg, ctx, expr)
+                .map(|call| call.check_as_expr(asg))
+                .map(Self::FnCall),
         }
     }
 
@@ -200,9 +203,9 @@ impl AsgIdent {
 
     pub(crate) fn type_<'a>(&'a self, asg: &'a Asg) -> Result<&Rc<AsgType>, ()> {
         match self {
-            Self::Buffer(buffer) => utils::result_ref(&buffer.expr)?.type_(asg),
-            Self::Var(variable) => utils::result_ref(&variable.expr)?.type_(asg),
-            Self::Param(param) => utils::result_ref(&param.type_),
+            Self::Buffer(buffer) => result_ref(&buffer.expr)?.type_(asg),
+            Self::Var(variable) => result_ref(&variable.expr)?.type_(asg),
+            Self::Param(param) => result_ref(&param.type_),
         }
     }
 
@@ -234,7 +237,11 @@ pub struct AsgFnCall {
 }
 
 impl AsgFnCall {
-    fn new(asg: &mut Asg, ctx: &AsgStatements<'_>, fn_call: &AstFnCall) -> Result<Self, ()> {
+    pub(crate) fn new(
+        asg: &mut Asg,
+        ctx: &AsgStatements<'_>,
+        fn_call: &AstFnCall,
+    ) -> Result<Self, ()> {
         let args = fn_call
             .args
             .iter()
@@ -301,11 +308,7 @@ impl AsgFnCall {
         .check(asg, ctx))
     }
 
-    fn type_(&self) -> Result<&Rc<AsgType>, ()> {
-        utils::result_ref(&self.fn_.return_type)
-    }
-
-    fn buffers(&self, asg: &Asg) -> Vec<Rc<AsgBuffer>> {
+    pub(crate) fn buffers(&self, asg: &Asg) -> Vec<Rc<AsgBuffer>> {
         self.args
             .iter()
             .flat_map(|arg| arg.buffers(asg))
@@ -318,7 +321,7 @@ impl AsgFnCall {
             .collect()
     }
 
-    fn functions(&self, asg: &Asg) -> Vec<Rc<AsgFn>> {
+    pub(crate) fn functions(&self, asg: &Asg) -> Vec<Rc<AsgFn>> {
         self.args
             .iter()
             .flat_map(|arg| arg.functions(asg))
@@ -332,9 +335,31 @@ impl AsgFnCall {
             .collect()
     }
 
+    fn type_(&self) -> Result<&Rc<AsgType>, ()> {
+        Ok(result_ref(&self.fn_.return_type)?
+            .as_ref()
+            .expect("internal error: function call in expression without return type"))
+    }
+
     fn check(self, asg: &mut Asg, ctx: &AsgStatements<'_>) -> Self {
         if self.fn_.ast.qualifier == AstFnQualifier::Buf && !ctx.scope.are_buffer_fns_allowed() {
             asg.errors.push(self.invalid_buf_fn_usage_error(asg));
+        }
+        self
+    }
+
+    fn check_as_expr(self, asg: &mut Asg) -> Self {
+        if self.fn_.return_type == Ok(None) {
+            asg.errors
+                .push(self.fn_call_without_return_type_in_expr_error(asg));
+        }
+        self
+    }
+
+    pub(crate) fn check_as_statement(self, asg: &mut Asg) -> Self {
+        if self.fn_.return_type != Ok(None) {
+            asg.errors
+                .push(self.fn_call_with_return_type_in_statement_error(asg));
         }
         self
     }
@@ -359,6 +384,38 @@ impl AsgFnCall {
                             .into(),
                 },
             ],
+            &asg.code,
+            &asg.path,
+        )
+    }
+
+    fn fn_call_without_return_type_in_expr_error(&self, asg: &Asg) -> SemanticError {
+        SemanticError::new(
+            format!(
+                "function `{}` in an expression while not having a return type",
+                signature_str(&self.fn_.ast)
+            ),
+            vec![LocatedMessage {
+                level: ErrorLevel::Error,
+                span: self.span,
+                text: "this function cannot be called here".into(),
+            }],
+            &asg.code,
+            &asg.path,
+        )
+    }
+
+    fn fn_call_with_return_type_in_statement_error(&self, asg: &Asg) -> SemanticError {
+        SemanticError::new(
+            format!(
+                "function `{}` called as a statement while having a return type",
+                signature_str(&self.fn_.ast)
+            ),
+            vec![LocatedMessage {
+                level: ErrorLevel::Error,
+                span: self.span,
+                text: "returned value needs to be stored in a variable".into(),
+            }],
             &asg.code,
             &asg.path,
         )

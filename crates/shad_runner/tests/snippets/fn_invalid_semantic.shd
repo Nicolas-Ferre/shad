@@ -39,3 +39,19 @@ fn invalid_param_type(param: f32) -> i32 {
 run {
     return 0;
 }
+
+fn without_return_type() {
+}
+
+fn with_return_type() -> i32 {
+    return 0;
+}
+
+fn forbidden_return() {
+    return 0;
+}
+
+run {
+    with_return_type();
+    var x = without_return_type();
+}

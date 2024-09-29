@@ -2,10 +2,11 @@
 
 use shad_analyzer::{
     Asg, AsgBuffer, AsgComputeShader, AsgExpr, AsgFn, AsgFnCall, AsgFnParam, AsgIdent,
-    AsgStatement, AsgVariable, ADD_FN, AND_FN, DIV_FN, EQ_FN, GE_FN, GT_FN, LE_FN, LT_FN, MOD_FN,
-    MUL_FN, NEG_FN, NE_FN, NOT_FN, OR_FN, SUB_FN,
+    AsgStatement, AsgType, AsgVariable, ADD_FN, AND_FN, DIV_FN, EQ_FN, GE_FN, GT_FN, LE_FN, LT_FN,
+    MOD_FN, MUL_FN, NEG_FN, NE_FN, NOT_FN, OR_FN, SUB_FN,
 };
 use shad_parser::AstFnQualifier;
+use std::rc::Rc;
 
 const IDENT_UNIT: usize = 4;
 
@@ -57,13 +58,21 @@ fn wgsl_fn_definition(asg: &Asg, fn_: &AsgFn) -> Result<String, ()> {
         String::new()
     } else {
         format!(
-            "fn {}({}) -> {} {{\n{}\n}}",
+            "fn {}({}){} {{\n{}\n}}",
             fn_name(fn_),
             wgsl_fn_params(fn_)?,
-            result_ref(&fn_.return_type)?.expr_final_name,
+            wgsl_return_type(result_ref(&fn_.return_type)?),
             wgsl_statements(asg, &asg.function_bodies[&fn_.signature].statements)?
         )
     })
+}
+
+fn wgsl_return_type(type_: &Option<Rc<AsgType>>) -> String {
+    if let Some(type_) = type_ {
+        format!(" -> {}", type_.expr_final_name)
+    } else {
+        String::new()
+    }
 }
 
 fn wgsl_fn_params(fn_: &AsgFn) -> Result<String, ()> {
@@ -93,18 +102,18 @@ fn wgsl_statements(asg: &Asg, statements: &[AsgStatement]) -> Result<String, ()>
 
 fn wgsl_statement(asg: &Asg, statement: &AsgStatement, indent: usize) -> Result<String, ()> {
     Ok(match statement {
-        AsgStatement::Var(assignment) => {
+        AsgStatement::Var(statement) => {
             format!(
                 "{empty: >width$}var {} = {};",
-                var_name(assignment),
-                wgsl_expr(asg, result_ref(&assignment.expr)?)?,
+                var_name(statement),
+                wgsl_expr(asg, result_ref(&statement.expr)?)?,
                 empty = "",
                 width = indent * IDENT_UNIT,
             )
         }
-        AsgStatement::Assignment(assignment) => {
-            let is_buffer = matches!(assignment.assigned, Ok(AsgIdent::Buffer(_)));
-            let type_ = result_ref(&assignment.expr)?.type_(asg)?;
+        AsgStatement::Assignment(statement) => {
+            let is_buffer = matches!(statement.assigned, Ok(AsgIdent::Buffer(_)));
+            let type_ = result_ref(&statement.expr)?.type_(asg)?;
             let cast = if is_buffer && type_.buf_final_name != type_.expr_final_name {
                 &type_.buf_final_name
             } else {
@@ -112,13 +121,18 @@ fn wgsl_statement(asg: &Asg, statement: &AsgStatement, indent: usize) -> Result<
             };
             format!(
                 "{empty: >width$}{} = {cast}({});",
-                wgsl_ident(asg, result_ref(&assignment.assigned)?, false)?,
-                wgsl_expr(asg, result_ref(&assignment.expr)?)?,
+                wgsl_ident(asg, result_ref(&statement.assigned)?, false)?,
+                wgsl_expr(asg, result_ref(&statement.expr)?)?,
                 empty = "",
                 width = indent * IDENT_UNIT,
             )
         }
-        AsgStatement::Return(expr) => format!("return {};", wgsl_expr(asg, result_ref(expr)?)?,),
+        AsgStatement::Return(statement) => {
+            format!("return {};", wgsl_expr(asg, result_ref(statement)?)?)
+        }
+        AsgStatement::FnCall(statement) => {
+            format!("{};", wgsl_fn_call(asg, result_ref(statement)?)?)
+        }
     })
 }
 

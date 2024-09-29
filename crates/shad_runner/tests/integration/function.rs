@@ -1,4 +1,4 @@
-use crate::{assert_semantic_error, f32_buffer, snippet_path};
+use crate::{assert_semantic_error, f32_buffer, i32_buffer, snippet_path};
 use shad_error::{ErrorLevel, LocatedMessage, Span};
 use shad_runner::Runner;
 
@@ -9,6 +9,7 @@ fn run_valid() {
     runner.run_step();
     assert_eq!(f32_buffer(&runner, "result_from_fn"), 24.);
     assert_eq!(f32_buffer(&runner, "operator_result"), 13.);
+    assert_eq!(i32_buffer(&runner, "no_return_value_result"), 1);
 }
 
 #[test]
@@ -25,11 +26,14 @@ fn run_invalid_semantic() {
             "function `__neg__` has an invalid number of parameters",
             "`buf` function `buffer_fn()` called in invalid context",
             "invalid type for returned expression",
+            "use of `return` in a function with no return type",
             "statement found after `return` statement",
             "`buf` function `buffer_fn()` called in invalid context",
             "expression assigned to `param` has invalid type",
             "could not find `buffer` value",
             "`return` statement used outside function",
+            "function `with_return_type()` called as a statement while having a return type",
+            "function `without_return_type()` in an expression while not having a return type",
         ],
         &[
             &vec![
@@ -100,6 +104,11 @@ fn run_invalid_semantic() {
                     text: "expected type `i32`".into(),
                 },
             ],
+            &vec![LocatedMessage {
+                level: ErrorLevel::Error,
+                span: Span::new(843, 852),
+                text: "invalid statement".into(),
+            }],
             &vec![
                 LocatedMessage {
                     level: ErrorLevel::Error,
@@ -147,6 +156,16 @@ fn run_invalid_semantic() {
                 level: ErrorLevel::Error,
                 span: Span::new(724, 733),
                 text: "invalid statement".into(),
+            }],
+            &vec![LocatedMessage {
+                level: ErrorLevel::Error,
+                span: Span::new(866, 884),
+                text: "returned value needs to be stored in a variable".into(),
+            }],
+            &vec![LocatedMessage {
+                level: ErrorLevel::Error,
+                span: Span::new(898, 919),
+                text: "this function cannot be called here".into(),
             }],
         ],
     );
