@@ -336,11 +336,9 @@ impl AsgFnCall {
     }
 
     fn type_(&self) -> Result<&Rc<AsgType>, ()> {
-        if let Some(type_) = result_ref(&self.fn_.return_type)? {
-            Ok(type_)
-        } else {
-            Err(())
-        }
+        Ok(result_ref(&self.fn_.return_type)?
+            .as_ref()
+            .expect("internal error: function call in expression without return type"))
     }
 
     fn check(self, asg: &mut Asg, ctx: &AsgStatements<'_>) -> Self {
