@@ -1,5 +1,5 @@
 error: expected expression
- --> ./tests/error_cases/code/expr_empty.shd:1:13
+ --> ./tests/cases_invalid/code/expr_empty.shd:1:13
   |
 1 | buf value = ;
   |             ^ here

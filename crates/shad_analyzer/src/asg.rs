@@ -89,9 +89,10 @@ impl Asg {
         }
     }
 
-    #[allow(clippy::needless_collect)]
     fn analyze_init_shaders(&mut self) {
-        for buffer in self.buffers.values().cloned().collect::<Vec<_>>() {
+        let mut buffers: Vec<_> = self.buffers.values().cloned().collect();
+        buffers.sort_unstable_by_key(|buffer| buffer.index);
+        for buffer in buffers {
             let init_shader = AsgComputeShader::buffer_init(self, &buffer);
             self.init_shaders.push(init_shader);
         }

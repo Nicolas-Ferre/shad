@@ -1,4 +1,8 @@
-buf result_from_fn = double(2.);
+gpu fn __add__(left: f32, right: f32) -> f32;
+gpu fn __mul__(left: f32, right: f32) -> f32;
+
+buf two = 2.;
+buf result_from_fn = double(two);
 
 run {
     result_from_fn = transformed_buffer();
@@ -18,16 +22,6 @@ fn double(value: f32) -> f32 {
     return value * 2.;
 }
 
-buf operator_result = 0.;
-
-run {
-    operator_result = 10. + 3;
-}
-
-fn __add__(left: f32, right: i32) -> f32 {
-    return left + f32(right);
-}
-
 buf no_return_value_result = 0;
 
 run {
@@ -37,7 +31,3 @@ run {
 buf fn update_buffer() {
     no_return_value_result = 1;
 }
-
-gpu fn f32(value: i32) -> f32;
-gpu fn __add__(left: f32, right: f32) -> f32;
-gpu fn __mul__(left: f32, right: f32) -> f32;

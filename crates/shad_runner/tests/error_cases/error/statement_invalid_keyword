@@ -1,6 +1,0 @@
-error: expected statement
- --> ./tests/error_cases/code/statement_invalid_keyword.shd:2:5
-  |
-2 |     run
-  |     ^ here
-  |
