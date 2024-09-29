@@ -1,3 +1,5 @@
+gpu fn all(value: bool) -> bool;
+
 buf set_f32 = 0.;
 buf set_i32 = 1;
 
@@ -25,8 +27,6 @@ run {
 }
 
 buf buffer_bool = true;
-
-gpu fn all(value: bool) -> bool;
 
 run {
     var local_bool1 = false;

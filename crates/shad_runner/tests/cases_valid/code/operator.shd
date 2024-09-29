@@ -1,23 +1,20 @@
-buf f32_zero = 0.0;
-buf f32_no_frac_part = 2.;
-buf f32_many_digits = 123456700.123456789;
-buf f32_max_int_digits = 12345678901234567890123456789012345678.;
-buf f32_underscores = 1_2345______670_0_.1_234_567_89___;
-
-buf u32_zero = 0u;
-buf u32_underscores = 1_23______456_789___u;
-buf u32_max_value = 4_294_967_295u;
-
-buf i32_zero = 0;
-buf i32_underscores = 1_23______456_789___;
-buf i32_max_value = 2_147_483_647;
-
-buf false_val = false;
-buf true_val = true;
-
-buf copied_buffer = i32_max_value;
-
-buf fn_call = pow(pow(f32_no_frac_part, 2.), 2.);
+gpu fn f32(value: i32) -> f32;
+gpu fn __add__(left: f32, right: f32) -> f32;
+gpu fn __add__(left: i32, right: i32) -> i32;
+gpu fn __sub__(left: i32, right: i32) -> i32;
+gpu fn __mul__(left: i32, right: i32) -> i32;
+gpu fn __div__(left: i32, right: i32) -> i32;
+gpu fn __mod__(left: i32, right: i32) -> i32;
+gpu fn __eq__(left: i32, right: i32) -> bool;
+gpu fn __ne__(left: i32, right: i32) -> bool;
+gpu fn __gt__(left: i32, right: i32) -> bool;
+gpu fn __lt__(left: i32, right: i32) -> bool;
+gpu fn __ge__(left: i32, right: i32) -> bool;
+gpu fn __le__(left: i32, right: i32) -> bool;
+gpu fn __and__(left: bool, right: bool) -> bool;
+gpu fn __or__(left: bool, right: bool) -> bool;
+gpu fn __neg__(value: i32) -> i32;
+gpu fn __not__(value: bool) -> bool;
 
 buf fn_operator_add = __add__(4, 2);
 buf fn_operator_sub = __sub__(4, 2);
@@ -74,19 +71,12 @@ buf operator_not = !false;
 buf operator_priority1 = 2 + 4 * 5 - 6;
 buf operator_priority2 = (2 + 4) * (5 - 6);
 
-gpu fn pow(base: f32, power: f32) -> f32;
-gpu fn __add__(left: i32, right: i32) -> i32;
-gpu fn __sub__(left: i32, right: i32) -> i32;
-gpu fn __mul__(left: i32, right: i32) -> i32;
-gpu fn __div__(left: i32, right: i32) -> i32;
-gpu fn __mod__(left: i32, right: i32) -> i32;
-gpu fn __eq__(left: i32, right: i32) -> bool;
-gpu fn __ne__(left: i32, right: i32) -> bool;
-gpu fn __gt__(left: i32, right: i32) -> bool;
-gpu fn __lt__(left: i32, right: i32) -> bool;
-gpu fn __ge__(left: i32, right: i32) -> bool;
-gpu fn __le__(left: i32, right: i32) -> bool;
-gpu fn __and__(left: bool, right: bool) -> bool;
-gpu fn __or__(left: bool, right: bool) -> bool;
-gpu fn __neg__(value: i32) -> i32;
-gpu fn __not__(value: bool) -> bool;
+buf custom_operator_result = 0.;
+
+run {
+    custom_operator_result = 10. + 3;
+}
+
+fn __add__(left: f32, right: i32) -> f32 {
+    return left + f32(right);
+}

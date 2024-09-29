@@ -6,3 +6,7 @@ run {
     var local_f32_val = 0.;
     local_f32_val = i32_val;
 }
+
+fn invalid_param_assignment(param: f32) {
+    param = 0;
+}

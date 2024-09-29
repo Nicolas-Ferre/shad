@@ -1,0 +1,17 @@
+fn invalid_return_type(param: f32) -> i32 {
+    return param;
+}
+
+fn statement_after_return() -> i32 {
+    return 0;
+    var a = 1.;
+    var b = 1.;
+}
+
+run {
+    return 0;
+}
+
+fn forbidden_return() {
+    return 0;
+}

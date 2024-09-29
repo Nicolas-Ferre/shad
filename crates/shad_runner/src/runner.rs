@@ -63,6 +63,11 @@ impl Runner {
         self.last_delta
     }
 
+    /// Returns the analyzed code.
+    pub fn asg(&self) -> &Asg {
+        &self.program.asg
+    }
+
     /// Retrieves the bytes of the buffer with a specific Shad `name`.
     pub fn buffer(&self, name: &str) -> Vec<u8> {
         if let (Some(asg_buffer), Some(wgpu_buffer)) = (

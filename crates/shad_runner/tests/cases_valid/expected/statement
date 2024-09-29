@@ -1,0 +1,5 @@
+aliased_value=2
+buffer_bool=1
+set_f32=2
+set_from_local_var=3
+set_i32=3
