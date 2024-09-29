@@ -1,3 +1,4 @@
+use crate::function::FnRecursionChecker;
 use crate::utils::result_ref;
 use crate::{Asg, AsgBuffer, AsgExpr, AsgFn, AsgFnCall, AsgFnParam, AsgIdent, AsgType};
 use fxhash::FxHashMap;
@@ -27,7 +28,7 @@ impl<'a> AsgStatements<'a> {
         }
     }
 
-    pub(crate) fn parse(
+    pub(crate) fn analyze(
         asg: &mut Asg,
         statements: &[AstStatement],
         scope: AsgStatementScopeType<'a>,
@@ -158,6 +159,21 @@ impl AsgStatement {
                 .map(|call| call.functions(asg))
                 .unwrap_or_default(),
         }
+    }
+
+    pub(crate) fn check_recursion(
+        &self,
+        asg: &Asg,
+        ctx: &mut FnRecursionChecker,
+    ) -> Result<(), ()> {
+        match self {
+            Self::Var(statement) => statement.check_recursion(asg, ctx)?,
+            Self::Assignment(statement) => statement.check_recursion(asg, ctx)?,
+            Self::Return(Ok(statement)) => statement.check_recursion(asg, ctx)?,
+            Self::FnCall(Ok(statement)) => statement.check_recursion(asg, ctx)?,
+            Self::Return(Err(())) | Self::FnCall(Err(())) => {}
+        }
+        Ok(())
     }
 
     fn analyze_return(
@@ -352,6 +368,13 @@ impl AsgAssignment {
             .unwrap_or_default()
     }
 
+    fn check_recursion(&self, asg: &Asg, ctx: &mut FnRecursionChecker) -> Result<(), ()> {
+        if let Ok(expr) = &self.expr {
+            expr.check_recursion(asg, ctx)?;
+        }
+        Ok(())
+    }
+
     pub(crate) fn mismatching_type_error(
         &self,
         asg: &Asg,
@@ -416,5 +439,12 @@ impl AsgVariable {
         result_ref(&self.expr)
             .map(|expr| expr.functions(asg))
             .unwrap_or_default()
+    }
+
+    fn check_recursion(&self, asg: &Asg, ctx: &mut FnRecursionChecker) -> Result<(), ()> {
+        if let Ok(expr) = &self.expr {
+            expr.check_recursion(asg, ctx)?;
+        }
+        Ok(())
     }
 }

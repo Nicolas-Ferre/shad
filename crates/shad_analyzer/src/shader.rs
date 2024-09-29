@@ -32,7 +32,7 @@ impl AsgComputeShader {
 
     pub(crate) fn step(asg: &mut Asg, ast_run: &AstRunItem) -> Self {
         let statements =
-            AsgStatements::parse(asg, &ast_run.statements, AsgStatementScopeType::RunBlock);
+            AsgStatements::analyze(asg, &ast_run.statements, AsgStatementScopeType::RunBlock);
         Self {
             buffers: Self::buffers(&statements, asg),
             functions: Self::functions(&statements, asg),

@@ -1,4 +1,4 @@
-use crate::function::signature_str;
+use crate::function::{signature_str, FnRecursionChecker};
 use crate::statement::{AsgStatements, AsgVariable};
 use crate::utils::result_ref;
 use crate::{
@@ -72,6 +72,18 @@ impl AsgExpr {
             Self::Literal(_) | Self::Ident(_) => vec![],
             Self::FnCall(expr) => expr.functions(asg),
         }
+    }
+
+    pub(crate) fn check_recursion(
+        &self,
+        asg: &Asg,
+        ctx: &mut FnRecursionChecker,
+    ) -> Result<(), ()> {
+        match self {
+            Self::FnCall(expr) => expr.check_recursion(asg, ctx)?,
+            Self::Literal(_) | Self::Ident(_) => {}
+        }
+        Ok(())
     }
 }
 
@@ -333,6 +345,17 @@ impl AsgFnCall {
             )
             .chain(iter::once(self.fn_.clone()))
             .collect()
+    }
+
+    pub(crate) fn check_recursion(
+        &self,
+        asg: &Asg,
+        ctx: &mut FnRecursionChecker,
+    ) -> Result<(), ()> {
+        ctx.calls.push((self.span, self.fn_.clone()));
+        self.fn_.check_recursion(asg, ctx)?;
+        ctx.calls.pop();
+        Ok(())
     }
 
     fn type_(&self) -> Result<&Rc<AsgType>, ()> {

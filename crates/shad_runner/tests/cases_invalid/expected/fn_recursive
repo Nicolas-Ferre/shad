@@ -1,0 +1,35 @@
+error: function `level1_recursive()` defined recursively
+  --> ./tests/cases_invalid/code/fn_recursive.shd:2:5
+   |
+ 1 | fn level1_recursive() {
+   |    ^^^^^^^^^^^^^^^^ `level1_recursive()` function defined here
+ 2 |     level2_recursive();
+   |     ^^^^^^^^^^^^^^^^^^ `level2_recursive()` function called here
+ 3 | }
+ 4 | 
+ 5 | fn level3_recursive() {
+   |    ^^^^^^^^^^^^^^^^ `level3_recursive()` function defined here
+ 6 |     level4_recursive();
+   |     ^^^^^^^^^^^^^^^^^^ `level4_recursive()` function called here
+ 7 | }
+ 8 | 
+ 9 | fn level4_recursive() {
+   |    ^^^^^^^^^^^^^^^^ `level4_recursive()` function defined here
+10 |     level1_recursive();
+   |     ^^^^^^^^^^^^^^^^^^ `level1_recursive()` function called here
+11 | }
+12 | 
+13 | fn level2_recursive() {
+   |    ^^^^^^^^^^^^^^^^ `level2_recursive()` function defined here
+14 |     level3_recursive();
+   |     ^^^^^^^^^^^^^^^^^^ `level3_recursive()` function called here
+   |
+
+error: function `inner_recursive()` defined recursively
+  --> ./tests/cases_invalid/code/fn_recursive.shd:18:5
+   |
+17 | fn inner_recursive() {
+   |    ^^^^^^^^^^^^^^^ `inner_recursive()` function defined here
+18 |     inner_recursive();
+   |     ^^^^^^^^^^^^^^^^^ `inner_recursive()` function called here
+   |

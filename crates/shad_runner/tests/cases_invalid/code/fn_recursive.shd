@@ -1,0 +1,19 @@
+fn level1_recursive() {
+    level2_recursive();
+}
+
+fn level3_recursive() {
+    level4_recursive();
+}
+
+fn level4_recursive() {
+    level1_recursive();
+}
+
+fn level2_recursive() {
+    level3_recursive();
+}
+
+fn inner_recursive() {
+    inner_recursive();
+}
