@@ -1,7 +1,7 @@
 use crate::statement::{AsgStatement, AsgStatementScopeType, AsgStatements};
-use crate::{type_, Asg, AsgExpr, AsgType};
-use fxhash::{FxHashMap, FxHashSet};
-use shad_error::{ErrorLevel, LocatedMessage, SemanticError, Span};
+use crate::{errors, type_, Asg, AsgExpr, AsgType, Error, Result, TypeResolving};
+use fxhash::FxHashMap;
+use shad_error::Span;
 use shad_parser::{AstFnItem, AstFnParam, AstFnQualifier, AstIdent};
 use std::rc::Rc;
 
@@ -61,7 +61,7 @@ impl AsgFnSignature {
         }
     }
 
-    pub(crate) fn from_call(asg: &Asg, name: &str, args: &[AsgExpr]) -> Result<Self, ()> {
+    pub(crate) fn from_call(asg: &Asg, name: &str, args: &[AsgExpr]) -> Result<Self> {
         Ok(Self {
             name: name.to_string(),
             param_types: args
@@ -70,7 +70,7 @@ impl AsgFnSignature {
                     let self1 = &arg.type_(asg)?;
                     Ok(self1.name.as_str().into())
                 })
-                .collect::<Result<_, ()>>()?,
+                .collect::<Result<_>>()?,
         })
     }
 }
@@ -87,11 +87,12 @@ pub struct AsgFn {
     /// The function name in the initial Shad code.
     pub params: Vec<Rc<AsgFnParam>>,
     /// The function returned type.
-    pub return_type: Result<Option<Rc<AsgType>>, ()>,
+    pub return_type: Result<Option<Rc<AsgType>>>,
 }
 
 impl AsgFn {
     pub(crate) fn new(asg: &mut Asg, fn_: &AstFnItem) -> Self {
+        // TODO: move in check phase
         Self::check_duplicated_params(asg, fn_);
         if SPECIAL_UNARY_FNS.contains(&fn_.name.label.as_str()) {
             Self::check_unary_fn(asg, fn_);
@@ -117,33 +118,23 @@ impl AsgFn {
         }
     }
 
-    pub(crate) fn check_recursion(
-        &self,
-        asg: &Asg,
-        ctx: &mut FnRecursionChecker,
-    ) -> Result<(), ()> {
-        ctx.check(asg)?;
-        for statement in &asg.function_bodies[&self.signature].statements {
-            statement.check_recursion(asg, ctx)?;
-        }
-        Ok(())
-    }
-
+    // TODO: move in check phase
     fn check_duplicated_params(asg: &mut Asg, fn_: &AstFnItem) {
         let mut names = FxHashMap::default();
         for param in &fn_.params {
             let existing = names.insert(&param.name.label, &param.name);
             if let Some(existing) = existing {
                 asg.errors
-                    .push(Self::duplicated_param_error(asg, &param.name, existing));
+                    .push(errors::fn_::duplicated_param(asg, &param.name, existing));
             }
         }
     }
 
+    // TODO: move in check phase
     fn check_unary_fn(asg: &mut Asg, fn_: &AstFnItem) {
         const EXPECTED_PARAM_COUNT: usize = 1;
         if fn_.params.len() != EXPECTED_PARAM_COUNT {
-            asg.errors.push(Self::invalid_param_count_error(
+            asg.errors.push(errors::fn_::invalid_param_count(
                 asg,
                 fn_,
                 EXPECTED_PARAM_COUNT,
@@ -151,65 +142,16 @@ impl AsgFn {
         }
     }
 
+    // TODO: move in check phase
     fn check_binary_fn(asg: &mut Asg, fn_: &AstFnItem) {
         const EXPECTED_PARAM_COUNT: usize = 2;
         if fn_.params.len() != EXPECTED_PARAM_COUNT {
-            asg.errors.push(Self::invalid_param_count_error(
+            asg.errors.push(errors::fn_::invalid_param_count(
                 asg,
                 fn_,
                 EXPECTED_PARAM_COUNT,
             ));
         }
-    }
-
-    fn duplicated_param_error(
-        asg: &Asg,
-        duplicated_param_name: &AstIdent,
-        existing_param_name: &AstIdent,
-    ) -> SemanticError {
-        SemanticError::new(
-            format!(
-                "parameter `{}` is defined multiple times",
-                &duplicated_param_name.label,
-            ),
-            vec![
-                LocatedMessage {
-                    level: ErrorLevel::Error,
-                    span: duplicated_param_name.span,
-                    text: "duplicated parameter".into(),
-                },
-                LocatedMessage {
-                    level: ErrorLevel::Info,
-                    span: existing_param_name.span,
-                    text: "parameter with same name is defined here".into(),
-                },
-            ],
-            &asg.code,
-            &asg.path,
-        )
-    }
-
-    fn invalid_param_count_error(
-        asg: &Asg,
-        fn_: &AstFnItem,
-        expected_count: usize,
-    ) -> SemanticError {
-        SemanticError::new(
-            format!(
-                "function `{}` has an invalid number of parameters",
-                fn_.name.label,
-            ),
-            vec![LocatedMessage {
-                level: ErrorLevel::Error,
-                span: fn_.name.span,
-                text: format!(
-                    "found {} parameters, expected {expected_count}",
-                    fn_.params.len()
-                ),
-            }],
-            &asg.code,
-            &asg.path,
-        )
     }
 }
 
@@ -243,7 +185,7 @@ pub struct AsgFnParam {
     /// The parameter name in the initial Shad code.
     pub name: AstIdent,
     /// The parameter type.
-    pub type_: Result<Rc<AsgType>, ()>,
+    pub type_: Result<Rc<AsgType>>,
 }
 
 impl AsgFnParam {
@@ -255,143 +197,16 @@ impl AsgFnParam {
     }
 }
 
-#[derive(Default, Debug)]
-pub(crate) struct FnRecursionChecker {
-    pub(crate) current_fn: Option<Rc<AsgFn>>,
-    pub(crate) calls: Vec<(Span, Rc<AsgFn>)>,
-    pub(crate) errored_fn_indexes: FxHashSet<usize>,
-    pub(crate) errors: Vec<SemanticError>,
-}
-
-impl FnRecursionChecker {
-    pub(crate) fn check(&mut self, asg: &Asg) -> Result<(), ()> {
-        let current_fn = self
-            .current_fn
-            .as_ref()
-            .expect("internal error: no current function");
-        if !self.is_last_call_recursive(current_fn) {
-            Ok(())
-        } else if self.is_error_already_generated(current_fn) {
-            Err(())
-        } else {
-            for (_, fn_) in &self.calls {
-                self.errored_fn_indexes.insert(fn_.index);
-            }
-            self.errored_fn_indexes.insert(current_fn.index);
-            self.errors.push(self.recursion_error(asg, current_fn));
-            Err(())
-        }
-    }
-
-    fn is_last_call_recursive(&self, current_fn: &Rc<AsgFn>) -> bool {
-        self.calls
-            .last()
-            .map_or(false, |(_, last_call)| last_call == current_fn)
-    }
-
-    fn is_error_already_generated(&self, current_fn: &Rc<AsgFn>) -> bool {
-        for (_, fn_) in &self.calls {
-            if self.errored_fn_indexes.contains(&fn_.index) {
-                return true;
-            }
-        }
-        self.errored_fn_indexes.contains(&current_fn.index)
-    }
-
-    fn recursion_error(&self, asg: &Asg, current_fn: &Rc<AsgFn>) -> SemanticError {
-        SemanticError::new(
-            format!(
-                "function `{}` defined recursively",
-                signature_str(&current_fn.ast)
-            ),
-            self.calls
-                .iter()
-                .flat_map(|(span, fn_)| {
-                    [
-                        LocatedMessage {
-                            level: ErrorLevel::Error,
-                            span: *span,
-                            text: format!("`{}` function called here", signature_str(&fn_.ast)),
-                        },
-                        LocatedMessage {
-                            level: ErrorLevel::Error,
-                            span: fn_.ast.name.span,
-                            text: format!("`{}` function defined here", signature_str(&fn_.ast)),
-                        },
-                    ]
-                })
-                .collect(),
-            &asg.code,
-            &asg.path,
-        )
-    }
-}
-
 pub(crate) fn find<'a>(
     asg: &'a mut Asg,
     span: Span,
     signature: &AsgFnSignature,
-) -> Result<&'a Rc<AsgFn>, ()> {
+) -> Result<&'a Rc<AsgFn>> {
     if let Some(function) = asg.functions.get(signature) {
         Ok(function)
     } else {
-        asg.errors.push(not_found_error(asg, span, signature));
-        Err(())
+        asg.errors
+            .push(errors::fn_::not_found(asg, span, signature));
+        Err(Error)
     }
-}
-
-pub(crate) fn signature_str(fn_: &AstFnItem) -> String {
-    format!(
-        "{}({})",
-        &fn_.name.label,
-        fn_.params
-            .iter()
-            .map(|param| param.type_.label.clone())
-            .collect::<Vec<_>>()
-            .join(", ")
-    )
-}
-
-pub(crate) fn duplicated_error(
-    asg: &Asg,
-    duplicated_fn: &AstFnItem,
-    existing_fn: &AsgFn,
-) -> SemanticError {
-    SemanticError::new(
-        format!(
-            "function `{}` is defined multiple times",
-            signature_str(duplicated_fn)
-        ),
-        vec![
-            LocatedMessage {
-                level: ErrorLevel::Error,
-                span: duplicated_fn.name.span,
-                text: "duplicated function".into(),
-            },
-            LocatedMessage {
-                level: ErrorLevel::Info,
-                span: existing_fn.ast.name.span,
-                text: "function with same signature is defined here".into(),
-            },
-        ],
-        &asg.code,
-        &asg.path,
-    )
-}
-
-fn not_found_error(asg: &Asg, span: Span, signature: &AsgFnSignature) -> SemanticError {
-    SemanticError::new(
-        format!(
-            "could not find `{}({})` function",
-            signature.name,
-            signature.param_types.join(", ")
-        ),
-        vec![LocatedMessage {
-            level: ErrorLevel::Error,
-            span,
-            text: "undefined function".into(),
-        }],
-        &asg.code,
-        &asg.path,
-    )
 }

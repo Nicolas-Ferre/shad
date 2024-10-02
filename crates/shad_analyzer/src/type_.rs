@@ -1,6 +1,5 @@
-use crate::Asg;
+use crate::{errors, Asg, Error, Result};
 use fxhash::FxHashMap;
-use shad_error::{ErrorLevel, LocatedMessage, SemanticError};
 use shad_parser::AstIdent;
 use std::rc::Rc;
 
@@ -85,24 +84,11 @@ pub(crate) fn primitive_types() -> FxHashMap<String, Rc<AsgType>> {
     .collect()
 }
 
-pub(crate) fn find<'a>(asg: &'a mut Asg, name: &AstIdent) -> Result<&'a Rc<AsgType>, ()> {
+pub(crate) fn find<'a>(asg: &'a mut Asg, name: &AstIdent) -> Result<&'a Rc<AsgType>> {
     if let Some(type_) = asg.types.get(&name.label) {
         Ok(type_)
     } else {
-        asg.errors.push(not_found_type_error(asg, name));
-        Err(())
+        asg.errors.push(errors::type_::not_found(asg, name));
+        Err(Error)
     }
-}
-
-fn not_found_type_error(asg: &Asg, ident: &AstIdent) -> SemanticError {
-    SemanticError::new(
-        format!("could not find `{}` type", ident.label),
-        vec![LocatedMessage {
-            level: ErrorLevel::Error,
-            span: ident.span,
-            text: "undefined type".into(),
-        }],
-        &asg.code,
-        &asg.path,
-    )
 }

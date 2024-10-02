@@ -1,6 +1,5 @@
 use crate::statement::AsgStatements;
-use crate::{Asg, AsgExpr};
-use shad_error::{ErrorLevel, LocatedMessage, SemanticError};
+use crate::{Asg, AsgExpr, Result};
 use shad_parser::AstBufferItem;
 
 /// An analyzed buffer.
@@ -11,7 +10,7 @@ pub struct AsgBuffer {
     /// The unique buffer index.
     pub index: usize,
     /// The initial value of the buffer.
-    pub expr: Result<AsgExpr, ()>,
+    pub expr: Result<AsgExpr>,
 }
 
 impl AsgBuffer {
@@ -22,31 +21,4 @@ impl AsgBuffer {
             expr: AsgExpr::new(asg, ctx, &buffer.value),
         }
     }
-}
-
-pub(crate) fn duplicated_error(
-    asg: &Asg,
-    duplicated_buffer: &AstBufferItem,
-    existing_buffer: &AsgBuffer,
-) -> SemanticError {
-    SemanticError::new(
-        format!(
-            "buffer with name `{}` is defined multiple times",
-            duplicated_buffer.name.label
-        ),
-        vec![
-            LocatedMessage {
-                level: ErrorLevel::Error,
-                span: duplicated_buffer.name.span,
-                text: "duplicated buffer name".into(),
-            },
-            LocatedMessage {
-                level: ErrorLevel::Info,
-                span: existing_buffer.ast.name.span,
-                text: "buffer with same name is defined here".into(),
-            },
-        ],
-        &asg.code,
-        &asg.path,
-    )
 }

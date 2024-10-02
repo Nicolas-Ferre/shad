@@ -1,17 +1,14 @@
-use crate::function::{signature_str, FnRecursionChecker};
 use crate::statement::{AsgStatements, AsgVariable};
-use crate::utils::result_ref;
 use crate::{
-    asg, function, Asg, AsgBuffer, AsgFn, AsgFnParam, AsgFnSignature, AsgType, ADD_FN, AND_FN,
-    DIV_FN, EQ_FN, GE_FN, GT_FN, LE_FN, LT_FN, MOD_FN, MUL_FN, NEG_FN, NE_FN, NOT_FN, OR_FN,
-    SUB_FN,
+    errors, function, Asg, AsgBuffer, AsgFn, AsgFnParam, AsgFnSignature, AsgType, Error, Result,
+    ADD_FN, AND_FN, DIV_FN, EQ_FN, GE_FN, GT_FN, LE_FN, LT_FN, MOD_FN, MUL_FN, NEG_FN, NE_FN,
+    NOT_FN, OR_FN, SUB_FN,
 };
-use shad_error::{ErrorLevel, LocatedMessage, SemanticError, Span};
+use shad_error::{SemanticError, Span};
 use shad_parser::{
     AstBinaryOperation, AstBinaryOperator, AstExpr, AstFnCall, AstFnQualifier, AstIdent,
     AstLiteral, AstLiteralType, AstUnaryOperation, AstUnaryOperator,
 };
-use std::iter;
 use std::rc::Rc;
 use std::str::FromStr;
 
@@ -29,7 +26,7 @@ pub enum AsgExpr {
 }
 
 impl AsgExpr {
-    pub(crate) fn new(asg: &mut Asg, ctx: &AsgStatements<'_>, expr: &AstExpr) -> Result<Self, ()> {
+    pub(crate) fn new(asg: &mut Asg, ctx: &AsgStatements<'_>, expr: &AstExpr) -> Result<Self> {
         match expr {
             AstExpr::Literal(expr) => Ok(Self::Literal(AsgLiteral::new(asg, expr))),
             AstExpr::Ident(expr) => AsgIdent::new(asg, ctx, expr).map(Self::Ident),
@@ -43,47 +40,6 @@ impl AsgExpr {
                 .map(|call| call.check_as_expr(asg))
                 .map(Self::FnCall),
         }
-    }
-
-    /// Returns the type of the expression.
-    ///
-    /// # Errors
-    ///
-    /// An error is returned if the type is invalid.
-    #[allow(clippy::result_unit_err)]
-    pub fn type_<'a>(&'a self, asg: &'a Asg) -> Result<&Rc<AsgType>, ()> {
-        match self {
-            Self::Literal(expr) => Ok(&expr.type_),
-            Self::Ident(expr) => expr.type_(asg),
-            Self::FnCall(expr) => expr.type_(),
-        }
-    }
-
-    pub(crate) fn buffers(&self, asg: &Asg) -> Vec<Rc<AsgBuffer>> {
-        match self {
-            Self::Literal(_) => vec![],
-            Self::Ident(expr) => expr.buffers(),
-            Self::FnCall(expr) => expr.buffers(asg),
-        }
-    }
-
-    pub(crate) fn functions(&self, asg: &Asg) -> Vec<Rc<AsgFn>> {
-        match self {
-            Self::Literal(_) | Self::Ident(_) => vec![],
-            Self::FnCall(expr) => expr.functions(asg),
-        }
-    }
-
-    pub(crate) fn check_recursion(
-        &self,
-        asg: &Asg,
-        ctx: &mut FnRecursionChecker,
-    ) -> Result<(), ()> {
-        match self {
-            Self::FnCall(expr) => expr.check_recursion(asg, ctx)?,
-            Self::Literal(_) | Self::Ident(_) => {}
-        }
-        Ok(())
     }
 }
 
@@ -116,6 +72,7 @@ impl AsgLiteral {
         }
     }
 
+    // TODO: move in check phase
     fn literal_error(asg: &Asg, literal: &AstLiteral, final_value: &str) -> Option<SemanticError> {
         match literal.type_ {
             AstLiteralType::F32 => Self::f32_literal_error(asg, literal, final_value),
@@ -128,6 +85,8 @@ impl AsgLiteral {
         }
     }
 
+    // TODO: move in check phase
+    // TODO: bug with span when "_" is used
     fn f32_literal_error(
         asg: &Asg,
         literal: &AstLiteral,
@@ -138,26 +97,11 @@ impl AsgLiteral {
             .expect("internal error: `.` not found in `f32` literal");
         (digit_count > F32_INT_PART_LIMIT).then(|| {
             let span = Span::new(literal.span.start, literal.span.start + digit_count);
-            SemanticError::new(
-                "`f32` literal with too many digits in integer part",
-                vec![
-                    LocatedMessage {
-                        level: ErrorLevel::Error,
-                        span,
-                        text: format!("found {digit_count} digits"),
-                    },
-                    LocatedMessage {
-                        level: ErrorLevel::Info,
-                        span,
-                        text: format!("maximum {F32_INT_PART_LIMIT} digits are expected"),
-                    },
-                ],
-                &asg.code,
-                &asg.path,
-            )
+            errors::literal::invalid_f32(asg, span, digit_count, F32_INT_PART_LIMIT)
         })
     }
 
+    // TODO: move in check phase
     fn int_literal_error<T>(
         asg: &Asg,
         literal: &AstLiteral,
@@ -168,18 +112,7 @@ impl AsgLiteral {
         T: FromStr,
     {
         let is_literal_invalid = T::from_str(final_value).is_err();
-        is_literal_invalid.then(|| {
-            SemanticError::new(
-                format!("`{type_name}` literal out of range"),
-                vec![LocatedMessage {
-                    level: ErrorLevel::Error,
-                    span: literal.span,
-                    text: format!("value is outside allowed range for `{type_name}` type"),
-                }],
-                &asg.code,
-                &asg.path,
-            )
-        })
+        is_literal_invalid.then(|| errors::literal::invalid_integer(asg, literal, type_name))
     }
 }
 
@@ -195,11 +128,7 @@ pub enum AsgIdent {
 }
 
 impl AsgIdent {
-    pub(crate) fn new(
-        asg: &mut Asg,
-        ctx: &AsgStatements<'_>,
-        ident: &AstIdent,
-    ) -> Result<Self, ()> {
+    pub(crate) fn new(asg: &mut Asg, ctx: &AsgStatements<'_>, ident: &AstIdent) -> Result<Self> {
         let are_buffers_allowed = ctx.scope.are_buffers_allowed();
         if let Some(variable) = ctx.variables.get(&ident.label) {
             Ok(Self::Var(variable.clone()))
@@ -208,23 +137,8 @@ impl AsgIdent {
         } else if let (Some(buffer), true) = (asg.buffers.get(&ident.label), are_buffers_allowed) {
             Ok(Self::Buffer(buffer.clone()))
         } else {
-            asg.errors.push(asg::not_found_ident_error(asg, ident));
-            Err(())
-        }
-    }
-
-    pub(crate) fn type_<'a>(&'a self, asg: &'a Asg) -> Result<&Rc<AsgType>, ()> {
-        match self {
-            Self::Buffer(buffer) => result_ref(&buffer.expr)?.type_(asg),
-            Self::Var(variable) => result_ref(&variable.expr)?.type_(asg),
-            Self::Param(param) => result_ref(&param.type_),
-        }
-    }
-
-    pub(crate) fn buffers(&self) -> Vec<Rc<AsgBuffer>> {
-        match self {
-            Self::Buffer(buffer) => vec![buffer.clone()],
-            Self::Var(_) | Self::Param(_) => vec![],
+            asg.errors.push(errors::ident::not_found(asg, ident));
+            Err(Error)
         }
     }
 
@@ -249,16 +163,12 @@ pub struct AsgFnCall {
 }
 
 impl AsgFnCall {
-    pub(crate) fn new(
-        asg: &mut Asg,
-        ctx: &AsgStatements<'_>,
-        fn_call: &AstFnCall,
-    ) -> Result<Self, ()> {
+    pub(crate) fn new(asg: &mut Asg, ctx: &AsgStatements<'_>, fn_call: &AstFnCall) -> Result<Self> {
         let args = fn_call
             .args
             .iter()
             .map(|arg| AsgExpr::new(asg, ctx, arg))
-            .collect::<Result<Vec<AsgExpr>, ()>>()?;
+            .collect::<Result<Vec<AsgExpr>>>()?;
         let signature = AsgFnSignature::from_call(asg, &fn_call.name.label, &args)?;
         Ok(Self {
             span: fn_call.span,
@@ -272,7 +182,7 @@ impl AsgFnCall {
         asg: &mut Asg,
         ctx: &AsgStatements<'_>,
         operation: &AstUnaryOperation,
-    ) -> Result<Self, ()> {
+    ) -> Result<Self> {
         let args = vec![AsgExpr::new(asg, ctx, &operation.expr)?];
         let fn_name = match operation.operator {
             AstUnaryOperator::Neg => NEG_FN,
@@ -291,7 +201,7 @@ impl AsgFnCall {
         asg: &mut Asg,
         ctx: &AsgStatements<'_>,
         operation: &AstBinaryOperation,
-    ) -> Result<Self, ()> {
+    ) -> Result<Self> {
         let args = vec![
             AsgExpr::new(asg, ctx, &operation.left)?,
             AsgExpr::new(asg, ctx, &operation.right)?,
@@ -320,127 +230,30 @@ impl AsgFnCall {
         .check(asg, ctx))
     }
 
-    pub(crate) fn buffers(&self, asg: &Asg) -> Vec<Rc<AsgBuffer>> {
-        self.args
-            .iter()
-            .flat_map(|arg| arg.buffers(asg))
-            .chain(
-                asg.function_bodies[&self.fn_.signature]
-                    .statements
-                    .iter()
-                    .flat_map(|statement| statement.buffers(asg)),
-            )
-            .collect()
-    }
-
-    pub(crate) fn functions(&self, asg: &Asg) -> Vec<Rc<AsgFn>> {
-        self.args
-            .iter()
-            .flat_map(|arg| arg.functions(asg))
-            .chain(
-                asg.function_bodies[&self.fn_.signature]
-                    .statements
-                    .iter()
-                    .flat_map(|statement| statement.functions(asg)),
-            )
-            .chain(iter::once(self.fn_.clone()))
-            .collect()
-    }
-
-    pub(crate) fn check_recursion(
-        &self,
-        asg: &Asg,
-        ctx: &mut FnRecursionChecker,
-    ) -> Result<(), ()> {
-        ctx.calls.push((self.span, self.fn_.clone()));
-        self.fn_.check_recursion(asg, ctx)?;
-        ctx.calls.pop();
-        Ok(())
-    }
-
-    fn type_(&self) -> Result<&Rc<AsgType>, ()> {
-        Ok(result_ref(&self.fn_.return_type)?
-            .as_ref()
-            .expect("internal error: function call in expression without return type"))
-    }
-
+    // TODO: move in check phase
     fn check(self, asg: &mut Asg, ctx: &AsgStatements<'_>) -> Self {
         if self.fn_.ast.qualifier == AstFnQualifier::Buf && !ctx.scope.are_buffer_fns_allowed() {
-            asg.errors.push(self.invalid_buf_fn_usage_error(asg));
+            asg.errors
+                .push(errors::fn_::invalid_buf_fn_call(asg, &self));
         }
         self
     }
 
+    // TODO: move in check phase
     fn check_as_expr(self, asg: &mut Asg) -> Self {
         if self.fn_.return_type == Ok(None) {
             asg.errors
-                .push(self.fn_call_without_return_type_in_expr_error(asg));
+                .push(errors::fn_::call_without_return_type_in_expr(asg, &self));
         }
         self
     }
 
+    // TODO: move in check phase
     pub(crate) fn check_as_statement(self, asg: &mut Asg) -> Self {
         if self.fn_.return_type != Ok(None) {
             asg.errors
-                .push(self.fn_call_with_return_type_in_statement_error(asg));
+                .push(errors::fn_::call_with_return_type_in_statement(asg, &self));
         }
         self
-    }
-
-    fn invalid_buf_fn_usage_error(&self, asg: &Asg) -> SemanticError {
-        SemanticError::new(
-            format!(
-                "`buf` function `{}` called in invalid context",
-                signature_str(&self.fn_.ast)
-            ),
-            vec![
-                LocatedMessage {
-                    level: ErrorLevel::Error,
-                    span: self.span,
-                    text: "this function cannot be called here".into(),
-                },
-                LocatedMessage {
-                    level: ErrorLevel::Info,
-                    span: self.span,
-                    text:
-                        "`buf` functions can only be called in `run` blocks and `buf fn` functions"
-                            .into(),
-                },
-            ],
-            &asg.code,
-            &asg.path,
-        )
-    }
-
-    fn fn_call_without_return_type_in_expr_error(&self, asg: &Asg) -> SemanticError {
-        SemanticError::new(
-            format!(
-                "function `{}` in an expression while not having a return type",
-                signature_str(&self.fn_.ast)
-            ),
-            vec![LocatedMessage {
-                level: ErrorLevel::Error,
-                span: self.span,
-                text: "this function cannot be called here".into(),
-            }],
-            &asg.code,
-            &asg.path,
-        )
-    }
-
-    fn fn_call_with_return_type_in_statement_error(&self, asg: &Asg) -> SemanticError {
-        SemanticError::new(
-            format!(
-                "function `{}` called as a statement while having a return type",
-                signature_str(&self.fn_.ast)
-            ),
-            vec![LocatedMessage {
-                level: ErrorLevel::Error,
-                span: self.span,
-                text: "returned value needs to be stored in a variable".into(),
-            }],
-            &asg.code,
-            &asg.path,
-        )
     }
 }

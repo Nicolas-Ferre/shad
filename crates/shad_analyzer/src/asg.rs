@@ -1,11 +1,11 @@
-use crate::function::FnRecursionChecker;
+use crate::passes::recursion_check::check_recursion;
 use crate::statement::AsgStatements;
 use crate::{
-    buffer, function, type_, AsgBuffer, AsgComputeShader, AsgFn, AsgFnBody, AsgFnSignature, AsgType,
+    errors, type_, AsgBuffer, AsgComputeShader, AsgFn, AsgFnBody, AsgFnSignature, AsgType,
 };
 use fxhash::FxHashMap;
-use shad_error::{ErrorLevel, LocatedMessage, SemanticError};
-use shad_parser::{Ast, AstIdent, AstItem};
+use shad_error::SemanticError;
+use shad_parser::{Ast, AstItem};
 use std::rc::Rc;
 
 /// The Abstract Semantic Graph of an analyzed Shad code.
@@ -47,15 +47,16 @@ impl Asg {
             errors: vec![],
         };
         asg.types = type_::primitive_types();
-        asg.analyze_functions(ast);
-        asg.analyze_buffers(ast);
-        asg.analyze_function_bodies();
-        asg.analyze_init_shaders();
-        asg.analyze_step_shaders(ast);
+        asg.register_functions(ast);
+        asg.register_buffers(ast);
+        asg.register_function_bodies();
+        asg.errors.extend(check_recursion(&asg));
+        asg.register_init_shaders();
+        asg.register_step_shaders(ast);
         asg
     }
 
-    fn analyze_functions(&mut self, ast: &Ast) {
+    fn register_functions(&mut self, ast: &Ast) {
         for item in &ast.items {
             if let AstItem::Fn(ast_fn) = item {
                 let asg_fn = AsgFn::new(self, ast_fn);
@@ -63,41 +64,37 @@ impl Asg {
                 let signature = fn_.signature.clone();
                 if let Some(existing_fn) = self.functions.insert(signature, fn_) {
                     self.errors
-                        .push(function::duplicated_error(self, ast_fn, &existing_fn));
+                        .push(errors::fn_::duplicated(self, ast_fn, &existing_fn));
                 }
             }
         }
     }
 
-    fn analyze_buffers(&mut self, ast: &Ast) {
+    fn register_buffers(&mut self, ast: &Ast) {
         for item in &ast.items {
             if let AstItem::Buffer(ast_buffer) = item {
                 let name = ast_buffer.name.label.clone();
                 let statements = AsgStatements::buffer_scope();
                 let buffer = Rc::new(AsgBuffer::new(self, &statements, ast_buffer));
                 if let Some(existing_buffer) = self.buffers.insert(name, buffer) {
-                    self.errors
-                        .push(buffer::duplicated_error(self, ast_buffer, &existing_buffer));
+                    self.errors.push(errors::buffer::duplicated(
+                        self,
+                        ast_buffer,
+                        &existing_buffer,
+                    ));
                 }
             }
         }
     }
 
-    fn analyze_function_bodies(&mut self) {
+    fn register_function_bodies(&mut self) {
         for (signature, fn_) in self.functions.clone() {
             let body = AsgFnBody::new(self, &fn_);
             self.function_bodies.insert(signature, body);
         }
-        let mut checker = FnRecursionChecker::default();
-        for fn_ in self.functions.values() {
-            checker.current_fn = Some(fn_.clone());
-            checker.calls.clear();
-            let _ = fn_.check_recursion(self, &mut checker);
-        }
-        self.errors.extend(checker.errors);
     }
 
-    fn analyze_init_shaders(&mut self) {
+    fn register_init_shaders(&mut self) {
         let mut buffers: Vec<_> = self.buffers.values().cloned().collect();
         buffers.sort_unstable_by_key(|buffer| buffer.index);
         for buffer in buffers {
@@ -106,7 +103,7 @@ impl Asg {
         }
     }
 
-    fn analyze_step_shaders(&mut self, ast: &Ast) {
+    fn register_step_shaders(&mut self, ast: &Ast) {
         for item in &ast.items {
             if let AstItem::Run(ast_run) = item {
                 let shader = AsgComputeShader::step(self, ast_run);
@@ -114,17 +111,4 @@ impl Asg {
             }
         }
     }
-}
-
-pub(crate) fn not_found_ident_error(asg: &Asg, ident: &AstIdent) -> SemanticError {
-    SemanticError::new(
-        format!("could not find `{}` value", ident.label),
-        vec![LocatedMessage {
-            level: ErrorLevel::Error,
-            span: ident.span,
-            text: "undefined identifier".into(),
-        }],
-        &asg.code,
-        &asg.path,
-    )
 }

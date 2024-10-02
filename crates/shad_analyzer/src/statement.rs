@@ -1,8 +1,11 @@
-use crate::function::FnRecursionChecker;
-use crate::utils::result_ref;
-use crate::{Asg, AsgBuffer, AsgExpr, AsgFn, AsgFnCall, AsgFnParam, AsgIdent, AsgType};
+use crate::errors::assignment;
+use crate::passes::type_resolving::TypeResolving;
+use crate::result::result_ref;
+use crate::{
+    errors, Asg, AsgBuffer, AsgExpr, AsgFn, AsgFnCall, AsgFnParam, AsgIdent, Error, Result,
+};
 use fxhash::FxHashMap;
-use shad_error::{ErrorLevel, LocatedMessage, SemanticError, Span};
+use shad_error::Span;
 use shad_parser::{AstAssignment, AstIdent, AstReturn, AstStatement, AstVarDefinition};
 use std::rc::Rc;
 
@@ -97,25 +100,22 @@ pub enum AsgStatement {
     /// A variable assignment.
     Assignment(AsgAssignment),
     /// A return statement.
-    Return(Result<AsgExpr, ()>),
+    Return(Result<AsgExpr>),
     /// An expression statement.
-    FnCall(Result<AsgFnCall, ()>),
+    FnCall(Result<AsgFnCall>),
 }
 
 impl AsgStatement {
-    fn new(
-        asg: &mut Asg,
-        ctx: &mut AsgStatements<'_>,
-        statement: &AstStatement,
-    ) -> Result<Self, ()> {
+    fn new(asg: &mut Asg, ctx: &mut AsgStatements<'_>, statement: &AstStatement) -> Result<Self> {
         if let (Some(return_span), false) = (ctx.return_span, ctx.is_statement_after_return_found) {
+            // TODO: move in check phase
             ctx.is_statement_after_return_found = true;
-            asg.errors.push(Self::statement_after_return_error(
+            asg.errors.push(errors::return_::statement_after(
                 asg,
                 statement,
                 return_span,
             ));
-            Err(())
+            Err(Error)
         } else {
             Ok(match statement {
                 AstStatement::Var(statement) => Self::Var(AsgVariable::new(asg, ctx, statement)),
@@ -133,61 +133,19 @@ impl AsgStatement {
         }
     }
 
-    pub(crate) fn buffers(&self, asg: &Asg) -> Vec<Rc<AsgBuffer>> {
-        match self {
-            Self::Assignment(statement) => statement.buffers(asg),
-            Self::Var(statement) => statement.buffers(asg),
-            Self::Return(statement) => statement
-                .as_ref()
-                .map(|expr| expr.buffers(asg))
-                .unwrap_or_default(),
-            Self::FnCall(statement) => result_ref(statement)
-                .map(|call| call.buffers(asg))
-                .unwrap_or_default(),
-        }
-    }
-
-    pub(crate) fn functions(&self, asg: &Asg) -> Vec<Rc<AsgFn>> {
-        match self {
-            Self::Assignment(statement) => statement.functions(asg),
-            Self::Var(statement) => statement.functions(asg),
-            Self::Return(statement) => statement
-                .as_ref()
-                .map(|expr| expr.functions(asg))
-                .unwrap_or_default(),
-            Self::FnCall(statement) => result_ref(statement)
-                .map(|call| call.functions(asg))
-                .unwrap_or_default(),
-        }
-    }
-
-    pub(crate) fn check_recursion(
-        &self,
-        asg: &Asg,
-        ctx: &mut FnRecursionChecker,
-    ) -> Result<(), ()> {
-        match self {
-            Self::Var(statement) => statement.check_recursion(asg, ctx)?,
-            Self::Assignment(statement) => statement.check_recursion(asg, ctx)?,
-            Self::Return(Ok(statement)) => statement.check_recursion(asg, ctx)?,
-            Self::FnCall(Ok(statement)) => statement.check_recursion(asg, ctx)?,
-            Self::Return(Err(())) | Self::FnCall(Err(())) => {}
-        }
-        Ok(())
-    }
-
     fn analyze_return(
         asg: &mut Asg,
         ctx: &mut AsgStatements<'_>,
         statement: &AstReturn,
-    ) -> Result<AsgExpr, ()> {
+    ) -> Result<AsgExpr> {
+        // TODO: move in check phase
         if ctx.scope.fn_().is_none() {
-            asg.errors
-                .push(Self::return_outside_fn_error(asg, statement));
+            asg.errors.push(errors::return_::outside_fn(asg, statement));
         } else {
             ctx.return_span = Some(statement.span);
         }
         let expr = AsgExpr::new(asg, ctx, &statement.expr)?;
+        // TODO: move in check phase
         if let (Ok(actual_type), Some(expected_type), Some(fn_)) = (
             expr.type_(asg),
             ctx.scope.fn_().and_then(|f| f.return_type.as_ref().ok()),
@@ -195,7 +153,7 @@ impl AsgStatement {
         ) {
             if let Some(expected_type) = expected_type {
                 if actual_type != expected_type {
-                    asg.errors.push(Self::mismatch_type(
+                    asg.errors.push(errors::return_::invalid_type(
                         asg,
                         statement,
                         fn_,
@@ -205,91 +163,10 @@ impl AsgStatement {
                 }
             } else {
                 asg.errors
-                    .push(Self::return_without_return_type_error(asg, statement));
+                    .push(errors::return_::no_return_type(asg, statement));
             }
         }
         Ok(expr)
-    }
-
-    fn return_outside_fn_error(asg: &Asg, statement: &AstReturn) -> SemanticError {
-        SemanticError::new(
-            "`return` statement used outside function",
-            vec![LocatedMessage {
-                level: ErrorLevel::Error,
-                span: statement.span,
-                text: "invalid statement".into(),
-            }],
-            &asg.code,
-            &asg.path,
-        )
-    }
-
-    fn mismatch_type(
-        asg: &Asg,
-        statement: &AstReturn,
-        fn_: &AsgFn,
-        actual: &AsgType,
-        expected: &AsgType,
-    ) -> SemanticError {
-        SemanticError::new(
-            "invalid type for returned expression",
-            vec![
-                LocatedMessage {
-                    level: ErrorLevel::Error,
-                    span: statement.expr.span(),
-                    text: format!("expression of type `{}`", actual.name.as_str()),
-                },
-                LocatedMessage {
-                    level: ErrorLevel::Info,
-                    span: fn_
-                        .ast
-                        .return_type
-                        .as_ref()
-                        .expect("internal error: no return type")
-                        .span,
-                    text: format!("expected type `{}`", expected.name.as_str()),
-                },
-            ],
-            &asg.code,
-            &asg.path,
-        )
-    }
-
-    fn statement_after_return_error(
-        asg: &Asg,
-        statement: &AstStatement,
-        return_span: Span,
-    ) -> SemanticError {
-        SemanticError::new(
-            "statement found after `return` statement",
-            vec![
-                LocatedMessage {
-                    level: ErrorLevel::Error,
-                    span: statement.span(),
-                    text: "this statement cannot be defined after a `return` statement".into(),
-                },
-                LocatedMessage {
-                    level: ErrorLevel::Info,
-                    span: return_span,
-                    text: "`return` statement defined here".into(),
-                },
-            ],
-            &asg.code,
-            &asg.path,
-        )
-    }
-
-    fn return_without_return_type_error(asg: &Asg, statement: &AstReturn) -> SemanticError {
-        SemanticError::new(
-            "use of `return` in a function with no return type",
-            vec![LocatedMessage {
-                level: ErrorLevel::Error,
-                span: statement.span,
-                text: "invalid statement".into(),
-            }],
-            &asg.code,
-            &asg.path,
-        )
     }
 }
 
@@ -297,9 +174,9 @@ impl AsgStatement {
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub struct AsgAssignment {
     /// The updated variable.
-    pub assigned: Result<AsgIdent, ()>,
+    pub assigned: Result<AsgIdent>,
     /// The new value.
-    pub expr: Result<AsgExpr, ()>,
+    pub expr: Result<AsgExpr>,
     /// The span of the updated variable.
     pub assigned_span: Span,
     /// The span of the new value.
@@ -332,15 +209,17 @@ impl AsgAssignment {
         )
     }
 
+    // TODO: move in check phase
     fn checked(self, asg: &mut Asg) -> Self {
         if let (Ok(assigned), Ok(assigned_type), Ok(expr_type)) = (
             &self.assigned,
-            result_ref(&self.assigned).and_then(|e| e.type_(asg)),
-            result_ref(&self.expr).and_then(|e| e.type_(asg)),
+            result_ref(&self.assigned).and_then(|value| value.type_(asg)),
+            result_ref(&self.expr).and_then(|expr| expr.type_(asg)),
         ) {
             if assigned_type != expr_type {
-                asg.errors.push(self.mismatching_type_error(
+                asg.errors.push(assignment::invalid_type(
                     asg,
+                    &self,
                     assigned,
                     assigned_type,
                     expr_type,
@@ -348,60 +227,6 @@ impl AsgAssignment {
             }
         }
         self
-    }
-
-    fn buffers(&self, asg: &Asg) -> Vec<Rc<AsgBuffer>> {
-        let mut buffers = result_ref(&self.assigned)
-            .map(AsgIdent::buffers)
-            .unwrap_or_default();
-        buffers.append(
-            &mut result_ref(&self.expr)
-                .map(|expr| expr.buffers(asg))
-                .unwrap_or_default(),
-        );
-        buffers
-    }
-
-    fn functions(&self, asg: &Asg) -> Vec<Rc<AsgFn>> {
-        result_ref(&self.expr)
-            .map(|expr| expr.functions(asg))
-            .unwrap_or_default()
-    }
-
-    fn check_recursion(&self, asg: &Asg, ctx: &mut FnRecursionChecker) -> Result<(), ()> {
-        if let Ok(expr) = &self.expr {
-            expr.check_recursion(asg, ctx)?;
-        }
-        Ok(())
-    }
-
-    pub(crate) fn mismatching_type_error(
-        &self,
-        asg: &Asg,
-        assigned: &AsgIdent,
-        assigned_type: &AsgType,
-        expr_type: &AsgType,
-    ) -> SemanticError {
-        SemanticError::new(
-            format!(
-                "expression assigned to `{}` has invalid type",
-                assigned.name()
-            ),
-            vec![
-                LocatedMessage {
-                    level: ErrorLevel::Error,
-                    span: self.expr_span,
-                    text: format!("expression of type `{}`", expr_type.name.as_str()),
-                },
-                LocatedMessage {
-                    level: ErrorLevel::Info,
-                    span: self.assigned_span,
-                    text: format!("expected type `{}`", assigned_type.name.as_str()),
-                },
-            ],
-            &asg.code,
-            &asg.path,
-        )
     }
 }
 
@@ -413,7 +238,7 @@ pub struct AsgVariable {
     /// The unique index of the variable in the shader.
     pub index: usize,
     /// The initial value of the variable.
-    pub expr: Result<AsgExpr, ()>,
+    pub expr: Result<AsgExpr>,
 }
 
 impl AsgVariable {
@@ -427,24 +252,5 @@ impl AsgVariable {
         ctx.variables
             .insert(variable.name.label.clone(), final_variable.clone());
         final_variable
-    }
-
-    fn buffers(&self, asg: &Asg) -> Vec<Rc<AsgBuffer>> {
-        result_ref(&self.expr)
-            .map(|expr| expr.buffers(asg))
-            .unwrap_or_default()
-    }
-
-    fn functions(&self, asg: &Asg) -> Vec<Rc<AsgFn>> {
-        result_ref(&self.expr)
-            .map(|expr| expr.functions(asg))
-            .unwrap_or_default()
-    }
-
-    fn check_recursion(&self, asg: &Asg, ctx: &mut FnRecursionChecker) -> Result<(), ()> {
-        if let Ok(expr) = &self.expr {
-            expr.check_recursion(asg, ctx)?;
-        }
-        Ok(())
     }
 }

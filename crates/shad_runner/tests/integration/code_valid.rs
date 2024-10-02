@@ -1,3 +1,4 @@
+use shad_analyzer::TypeResolving;
 use shad_runner::Runner;
 use std::fs;
 

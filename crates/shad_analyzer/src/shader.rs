@@ -1,5 +1,5 @@
 use crate::statement::{AsgAssignment, AsgStatement, AsgStatementScopeType, AsgStatements};
-use crate::{Asg, AsgBuffer, AsgFn};
+use crate::{Asg, AsgBuffer, AsgFn, BufferListing, FunctionListing};
 use fxhash::FxHashMap;
 use shad_parser::AstRunItem;
 use std::rc::Rc;
@@ -23,7 +23,7 @@ impl AsgComputeShader {
             asg, buffer,
         ))];
         Self {
-            buffers: Self::buffers(&statements, asg),
+            buffers: BufferListing::slice_buffers(&statements, asg),
             functions: Self::functions(&statements, asg),
             statements,
             name: format!("buffer_init:{}", buffer.ast.name.label),
@@ -34,22 +34,11 @@ impl AsgComputeShader {
         let statements =
             AsgStatements::analyze(asg, &ast_run.statements, AsgStatementScopeType::RunBlock);
         Self {
-            buffers: Self::buffers(&statements, asg),
+            buffers: BufferListing::slice_buffers(&statements, asg),
             functions: Self::functions(&statements, asg),
             statements,
             name: "run".into(),
         }
-    }
-
-    /// Returns all buffers used in the shader.
-    fn buffers(statements: &[AsgStatement], asg: &Asg) -> Vec<Rc<AsgBuffer>> {
-        statements
-            .iter()
-            .flat_map(|statement| statement.buffers(asg))
-            .map(|buffer| (buffer.index, buffer))
-            .collect::<FxHashMap<_, _>>()
-            .into_values()
-            .collect()
     }
 
     /// Returns all functions used in the shader.
