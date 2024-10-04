@@ -39,7 +39,7 @@ impl RecursionCheck for AsgStatement {
             Self::Assignment(statement) => statement.check_recursion(asg, ctx)?,
             Self::Return(statement) => statement.check_recursion(asg, ctx)?,
             Self::FnCall(Ok(statement)) => statement.check_recursion(asg, ctx)?,
-            Self::FnCall(Err(Error)) => {}
+            Self::FnCall(Err(_)) => (), // no-coverage (failed analysis)
         }
         Ok(())
     }

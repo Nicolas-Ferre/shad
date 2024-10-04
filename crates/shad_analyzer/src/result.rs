@@ -8,9 +8,11 @@ pub type Result<T> = std::result::Result<T, Error>;
 pub struct Error;
 
 impl Display for Error {
+    // coverage: off (not critical logic)
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "failed code analysis")
     }
+    // coverage: on
 }
 
 impl std::error::Error for Error {}

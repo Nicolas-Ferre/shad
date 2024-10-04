@@ -127,7 +127,7 @@ impl ErrorCheck for AsgStatement {
             Self::Assignment(assignment) => assignment.check(asg, ctx),
             Self::Return(return_) => return_.check(asg, ctx),
             Self::FnCall(Ok(call)) => call.check(asg, ctx),
-            Self::FnCall(Err(_)) => vec![],
+            Self::FnCall(Err(_)) => vec![], // no-coverage (failed analysis)
         });
         errors
     }

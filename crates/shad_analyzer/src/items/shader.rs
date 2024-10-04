@@ -1,5 +1,4 @@
 use crate::{Asg, AsgAssignment, AsgBuffer, AsgFn, AsgStatement, BufferListing, FunctionListing};
-use fxhash::FxHashMap;
 use std::rc::Rc;
 
 /// An analyzed compute shader.
@@ -20,7 +19,7 @@ impl AsgComputeShader {
         let statements = vec![AsgStatement::Assignment(AsgAssignment::buffer_init(buffer))];
         Self {
             buffers: BufferListing::slice_buffers(&statements, asg),
-            functions: Self::functions(&statements, asg),
+            functions: FunctionListing::slice_functions(&statements, asg),
             statements,
             name: format!("buffer_init:{}", buffer.ast.name.label),
         }
@@ -29,20 +28,9 @@ impl AsgComputeShader {
     pub(crate) fn step(asg: &Asg, statements: &[AsgStatement]) -> Self {
         Self {
             buffers: BufferListing::slice_buffers(statements, asg),
-            functions: Self::functions(statements, asg),
+            functions: FunctionListing::slice_functions(statements, asg),
             statements: statements.to_vec(),
             name: "run".into(),
         }
-    }
-
-    /// Returns all functions used in the shader.
-    fn functions(statements: &[AsgStatement], asg: &Asg) -> Vec<Rc<AsgFn>> {
-        statements
-            .iter()
-            .flat_map(|statement| statement.functions(asg))
-            .map(|buffer| (buffer.index, buffer))
-            .collect::<FxHashMap<_, _>>()
-            .into_values()
-            .collect()
     }
 }
