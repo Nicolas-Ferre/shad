@@ -3,8 +3,6 @@ use shad_error::{ErrorLevel, LocatedMessage, SemanticError, Span};
 use shad_parser::{AstFnItem, AstIdent};
 use std::rc::Rc;
 
-// TODO: put asg param first for all error functions
-
 pub(crate) fn duplicated(
     asg: &Asg,
     duplicated_fn: &AstFnItem,
@@ -76,19 +74,15 @@ pub(crate) fn duplicated_param(
     )
 }
 
-pub(crate) fn invalid_param_count(
-    asg: &Asg,
-    fn_: &AstFnItem,
-    expected_count: usize,
-) -> SemanticError {
+pub(crate) fn invalid_param_count(asg: &Asg, fn_: &AsgFn, expected_count: usize) -> SemanticError {
     SemanticError::new(
         format!(
             "function `{}` has an invalid number of parameters",
-            fn_.name.label,
+            fn_.ast.name.label,
         ),
         vec![LocatedMessage {
             level: ErrorLevel::Error,
-            span: fn_.name.span,
+            span: fn_.ast.name.span,
             text: format!(
                 "found {} parameters, expected {expected_count}",
                 fn_.params.len()

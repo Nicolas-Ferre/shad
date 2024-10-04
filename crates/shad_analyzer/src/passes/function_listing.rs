@@ -27,6 +27,7 @@ impl FunctionListing for AsgStatement {
             Self::Assignment(statement) => statement.functions(asg),
             Self::Var(statement) => statement.functions(asg),
             Self::Return(statement) => statement
+                .expr
                 .as_ref()
                 .map(|expr| expr.functions(asg))
                 .unwrap_or_default(),

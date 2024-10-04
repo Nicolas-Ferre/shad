@@ -1,13 +1,12 @@
-use crate::{Asg, AsgFn, AsgType};
+use crate::{Asg, AsgFn, AsgReturn, AsgType};
 use shad_error::{ErrorLevel, LocatedMessage, SemanticError, Span};
-use shad_parser::{AstReturn, AstStatement};
 
-pub(crate) fn outside_fn(asg: &Asg, statement: &AstReturn) -> SemanticError {
+pub(crate) fn outside_fn(asg: &Asg, statement: &AsgReturn) -> SemanticError {
     SemanticError::new(
         "`return` statement used outside function",
         vec![LocatedMessage {
             level: ErrorLevel::Error,
-            span: statement.span,
+            span: statement.ast.span,
             text: "invalid statement".into(),
         }],
         &asg.code,
@@ -17,7 +16,7 @@ pub(crate) fn outside_fn(asg: &Asg, statement: &AstReturn) -> SemanticError {
 
 pub(crate) fn invalid_type(
     asg: &Asg,
-    statement: &AstReturn,
+    return_: &AsgReturn,
     fn_: &AsgFn,
     actual: &AsgType,
     expected: &AsgType,
@@ -27,7 +26,7 @@ pub(crate) fn invalid_type(
         vec![
             LocatedMessage {
                 level: ErrorLevel::Error,
-                span: statement.expr.span(),
+                span: return_.ast.expr.span(),
                 text: format!("expression of type `{}`", actual.name.as_str()),
             },
             LocatedMessage {
@@ -46,17 +45,13 @@ pub(crate) fn invalid_type(
     )
 }
 
-pub(crate) fn statement_after(
-    asg: &Asg,
-    statement: &AstStatement,
-    return_span: Span,
-) -> SemanticError {
+pub(crate) fn statement_after(asg: &Asg, statement_span: Span, return_span: Span) -> SemanticError {
     SemanticError::new(
         "statement found after `return` statement",
         vec![
             LocatedMessage {
                 level: ErrorLevel::Error,
-                span: statement.span(),
+                span: statement_span,
                 text: "this statement cannot be defined after a `return` statement".into(),
             },
             LocatedMessage {
@@ -70,12 +65,12 @@ pub(crate) fn statement_after(
     )
 }
 
-pub(crate) fn no_return_type(asg: &Asg, statement: &AstReturn) -> SemanticError {
+pub(crate) fn no_return_type(asg: &Asg, return_: &AsgReturn) -> SemanticError {
     SemanticError::new(
         "use of `return` in a function with no return type",
         vec![LocatedMessage {
             level: ErrorLevel::Error,
-            span: statement.span,
+            span: return_.ast.span,
             text: "invalid statement".into(),
         }],
         &asg.code,

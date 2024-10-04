@@ -1,6 +1,6 @@
-use crate::statement::{AsgStatement, AsgStatementScopeType, AsgStatements};
+use crate::passes::check::StatementScope;
+use crate::statement::{AsgStatement, AsgStatements};
 use crate::{errors, type_, Asg, AsgExpr, AsgType, Error, Result, TypeResolving};
-use fxhash::FxHashMap;
 use shad_error::Span;
 use shad_parser::{AstFnItem, AstFnParam, AstFnQualifier, AstIdent};
 use std::rc::Rc;
@@ -35,8 +35,8 @@ pub const LE_FN: &str = "__le__";
 pub const AND_FN: &str = "__and__";
 /// The function name corresponding to binary `||` operator behavior.
 pub const OR_FN: &str = "__or__";
-const SPECIAL_UNARY_FNS: [&str; 2] = [NEG_FN, NOT_FN];
-const SPECIAL_BINARY_FNS: [&str; 13] = [
+pub(crate) const SPECIAL_UNARY_FNS: [&str; 2] = [NEG_FN, NOT_FN];
+pub(crate) const SPECIAL_BINARY_FNS: [&str; 13] = [
     ADD_FN, SUB_FN, MUL_FN, DIV_FN, MOD_FN, EQ_FN, NE_FN, GT_FN, LT_FN, GE_FN, LE_FN, AND_FN, OR_FN,
 ];
 
@@ -92,14 +92,6 @@ pub struct AsgFn {
 
 impl AsgFn {
     pub(crate) fn new(asg: &mut Asg, fn_: &AstFnItem) -> Self {
-        // TODO: move in check phase
-        Self::check_duplicated_params(asg, fn_);
-        if SPECIAL_UNARY_FNS.contains(&fn_.name.label.as_str()) {
-            Self::check_unary_fn(asg, fn_);
-        }
-        if SPECIAL_BINARY_FNS.contains(&fn_.name.label.as_str()) {
-            Self::check_binary_fn(asg, fn_);
-        }
         let params: Vec<_> = fn_
             .params
             .iter()
@@ -117,42 +109,6 @@ impl AsgFn {
             },
         }
     }
-
-    // TODO: move in check phase
-    fn check_duplicated_params(asg: &mut Asg, fn_: &AstFnItem) {
-        let mut names = FxHashMap::default();
-        for param in &fn_.params {
-            let existing = names.insert(&param.name.label, &param.name);
-            if let Some(existing) = existing {
-                asg.errors
-                    .push(errors::fn_::duplicated_param(asg, &param.name, existing));
-            }
-        }
-    }
-
-    // TODO: move in check phase
-    fn check_unary_fn(asg: &mut Asg, fn_: &AstFnItem) {
-        const EXPECTED_PARAM_COUNT: usize = 1;
-        if fn_.params.len() != EXPECTED_PARAM_COUNT {
-            asg.errors.push(errors::fn_::invalid_param_count(
-                asg,
-                fn_,
-                EXPECTED_PARAM_COUNT,
-            ));
-        }
-    }
-
-    // TODO: move in check phase
-    fn check_binary_fn(asg: &mut Asg, fn_: &AstFnItem) {
-        const EXPECTED_PARAM_COUNT: usize = 2;
-        if fn_.params.len() != EXPECTED_PARAM_COUNT {
-            asg.errors.push(errors::fn_::invalid_param_count(
-                asg,
-                fn_,
-                EXPECTED_PARAM_COUNT,
-            ));
-        }
-    }
 }
 
 /// An analyzed function body.
@@ -163,16 +119,16 @@ pub struct AsgFnBody {
 }
 
 impl AsgFnBody {
-    pub(crate) fn new(asg: &mut Asg, fn_: &AsgFn) -> Self {
+    pub(crate) fn new(asg: &mut Asg, fn_: &Rc<AsgFn>) -> Self {
         Self {
             statements: AsgStatements::analyze(
                 asg,
                 &fn_.ast.statements,
                 match fn_.ast.qualifier {
                     AstFnQualifier::None | AstFnQualifier::Gpu => {
-                        AsgStatementScopeType::FnBody(fn_)
+                        StatementScope::FnBody(fn_.clone())
                     }
-                    AstFnQualifier::Buf => AsgStatementScopeType::BufFnBody(fn_),
+                    AstFnQualifier::Buf => StatementScope::BufFnBody(fn_.clone()),
                 },
             ),
         }

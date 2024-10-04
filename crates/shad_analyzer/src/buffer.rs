@@ -14,11 +14,12 @@ pub struct AsgBuffer {
 }
 
 impl AsgBuffer {
-    pub(crate) fn new(asg: &mut Asg, ctx: &AsgStatements<'_>, buffer: &AstBufferItem) -> Self {
+    pub(crate) fn new(asg: &mut Asg, buffer: &AstBufferItem) -> Self {
+        let ctx = AsgStatements::buffer_scope();
         Self {
             ast: buffer.clone(),
             index: asg.buffers.len(),
-            expr: AsgExpr::new(asg, ctx, &buffer.value),
+            expr: AsgExpr::new(asg, &ctx, &buffer.value),
         }
     }
 }

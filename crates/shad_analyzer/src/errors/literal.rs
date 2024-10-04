@@ -1,13 +1,12 @@
-use crate::Asg;
+use crate::{Asg, AsgLiteral};
 use shad_error::{ErrorLevel, LocatedMessage, SemanticError, Span};
-use shad_parser::AstLiteral;
 
-pub(crate) fn invalid_integer(asg: &Asg, literal: &AstLiteral, type_name: &str) -> SemanticError {
+pub(crate) fn invalid_integer(asg: &Asg, literal: &AsgLiteral, type_name: &str) -> SemanticError {
     SemanticError::new(
         format!("`{type_name}` literal out of range"),
         vec![LocatedMessage {
             level: ErrorLevel::Error,
-            span: literal.span,
+            span: literal.ast.span,
             text: format!("value is outside allowed range for `{type_name}` type"),
         }],
         &asg.code,

@@ -2,8 +2,9 @@
 
 use shad_analyzer::{
     Asg, AsgBuffer, AsgComputeShader, AsgExpr, AsgFn, AsgFnCall, AsgFnParam, AsgIdent,
-    AsgStatement, AsgType, AsgVariable, Result, TypeResolving, ADD_FN, AND_FN, DIV_FN, EQ_FN,
-    GE_FN, GT_FN, LE_FN, LT_FN, MOD_FN, MUL_FN, NEG_FN, NE_FN, NOT_FN, OR_FN, SUB_FN,
+    AsgIdentSource, AsgStatement, AsgType, AsgVariable, Result, TypeResolving, ADD_FN, AND_FN,
+    DIV_FN, EQ_FN, GE_FN, GT_FN, LE_FN, LT_FN, MOD_FN, MUL_FN, NEG_FN, NE_FN, NOT_FN, OR_FN,
+    SUB_FN,
 };
 use shad_parser::AstFnQualifier;
 use std::rc::Rc;
@@ -112,7 +113,13 @@ fn wgsl_statement(asg: &Asg, statement: &AsgStatement, indent: usize) -> Result<
             )
         }
         AsgStatement::Assignment(statement) => {
-            let is_buffer = matches!(statement.assigned, Ok(AsgIdent::Buffer(_)));
+            let is_buffer = matches!(
+                statement.assigned,
+                Ok(AsgIdent {
+                    source: AsgIdentSource::Buffer(_),
+                    ..
+                })
+            );
             let type_ = result_ref(&statement.expr)?.type_(asg)?;
             let cast = if is_buffer && type_.buf_final_name != type_.expr_final_name {
                 &type_.buf_final_name
@@ -128,7 +135,7 @@ fn wgsl_statement(asg: &Asg, statement: &AsgStatement, indent: usize) -> Result<
             )
         }
         AsgStatement::Return(statement) => {
-            format!("return {};", wgsl_expr(asg, result_ref(statement)?)?)
+            format!("return {};", wgsl_expr(asg, result_ref(&statement.expr)?)?)
         }
         AsgStatement::FnCall(statement) => {
             format!("{};", wgsl_fn_call(asg, result_ref(statement)?)?)
@@ -145,8 +152,8 @@ fn wgsl_expr(asg: &Asg, expr: &AsgExpr) -> Result<String> {
 }
 
 fn wgsl_ident(asg: &Asg, ident: &AsgIdent, is_expr: bool) -> Result<String> {
-    Ok(match ident {
-        AsgIdent::Buffer(buffer) => {
+    Ok(match &ident.source {
+        AsgIdentSource::Buffer(buffer) => {
             let type_ = result_ref(&buffer.expr)?.type_(asg)?;
             if is_expr && type_.buf_final_name != type_.expr_final_name {
                 format!("{}({})", type_.expr_final_name, buf_name(buffer))
@@ -154,8 +161,8 @@ fn wgsl_ident(asg: &Asg, ident: &AsgIdent, is_expr: bool) -> Result<String> {
                 buf_name(buffer)
             }
         }
-        AsgIdent::Var(variable) => var_name(variable),
-        AsgIdent::Param(param) => fn_param_name(param),
+        AsgIdentSource::Var(variable) => var_name(variable),
+        AsgIdentSource::Param(param) => fn_param_name(param),
     })
 }
 
@@ -234,7 +241,7 @@ fn fn_param_name(param: &AsgFnParam) -> String {
 }
 
 fn var_name(variable: &AsgVariable) -> String {
-    format!("v{}_{}", variable.index, variable.name.label)
+    format!("v{}_{}", variable.index, variable.ast.name.label)
 }
 
 fn result_ref<T>(result: &Result<T>) -> Result<&T> {

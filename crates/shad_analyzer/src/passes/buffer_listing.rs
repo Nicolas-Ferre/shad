@@ -1,6 +1,7 @@
 use crate::result::result_ref;
 use crate::{
-    Asg, AsgAssignment, AsgBuffer, AsgExpr, AsgFnCall, AsgIdent, AsgStatement, AsgVariable,
+    Asg, AsgAssignment, AsgBuffer, AsgExpr, AsgFnCall, AsgIdent, AsgIdentSource, AsgStatement,
+    AsgVariable,
 };
 use fxhash::FxHashMap;
 use std::rc::Rc;
@@ -28,6 +29,7 @@ impl BufferListing for AsgStatement {
             Self::Assignment(statement) => statement.buffers(asg),
             Self::Var(statement) => statement.buffers(asg),
             Self::Return(statement) => statement
+                .expr
                 .as_ref()
                 .map(|expr| expr.buffers(asg))
                 .unwrap_or_default(),
@@ -70,9 +72,9 @@ impl BufferListing for AsgExpr {
 
 impl BufferListing for AsgIdent {
     fn buffers(&self, _asg: &Asg) -> Vec<Rc<AsgBuffer>> {
-        match self {
-            Self::Buffer(buffer) => vec![buffer.clone()],
-            Self::Var(_) | Self::Param(_) => vec![],
+        match &self.source {
+            AsgIdentSource::Buffer(buffer) => vec![buffer.clone()],
+            AsgIdentSource::Var(_) | AsgIdentSource::Param(_) => vec![],
         }
     }
 }

@@ -1,17 +1,3 @@
-error: function `__add__` has an invalid number of parameters
- --> ./tests/cases_invalid/code/fn_call.shd:3:8
-  |
-3 | gpu fn __add__(param: u32) -> u32;
-  |        ^^^^^^^ found 1 parameters, expected 2
-  |
-
-error: function `__neg__` has an invalid number of parameters
- --> ./tests/cases_invalid/code/fn_call.shd:4:8
-  |
-4 | gpu fn __neg__(left: u32, right: u32) -> u32;
-  |        ^^^^^^^ found 2 parameters, expected 1
-  |
-
 error: could not find `pow(f32, i32)` function
  --> ./tests/cases_invalid/code/fn_call.shd:6:20
   |
@@ -26,12 +12,11 @@ error: could not find `a(i32)` function
   |                           ^ undefined function
   |
 
-error: `buf` function `buffer_fn()` called in invalid context
-  --> ./tests/cases_invalid/code/fn_call.shd:15:20
+error: could not find `buffer` value
+  --> ./tests/cases_invalid/code/fn_call.shd:12:12
    |
-15 | buf invalid_init = buffer_fn();
-   |                    ^^^^^^^^^^^ this function cannot be called here
-   |                    ----------- info: `buf` functions can only be called in `run` blocks and `buf fn` functions
+12 |     return buffer;
+   |            ^^^^^^ undefined identifier
    |
 
 error: `buf` function `buffer_fn()` called in invalid context
@@ -42,11 +27,26 @@ error: `buf` function `buffer_fn()` called in invalid context
    |            ----------- info: `buf` functions can only be called in `run` blocks and `buf fn` functions
    |
 
-error: could not find `buffer` value
-  --> ./tests/cases_invalid/code/fn_call.shd:12:12
+error: function `__add__` has an invalid number of parameters
+ --> ./tests/cases_invalid/code/fn_call.shd:3:8
+  |
+3 | gpu fn __add__(param: u32) -> u32;
+  |        ^^^^^^^ found 1 parameters, expected 2
+  |
+
+error: function `__neg__` has an invalid number of parameters
+ --> ./tests/cases_invalid/code/fn_call.shd:4:8
+  |
+4 | gpu fn __neg__(left: u32, right: u32) -> u32;
+  |        ^^^^^^^ found 2 parameters, expected 1
+  |
+
+error: `buf` function `buffer_fn()` called in invalid context
+  --> ./tests/cases_invalid/code/fn_call.shd:15:20
    |
-12 |     return buffer;
-   |            ^^^^^^ undefined identifier
+15 | buf invalid_init = buffer_fn();
+   |                    ^^^^^^^^^^^ this function cannot be called here
+   |                    ----------- info: `buf` functions can only be called in `run` blocks and `buf fn` functions
    |
 
 error: function `with_return_type()` called as a statement while having a return type

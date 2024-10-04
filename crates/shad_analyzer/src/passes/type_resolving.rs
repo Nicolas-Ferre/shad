@@ -1,6 +1,6 @@
 use crate::result::result_ref;
-use crate::Result;
 use crate::{Asg, AsgExpr, AsgFnCall, AsgIdent, AsgType};
+use crate::{AsgIdentSource, Result};
 use std::rc::Rc;
 
 /// A trait implemented to resolve the type of an expression.
@@ -25,10 +25,10 @@ impl TypeResolving for AsgExpr {
 
 impl TypeResolving for AsgIdent {
     fn type_<'a>(&'a self, asg: &'a Asg) -> Result<&'a Rc<AsgType>> {
-        match self {
-            Self::Buffer(buffer) => result_ref(&buffer.expr)?.type_(asg),
-            Self::Var(var) => result_ref(&var.expr)?.type_(asg),
-            Self::Param(param) => result_ref(&param.type_),
+        match &self.source {
+            AsgIdentSource::Buffer(buffer) => result_ref(&buffer.expr)?.type_(asg),
+            AsgIdentSource::Var(var) => result_ref(&var.expr)?.type_(asg),
+            AsgIdentSource::Param(param) => result_ref(&param.type_),
         }
     }
 }

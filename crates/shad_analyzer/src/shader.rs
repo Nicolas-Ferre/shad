@@ -1,7 +1,6 @@
-use crate::statement::{AsgAssignment, AsgStatement, AsgStatementScopeType, AsgStatements};
+use crate::statement::{AsgAssignment, AsgStatement};
 use crate::{Asg, AsgBuffer, AsgFn, BufferListing, FunctionListing};
 use fxhash::FxHashMap;
-use shad_parser::AstRunItem;
 use std::rc::Rc;
 
 /// An analyzed compute shader.
@@ -18,10 +17,8 @@ pub struct AsgComputeShader {
 }
 
 impl AsgComputeShader {
-    pub(crate) fn buffer_init(asg: &mut Asg, buffer: &Rc<AsgBuffer>) -> Self {
-        let statements = vec![AsgStatement::Assignment(AsgAssignment::buffer_init(
-            asg, buffer,
-        ))];
+    pub(crate) fn buffer_init(asg: &Asg, buffer: &Rc<AsgBuffer>) -> Self {
+        let statements = vec![AsgStatement::Assignment(AsgAssignment::buffer_init(buffer))];
         Self {
             buffers: BufferListing::slice_buffers(&statements, asg),
             functions: Self::functions(&statements, asg),
@@ -30,13 +27,11 @@ impl AsgComputeShader {
         }
     }
 
-    pub(crate) fn step(asg: &mut Asg, ast_run: &AstRunItem) -> Self {
-        let statements =
-            AsgStatements::analyze(asg, &ast_run.statements, AsgStatementScopeType::RunBlock);
+    pub(crate) fn step(asg: &Asg, statements: &[AsgStatement]) -> Self {
         Self {
-            buffers: BufferListing::slice_buffers(&statements, asg),
-            functions: Self::functions(&statements, asg),
-            statements,
+            buffers: BufferListing::slice_buffers(statements, asg),
+            functions: Self::functions(statements, asg),
+            statements: statements.to_vec(),
             name: "run".into(),
         }
     }

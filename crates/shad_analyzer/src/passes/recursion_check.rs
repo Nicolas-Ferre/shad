@@ -1,5 +1,8 @@
 use crate::errors::fn_;
-use crate::{Asg, AsgAssignment, AsgExpr, AsgFn, AsgFnCall, AsgStatement, AsgVariable, Error};
+use crate::result::result_ref;
+use crate::{
+    Asg, AsgAssignment, AsgExpr, AsgFn, AsgFnCall, AsgReturn, AsgStatement, AsgVariable, Error,
+};
 use fxhash::FxHashSet;
 use shad_error::{SemanticError, Span};
 use std::rc::Rc;
@@ -34,9 +37,9 @@ impl RecursionCheck for AsgStatement {
         match self {
             Self::Var(statement) => statement.check_recursion(asg, ctx)?,
             Self::Assignment(statement) => statement.check_recursion(asg, ctx)?,
-            Self::Return(Ok(statement)) => statement.check_recursion(asg, ctx)?,
+            Self::Return(statement) => statement.check_recursion(asg, ctx)?,
             Self::FnCall(Ok(statement)) => statement.check_recursion(asg, ctx)?,
-            Self::Return(Err(Error)) | Self::FnCall(Err(Error)) => {}
+            Self::FnCall(Err(Error)) => {}
         }
         Ok(())
     }
@@ -44,19 +47,19 @@ impl RecursionCheck for AsgStatement {
 
 impl RecursionCheck for AsgAssignment {
     fn check_recursion(&self, asg: &Asg, ctx: &mut FnRecursionChecker) -> crate::Result<()> {
-        if let Ok(expr) = &self.expr {
-            expr.check_recursion(asg, ctx)?;
-        }
-        Ok(())
+        result_ref(&self.expr).and_then(|expr| expr.check_recursion(asg, ctx))
     }
 }
 
 impl RecursionCheck for AsgVariable {
     fn check_recursion(&self, asg: &Asg, ctx: &mut FnRecursionChecker) -> crate::Result<()> {
-        if let Ok(expr) = &self.expr {
-            expr.check_recursion(asg, ctx)?;
-        }
-        Ok(())
+        result_ref(&self.expr).and_then(|expr| expr.check_recursion(asg, ctx))
+    }
+}
+
+impl RecursionCheck for AsgReturn {
+    fn check_recursion(&self, asg: &Asg, ctx: &mut FnRecursionChecker) -> crate::Result<()> {
+        result_ref(&self.expr).and_then(|expr| expr.check_recursion(asg, ctx))
     }
 }
 

@@ -17,6 +17,7 @@ shad_error.workspace = true
 shad_parser.workspace = true
 annotate-snippets.workspace = true
 fxhash.workspace = true
+log = "0.4.22"
 
 [lints]
 workspace = true
