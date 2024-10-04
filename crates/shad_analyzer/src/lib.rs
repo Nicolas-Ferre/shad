@@ -22,18 +22,19 @@
 //! ```
 
 mod asg;
-mod buffer;
-mod expr;
-mod function;
-mod shader;
-mod statement;
-mod type_;
-mod utils;
+mod errors;
+mod items;
+mod passes;
+mod result;
 
 pub use asg::*;
-pub use buffer::*;
-pub use expr::*;
-pub use function::*;
-pub use shader::*;
-pub use statement::*;
-pub use type_::*;
+pub use items::buffer::*;
+pub use items::expr::*;
+pub use items::function::*;
+pub use items::shader::*;
+pub use items::statement::*;
+pub use items::type_::*;
+pub use passes::buffer_listing::*;
+pub use passes::function_listing::*;
+pub use passes::type_resolving::*;
+pub use result::*;

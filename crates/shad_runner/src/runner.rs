@@ -1,6 +1,6 @@
 use futures::executor;
 use fxhash::FxHashMap;
-use shad_analyzer::{Asg, AsgBuffer, AsgComputeShader};
+use shad_analyzer::{Asg, AsgBuffer, AsgComputeShader, TypeResolving};
 use shad_error::Error;
 use shad_parser::Ast;
 use std::path::Path;

@@ -72,7 +72,7 @@ impl AstAssignment {
         let expr = AstExpr::parse(lexer)?;
         let semi_colon = parse_token(lexer, TokenType::SemiColon)?;
         Ok(Self {
-            span: Span::new(value.span.start, semi_colon.span.end),
+            span: Span::join(value.span, semi_colon.span),
             value,
             expr,
         })
@@ -102,7 +102,7 @@ impl AstVarDefinition {
         let expr = AstExpr::parse(lexer)?;
         let semi_colon = parse_token(lexer, TokenType::SemiColon)?;
         Ok(Self {
-            span: Span::new(var_.span.start, semi_colon.span.end),
+            span: Span::join(var_.span, semi_colon.span),
             name,
             expr,
         })
@@ -128,7 +128,7 @@ impl AstReturn {
         let expr = AstExpr::parse(lexer)?;
         let semi_colon = parse_token(lexer, TokenType::SemiColon)?;
         Ok(Self {
-            span: Span::new(return_.span.start, semi_colon.span.end),
+            span: Span::join(return_.span, semi_colon.span),
             expr,
         })
     }
@@ -152,7 +152,7 @@ impl AstFnCallStatement {
         let call = AstFnCall::parse(lexer)?;
         let semi_colon = parse_token(lexer, TokenType::SemiColon)?;
         Ok(Self {
-            span: Span::new(call.span.start, semi_colon.span.end),
+            span: Span::join(call.span, semi_colon.span),
             call,
         })
     }

@@ -12,4 +12,12 @@ impl Span {
     pub fn new(start: usize, end: usize) -> Self {
         Self { start, end }
     }
+
+    /// Join two spans.
+    pub fn join(start: Self, end: Self) -> Self {
+        Self {
+            start: start.start,
+            end: end.end,
+        }
+    }
 }

@@ -1,5 +1,5 @@
 [workspace]
-members = ["crates/*", "tmp/*", "run-wasm"]
+members = ["crates/*", "tests", "tmp/*", "run-wasm"]
 resolver = "2"
 
 [workspace.package]
@@ -25,6 +25,7 @@ futures = "0.3"
 fxhash = "0.2"
 image = "0.25"
 instant = "0.1"
+itertools = "0.13"
 log = "0.4"
 logos = "0.14"
 pico-args = "0.5"

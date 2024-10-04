@@ -1,0 +1,23 @@
+error: parameter `param` is defined multiple times
+ --> ./cases_invalid/code/fn_item.shd:1:37
+  |
+1 | gpu fn duplicated_param(param: f32, param: f32) -> f32;
+  |                                     ^^^^^ duplicated parameter
+  |                         ----- info: parameter with same name is defined here
+  |
+
+error: function `duplicated_fn(u32, u32)` is defined multiple times
+ --> ./cases_invalid/code/fn_item.shd:3:8
+  |
+2 | gpu fn duplicated_fn(param1: u32, param2: u32) -> i32;
+  |        ------------- info: function with same signature is defined here
+3 | gpu fn duplicated_fn(param3: u32, param4: u32) -> i32;
+  |        ^^^^^^^^^^^^^ duplicated function
+  |
+
+error: could not find `undef` type
+ --> ./cases_invalid/code/fn_item.shd:4:30
+  |
+4 | gpu fn undefined_type(param: undef) -> f32;
+  |                              ^^^^^ undefined type
+  |

@@ -1,10 +1,13 @@
-use crate::function::FnRecursionChecker;
-use crate::statement::AsgStatements;
+use crate::items::statement::StatementContext;
+use crate::items::type_;
+use crate::passes::check::{check, StatementScope};
+use crate::passes::recursion_check::check_recursion;
 use crate::{
-    buffer, function, type_, AsgBuffer, AsgComputeShader, AsgFn, AsgFnBody, AsgFnSignature, AsgType,
+    errors, AsgBuffer, AsgComputeShader, AsgFn, AsgFnBody, AsgFnSignature, AsgStatement, AsgType,
+    Error, Result,
 };
 use fxhash::FxHashMap;
-use shad_error::{ErrorLevel, LocatedMessage, SemanticError};
+use shad_error::{SemanticError, Span};
 use shad_parser::{Ast, AstIdent, AstItem};
 use std::rc::Rc;
 
@@ -23,12 +26,15 @@ pub struct Asg {
     pub function_bodies: FxHashMap<AsgFnSignature, AsgFnBody>,
     /// The mapping between Shad buffer names and buffer index.
     pub buffers: FxHashMap<String, Rc<AsgBuffer>>,
+    /// The mapping between Shad buffer names and buffer index.
+    pub run_blocks: Vec<Vec<AsgStatement>>,
     /// The initialization shaders.
     pub init_shaders: Vec<AsgComputeShader>,
     /// The shaders run during each step of the application loop.
     pub step_shaders: Vec<AsgComputeShader>,
     /// The semantic errors that occurred during the analysis.
     pub errors: Vec<SemanticError>,
+    var_next_index: usize,
 }
 
 #[allow(clippy::similar_names)]
@@ -42,20 +48,54 @@ impl Asg {
             functions: FxHashMap::default(),
             function_bodies: FxHashMap::default(),
             buffers: FxHashMap::default(),
+            run_blocks: vec![],
             init_shaders: vec![],
             step_shaders: vec![],
             errors: vec![],
+            var_next_index: 0,
         };
         asg.types = type_::primitive_types();
-        asg.analyze_functions(ast);
-        asg.analyze_buffers(ast);
-        asg.analyze_function_bodies();
-        asg.analyze_init_shaders();
-        asg.analyze_step_shaders(ast);
+        asg.register_functions(ast);
+        asg.register_buffers(ast);
+        asg.register_function_bodies();
+        asg.register_run_block(ast);
+        asg.errors.extend(check_recursion(&asg));
+        asg.errors.extend(check(&asg));
+        asg.register_init_shaders();
+        asg.register_step_shaders();
         asg
     }
 
-    fn analyze_functions(&mut self, ast: &Ast) {
+    pub(crate) fn next_var_index(&mut self) -> usize {
+        let index = self.var_next_index;
+        self.var_next_index += 1;
+        index
+    }
+
+    pub(crate) fn find_type(&mut self, name: &AstIdent) -> Result<&Rc<AsgType>> {
+        if let Some(type_) = self.types.get(&name.label) {
+            Ok(type_)
+        } else {
+            self.errors.push(errors::type_::not_found(self, name));
+            Err(Error)
+        }
+    }
+
+    pub(crate) fn find_function(
+        &mut self,
+        span: Span,
+        signature: &AsgFnSignature,
+    ) -> Result<&Rc<AsgFn>> {
+        if let Some(function) = self.functions.get(signature) {
+            Ok(function)
+        } else {
+            self.errors
+                .push(errors::fn_::not_found(self, span, signature));
+            Err(Error)
+        }
+    }
+
+    fn register_functions(&mut self, ast: &Ast) {
         for item in &ast.items {
             if let AstItem::Fn(ast_fn) = item {
                 let asg_fn = AsgFn::new(self, ast_fn);
@@ -63,41 +103,46 @@ impl Asg {
                 let signature = fn_.signature.clone();
                 if let Some(existing_fn) = self.functions.insert(signature, fn_) {
                     self.errors
-                        .push(function::duplicated_error(self, ast_fn, &existing_fn));
+                        .push(errors::fn_::duplicated(self, ast_fn, &existing_fn));
                 }
             }
         }
     }
 
-    fn analyze_buffers(&mut self, ast: &Ast) {
+    fn register_buffers(&mut self, ast: &Ast) {
         for item in &ast.items {
             if let AstItem::Buffer(ast_buffer) = item {
                 let name = ast_buffer.name.label.clone();
-                let statements = AsgStatements::buffer_scope();
-                let buffer = Rc::new(AsgBuffer::new(self, &statements, ast_buffer));
+                let buffer = Rc::new(AsgBuffer::new(self, ast_buffer));
                 if let Some(existing_buffer) = self.buffers.insert(name, buffer) {
-                    self.errors
-                        .push(buffer::duplicated_error(self, ast_buffer, &existing_buffer));
+                    self.errors.push(errors::buffer::duplicated(
+                        self,
+                        ast_buffer,
+                        &existing_buffer,
+                    ));
                 }
             }
         }
     }
 
-    fn analyze_function_bodies(&mut self) {
+    fn register_function_bodies(&mut self) {
         for (signature, fn_) in self.functions.clone() {
             let body = AsgFnBody::new(self, &fn_);
             self.function_bodies.insert(signature, body);
         }
-        let mut checker = FnRecursionChecker::default();
-        for fn_ in self.functions.values() {
-            checker.current_fn = Some(fn_.clone());
-            checker.calls.clear();
-            let _ = fn_.check_recursion(self, &mut checker);
-        }
-        self.errors.extend(checker.errors);
     }
 
-    fn analyze_init_shaders(&mut self) {
+    fn register_run_block(&mut self, ast: &Ast) {
+        for item in &ast.items {
+            if let AstItem::Run(ast_run) = item {
+                let statements =
+                    StatementContext::analyze(self, &ast_run.statements, StatementScope::RunBlock);
+                self.run_blocks.push(statements);
+            }
+        }
+    }
+
+    fn register_init_shaders(&mut self) {
         let mut buffers: Vec<_> = self.buffers.values().cloned().collect();
         buffers.sort_unstable_by_key(|buffer| buffer.index);
         for buffer in buffers {
@@ -106,25 +151,10 @@ impl Asg {
         }
     }
 
-    fn analyze_step_shaders(&mut self, ast: &Ast) {
-        for item in &ast.items {
-            if let AstItem::Run(ast_run) = item {
-                let shader = AsgComputeShader::step(self, ast_run);
-                self.step_shaders.push(shader);
-            }
+    fn register_step_shaders(&mut self) {
+        for statements in &self.run_blocks {
+            let shader = AsgComputeShader::step(self, statements);
+            self.step_shaders.push(shader);
         }
     }
-}
-
-pub(crate) fn not_found_ident_error(asg: &Asg, ident: &AstIdent) -> SemanticError {
-    SemanticError::new(
-        format!("could not find `{}` value", ident.label),
-        vec![LocatedMessage {
-            level: ErrorLevel::Error,
-            span: ident.span,
-            text: "undefined identifier".into(),
-        }],
-        &asg.code,
-        &asg.path,
-    )
 }

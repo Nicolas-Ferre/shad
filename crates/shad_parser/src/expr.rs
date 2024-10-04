@@ -132,7 +132,7 @@ impl AstUnaryOperation {
         let operator_token = Token::next(lexer)?;
         let expr = AstExpr::parse_part(lexer)?;
         Ok(Self {
-            span: Span::new(operator_token.span.start, expr.span().end),
+            span: Span::join(operator_token.span, expr.span()),
             operator_span: operator_token.span,
             operator,
             expr: Box::new(expr),
@@ -210,7 +210,7 @@ impl AstBinaryOperation {
             )?))
         };
         Ok(Self {
-            span: Span::new(left.span().start, right.span().end),
+            span: Span::join(left.span(), right.span()),
             operator_span: operators[operator_index].1,
             operator: operators[operator_index].0,
             left,
@@ -308,7 +308,7 @@ impl AstFnCall {
         }
         let close_parenthesis = parse_token(lexer, TokenType::CloseParenthesis)?;
         Ok(Self {
-            span: Span::new(name.span.start, close_parenthesis.span.end),
+            span: Span::join(name.span, close_parenthesis.span),
             name,
             args,
         })
