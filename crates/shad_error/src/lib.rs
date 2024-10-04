@@ -2,6 +2,7 @@
 //!
 //! This crate provides error types used by Shad parser and analyzer.
 
+use itertools::Itertools;
 use std::fmt::{Display, Formatter};
 use std::{error, io};
 
@@ -28,14 +29,17 @@ pub enum Error {
 impl Display for Error {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::Syntax(err) => Display::fmt(err, f),
+            Self::Syntax(err) => writeln!(f, "{err}"),
             Self::Semantic(err) => {
-                for err in err {
-                    writeln!(f, "{err}")?;
-                }
-                Ok(())
+                let sorted_errors = err
+                    .iter()
+                    .sorted_unstable_by_key(|err| err.located_messages[0].span.start)
+                    .map(|err| format!("{err}"))
+                    .collect::<Vec<_>>()
+                    .join("\n\n");
+                writeln!(f, "{sorted_errors}")
             }
-            Self::Io(err) => Display::fmt(err, f),
+            Self::Io(err) => writeln!(f, "{err}"),
         }
     }
 }

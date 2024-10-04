@@ -1,5 +1,3 @@
-use itertools::Itertools;
-use shad_error::Error;
 use shad_runner::Runner;
 use std::fs;
 
@@ -9,18 +7,10 @@ fn run_invalid_code() {
     for entry in fs::read_dir("./cases_invalid/code").unwrap() {
         let code_path = entry.unwrap().path();
         let result = Runner::new(&code_path);
-        let expected = String::from_utf8(strip_ansi_escapes::strip(
-            match result.expect_err("invalid code has successfully compiled") {
-                Error::Syntax(err) => format!("{err}"),
-                Error::Semantic(err) => err
-                    .iter()
-                    .sorted_unstable_by_key(|err| err.located_messages[0].span.start)
-                    .map(|err| format!("{err}"))
-                    .collect::<Vec<_>>()
-                    .join("\n\n"),
-                Error::Io(err) => format!("{err}"),
-            },
-        ))
+        let expected = String::from_utf8(strip_ansi_escapes::strip(format!(
+            "{}",
+            result.expect_err("invalid code has successfully compiled")
+        )))
         .unwrap();
         let case_name = code_path.file_stem().unwrap();
         let error_path = code_path
