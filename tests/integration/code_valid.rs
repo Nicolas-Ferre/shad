@@ -5,7 +5,7 @@ use std::fs;
 #[test]
 fn run_valid_code() {
     let mut should_rerun = false;
-    for entry in fs::read_dir("./tests/cases_valid/code").unwrap() {
+    for entry in fs::read_dir("./cases_valid/code").unwrap() {
         let code_path = entry.unwrap().path();
         let mut runner = Runner::new(&code_path).unwrap();
         runner.run_step();

@@ -1,5 +1,5 @@
 error: could not find `undefined` value
- --> ./tests/cases_invalid/code/assignment_undefined_assigned_value.shd:3:13
+ --> ./cases_invalid/code/assignment_undefined_assigned_value.shd:3:13
   |
 3 |     value = undefined;
   |             ^^^^^^^^^ undefined identifier

@@ -1,10 +1,10 @@
 [package]
-name = "shad_runner"
-description = "Shad language runner"
-readme = "../../README.md"
+name = "shad_tests"
+description = "Shad tests"
+readme = "../README.md"
 keywords = ["language", "gpu", "rendering", "compute", "shader"]
 categories = ["compilers"]
-exclude = [".github", "README.md"]
+publish = false
 version.workspace = true
 authors.workspace = true
 edition.workspace = true
@@ -17,10 +17,12 @@ shad_error.workspace = true
 shad_parser.workspace = true
 shad_transpiler.workspace = true
 shad_analyzer.workspace = true
-futures.workspace = true
-wgpu.workspace = true
-annotate-snippets.workspace = true
-fxhash.workspace = true
+shad_runner.workspace = true
+strip-ansi-escapes.workspace = true
 
 [lints]
 workspace = true
+
+[[test]]
+name = "integration"
+path = "integration/main.rs"

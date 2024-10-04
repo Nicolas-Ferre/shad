@@ -1,5 +1,5 @@
 error: invalid type for returned expression
- --> ./tests/cases_invalid/code/return.shd:2:12
+ --> ./cases_invalid/code/return.shd:2:12
   |
 1 | fn invalid_return_type(param: f32) -> i32 {
   |                                       --- info: expected type `i32`
@@ -8,7 +8,7 @@ error: invalid type for returned expression
   |
 
 error: statement found after `return` statement
- --> ./tests/cases_invalid/code/return.shd:7:5
+ --> ./cases_invalid/code/return.shd:7:5
   |
 6 |     return 0;
   |     --------- info: `return` statement defined here
@@ -17,14 +17,14 @@ error: statement found after `return` statement
   |
 
 error: use of `return` in a function with no return type
-  --> ./tests/cases_invalid/code/return.shd:16:5
+  --> ./cases_invalid/code/return.shd:16:5
    |
 16 |     return 0;
    |     ^^^^^^^^^ invalid statement
    |
 
 error: `return` statement used outside function
-  --> ./tests/cases_invalid/code/return.shd:12:5
+  --> ./cases_invalid/code/return.shd:12:5
    |
 12 |     return 0;
    |     ^^^^^^^^^ invalid statement

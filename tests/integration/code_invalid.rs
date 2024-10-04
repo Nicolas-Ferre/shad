@@ -5,7 +5,7 @@ use std::fs;
 #[test]
 fn run_invalid_code() {
     let mut should_rerun = false;
-    for entry in fs::read_dir("./tests/cases_invalid/code").unwrap() {
+    for entry in fs::read_dir("./cases_invalid/code").unwrap() {
         let code_path = entry.unwrap().path();
         let result = Runner::new(&code_path);
         let expected = String::from_utf8(strip_ansi_escapes::strip(

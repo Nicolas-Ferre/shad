@@ -1,5 +1,5 @@
 error: expected `;`
- --> ./tests/cases_invalid/code/expr_invalid_underscore_f32_frac_part.shd:1:17
+ --> ./cases_invalid/code/expr_invalid_underscore_f32_frac_part.shd:1:17
   |
 1 | buf value = 123._456;
   |                 ^ here
