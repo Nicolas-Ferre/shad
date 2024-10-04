@@ -1,3 +1,4 @@
+use itertools::Itertools;
 use shad_error::Error;
 use shad_runner::Runner;
 use std::fs;
@@ -13,6 +14,7 @@ fn run_invalid_code() {
                 Error::Syntax(err) => format!("{err}"),
                 Error::Semantic(err) => err
                     .iter()
+                    .sorted_unstable_by_key(|err| err.located_messages[0].span.start)
                     .map(|err| format!("{err}"))
                     .collect::<Vec<_>>()
                     .join("\n\n"),

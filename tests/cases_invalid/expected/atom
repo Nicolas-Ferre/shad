@@ -12,11 +12,12 @@ error: could not find `f32_too_many_digits` value
   |                       ^^^^^^^^^^^^^^^^^^^ undefined identifier
   |
 
-error: `i32` literal out of range
- --> ./cases_invalid/code/atom.shd:5:19
+error: `f32` literal with too many digits in integer part
+ --> ./cases_invalid/code/atom.shd:3:27
   |
-5 | buf i32_too_big = 2_147_483_648;
-  |                   ^^^^^^^^^^^^^ value is outside allowed range for `i32` type
+3 | buf f32_too_many_digits = 123456789012345678901234567890123456_789.;
+  |                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ found 39 digits
+  |                           ---------------------------------------- info: maximum 38 digits are expected
   |
 
 error: `u32` literal out of range
@@ -26,10 +27,9 @@ error: `u32` literal out of range
   |                   ^^^^^^^^^^^^^^ value is outside allowed range for `u32` type
   |
 
-error: `f32` literal with too many digits in integer part
- --> ./cases_invalid/code/atom.shd:3:27
+error: `i32` literal out of range
+ --> ./cases_invalid/code/atom.shd:5:19
   |
-3 | buf f32_too_many_digits = 123456789012345678901234567890123456_789.;
-  |                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ found 39 digits
-  |                           ---------------------------------------- info: maximum 38 digits are expected
+5 | buf i32_too_big = 2_147_483_648;
+  |                   ^^^^^^^^^^^^^ value is outside allowed range for `i32` type
   |

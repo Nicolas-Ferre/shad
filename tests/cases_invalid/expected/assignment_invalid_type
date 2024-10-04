@@ -1,11 +1,3 @@
-error: expression assigned to `param` has invalid type
-  --> ./cases_invalid/code/assignment_invalid_type.shd:11:13
-   |
-11 |     param = 0;
-   |             ^ expression of type `i32`
-   |     ----- info: expected type `f32`
-   |
-
 error: expression assigned to `f32_val` has invalid type
  --> ./cases_invalid/code/assignment_invalid_type.shd:5:15
   |
@@ -21,3 +13,11 @@ error: expression assigned to `local_f32_val` has invalid type
   |                     ^^^^^^^ expression of type `i32`
   |     ------------- info: expected type `f32`
   |
+
+error: expression assigned to `param` has invalid type
+  --> ./cases_invalid/code/assignment_invalid_type.shd:11:13
+   |
+11 |     param = 0;
+   |             ^ expression of type `i32`
+   |     ----- info: expected type `f32`
+   |

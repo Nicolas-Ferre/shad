@@ -18,6 +18,7 @@ shad_parser.workspace = true
 shad_transpiler.workspace = true
 shad_analyzer.workspace = true
 shad_runner.workspace = true
+itertools.workspace = true
 strip-ansi-escapes.workspace = true
 
 [lints]

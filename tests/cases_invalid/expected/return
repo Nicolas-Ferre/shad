@@ -16,16 +16,16 @@ error: statement found after `return` statement
   |     ^^^^^^^^^^^ this statement cannot be defined after a `return` statement
   |
 
-error: use of `return` in a function with no return type
-  --> ./cases_invalid/code/return.shd:16:5
-   |
-16 |     return 0;
-   |     ^^^^^^^^^ invalid statement
-   |
-
 error: `return` statement used outside function
   --> ./cases_invalid/code/return.shd:12:5
    |
 12 |     return 0;
+   |     ^^^^^^^^^ invalid statement
+   |
+
+error: use of `return` in a function with no return type
+  --> ./cases_invalid/code/return.shd:16:5
+   |
+16 |     return 0;
    |     ^^^^^^^^^ invalid statement
    |

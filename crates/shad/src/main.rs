@@ -2,6 +2,7 @@
 #![allow(clippy::print_stdout, clippy::use_debug)]
 
 use clap::Parser;
+use itertools::Itertools;
 use shad_analyzer::Asg;
 use shad_parser::Ast;
 use shad_runner::Runner;
@@ -117,9 +118,10 @@ impl AsgArgs {
         if asg.errors.is_empty() {
             println!("{asg:#?}");
         } else {
-            for err in &asg.errors {
-                println!("{err}");
-            }
+            asg.errors
+                .iter()
+                .sorted_unstable_by_key(|err| err.located_messages[0].span.start)
+                .for_each(|err| println!("{err}"));
             process::exit(1);
         }
     }
