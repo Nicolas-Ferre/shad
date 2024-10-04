@@ -7,12 +7,12 @@ use shad_parser::{AstAssignment, AstReturn, AstStatement, AstVarDefinition};
 use std::rc::Rc;
 
 #[derive(Debug, PartialEq, Eq, Clone)]
-pub(crate) struct AsgStatements {
+pub(crate) struct StatementContext {
     pub(crate) scope: StatementScope,
     pub(crate) variables: FxHashMap<String, Rc<AsgVariable>>,
 }
 
-impl AsgStatements {
+impl StatementContext {
     pub(crate) fn buffer_scope() -> Self {
         Self {
             scope: StatementScope::BufferExpr,
@@ -59,7 +59,7 @@ pub enum AsgStatement {
 }
 
 impl AsgStatement {
-    fn new(asg: &mut Asg, ctx: &mut AsgStatements, statement: &AstStatement) -> Self {
+    fn new(asg: &mut Asg, ctx: &mut StatementContext, statement: &AstStatement) -> Self {
         match statement {
             AstStatement::Var(statement) => Self::Var(AsgVariable::new(asg, ctx, statement)),
             AstStatement::Assignment(statement) => {
@@ -102,7 +102,7 @@ pub struct AsgAssignment {
 }
 
 impl AsgAssignment {
-    fn new(asg: &mut Asg, ctx: &AsgStatements, assignment: &AstAssignment) -> Self {
+    fn new(asg: &mut Asg, ctx: &StatementContext, assignment: &AstAssignment) -> Self {
         Self {
             ast: Some(assignment.clone()),
             assigned: AsgIdent::new(asg, ctx, &assignment.value),
@@ -138,7 +138,7 @@ pub struct AsgVariable {
 }
 
 impl AsgVariable {
-    fn new(asg: &mut Asg, ctx: &mut AsgStatements, variable: &AstVarDefinition) -> Rc<Self> {
+    fn new(asg: &mut Asg, ctx: &mut StatementContext, variable: &AstVarDefinition) -> Rc<Self> {
         let final_variable = Rc::new(Self {
             ast: variable.clone(),
             index: asg.next_var_index(),
@@ -160,7 +160,7 @@ pub struct AsgReturn {
 }
 
 impl AsgReturn {
-    fn new(asg: &mut Asg, ctx: &AsgStatements, return_: &AstReturn) -> Self {
+    fn new(asg: &mut Asg, ctx: &StatementContext, return_: &AstReturn) -> Self {
         Self {
             ast: return_.clone(),
             expr: AsgExpr::new(asg, ctx, &return_.expr),

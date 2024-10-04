@@ -1,7 +1,6 @@
+use crate::items::statement::StatementContext;
 use crate::passes::check::StatementScope;
-use crate::statement::{AsgStatement, AsgStatements};
-use crate::{errors, type_, Asg, AsgExpr, AsgType, Error, Result, TypeResolving};
-use shad_error::Span;
+use crate::{Asg, AsgExpr, AsgStatement, AsgType, Result, TypeResolving};
 use shad_parser::{AstFnItem, AstFnParam, AstFnQualifier, AstIdent};
 use std::rc::Rc;
 
@@ -103,7 +102,7 @@ impl AsgFn {
             index: asg.functions.len(),
             params,
             return_type: if let Some(type_) = &fn_.return_type {
-                type_::find(asg, type_).cloned().map(Some)
+                asg.find_type(type_).cloned().map(Some)
             } else {
                 Ok(None)
             },
@@ -121,7 +120,7 @@ pub struct AsgFnBody {
 impl AsgFnBody {
     pub(crate) fn new(asg: &mut Asg, fn_: &Rc<AsgFn>) -> Self {
         Self {
-            statements: AsgStatements::analyze(
+            statements: StatementContext::analyze(
                 asg,
                 &fn_.ast.statements,
                 match fn_.ast.qualifier {
@@ -148,21 +147,7 @@ impl AsgFnParam {
     fn new(asg: &mut Asg, param: &AstFnParam) -> Self {
         Self {
             name: param.name.clone(),
-            type_: type_::find(asg, &param.type_).cloned(),
+            type_: asg.find_type(&param.type_).cloned(),
         }
-    }
-}
-
-pub(crate) fn find<'a>(
-    asg: &'a mut Asg,
-    span: Span,
-    signature: &AsgFnSignature,
-) -> Result<&'a Rc<AsgFn>> {
-    if let Some(function) = asg.functions.get(signature) {
-        Ok(function)
-    } else {
-        asg.errors
-            .push(errors::fn_::not_found(asg, span, signature));
-        Err(Error)
     }
 }

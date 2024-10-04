@@ -1,13 +1,14 @@
+use crate::items::statement::StatementContext;
+use crate::items::type_;
 use crate::passes::check::{check, StatementScope};
 use crate::passes::recursion_check::check_recursion;
-use crate::statement::AsgStatements;
 use crate::{
-    errors, type_, AsgBuffer, AsgComputeShader, AsgFn, AsgFnBody, AsgFnSignature, AsgStatement,
-    AsgType,
+    errors, AsgBuffer, AsgComputeShader, AsgFn, AsgFnBody, AsgFnSignature, AsgStatement, AsgType,
+    Error, Result,
 };
 use fxhash::FxHashMap;
-use shad_error::SemanticError;
-use shad_parser::{Ast, AstItem};
+use shad_error::{SemanticError, Span};
+use shad_parser::{Ast, AstIdent, AstItem};
 use std::rc::Rc;
 
 /// The Abstract Semantic Graph of an analyzed Shad code.
@@ -71,6 +72,29 @@ impl Asg {
         index
     }
 
+    pub(crate) fn find_type(&mut self, name: &AstIdent) -> Result<&Rc<AsgType>> {
+        if let Some(type_) = self.types.get(&name.label) {
+            Ok(type_)
+        } else {
+            self.errors.push(errors::type_::not_found(self, name));
+            Err(Error)
+        }
+    }
+
+    pub(crate) fn find_function(
+        &mut self,
+        span: Span,
+        signature: &AsgFnSignature,
+    ) -> Result<&Rc<AsgFn>> {
+        if let Some(function) = self.functions.get(signature) {
+            Ok(function)
+        } else {
+            self.errors
+                .push(errors::fn_::not_found(self, span, signature));
+            Err(Error)
+        }
+    }
+
     fn register_functions(&mut self, ast: &Ast) {
         for item in &ast.items {
             if let AstItem::Fn(ast_fn) = item {
@@ -112,7 +136,7 @@ impl Asg {
         for item in &ast.items {
             if let AstItem::Run(ast_run) = item {
                 let statements =
-                    AsgStatements::analyze(self, &ast_run.statements, StatementScope::RunBlock);
+                    StatementContext::analyze(self, &ast_run.statements, StatementScope::RunBlock);
                 self.run_blocks.push(statements);
             }
         }

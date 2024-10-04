@@ -1,4 +1,4 @@
-use crate::statement::AsgStatements;
+use crate::items::statement::StatementContext;
 use crate::{Asg, AsgExpr, Result};
 use shad_parser::AstBufferItem;
 
@@ -15,7 +15,7 @@ pub struct AsgBuffer {
 
 impl AsgBuffer {
     pub(crate) fn new(asg: &mut Asg, buffer: &AstBufferItem) -> Self {
-        let ctx = AsgStatements::buffer_scope();
+        let ctx = StatementContext::buffer_scope();
         Self {
             ast: buffer.clone(),
             index: asg.buffers.len(),

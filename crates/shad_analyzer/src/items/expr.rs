@@ -1,6 +1,6 @@
-use crate::statement::{AsgStatements, AsgVariable};
+use crate::items::statement::StatementContext;
 use crate::{
-    errors, function, Asg, AsgBuffer, AsgFn, AsgFnParam, AsgFnSignature, AsgType, Error, Result,
+    errors, Asg, AsgBuffer, AsgFn, AsgFnParam, AsgFnSignature, AsgType, AsgVariable, Error, Result,
     ADD_FN, AND_FN, DIV_FN, EQ_FN, GE_FN, GT_FN, LE_FN, LT_FN, MOD_FN, MUL_FN, NEG_FN, NE_FN,
     NOT_FN, OR_FN, SUB_FN,
 };
@@ -23,7 +23,7 @@ pub enum AsgExpr {
 }
 
 impl AsgExpr {
-    pub(crate) fn new(asg: &mut Asg, ctx: &AsgStatements, expr: &AstExpr) -> Result<Self> {
+    pub(crate) fn new(asg: &mut Asg, ctx: &StatementContext, expr: &AstExpr) -> Result<Self> {
         match expr {
             AstExpr::Literal(expr) => Ok(Self::Literal(AsgLiteral::new(asg, expr))),
             AstExpr::Ident(expr) => AsgIdent::new(asg, ctx, expr).map(Self::Ident),
@@ -78,7 +78,7 @@ pub struct AsgIdent {
 }
 
 impl AsgIdent {
-    pub(crate) fn new(asg: &mut Asg, ctx: &AsgStatements, ident: &AstIdent) -> Result<Self> {
+    pub(crate) fn new(asg: &mut Asg, ctx: &StatementContext, ident: &AstIdent) -> Result<Self> {
         let buffers_allowed = ctx.scope.are_buffers_allowed();
         Ok(Self {
             ast: ident.clone(),
@@ -127,7 +127,7 @@ pub struct AsgFnCall {
 }
 
 impl AsgFnCall {
-    pub(crate) fn new(asg: &mut Asg, ctx: &AsgStatements, fn_call: &AstFnCall) -> Result<Self> {
+    pub(crate) fn new(asg: &mut Asg, ctx: &StatementContext, fn_call: &AstFnCall) -> Result<Self> {
         let args = fn_call
             .args
             .iter()
@@ -136,14 +136,14 @@ impl AsgFnCall {
         let signature = AsgFnSignature::from_call(asg, &fn_call.name.label, &args)?;
         Ok(Self {
             span: fn_call.span,
-            fn_: function::find(asg, fn_call.name.span, &signature)?.clone(),
+            fn_: asg.find_function(fn_call.name.span, &signature)?.clone(),
             args,
         })
     }
 
     fn from_unary_op(
         asg: &mut Asg,
-        ctx: &AsgStatements,
+        ctx: &StatementContext,
         operation: &AstUnaryOperation,
     ) -> Result<Self> {
         let args = vec![AsgExpr::new(asg, ctx, &operation.expr)?];
@@ -154,14 +154,16 @@ impl AsgFnCall {
         let signature = AsgFnSignature::from_call(asg, fn_name, &args)?;
         Ok(Self {
             span: operation.span,
-            fn_: function::find(asg, operation.operator_span, &signature)?.clone(),
+            fn_: asg
+                .find_function(operation.operator_span, &signature)?
+                .clone(),
             args,
         })
     }
 
     fn from_binary_op(
         asg: &mut Asg,
-        ctx: &AsgStatements,
+        ctx: &StatementContext,
         operation: &AstBinaryOperation,
     ) -> Result<Self> {
         let args = vec![
@@ -186,7 +188,9 @@ impl AsgFnCall {
         let signature = AsgFnSignature::from_call(asg, fn_name, &args)?;
         Ok(Self {
             span: operation.span,
-            fn_: function::find(asg, operation.operator_span, &signature)?.clone(),
+            fn_: asg
+                .find_function(operation.operator_span, &signature)?
+                .clone(),
             args,
         })
     }

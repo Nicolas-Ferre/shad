@@ -1,5 +1,5 @@
 use crate::errors::assignment;
-use crate::function::{SPECIAL_BINARY_FNS, SPECIAL_UNARY_FNS};
+use crate::items::function::{SPECIAL_BINARY_FNS, SPECIAL_UNARY_FNS};
 use crate::result::result_ref;
 use crate::{
     errors, Asg, AsgAssignment, AsgExpr, AsgFn, AsgFnBody, AsgFnCall, AsgLiteral, AsgReturn,

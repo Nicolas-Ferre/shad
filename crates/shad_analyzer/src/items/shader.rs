@@ -1,5 +1,4 @@
-use crate::statement::{AsgAssignment, AsgStatement};
-use crate::{Asg, AsgBuffer, AsgFn, BufferListing, FunctionListing};
+use crate::{Asg, AsgAssignment, AsgBuffer, AsgFn, AsgStatement, BufferListing, FunctionListing};
 use fxhash::FxHashMap;
 use std::rc::Rc;
 

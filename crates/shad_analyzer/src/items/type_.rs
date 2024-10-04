@@ -1,6 +1,4 @@
-use crate::{errors, Asg, Error, Result};
 use fxhash::FxHashMap;
-use shad_parser::AstIdent;
 use std::rc::Rc;
 
 /// The 32-bit floating point type name.
@@ -82,13 +80,4 @@ pub(crate) fn primitive_types() -> FxHashMap<String, Rc<AsgType>> {
     ]
     .into_iter()
     .collect()
-}
-
-pub(crate) fn find<'a>(asg: &'a mut Asg, name: &AstIdent) -> Result<&'a Rc<AsgType>> {
-    if let Some(type_) = asg.types.get(&name.label) {
-        Ok(type_)
-    } else {
-        asg.errors.push(errors::type_::not_found(asg, name));
-        Err(Error)
-    }
 }
