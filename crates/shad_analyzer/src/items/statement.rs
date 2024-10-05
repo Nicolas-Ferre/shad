@@ -13,9 +13,9 @@ pub(crate) struct StatementContext {
 }
 
 impl StatementContext {
-    pub(crate) fn buffer_scope() -> Self {
+    pub(crate) fn from_scope(scope: StatementScope) -> Self {
         Self {
-            scope: StatementScope::BufferExpr,
+            scope,
             variables: FxHashMap::default(),
         }
     }
@@ -49,7 +49,7 @@ impl StatementContext {
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub enum AsgStatement {
     /// A variable definition.
-    Var(Rc<AsgVariable>),
+    Var(AsgVariableDefinition),
     /// A variable assignment.
     Assignment(AsgAssignment),
     /// A return statement.
@@ -61,20 +61,18 @@ pub enum AsgStatement {
 impl AsgStatement {
     fn new(asg: &mut Asg, ctx: &mut StatementContext, statement: &AstStatement) -> Self {
         match statement {
-            AstStatement::Var(statement) => Self::Var(AsgVariable::new(asg, ctx, statement)),
-            AstStatement::Assignment(statement) => {
-                Self::Assignment(AsgAssignment::new(asg, ctx, statement))
+            AstStatement::Var(var) => Self::Var(AsgVariableDefinition::new(asg, ctx, var)),
+            AstStatement::Assignment(assignment) => {
+                Self::Assignment(AsgAssignment::new(asg, ctx, assignment))
             }
-            AstStatement::Return(statement) => Self::Return(AsgReturn::new(asg, ctx, statement)),
-            AstStatement::FnCall(statement) => {
-                Self::FnCall(AsgFnCall::new(asg, ctx, &statement.call))
-            }
+            AstStatement::Return(return_) => Self::Return(AsgReturn::new(asg, ctx, return_)),
+            AstStatement::FnCall(call) => Self::FnCall(AsgFnCall::new(asg, ctx, &call.call)),
         }
     }
 
     pub(crate) fn span(&self) -> Result<Span> {
         match self {
-            Self::Var(statement) => Ok(statement.ast.span),
+            Self::Var(statement) => Ok(statement.var.ast.span),
             Self::Assignment(statement) => Ok(statement
                 .ast
                 .as_ref()
@@ -122,6 +120,29 @@ impl AsgAssignment {
             expr: buffer.expr.clone(),
             assigned_span: buffer.ast.name.span,
             expr_span: buffer.ast.value.span(),
+        }
+    }
+}
+
+/// An analyzed variable definition.
+#[derive(Debug, PartialEq, Eq, Clone)]
+pub struct AsgVariableDefinition {
+    /// The variable details.
+    pub var: Rc<AsgVariable>,
+    /// The value assigned to the variable.
+    pub expr: Result<AsgExpr>,
+}
+
+impl AsgVariableDefinition {
+    pub(crate) fn new(
+        asg: &mut Asg,
+        ctx: &mut StatementContext,
+        variable: &AstVarDefinition,
+    ) -> Self {
+        let var = AsgVariable::new(asg, ctx, variable);
+        Self {
+            expr: var.expr.clone(),
+            var,
         }
     }
 }

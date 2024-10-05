@@ -106,7 +106,7 @@ fn wgsl_statement(asg: &Asg, statement: &AsgStatement, indent: usize) -> Result<
         AsgStatement::Var(statement) => {
             format!(
                 "{empty: >width$}var {} = {};",
-                var_name(statement),
+                var_name(&statement.var),
                 wgsl_expr(asg, result_ref(&statement.expr)?)?,
                 empty = "",
                 width = indent * IDENT_UNIT,

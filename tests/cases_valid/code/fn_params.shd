@@ -1,0 +1,20 @@
+buf value_from_modified_param = 0;
+buf value_from_aliased_param = 0;
+
+run {
+    value_from_modified_param = calculate_from_modified_param(4);
+    value_from_aliased_param = calculate_from_aliased_param(4);
+}
+
+fn calculate_from_modified_param(param: i32) -> i32 {
+    param = param * 2;
+    return param;
+}
+
+fn calculate_from_aliased_param(param: i32) -> i32 {
+    var param = 10;
+    param = param * 2;
+    return param;
+}
+
+gpu fn __mul__(left: i32, right: i32) -> i32;

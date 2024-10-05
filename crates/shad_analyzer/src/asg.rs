@@ -1,6 +1,7 @@
 use crate::items::statement::StatementContext;
 use crate::items::type_;
 use crate::passes::check::{check, StatementScope};
+use crate::passes::fn_param_extraction::extract_fn_params;
 use crate::passes::recursion_check::check_recursion;
 use crate::{
     errors, AsgBuffer, AsgComputeShader, AsgFn, AsgFnBody, AsgFnSignature, AsgStatement, AsgType,
@@ -61,6 +62,7 @@ impl Asg {
         asg.register_run_block(ast);
         asg.errors.extend(check_recursion(&asg));
         asg.errors.extend(check(&asg));
+        extract_fn_params(&mut asg);
         asg.register_init_shaders();
         asg.register_step_shaders();
         asg
