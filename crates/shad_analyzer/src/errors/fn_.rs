@@ -181,7 +181,7 @@ pub(crate) fn recursion_found(
     )
 }
 
-fn signature_str(fn_: &AstFnItem) -> String {
+pub(crate) fn signature_str(fn_: &AstFnItem) -> String {
     format!(
         "{}({})",
         &fn_.name.label,

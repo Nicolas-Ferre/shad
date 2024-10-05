@@ -1,4 +1,5 @@
 use crate::errors::assignment;
+use crate::errors::return_::missing_return;
 use crate::items::function::{SPECIAL_BINARY_FNS, SPECIAL_UNARY_FNS};
 use crate::result::result_ref;
 use crate::{
@@ -110,10 +111,18 @@ impl ErrorCheck for AsgFn {
 
 impl ErrorCheck for AsgFnBody {
     fn check(&self, asg: &Asg, ctx: &mut ErrorCheckContext) -> Vec<SemanticError> {
-        self.statements
+        let mut errors: Vec<_> = self
+            .statements
             .iter()
             .flat_map(|statement| statement.check(asg, ctx))
-            .collect()
+            .collect();
+        if self.fn_.ast.qualifier != AstFnQualifier::Gpu
+            && ctx.return_span.is_none()
+            && matches!(&self.fn_.return_type, Ok(Some(_)))
+        {
+            errors.push(missing_return(asg, &self.fn_));
+        }
+        errors
     }
 }
 
