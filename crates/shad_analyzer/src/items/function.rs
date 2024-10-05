@@ -108,6 +108,19 @@ impl AsgFn {
             },
         }
     }
+
+    pub(crate) fn scope(self: &Rc<Self>) -> StatementScope {
+        match self.ast.qualifier {
+            AstFnQualifier::None | AstFnQualifier::Gpu => StatementScope::FnBody(self.clone()),
+            AstFnQualifier::Buf => StatementScope::BufFnBody(self.clone()),
+        }
+    }
+
+    pub(crate) fn body_statements<'a>(&self, asg: &'a mut Asg) -> &'a mut AsgFnBody {
+        asg.function_bodies
+            .get_mut(&self.signature)
+            .expect("internal error: not found function body")
+    }
 }
 
 /// An analyzed function body.
@@ -120,16 +133,7 @@ pub struct AsgFnBody {
 impl AsgFnBody {
     pub(crate) fn new(asg: &mut Asg, fn_: &Rc<AsgFn>) -> Self {
         Self {
-            statements: StatementContext::analyze(
-                asg,
-                &fn_.ast.statements,
-                match fn_.ast.qualifier {
-                    AstFnQualifier::None | AstFnQualifier::Gpu => {
-                        StatementScope::FnBody(fn_.clone())
-                    }
-                    AstFnQualifier::Buf => StatementScope::BufFnBody(fn_.clone()),
-                },
-            ),
+            statements: StatementContext::analyze(asg, &fn_.ast.statements, fn_.scope()),
         }
     }
 }

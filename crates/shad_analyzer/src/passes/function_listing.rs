@@ -1,5 +1,5 @@
 use crate::result::result_ref;
-use crate::{Asg, AsgAssignment, AsgExpr, AsgFn, AsgFnCall, AsgStatement, AsgVariable};
+use crate::{Asg, AsgAssignment, AsgExpr, AsgFn, AsgFnCall, AsgStatement, AsgVariableDefinition};
 use fxhash::FxHashMap;
 use std::iter;
 use std::rc::Rc;
@@ -46,7 +46,7 @@ impl FunctionListing for AsgAssignment {
     }
 }
 
-impl FunctionListing for AsgVariable {
+impl FunctionListing for AsgVariableDefinition {
     fn functions(&self, asg: &Asg) -> Vec<Rc<AsgFn>> {
         result_ref(&self.expr)
             .map(|expr| expr.functions(asg))

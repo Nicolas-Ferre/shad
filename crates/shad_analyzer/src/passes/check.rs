@@ -3,7 +3,7 @@ use crate::items::function::{SPECIAL_BINARY_FNS, SPECIAL_UNARY_FNS};
 use crate::result::result_ref;
 use crate::{
     errors, Asg, AsgAssignment, AsgExpr, AsgFn, AsgFnBody, AsgFnCall, AsgLiteral, AsgReturn,
-    AsgStatement, AsgVariable, TypeResolving,
+    AsgStatement, AsgVariableDefinition, TypeResolving,
 };
 use fxhash::FxHashMap;
 use shad_error::{SemanticError, Span};
@@ -133,7 +133,7 @@ impl ErrorCheck for AsgStatement {
     }
 }
 
-impl ErrorCheck for AsgVariable {
+impl ErrorCheck for AsgVariableDefinition {
     fn check(&self, asg: &Asg, ctx: &mut ErrorCheckContext) -> Vec<SemanticError> {
         self.expr
             .as_ref()
