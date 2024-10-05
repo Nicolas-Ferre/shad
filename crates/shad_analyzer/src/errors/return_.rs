@@ -1,3 +1,4 @@
+use crate::errors::fn_::signature_str;
 use crate::{Asg, AsgFn, AsgReturn, AsgType};
 use shad_error::{ErrorLevel, LocatedMessage, SemanticError, Span};
 
@@ -72,6 +73,27 @@ pub(crate) fn no_return_type(asg: &Asg, return_: &AsgReturn) -> SemanticError {
             level: ErrorLevel::Error,
             span: return_.ast.span,
             text: "invalid statement".into(),
+        }],
+        &asg.code,
+        &asg.path,
+    )
+}
+
+pub(crate) fn missing_return(asg: &Asg, fn_: &AsgFn) -> SemanticError {
+    SemanticError::new(
+        format!(
+            "missing `return` statement in function `{}`",
+            signature_str(&fn_.ast)
+        ),
+        vec![LocatedMessage {
+            level: ErrorLevel::Error,
+            span: fn_
+                .ast
+                .return_type
+                .as_ref()
+                .expect("internal error: missing return type")
+                .span,
+            text: "the function should return a value".into(),
         }],
         &asg.code,
         &asg.path,

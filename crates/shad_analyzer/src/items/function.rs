@@ -126,6 +126,8 @@ impl AsgFn {
 /// An analyzed function body.
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub struct AsgFnBody {
+    /// The analyzed function.
+    pub fn_: Rc<AsgFn>,
     /// The statements in the function body.
     pub statements: Vec<AsgStatement>,
 }
@@ -133,6 +135,7 @@ pub struct AsgFnBody {
 impl AsgFnBody {
     pub(crate) fn new(asg: &mut Asg, fn_: &Rc<AsgFn>) -> Self {
         Self {
+            fn_: fn_.clone(),
             statements: StatementContext::analyze(asg, &fn_.ast.statements, fn_.scope()),
         }
     }

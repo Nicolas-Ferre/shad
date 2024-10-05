@@ -2,3 +2,14 @@ gpu fn duplicated_param(param: f32, param: f32) -> f32;
 gpu fn duplicated_fn(param1: u32, param2: u32) -> i32;
 gpu fn duplicated_fn(param3: u32, param4: u32) -> i32;
 gpu fn undefined_type(param: undef) -> f32;
+
+gpu fn __add__(param: u32) -> u32;
+gpu fn __neg__(left: u32, right: u32) -> u32;
+
+fn use_buffer_in_not_buf_fn() -> i32 {
+    return buffer;
+}
+
+fn fn_without_return() -> i32 {
+    var a = 0;
+}
