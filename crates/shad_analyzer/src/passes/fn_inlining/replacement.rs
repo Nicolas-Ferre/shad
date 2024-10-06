@@ -5,7 +5,9 @@ use crate::{
 use fxhash::FxHashMap;
 
 pub(crate) trait StatementInline: Sized {
-    fn inline(self, asg: &mut Asg) -> Vec<AsgStatement>;
+    fn inline(self, asg: &mut Asg) -> Vec<AsgStatement> {
+        unreachable!("internal error: cannot inline item")
+    }
 
     fn replace_params(&mut self, index: usize, param_replacements: &FxHashMap<usize, AsgIdent>);
 }
@@ -125,10 +127,6 @@ impl StatementInline for AsgReturn {
 }
 
 impl StatementInline for AsgExpr {
-    fn inline(self, _asg: &mut Asg) -> Vec<AsgStatement> {
-        unreachable!("internal error: cannot inline an expression")
-    }
-
     fn replace_params(&mut self, index: usize, param_replacements: &FxHashMap<usize, AsgIdent>) {
         match self {
             Self::Literal(_) => (),
@@ -139,10 +137,6 @@ impl StatementInline for AsgExpr {
 }
 
 impl StatementInline for AsgIdent {
-    fn inline(self, _asg: &mut Asg) -> Vec<AsgStatement> {
-        unreachable!("internal error: cannot inline an identifier")
-    }
-
     fn replace_params(&mut self, index: usize, param_replacements: &FxHashMap<usize, AsgIdent>) {
         match &mut self.source {
             AsgIdentSource::Buffer(_) => {}
