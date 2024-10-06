@@ -5,7 +5,7 @@ use crate::{
 use fxhash::FxHashMap;
 
 pub(crate) trait StatementInline: Sized {
-    fn inline(self, asg: &mut Asg) -> Vec<AsgStatement> {
+    fn inline(self, _asg: &mut Asg) -> Vec<AsgStatement> {
         unreachable!("internal error: cannot inline item")
     }
 
