@@ -1,3 +1,4 @@
+call_count=5
 inlined_assignment_ref_result=7
 inlined_assignment_var_result=7
 inlined_fn_as_not_inlined_fn_param_result=12

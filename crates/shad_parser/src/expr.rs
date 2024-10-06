@@ -218,14 +218,12 @@ impl AstBinaryOperation {
         })
     }
 
-    fn operator_priority() -> [Vec<AstBinaryOperator>; 5] {
+    fn operator_priority() -> [Vec<AstBinaryOperator>; 7] {
         [
-            vec![
-                AstBinaryOperator::Mul,
-                AstBinaryOperator::Div,
-                AstBinaryOperator::Mod,
-            ],
-            vec![AstBinaryOperator::Add, AstBinaryOperator::Sub],
+            vec![AstBinaryOperator::Div, AstBinaryOperator::Mod], // TODO: check if ok
+            vec![AstBinaryOperator::Mul],
+            vec![AstBinaryOperator::Sub],
+            vec![AstBinaryOperator::Add],
             vec![
                 AstBinaryOperator::GreaterThan,
                 AstBinaryOperator::LessThan,

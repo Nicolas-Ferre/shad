@@ -1,4 +1,5 @@
 gpu fn __add__(left: i32, right: i32) -> i32;
+gpu fn __sub__(left: i32, right: i32) -> i32;
 
 buf inlined_fn_call_result = 2;
 buf inlined_var_def_ref_result = 2;
@@ -9,6 +10,7 @@ buf inlined_return_ref_result = 2;
 buf inlined_return_var_result = 0;
 buf inlined_fn_as_not_inlined_fn_param_result = 2;
 buf not_inlined_fn_as_inlined_fn_param_result = 2;
+buf call_count = 0;
 
 run {
     var value = 5;
@@ -22,7 +24,7 @@ run {
 
 run {
     var value = 5;
-    var result = with_inner_inlined_fn(inlined_return_ref_result, value);
+    var result = with_return_inlined_value(inlined_return_ref_result, value);
     inlined_return_var_result = result;
     inlined_fn_as_not_inlined_fn_param_result = value
         + with_return_value(inlined_fn_as_not_inlined_fn_param_result, value);
@@ -33,15 +35,16 @@ run {
 }
 
 fn without_return_value(ref ref_: i32, copied: i32) {
-    ref_ = ref_ + copied;
+    ref_ = ref_ + copied - 1 + 1;
 }
 
-fn with_return_value(ref ref_: i32, copied: i32) -> i32 {
-    ref_ = ref_ + copied;
+buf fn with_return_value(ref ref_: i32, copied: i32) -> i32 {
+    call_count = call_count + 1;
+    without_return_value(ref_, copied);
     return ref_;
 }
 
-fn with_inner_inlined_fn(ref ref_: i32, copied: i32) -> i32 {
+buf fn with_return_inlined_value(ref ref_: i32, copied: i32) -> i32 {
     ref_ = ref_ + copied;
     return with_return_value(ref_, copied);
 }
