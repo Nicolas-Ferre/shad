@@ -5,9 +5,11 @@ use crate::{
 use fxhash::FxHashMap;
 
 pub(crate) trait StatementInline: Sized {
+    // coverage: off (unreachable)
     fn inline(self, _asg: &mut Asg) -> Vec<AsgStatement> {
         unreachable!("internal error: cannot inline item")
     }
+    // coverage: on
 
     fn replace_params(&mut self, index: usize, param_replacements: &FxHashMap<usize, AsgIdent>);
 }
