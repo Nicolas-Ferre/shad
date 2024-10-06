@@ -1,4 +1,4 @@
-use crate::{Asg, AsgFn, AsgFnCall, AsgFnSignature};
+use crate::{Asg, AsgExpr, AsgFn, AsgFnCall, AsgFnSignature};
 use shad_error::{ErrorLevel, LocatedMessage, SemanticError, Span};
 use shad_parser::{AstFnItem, AstIdent};
 use std::rc::Rc;
@@ -88,6 +88,26 @@ pub(crate) fn invalid_param_count(asg: &Asg, fn_: &AsgFn, expected_count: usize)
                 fn_.params.len()
             ),
         }],
+        &asg.code,
+        &asg.path,
+    )
+}
+
+pub(crate) fn invalid_ref(asg: &Asg, expr: &AsgExpr, ref_span: Span) -> SemanticError {
+    SemanticError::new(
+        "invalid reference expression",
+        vec![
+            LocatedMessage {
+                level: ErrorLevel::Error,
+                span: expr.span(),
+                text: "not a reference".into(),
+            },
+            LocatedMessage {
+                level: ErrorLevel::Info,
+                span: ref_span,
+                text: "parameter is a reference".into(),
+            },
+        ],
         &asg.code,
         &asg.path,
     )

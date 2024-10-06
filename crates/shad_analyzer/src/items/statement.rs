@@ -3,13 +3,13 @@ use crate::result::result_ref;
 use crate::{Asg, AsgBuffer, AsgExpr, AsgFnCall, AsgFnParam, AsgIdent, AsgIdentSource, Result};
 use fxhash::FxHashMap;
 use shad_error::Span;
-use shad_parser::{AstAssignment, AstReturn, AstStatement, AstVarDefinition};
+use shad_parser::{AstAssignment, AstIdent, AstReturn, AstStatement, AstVarDefinition};
 use std::rc::Rc;
 
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub(crate) struct StatementContext {
     pub(crate) scope: StatementScope,
-    pub(crate) variables: FxHashMap<String, Rc<AsgVariable>>,
+    pub(crate) variables: FxHashMap<String, AsgVariable>,
 }
 
 impl StatementContext {
@@ -41,7 +41,7 @@ impl StatementContext {
             .map(|fn_| fn_.params.as_slice())
             .unwrap_or_default()
             .iter()
-            .find(|param| param.name.label == name)
+            .find(|param| param.ast.name.label == name)
     }
 }
 
@@ -72,7 +72,7 @@ impl AsgStatement {
 
     pub(crate) fn span(&self) -> Result<Span> {
         match self {
-            Self::Var(statement) => Ok(statement.var.ast.span),
+            Self::Var(statement) => Ok(statement.var.span),
             Self::Assignment(statement) => Ok(statement
                 .ast
                 .as_ref()
@@ -128,9 +128,9 @@ impl AsgAssignment {
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub struct AsgVariableDefinition {
     /// The variable details.
-    pub var: Rc<AsgVariable>,
+    pub var: AsgVariable,
     /// The value assigned to the variable.
-    pub expr: Result<AsgExpr>,
+    pub expr: Result<Box<AsgExpr>>,
 }
 
 impl AsgVariableDefinition {
@@ -145,26 +145,48 @@ impl AsgVariableDefinition {
             var,
         }
     }
+
+    pub(crate) fn inlined(asg: &mut Asg, expr: &AsgExpr) -> Self {
+        Self {
+            var: AsgVariable {
+                span: expr.span(),
+                name: AstIdent {
+                    span: expr.span(),
+                    label: "inlined".to_string(),
+                },
+                index: asg.next_var_index(),
+                inline_index: None,
+                expr: Ok(Box::new(expr.clone())),
+            },
+            expr: Ok(Box::new(expr.clone())),
+        }
+    }
 }
 
 /// An analyzed variable.
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub struct AsgVariable {
-    /// The parsed variable definition.
-    pub ast: AstVarDefinition,
+    /// The span of the variable definition.
+    pub span: Span,
+    /// The name of the variable.
+    pub name: AstIdent,
     /// The unique index of the variable in the shader.
     pub index: usize,
+    /// A secondary unique index in case of inlining.
+    pub inline_index: Option<usize>,
     /// The initial value of the variable.
-    pub expr: Result<AsgExpr>,
+    pub expr: Result<Box<AsgExpr>>,
 }
 
 impl AsgVariable {
-    fn new(asg: &mut Asg, ctx: &mut StatementContext, variable: &AstVarDefinition) -> Rc<Self> {
-        let final_variable = Rc::new(Self {
-            ast: variable.clone(),
+    fn new(asg: &mut Asg, ctx: &mut StatementContext, variable: &AstVarDefinition) -> Self {
+        let final_variable = Self {
+            span: variable.span,
+            name: variable.name.clone(),
             index: asg.next_var_index(),
-            expr: AsgExpr::new(asg, ctx, &variable.expr),
-        });
+            inline_index: None,
+            expr: AsgExpr::new(asg, ctx, &variable.expr).map(Box::new),
+        };
         ctx.variables
             .insert(variable.name.label.clone(), final_variable.clone());
         final_variable

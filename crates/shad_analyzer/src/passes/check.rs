@@ -1,5 +1,4 @@
 use crate::errors::assignment;
-use crate::errors::return_::missing_return;
 use crate::items::function::{SPECIAL_BINARY_FNS, SPECIAL_UNARY_FNS};
 use crate::result::result_ref;
 use crate::{
@@ -21,7 +20,7 @@ pub(crate) fn check(asg: &Asg) -> Vec<SemanticError> {
             StatementScope::FnBody(function.clone())
         });
         errors.extend(function.check(asg, &mut ctx));
-        errors.extend(asg.function_bodies[&function.signature].check(asg, &mut ctx));
+        errors.extend(asg.function_bodies[function.index].check(asg, &mut ctx));
     }
     for buffer in asg.buffers.values() {
         let mut ctx = ErrorCheckContext::new(StatementScope::BufferExpr);
@@ -120,7 +119,7 @@ impl ErrorCheck for AsgFnBody {
             && ctx.return_span.is_none()
             && matches!(&self.fn_.return_type, Ok(Some(_)))
         {
-            errors.push(missing_return(asg, &self.fn_));
+            errors.push(errors::return_::missing_return(asg, &self.fn_));
         }
         errors
     }
@@ -235,6 +234,11 @@ impl ErrorCheck for AsgFnCall {
         if !ctx.is_in_expr() && self.fn_.return_type != Ok(None) {
             errors.push(errors::fn_::call_with_return_type_in_statement(asg, self));
         }
+        for (arg, param) in self.args.iter().zip(&self.fn_.ast.params) {
+            if let (Some(ref_span), false) = (param.ref_span, matches!(arg, AsgExpr::Ident(_))) {
+                errors.push(errors::fn_::invalid_ref(asg, arg, ref_span));
+            }
+        }
         errors
     }
 }
@@ -245,8 +249,8 @@ fn check_duplicated_params(asg: &Asg, fn_: &AsgFn) -> Vec<SemanticError> {
         .iter()
         .filter_map(|param| {
             names
-                .insert(&param.name.label, &param.name)
-                .map(|existing_param| (&param.name, existing_param))
+                .insert(&param.ast.name.label, &param.ast.name)
+                .map(|existing_param| (&param.ast.name, existing_param))
         })
         .map(|(param1, param2)| errors::fn_::duplicated_param(asg, param1, param2))
         .collect()

@@ -191,7 +191,15 @@ impl AstBinaryOperation {
         let operator_index = Self::operator_priority()
             .iter()
             .rev()
-            .find_map(|ops| operators.iter().position(|op| ops.contains(&op.0)))
+            .find_map(|ops| {
+                operators
+                    .iter()
+                    .enumerate()
+                    .rev()
+                    .filter(|(_, op)| ops.contains(&op.0))
+                    .map(|(index, _)| index)
+                    .next()
+            })
             .expect("internal error: expected binary operator");
         let left = if operator_index == 0 {
             Box::new(expressions[0].clone())

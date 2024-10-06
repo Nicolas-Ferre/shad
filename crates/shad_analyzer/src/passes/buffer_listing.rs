@@ -82,7 +82,7 @@ impl BufferListing for AsgIdent {
 impl BufferListing for AsgFnCall {
     fn buffers(&self, asg: &Asg) -> Vec<Rc<AsgBuffer>> {
         let arg_buffers = self.args.iter().flat_map(|arg| arg.buffers(asg));
-        let body_buffers = asg.function_bodies[&self.fn_.signature]
+        let body_buffers = asg.function_bodies[self.fn_.index]
             .statements
             .iter()
             .flat_map(|statement| statement.buffers(asg));

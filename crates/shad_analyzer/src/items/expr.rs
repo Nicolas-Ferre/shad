@@ -36,6 +36,14 @@ impl AsgExpr {
             }
         }
     }
+
+    pub(crate) fn span(&self) -> Span {
+        match self {
+            Self::Literal(literal) => literal.ast.span,
+            Self::Ident(ident) => ident.ast.span,
+            Self::FnCall(call) => call.span,
+        }
+    }
 }
 
 /// An analyzed literal value.
@@ -98,8 +106,8 @@ impl AsgIdent {
     pub(crate) fn name(&self) -> &str {
         match &self.source {
             AsgIdentSource::Buffer(buffer) => &buffer.ast.name.label,
-            AsgIdentSource::Var(variable) => &variable.ast.name.label,
-            AsgIdentSource::Param(param) => &param.name.label,
+            AsgIdentSource::Var(variable) => &variable.name.label,
+            AsgIdentSource::Param(param) => &param.ast.name.label,
         }
     }
 }
@@ -110,7 +118,7 @@ pub enum AsgIdentSource {
     /// A buffer identifier.
     Buffer(Rc<AsgBuffer>),
     /// A variable identifier.
-    Var(Rc<AsgVariable>),
+    Var(AsgVariable),
     /// A function parameter.
     Param(Rc<AsgFnParam>),
 }
@@ -124,6 +132,8 @@ pub struct AsgFnCall {
     pub fn_: Rc<AsgFn>,
     /// The function arguments.
     pub args: Vec<AsgExpr>,
+    /// Whether the call has been reduced for inlining.
+    pub is_reduced: bool,
 }
 
 impl AsgFnCall {
@@ -138,6 +148,7 @@ impl AsgFnCall {
             span: fn_call.span,
             fn_: asg.find_function(fn_call.name.span, &signature)?.clone(),
             args,
+            is_reduced: false,
         })
     }
 
@@ -158,6 +169,7 @@ impl AsgFnCall {
                 .find_function(operation.operator_span, &signature)?
                 .clone(),
             args,
+            is_reduced: false,
         })
     }
 
@@ -192,6 +204,7 @@ impl AsgFnCall {
                 .find_function(operation.operator_span, &signature)?
                 .clone(),
             args,
+            is_reduced: false,
         })
     }
 }

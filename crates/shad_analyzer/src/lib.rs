@@ -35,6 +35,6 @@ pub use items::shader::*;
 pub use items::statement::*;
 pub use items::type_::*;
 pub use passes::buffer_listing::*;
-pub use passes::function_listing::*;
+pub use passes::fn_listing::*;
 pub use passes::type_resolving::*;
 pub use result::*;

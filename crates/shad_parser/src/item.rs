@@ -2,7 +2,7 @@ use crate::atom::parse_token;
 use crate::token::{Token, TokenType};
 use crate::{AstExpr, AstIdent, AstStatement};
 use logos::Lexer;
-use shad_error::SyntaxError;
+use shad_error::{Span, SyntaxError};
 
 /// A parsed item.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -173,14 +173,25 @@ pub struct AstFnParam {
     pub name: AstIdent,
     /// The type of the parameter.
     pub type_: AstIdent,
+    /// Span of the `ref` keyword.
+    pub ref_span: Option<Span>,
 }
 
 impl AstFnParam {
     fn parse(lexer: &mut Lexer<'_, TokenType>) -> Result<Self, SyntaxError> {
+        let ref_span = if parse_token(&mut lexer.clone(), TokenType::Ref).is_ok() {
+            Some(parse_token(lexer, TokenType::Ref)?.span)
+        } else {
+            None
+        };
         let name = AstIdent::parse(lexer)?;
         parse_token(lexer, TokenType::Colon)?;
         let type_ = AstIdent::parse(lexer)?;
-        Ok(Self { name, type_ })
+        Ok(Self {
+            name,
+            type_,
+            ref_span,
+        })
     }
 }
 

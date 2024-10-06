@@ -1,11 +1,12 @@
 use crate::items::statement::StatementContext;
 use crate::items::type_;
 use crate::passes::check::{check, StatementScope};
+use crate::passes::fn_inlining::inline_fns;
 use crate::passes::fn_param_extraction::extract_fn_params;
 use crate::passes::recursion_check::check_recursion;
 use crate::{
-    errors, AsgBuffer, AsgComputeShader, AsgFn, AsgFnBody, AsgFnSignature, AsgStatement, AsgType,
-    Error, Result,
+    errors, AsgAssignment, AsgBuffer, AsgComputeShader, AsgFn, AsgFnBody, AsgFnSignature,
+    AsgStatement, AsgType, Error, Result,
 };
 use fxhash::FxHashMap;
 use shad_error::{SemanticError, Span};
@@ -24,10 +25,12 @@ pub struct Asg {
     /// The analyzed functions.
     pub functions: FxHashMap<AsgFnSignature, Rc<AsgFn>>,
     /// The analyzed function bodies.
-    pub function_bodies: FxHashMap<AsgFnSignature, AsgFnBody>,
+    pub function_bodies: Vec<AsgFnBody>,
     /// The mapping between Shad buffer names and buffer index.
     pub buffers: FxHashMap<String, Rc<AsgBuffer>>,
-    /// The mapping between Shad buffer names and buffer index.
+    /// The buffer init statements.
+    pub buffer_inits: Vec<Vec<AsgStatement>>,
+    /// The `run` block statements.
     pub run_blocks: Vec<Vec<AsgStatement>>,
     /// The initialization shaders.
     pub init_shaders: Vec<AsgComputeShader>,
@@ -47,8 +50,9 @@ impl Asg {
             path: ast.path.clone(),
             types: FxHashMap::default(),
             functions: FxHashMap::default(),
-            function_bodies: FxHashMap::default(),
+            function_bodies: vec![],
             buffers: FxHashMap::default(),
+            buffer_inits: vec![],
             run_blocks: vec![],
             init_shaders: vec![],
             step_shaders: vec![],
@@ -59,10 +63,14 @@ impl Asg {
         asg.register_functions(ast);
         asg.register_buffers(ast);
         asg.register_function_bodies();
-        asg.register_run_block(ast);
+        asg.register_buffer_inits();
+        asg.register_run_blocks(ast);
         asg.errors.extend(check_recursion(&asg));
         asg.errors.extend(check(&asg));
         extract_fn_params(&mut asg);
+        if asg.errors.is_empty() {
+            inline_fns(&mut asg);
+        }
         asg.register_init_shaders();
         asg.register_step_shaders();
         asg
@@ -128,13 +136,28 @@ impl Asg {
     }
 
     fn register_function_bodies(&mut self) {
-        for (signature, fn_) in self.functions.clone() {
-            let body = AsgFnBody::new(self, &fn_);
-            self.function_bodies.insert(signature, body);
+        let mut bodies: Vec<_> = self
+            .functions
+            .clone()
+            .into_values()
+            .map(|fn_| AsgFnBody::new(self, &fn_))
+            .collect();
+        bodies.sort_unstable_by_key(|body| body.fn_.index);
+        self.function_bodies = bodies;
+    }
+
+    fn register_buffer_inits(&mut self) {
+        let mut buffers: Vec<_> = self.buffers.values().cloned().collect();
+        buffers.sort_unstable_by_key(|buffer| buffer.index);
+        for buffer in buffers {
+            self.buffer_inits
+                .push(vec![AsgStatement::Assignment(AsgAssignment::buffer_init(
+                    &buffer,
+                ))]);
         }
     }
 
-    fn register_run_block(&mut self, ast: &Ast) {
+    fn register_run_blocks(&mut self, ast: &Ast) {
         for item in &ast.items {
             if let AstItem::Run(ast_run) = item {
                 let statements =
@@ -145,17 +168,15 @@ impl Asg {
     }
 
     fn register_init_shaders(&mut self) {
-        let mut buffers: Vec<_> = self.buffers.values().cloned().collect();
-        buffers.sort_unstable_by_key(|buffer| buffer.index);
-        for buffer in buffers {
-            let init_shader = AsgComputeShader::buffer_init(self, &buffer);
-            self.init_shaders.push(init_shader);
+        for statements in &self.buffer_inits {
+            let shader = AsgComputeShader::new(self, statements);
+            self.init_shaders.push(shader);
         }
     }
 
     fn register_step_shaders(&mut self) {
         for statements in &self.run_blocks {
-            let shader = AsgComputeShader::step(self, statements);
+            let shader = AsgComputeShader::new(self, statements);
             self.step_shaders.push(shader);
         }
     }

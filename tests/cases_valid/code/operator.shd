@@ -70,6 +70,7 @@ buf operator_not = !false;
 
 buf operator_priority1 = 2 + 4 * 5 - 6;
 buf operator_priority2 = (2 + 4) * (5 - 6);
+buf operator_priority3 = 2 + 4 - 3 + 5;
 
 buf custom_operator_result = 0.;
 

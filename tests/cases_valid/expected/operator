@@ -50,4 +50,5 @@ operator_or_false=0
 operator_or_true=1
 operator_priority1=16
 operator_priority2=-6
+operator_priority3=8
 operator_sub=2

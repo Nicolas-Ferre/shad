@@ -20,6 +20,9 @@ pub(crate) enum TokenType {
     #[token("var")]
     Var,
 
+    #[token("ref")]
+    Ref,
+
     #[token("return")]
     Return,
 
@@ -120,6 +123,7 @@ impl TokenType {
             Self::Fn => "`fn`",
             Self::Gpu => "`gpu`",
             Self::Var => "`var`",
+            Self::Ref => "`ref`",
             Self::Return => "`return`",
             Self::True => "`true`",
             Self::False => "`false`",
