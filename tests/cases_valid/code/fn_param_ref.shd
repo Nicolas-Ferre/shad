@@ -7,6 +7,8 @@ buf inlined_assignment_ref_result = 2;
 buf inlined_assignment_var_result = 0;
 buf inlined_return_ref_result = 2;
 buf inlined_return_var_result = 0;
+buf inlined_fn_as_not_inlined_fn_param_result = 2;
+buf not_inlined_fn_as_inlined_fn_param_result = 2;
 
 run {
     var value = 5;
@@ -16,8 +18,18 @@ run {
     result = 0;
     result = with_return_value(inlined_assignment_ref_result, value);
     inlined_assignment_var_result = result;
+}
+
+run {
+    var value = 5;
     var result = with_inner_inlined_fn(inlined_return_ref_result, value);
     inlined_return_var_result = result;
+    inlined_fn_as_not_inlined_fn_param_result = value
+        + with_return_value(inlined_fn_as_not_inlined_fn_param_result, value);
+    not_inlined_fn_as_inlined_fn_param_result = with_return_value(
+        not_inlined_fn_as_inlined_fn_param_result,
+        value + value,
+    );
 }
 
 fn without_return_value(ref ref_: i32, copied: i32) {

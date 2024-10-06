@@ -1,24 +1,25 @@
-gpu fn __add__(left: i32, right: i32) -> i32;
+buf buffer_f32 = 1.;
+buf buffer_i32 = 1;
+buf buffer_u32 = 1u;
+buf buffer_copy = buffer_f32;
+buf buffer_fn = pow(12., 2.);
 
-buf inlined_return_ref_result = 2;
-buf inlined_return_var_result = 0;
+gpu fn pow(base: f32, power: f32) -> f32;
+gpu fn u32(base: f32) -> u32;
+gpu fn __mul__(left: f32, right: f32) -> f32;
+gpu fn __mul__(left: i32, right: i32) -> i32;
 
 run {
-    var value = 5;
-    var result = with_inner_inlined_fn(inlined_return_ref_result, value);
-    inlined_return_var_result = result;
+    var val = 0.;
+    buffer_f32 = pow(val, 2.);
+    var doubled_value = double(buffer_f32);
+    update_buffer();
 }
 
-fn without_return_value(ref ref_: i32, copied: i32) {
-    ref_ = ref_ + copied;
+fn double(value: f32) -> f32 {
+    return value * 2.;
 }
 
-fn with_return_value(ref ref_: i32, copied: i32) -> i32 {
-    ref_ = ref_ + copied;
-    return ref_;
-}
-
-fn with_inner_inlined_fn(ref ref_: i32, copied: i32) -> i32 {
-    ref_ = ref_ + copied;
-    return with_return_value(ref_, copied);
+buf fn update_buffer() {
+    buffer_f32 = pow(3., 2.);
 }

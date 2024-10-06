@@ -132,6 +132,8 @@ pub struct AsgFnCall {
     pub fn_: Rc<AsgFn>,
     /// The function arguments.
     pub args: Vec<AsgExpr>,
+    /// Whether the call has been reduced for inlining.
+    pub is_reduced: bool,
 }
 
 impl AsgFnCall {
@@ -146,6 +148,7 @@ impl AsgFnCall {
             span: fn_call.span,
             fn_: asg.find_function(fn_call.name.span, &signature)?.clone(),
             args,
+            is_reduced: false,
         })
     }
 
@@ -166,6 +169,7 @@ impl AsgFnCall {
                 .find_function(operation.operator_span, &signature)?
                 .clone(),
             args,
+            is_reduced: false,
         })
     }
 
@@ -200,6 +204,7 @@ impl AsgFnCall {
                 .find_function(operation.operator_span, &signature)?
                 .clone(),
             args,
+            is_reduced: false,
         })
     }
 }

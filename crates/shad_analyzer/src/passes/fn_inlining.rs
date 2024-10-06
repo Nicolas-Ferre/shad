@@ -8,9 +8,9 @@ use std::mem;
 
 pub(crate) fn inline_fns(asg: &mut Asg) {
     let mut are_functions_inlined: Vec<_> = asg
-        .functions
-        .values()
-        .map(|fn_| fn_.ast.qualifier == AstFnQualifier::Gpu)
+        .function_bodies
+        .iter()
+        .map(|body| body.fn_.ast.qualifier == AstFnQualifier::Gpu)
         .collect();
     while !are_functions_inlined.iter().all(|&is_inlined| is_inlined) {
         let fns = asg.functions.values().cloned().collect::<Vec<_>>();
@@ -241,6 +241,7 @@ impl StatementInline for AsgFnCall {
                         }
                     })
                     .collect(),
+                is_reduced: true,
             };
             let statements = arg_var_defs
                 .into_iter()
@@ -262,8 +263,7 @@ impl StatementInline for AsgFnCall {
 }
 
 fn should_fn_call_be_split(call: &AsgFnCall) -> bool {
-    (call.fn_.is_inlined() && !call.args.iter().all(|arg| matches!(arg, AsgExpr::Ident(_))))
-        || call.args.iter().any(should_expr_be_split)
+    (call.fn_.is_inlined() && !call.is_reduced) || call.args.iter().any(should_expr_be_split)
 }
 
 fn should_expr_be_split(expr: &AsgExpr) -> bool {
