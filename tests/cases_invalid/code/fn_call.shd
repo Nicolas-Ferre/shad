@@ -27,3 +27,10 @@ run {
     with_return_type();
     var x = without_return_type();
 }
+
+fn fn_with_ref_param(ref param: i32) {
+}
+
+run {
+    fn_with_ref_param(42);
+}

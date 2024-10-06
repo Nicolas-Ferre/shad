@@ -260,6 +260,8 @@ impl ComputeShader {
     fn create_pipeline(asg: &Asg, shader: &AsgComputeShader, device: &Device) -> ComputePipeline {
         let code = shad_transpiler::generate_wgsl_compute_shader(asg, shader)
             .expect("internal error: invalid shader code");
+        println!("{code}");
+        println!("===============");
         let module = device.create_shader_module(ShaderModuleDescriptor {
             label: Some("shad_shader"),
             source: wgpu::ShaderSource::Wgsl(code.into()),

@@ -41,3 +41,15 @@ error: function `without_return_type()` in an expression while not having a retu
 28 |     var x = without_return_type();
    |             ^^^^^^^^^^^^^^^^^^^^^ this function cannot be called here
    |
+
+error: invalid reference expression
+  --> ./cases_invalid/code/fn_call.shd:35:23
+   |
+31 | fn fn_with_ref_param(ref param: i32) {
+   |                      --- info: parameter is a reference
+32 | }
+33 | 
+34 | run {
+35 |     fn_with_ref_param(42);
+   |                       ^^ not a reference
+   |

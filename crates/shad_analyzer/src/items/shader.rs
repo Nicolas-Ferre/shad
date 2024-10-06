@@ -1,4 +1,4 @@
-use crate::{Asg, AsgAssignment, AsgBuffer, AsgFn, AsgStatement, BufferListing, FunctionListing};
+use crate::{Asg, AsgBuffer, AsgFn, AsgStatement, BufferListing, FunctionListing};
 use std::rc::Rc;
 
 /// An analyzed compute shader.
@@ -15,17 +15,7 @@ pub struct AsgComputeShader {
 }
 
 impl AsgComputeShader {
-    pub(crate) fn buffer_init(asg: &Asg, buffer: &Rc<AsgBuffer>) -> Self {
-        let statements = vec![AsgStatement::Assignment(AsgAssignment::buffer_init(buffer))];
-        Self {
-            buffers: BufferListing::slice_buffers(&statements, asg),
-            functions: FunctionListing::slice_functions(&statements, asg),
-            statements,
-            name: format!("buffer_init:{}", buffer.ast.name.label),
-        }
-    }
-
-    pub(crate) fn step(asg: &Asg, statements: &[AsgStatement]) -> Self {
+    pub(crate) fn new(asg: &Asg, statements: &[AsgStatement]) -> Self {
         Self {
             buffers: BufferListing::slice_buffers(statements, asg),
             functions: FunctionListing::slice_functions(statements, asg),

@@ -11,14 +11,16 @@ use std::rc::Rc;
 pub(crate) fn extract_fn_params(asg: &mut Asg) {
     let fns: Vec<_> = asg.functions.values().cloned().collect();
     for fn_ in &fns {
-        let param_vars = param_var_defs(asg, fn_);
-        let body = fn_.body_statements(asg);
-        for statement in &mut body.statements {
-            statement.replace_params(&param_vars);
-        }
-        for (index, var) in param_vars.values().enumerate() {
-            body.statements
-                .insert(index, AsgStatement::Var(var.clone()));
+        if !fn_.is_inlined() {
+            let param_vars = param_var_defs(asg, fn_);
+            let body = fn_.body_mut(asg);
+            for statement in &mut body.statements {
+                statement.replace_params(&param_vars);
+            }
+            for (index, var) in param_vars.values().enumerate() {
+                body.statements
+                    .insert(index, AsgStatement::Var(var.clone()));
+            }
         }
     }
 }
@@ -27,9 +29,10 @@ fn param_var_defs(asg: &mut Asg, fn_: &Rc<AsgFn>) -> FxHashMap<String, AsgVariab
     let mut ctx = StatementContext::from_scope(fn_.scope());
     fn_.params
         .iter()
+        .filter(|param| param.ast.ref_span.is_none())
         .map(|param| {
             (
-                param.name.label.clone(),
+                param.ast.name.label.clone(),
                 param_var_def(asg, &mut ctx, param),
             )
         })
@@ -42,9 +45,9 @@ fn param_var_def(
     param: &Rc<AsgFnParam>,
 ) -> AsgVariableDefinition {
     let var_def = AstVarDefinition {
-        span: param.name.span,
-        name: param.name.clone(),
-        expr: AstExpr::Ident(param.name.clone()),
+        span: param.ast.name.span,
+        name: param.ast.name.clone(),
+        expr: AstExpr::Ident(param.ast.name.clone()),
     };
     AsgVariableDefinition::new(asg, ctx, &var_def)
 }
@@ -106,7 +109,9 @@ impl ParamVarReplacement for AsgIdent {
     fn replace_params(&mut self, vars: &FxHashMap<String, AsgVariableDefinition>) {
         match &self.source {
             AsgIdentSource::Param(param) => {
-                self.source = AsgIdentSource::Var(vars[&param.name.label].var.clone());
+                if let Some(var_def) = vars.get(&param.ast.name.label) {
+                    self.source = AsgIdentSource::Var(var_def.var.clone());
+                }
             }
             AsgIdentSource::Buffer(_) | AsgIdentSource::Var(_) => (),
         }

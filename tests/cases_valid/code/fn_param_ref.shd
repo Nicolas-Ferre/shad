@@ -1,0 +1,35 @@
+gpu fn __add__(left: i32, right: i32) -> i32;
+
+buf inlined_fn_call_result = 2;
+buf inlined_var_def_ref_result = 2;
+buf inlined_var_def_var_result = 0;
+buf inlined_assignment_ref_result = 2;
+buf inlined_assignment_var_result = 0;
+buf inlined_return_ref_result = 2;
+buf inlined_return_var_result = 0;
+
+run {
+    var value = 5;
+    without_return_value(inlined_fn_call_result, value);
+    var result = with_return_value(inlined_var_def_ref_result, value);
+    inlined_var_def_var_result = result;
+    result = 0;
+    result = with_return_value(inlined_assignment_ref_result, value);
+    inlined_assignment_var_result = result;
+    var result = with_inner_inlined_fn(inlined_return_ref_result, value);
+    inlined_return_var_result = result;
+}
+
+fn without_return_value(ref ref_: i32, copied: i32) {
+    ref_ = ref_ + copied;
+}
+
+fn with_return_value(ref ref_: i32, copied: i32) -> i32 {
+    ref_ = ref_ + copied;
+    return ref_;
+}
+
+fn with_inner_inlined_fn(ref ref_: i32, copied: i32) -> i32 {
+    ref_ = ref_ + copied;
+    return with_return_value(ref_, copied);
+}

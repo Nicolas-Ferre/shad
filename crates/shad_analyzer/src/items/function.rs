@@ -1,7 +1,7 @@
 use crate::items::statement::StatementContext;
 use crate::passes::check::StatementScope;
 use crate::{Asg, AsgExpr, AsgStatement, AsgType, Result, TypeResolving};
-use shad_parser::{AstFnItem, AstFnParam, AstFnQualifier, AstIdent};
+use shad_parser::{AstFnItem, AstFnParam, AstFnQualifier};
 use std::rc::Rc;
 
 /// The function name corresponding to unary `-` operator behavior.
@@ -94,7 +94,8 @@ impl AsgFn {
         let params: Vec<_> = fn_
             .params
             .iter()
-            .map(|param| Rc::new(AsgFnParam::new(asg, param)))
+            .enumerate()
+            .map(|(index, param)| Rc::new(AsgFnParam::new(asg, param, index)))
             .collect();
         Self {
             ast: fn_.clone(),
@@ -109,6 +110,12 @@ impl AsgFn {
         }
     }
 
+    /// Whether the function has a `ref` parameter.
+    pub fn is_inlined(&self) -> bool {
+        self.ast.qualifier != AstFnQualifier::Gpu
+            && self.params.iter().any(|param| param.ast.ref_span.is_some())
+    }
+
     pub(crate) fn scope(self: &Rc<Self>) -> StatementScope {
         match self.ast.qualifier {
             AstFnQualifier::None | AstFnQualifier::Gpu => StatementScope::FnBody(self.clone()),
@@ -116,7 +123,7 @@ impl AsgFn {
         }
     }
 
-    pub(crate) fn body_statements<'a>(&self, asg: &'a mut Asg) -> &'a mut AsgFnBody {
+    pub(crate) fn body_mut<'a>(&self, asg: &'a mut Asg) -> &'a mut AsgFnBody {
         asg.function_bodies
             .get_mut(&self.signature)
             .expect("internal error: not found function body")
@@ -144,17 +151,20 @@ impl AsgFnBody {
 /// An analyzed function.
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub struct AsgFnParam {
-    /// The parameter name in the initial Shad code.
-    pub name: AstIdent,
+    /// The parsed parameter.
+    pub ast: AstFnParam,
     /// The parameter type.
     pub type_: Result<Rc<AsgType>>,
+    /// The parameter unique index in the function.
+    pub index: usize,
 }
 
 impl AsgFnParam {
-    fn new(asg: &mut Asg, param: &AstFnParam) -> Self {
+    fn new(asg: &mut Asg, param: &AstFnParam, index: usize) -> Self {
         Self {
-            name: param.name.clone(),
+            ast: param.clone(),
             type_: asg.find_type(&param.type_).cloned(),
+            index,
         }
     }
 }

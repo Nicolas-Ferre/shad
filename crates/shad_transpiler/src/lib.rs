@@ -19,10 +19,10 @@ const IDENT_UNIT: usize = 4;
 #[allow(clippy::result_unit_err)]
 pub fn generate_wgsl_compute_shader(asg: &Asg, shader: &AsgComputeShader) -> Result<String> {
     Ok(format!(
-        "{}\n\n{}\n\n@compute @workgroup_size(1, 1, 1) fn main() {{\n{}\n}}",
+        "{}\n\n@compute @workgroup_size(1, 1, 1)\nfn main() {{\n{}\n}}\n\n{}",
         wgsl_buf_definitions(asg, shader)?,
+        wgsl_statements(asg, &shader.statements)?,
         wgsl_fn_definitions(asg, shader)?,
-        wgsl_statements(asg, &shader.statements)?
     ))
 }
 
@@ -38,7 +38,7 @@ fn wgsl_buf_definitions(asg: &Asg, shader: &AsgComputeShader) -> Result<String> 
 
 fn wgsl_buf_definition(asg: &Asg, buffer: &AsgBuffer, binding_index: usize) -> Result<String> {
     Ok(format!(
-        "@group(0) @binding({}) var<storage, read_write> {}: {};",
+        "@group(0) @binding({})\nvar<storage, read_write> {}: {};",
         binding_index,
         buf_name(buffer),
         result_ref(&buffer.expr)?.type_(asg)?.buf_final_name
@@ -55,17 +55,19 @@ fn wgsl_fn_definitions(asg: &Asg, shader: &AsgComputeShader) -> Result<String> {
 }
 
 fn wgsl_fn_definition(asg: &Asg, fn_: &AsgFn) -> Result<String> {
-    Ok(if fn_.ast.qualifier == AstFnQualifier::Gpu {
-        String::new()
-    } else {
-        format!(
-            "fn {}({}){} {{\n{}\n}}",
-            fn_name(fn_),
-            wgsl_fn_params(fn_)?,
-            wgsl_return_type(result_ref(&fn_.return_type)?),
-            wgsl_statements(asg, &asg.function_bodies[&fn_.signature].statements)?
-        )
-    })
+    Ok(
+        if fn_.is_inlined() || fn_.ast.qualifier == AstFnQualifier::Gpu {
+            String::new()
+        } else {
+            format!(
+                "fn {}({}){} {{\n{}\n}}",
+                fn_name(fn_),
+                wgsl_fn_params(fn_)?,
+                wgsl_return_type(result_ref(&fn_.return_type)?),
+                wgsl_statements(asg, &asg.function_bodies[&fn_.signature].statements)?
+            )
+        },
+    )
 }
 
 fn wgsl_return_type(type_: &Option<Rc<AsgType>>) -> String {
@@ -237,11 +239,19 @@ fn fn_name(fn_: &AsgFn) -> String {
 }
 
 fn fn_param_name(param: &AsgFnParam) -> String {
-    format!("p{}", param.name.label)
+    format!("p{}", param.ast.name.label)
 }
 
 fn var_name(variable: &AsgVariable) -> String {
-    format!("v{}_{}", variable.index, variable.ast.name.label)
+    format!(
+        "{}v{}_{}",
+        variable
+            .inline_index
+            .map(|index| format!("inl{index}_"))
+            .unwrap_or_default(),
+        variable.index,
+        variable.name.label
+    )
 }
 
 fn result_ref<T>(result: &Result<T>) -> Result<&T> {
