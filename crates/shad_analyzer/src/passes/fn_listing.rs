@@ -66,7 +66,7 @@ impl FunctionListing for AsgExpr {
 impl FunctionListing for AsgFnCall {
     fn functions(&self, asg: &Asg) -> Vec<Rc<AsgFn>> {
         let arg_buffers = self.args.iter().flat_map(|arg| arg.functions(asg));
-        let body_buffers = asg.function_bodies[&self.fn_.signature]
+        let body_buffers = asg.function_bodies[self.fn_.index]
             .statements
             .iter()
             .flat_map(|statement| statement.functions(asg));

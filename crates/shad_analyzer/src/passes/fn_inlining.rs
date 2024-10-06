@@ -18,8 +18,8 @@ pub(crate) fn inline_fns(asg: &mut Asg) {
             if !are_functions_inlined[fn_.index]
                 && are_all_dependent_fns_inlined(asg, &are_functions_inlined, &fn_)
             {
-                let statements = mem::take(&mut fn_.body_mut(asg).statements);
-                fn_.body_mut(asg).statements = inline(asg, statements);
+                let statements = mem::take(&mut asg.function_bodies[fn_.index].statements);
+                asg.function_bodies[fn_.index].statements = inline(asg, statements);
                 are_functions_inlined[fn_.index] = true;
             }
         }
@@ -35,7 +35,7 @@ pub(crate) fn inline_fns(asg: &mut Asg) {
 }
 
 fn are_all_dependent_fns_inlined(asg: &Asg, are_fns_inlined: &[bool], fn_: &AsgFn) -> bool {
-    FunctionListing::slice_functions(&asg.function_bodies[&fn_.signature].statements, asg)
+    FunctionListing::slice_functions(&asg.function_bodies[fn_.index].statements, asg)
         .iter()
         .all(|fn_| are_fns_inlined[fn_.index])
 }
@@ -369,7 +369,7 @@ fn inlined_fn_body(asg: &mut Asg, call: &AsgFnCall) -> Vec<AsgStatement> {
         .zip(&call.fn_.params)
         .map(|(arg, param)| (param.index, expr_as_ident(arg).clone()))
         .collect();
-    asg.function_bodies[&call.fn_.signature]
+    asg.function_bodies[call.fn_.index]
         .statements
         .clone()
         .into_iter()

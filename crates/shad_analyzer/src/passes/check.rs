@@ -20,7 +20,7 @@ pub(crate) fn check(asg: &Asg) -> Vec<SemanticError> {
             StatementScope::FnBody(function.clone())
         });
         errors.extend(function.check(asg, &mut ctx));
-        errors.extend(asg.function_bodies[&function.signature].check(asg, &mut ctx));
+        errors.extend(asg.function_bodies[function.index].check(asg, &mut ctx));
     }
     for buffer in asg.buffers.values() {
         let mut ctx = ErrorCheckContext::new(StatementScope::BufferExpr);

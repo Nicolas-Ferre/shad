@@ -26,7 +26,7 @@ trait RecursionCheck {
 impl RecursionCheck for AsgFn {
     fn check_recursion(&self, asg: &Asg, ctx: &mut FnRecursionChecker) -> crate::Result<()> {
         ctx.check(asg)?;
-        for statement in &asg.function_bodies[&self.signature].statements {
+        for statement in &asg.function_bodies[self.index].statements {
             statement.check_recursion(asg, ctx)?;
         }
         Ok(())

@@ -64,7 +64,7 @@ fn wgsl_fn_definition(asg: &Asg, fn_: &AsgFn) -> Result<String> {
                 fn_name(fn_),
                 wgsl_fn_params(fn_)?,
                 wgsl_return_type(result_ref(&fn_.return_type)?),
-                wgsl_statements(asg, &asg.function_bodies[&fn_.signature].statements)?
+                wgsl_statements(asg, &asg.function_bodies[fn_.index].statements)?
             )
         },
     )

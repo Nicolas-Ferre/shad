@@ -25,7 +25,7 @@ pub struct Asg {
     /// The analyzed functions.
     pub functions: FxHashMap<AsgFnSignature, Rc<AsgFn>>,
     /// The analyzed function bodies.
-    pub function_bodies: FxHashMap<AsgFnSignature, AsgFnBody>,
+    pub function_bodies: Vec<AsgFnBody>,
     /// The mapping between Shad buffer names and buffer index.
     pub buffers: FxHashMap<String, Rc<AsgBuffer>>,
     /// The buffer init statements.
@@ -50,7 +50,7 @@ impl Asg {
             path: ast.path.clone(),
             types: FxHashMap::default(),
             functions: FxHashMap::default(),
-            function_bodies: FxHashMap::default(),
+            function_bodies: vec![],
             buffers: FxHashMap::default(),
             buffer_inits: vec![],
             run_blocks: vec![],
@@ -136,10 +136,14 @@ impl Asg {
     }
 
     fn register_function_bodies(&mut self) {
-        for (signature, fn_) in self.functions.clone() {
-            let body = AsgFnBody::new(self, &fn_);
-            self.function_bodies.insert(signature, body);
-        }
+        let mut bodies: Vec<_> = self
+            .functions
+            .clone()
+            .into_values()
+            .map(|fn_| AsgFnBody::new(self, &fn_))
+            .collect();
+        bodies.sort_unstable_by_key(|body| body.fn_.index);
+        self.function_bodies = bodies;
     }
 
     fn register_buffer_inits(&mut self) {

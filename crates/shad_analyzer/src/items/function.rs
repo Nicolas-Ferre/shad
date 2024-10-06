@@ -122,12 +122,6 @@ impl AsgFn {
             AstFnQualifier::Buf => StatementScope::BufFnBody(self.clone()),
         }
     }
-
-    pub(crate) fn body_mut<'a>(&self, asg: &'a mut Asg) -> &'a mut AsgFnBody {
-        asg.function_bodies
-            .get_mut(&self.signature)
-            .expect("internal error: not found function body")
-    }
 }
 
 /// An analyzed function body.

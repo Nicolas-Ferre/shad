@@ -13,7 +13,7 @@ pub(crate) fn extract_fn_params(asg: &mut Asg) {
     for fn_ in &fns {
         if !fn_.is_inlined() {
             let param_vars = param_var_defs(asg, fn_);
-            let body = fn_.body_mut(asg);
+            let body = &mut asg.function_bodies[fn_.index];
             for statement in &mut body.statements {
                 statement.replace_params(&param_vars);
             }
