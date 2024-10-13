@@ -4,8 +4,6 @@ use crate::{
 };
 use fxhash::FxHashMap;
 
-// TODO: refactor all
-
 pub(crate) trait StatementInline: Sized {
     // coverage: off (unreachable)
     fn inline(self, _asg: &mut Asg) -> Vec<AsgStatement> {
@@ -67,14 +65,13 @@ impl StatementInline for AsgVariableDefinition {
 
 impl StatementInline for AsgAssignment {
     fn inline(self, asg: &mut Asg) -> Vec<AsgStatement> {
-        let (assigned, assigned_statements) = if let Ok(AsgLeftValue::FnCall(call)) = &self.assigned
-        {
+        let (assigned, assigned_stmts) = if let Ok(AsgLeftValue::FnCall(call)) = &self.assigned {
             let (assigned, statements) = inline_fn_expr_and_statements(asg, call);
             (assigned.try_into(), statements)
         } else {
             (self.assigned, vec![])
         };
-        let (expr, expr_statements) = if let Ok(AsgExpr::FnCall(call)) = &self.expr {
+        let (expr, expr_stmts) = if let Ok(AsgExpr::FnCall(call)) = &self.expr {
             if call.fn_.is_inlined() {
                 let (assigned, statements) = inline_fn_expr_and_statements(asg, call);
                 (Ok(assigned), statements)
@@ -85,8 +82,8 @@ impl StatementInline for AsgAssignment {
             (self.expr, vec![])
         };
         [
-            assigned_statements,
-            expr_statements,
+            assigned_stmts,
+            expr_stmts,
             vec![AsgStatement::Assignment(Self {
                 ast: self.ast,
                 assigned,
@@ -191,34 +188,32 @@ fn inline_fn_expr_and_statements(asg: &mut Asg, call: &AsgFnCall) -> (AsgExpr, V
 }
 
 fn inline_fn_statements(asg: &mut Asg, call: &AsgFnCall) -> Vec<AsgStatement> {
-    let param_statements: Vec<_> = call
-        .args
-        .iter()
-        .map(|arg| match arg {
-            AsgExpr::Literal(_) | AsgExpr::Ident(_) => (arg.clone(), vec![]),
-            AsgExpr::FnCall(call) => inline_fn_expr_and_statements(asg, call),
-        })
-        .collect();
+    let param_statements: Vec<_> = call.args.iter().map(|arg| inline_arg(asg, arg)).collect();
     let param_replacements = param_statements
         .iter()
         .zip(&call.fn_.params)
         .map(|((arg, _), param)| (param.index, expr_as_ident(arg).clone()))
         .collect();
     let index = asg.next_var_index();
-    param_statements
+    let param_statements = param_statements
         .into_iter()
-        .flat_map(|(_, statements)| statements)
-        .chain(
-            asg.function_bodies[call.fn_.index]
-                .statements
-                .clone()
-                .into_iter()
-                .map(|mut statement| {
-                    statement.replace_params(index, &param_replacements);
-                    statement
-                }),
-        )
-        .collect()
+        .flat_map(|(_, statements)| statements);
+    let body_statements = asg.function_bodies[call.fn_.index]
+        .statements
+        .clone()
+        .into_iter()
+        .map(|mut statement| {
+            statement.replace_params(index, &param_replacements);
+            statement
+        });
+    param_statements.chain(body_statements).collect()
+}
+
+fn inline_arg(asg: &mut Asg, argument: &AsgExpr) -> (AsgExpr, Vec<AsgStatement>) {
+    match argument {
+        AsgExpr::Literal(_) | AsgExpr::Ident(_) => (argument.clone(), vec![]),
+        AsgExpr::FnCall(call) => inline_fn_expr_and_statements(asg, call),
+    }
 }
 
 fn statement_return_expr(statement: AsgStatement) -> AsgExpr {
