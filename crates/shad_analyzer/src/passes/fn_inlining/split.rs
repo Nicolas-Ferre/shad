@@ -1,6 +1,6 @@
 use crate::{
-    Asg, AsgAssignment, AsgExpr, AsgFnCall, AsgIdent, AsgIdentSource, AsgLeftValue, AsgLiteral,
-    AsgReturn, AsgStatement, AsgVariableDefinition,
+    Asg, AsgAssignment, AsgExpr, AsgFnCall, AsgFnParam, AsgIdent, AsgIdentSource, AsgLeftValue,
+    AsgLiteral, AsgReturn, AsgStatement, AsgVariableDefinition,
 };
 
 #[derive(Debug)]
@@ -147,22 +147,7 @@ impl StatementSplit for AsgFnCall {
                 .args
                 .iter()
                 .zip(&self.fn_.params)
-                .map(|(arg, param)| {
-                    let previous_ctx = ctx.clone();
-                    ctx.is_ref = param.ast.ref_span.is_some();
-                    let split = if ctx.is_ref {
-                        arg.split(asg, ctx)
-                    } else {
-                        let var_def = AsgVariableDefinition::inlined(asg, arg);
-                        let ident = AsgIdent {
-                            ast: var_def.var.name.clone(),
-                            source: AsgIdentSource::Var(var_def.var.clone()),
-                        };
-                        SplitItem::new(vec![AsgStatement::Var(var_def)], AsgExpr::Ident(ident))
-                    };
-                    *ctx = previous_ctx;
-                    split
-                })
+                .map(|(arg, param)| split_arg(asg, ctx, arg, param))
                 .collect();
             let new_call = Self {
                 span: self.span,
@@ -198,4 +183,26 @@ fn should_expr_be_split(expr: &AsgExpr, ctx: &mut StatementSplitContext) -> bool
         AsgExpr::Literal(_) | AsgExpr::Ident(_) => false,
         AsgExpr::FnCall(call) => should_fn_call_be_split(call, ctx),
     }
+}
+
+fn split_arg(
+    asg: &mut Asg,
+    ctx: &mut StatementSplitContext,
+    argument: &AsgExpr,
+    param: &AsgFnParam,
+) -> SplitItem<AsgExpr> {
+    let previous_ctx = ctx.clone();
+    ctx.is_ref = param.ast.ref_span.is_some();
+    let split = if ctx.is_ref {
+        argument.split(asg, ctx)
+    } else {
+        let var_def = AsgVariableDefinition::inlined(asg, argument);
+        let ident = AsgIdent {
+            ast: var_def.var.name.clone(),
+            source: AsgIdentSource::Var(var_def.var.clone()),
+        };
+        SplitItem::new(vec![AsgStatement::Var(var_def)], AsgExpr::Ident(ident))
+    };
+    *ctx = previous_ctx;
+    split
 }

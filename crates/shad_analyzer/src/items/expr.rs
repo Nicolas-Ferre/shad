@@ -132,7 +132,6 @@ pub struct AsgFnCall {
     pub fn_: Rc<AsgFn>,
     /// The function arguments.
     pub args: Vec<AsgExpr>,
-    // TODO: still useful ?
 }
 
 impl AsgFnCall {

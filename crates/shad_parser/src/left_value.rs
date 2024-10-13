@@ -21,6 +21,7 @@ impl AstLeftValue {
         }
     }
 
+    #[allow(clippy::wildcard_enum_match_arm)]
     pub(crate) fn parse(lexer: &mut Lexer<'_, TokenType>) -> Result<Self, SyntaxError> {
         let tmp_lexer = &mut lexer.clone();
         let token = Token::next(tmp_lexer)?;
@@ -33,7 +34,7 @@ impl AstLeftValue {
                     Ok(Self::Ident(AstIdent::parse(lexer)?))
                 }
             }
-            _ => Err(SyntaxError::new(token.span.start, "expected left value")),
+            _ => unreachable!("internal error: expected left value"),
         }
     }
 }

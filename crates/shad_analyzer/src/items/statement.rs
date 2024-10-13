@@ -151,7 +151,9 @@ impl TryFrom<AsgExpr> for AsgLeftValue {
 
     fn try_from(value: AsgExpr) -> std::result::Result<Self, Self::Error> {
         match value {
-            AsgExpr::Literal(_) | AsgExpr::FnCall(_) => Err(Error),
+            AsgExpr::Literal(_) | AsgExpr::FnCall(_) => {
+                unreachable!("internal error: not inlined expression")
+            }
             AsgExpr::Ident(ident) => Ok(Self::Ident(ident)),
         }
     }

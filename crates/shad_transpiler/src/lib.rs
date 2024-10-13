@@ -137,7 +137,7 @@ fn wgsl_statement(asg: &Asg, statement: &AsgStatement, indent: usize) -> Result<
                     width = indent * IDENT_UNIT,
                 )
             }
-            AsgLeftValue::FnCall(_) => return Err(Error), // should have been inlined
+            AsgLeftValue::FnCall(_) => return Err(Error), // no-coverage (should have been inlined)
         },
         AsgStatement::Return(statement) => {
             format!("return {};", wgsl_expr(asg, result_ref(&statement.expr)?)?)

@@ -69,12 +69,8 @@ impl StatementInline for AsgAssignment {
     fn inline(self, asg: &mut Asg) -> Vec<AsgStatement> {
         let (assigned, assigned_statements) = if let Ok(AsgLeftValue::FnCall(call)) = &self.assigned
         {
-            if call.fn_.is_inlined() {
-                let (assigned, statements) = inline_fn_expr_and_statements(asg, call);
-                (assigned.try_into(), statements)
-            } else {
-                (self.assigned, vec![])
-            }
+            let (assigned, statements) = inline_fn_expr_and_statements(asg, call);
+            (assigned.try_into(), statements)
         } else {
             (self.assigned, vec![])
         };
@@ -115,17 +111,10 @@ impl StatementInline for AsgAssignment {
 }
 
 impl StatementInline for AsgLeftValue {
-    fn inline(self, asg: &mut Asg) -> Vec<AsgStatement> {
-        match self {
-            Self::Ident(ident) => ident.inline(asg),
-            Self::FnCall(call) => call.inline(asg),
-        }
-    }
-
     fn replace_params(&mut self, index: usize, param_replacements: &FxHashMap<usize, AsgIdent>) {
         match self {
             Self::Ident(ident) => ident.replace_params(index, param_replacements),
-            Self::FnCall(call) => call.replace_params(index, param_replacements),
+            Self::FnCall(_) => unreachable!("internal error: left value is not inlined"),
         }
     }
 }
