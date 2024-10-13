@@ -1,9 +1,8 @@
-use crate::errors::assignment;
 use crate::items::function::{SPECIAL_BINARY_FNS, SPECIAL_UNARY_FNS};
 use crate::result::result_ref;
 use crate::{
-    errors, Asg, AsgAssignment, AsgExpr, AsgFn, AsgFnBody, AsgFnCall, AsgLiteral, AsgReturn,
-    AsgStatement, AsgVariableDefinition, TypeResolving,
+    errors, Asg, AsgAssignment, AsgExpr, AsgFn, AsgFnBody, AsgFnCall, AsgLeftValue, AsgLiteral,
+    AsgReturn, AsgStatement, AsgVariableDefinition, TypeResolving,
 };
 use fxhash::FxHashMap;
 use shad_error::{SemanticError, Span};
@@ -47,6 +46,7 @@ struct ErrorCheckContext {
     return_span: Option<Span>,
     is_statement_after_return_found: bool,
     expr_level: usize,
+    is_left_value: bool,
 }
 
 impl ErrorCheckContext {
@@ -56,6 +56,7 @@ impl ErrorCheckContext {
             return_span: None,
             is_statement_after_return_found: false,
             expr_level: 0,
+            is_left_value: false,
         }
     }
 
@@ -153,25 +154,47 @@ impl ErrorCheck for AsgVariableDefinition {
 impl ErrorCheck for AsgAssignment {
     fn check(&self, asg: &Asg, ctx: &mut ErrorCheckContext) -> Vec<SemanticError> {
         let mut errors = self
-            .expr
+            .assigned
             .as_ref()
             .map(|expr| expr.check(asg, ctx))
             .unwrap_or_default();
-        if let (Ok(assigned), Ok(assigned_type), Ok(expr_type)) = (
-            &self.assigned,
+        errors.extend(
+            self.expr
+                .as_ref()
+                .map(|expr| expr.check(asg, ctx))
+                .unwrap_or_default(),
+        );
+        if let (Ok(assigned_type), Ok(expr_type)) = (
             result_ref(&self.assigned).and_then(|value| value.type_(asg)),
             result_ref(&self.expr).and_then(|expr| expr.type_(asg)),
         ) {
             if assigned_type != expr_type {
-                errors.push(assignment::invalid_type(
+                errors.push(errors::assignment::invalid_type(
                     asg,
                     self,
-                    assigned,
                     assigned_type,
                     expr_type,
                 ));
             }
         }
+        errors
+    }
+}
+
+impl ErrorCheck for AsgLeftValue {
+    fn check(&self, asg: &Asg, ctx: &mut ErrorCheckContext) -> Vec<SemanticError> {
+        ctx.is_left_value = true;
+        let errors = match self {
+            Self::Ident(_) => vec![],
+            Self::FnCall(call) => {
+                let mut errors = call.check(asg, ctx);
+                if call.fn_.ast.return_type.is_some() && !call.fn_.is_returning_ref() {
+                    errors.push(errors::assignment::not_ref_left_value(asg, call.span));
+                }
+                errors
+            }
+        };
+        ctx.is_left_value = false;
         errors
     }
 }
@@ -228,14 +251,14 @@ impl ErrorCheck for AsgFnCall {
         if self.fn_.ast.qualifier == AstFnQualifier::Buf && !ctx.scope.are_buffer_fns_allowed() {
             errors.push(errors::fn_::invalid_buf_fn_call(asg, self));
         }
-        if ctx.is_in_expr() && self.fn_.return_type == Ok(None) {
-            errors.push(errors::fn_::call_without_return_type_in_expr(asg, self));
+        if (ctx.is_in_expr() || ctx.is_left_value) && self.fn_.return_type == Ok(None) {
+            errors.push(errors::fn_::call_without_return_type(asg, self));
         }
-        if !ctx.is_in_expr() && self.fn_.return_type != Ok(None) {
+        if !ctx.is_in_expr() && !ctx.is_left_value && self.fn_.return_type != Ok(None) {
             errors.push(errors::fn_::call_with_return_type_in_statement(asg, self));
         }
         for (arg, param) in self.args.iter().zip(&self.fn_.ast.params) {
-            if let (Some(ref_span), false) = (param.ref_span, matches!(arg, AsgExpr::Ident(_))) {
+            if let (Some(ref_span), false) = (param.ref_span, arg.is_ref()) {
                 errors.push(errors::fn_::invalid_ref(asg, arg, ref_span));
             }
         }
@@ -283,14 +306,25 @@ fn check_statement_after_return(
 }
 
 fn check_return_type(asg: &Asg, fn_: &AsgFn, return_: &AsgReturn) -> Option<SemanticError> {
-    if let (Ok(actual_type), Ok(expected_type)) = (
+    if let (Ok(expr), Ok(actual_type), Ok(expected_type)) = (
+        &return_.expr,
         result_ref(&return_.expr).and_then(|expr| expr.type_(asg).cloned()),
         fn_.return_type.as_ref(),
     ) {
         if let Some(expected_type) = expected_type {
-            (&actual_type != expected_type).then(|| {
-                errors::return_::invalid_type(asg, return_, fn_, &actual_type, expected_type)
-            })
+            if &actual_type != expected_type {
+                Some(errors::return_::invalid_type(
+                    asg,
+                    return_,
+                    fn_,
+                    &actual_type,
+                    expected_type,
+                ))
+            } else if fn_.is_returning_ref() && !expr.is_ref() {
+                Some(errors::return_::not_ref_expr(asg, return_))
+            } else {
+                None
+            }
         } else {
             Some(errors::return_::no_return_type(asg, return_))
         }

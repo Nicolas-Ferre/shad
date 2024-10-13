@@ -1,6 +1,6 @@
 use crate::{
-    Asg, AsgAssignment, AsgExpr, AsgFnCall, AsgIdent, AsgIdentSource, AsgReturn, AsgStatement,
-    AsgVariableDefinition,
+    Asg, AsgAssignment, AsgExpr, AsgFnCall, AsgIdent, AsgIdentSource, AsgLeftValue, AsgReturn,
+    AsgStatement, AsgVariableDefinition,
 };
 use fxhash::FxHashMap;
 
@@ -40,12 +40,10 @@ impl StatementInline for AsgVariableDefinition {
     fn inline(self, asg: &mut Asg) -> Vec<AsgStatement> {
         if let Ok(AsgExpr::FnCall(call)) = &self.expr.as_deref() {
             if call.fn_.is_inlined() {
-                let mut statements = inline_fn_statements(asg, call);
-                let return_statement =
-                    statement_return_expr(statements.pop().expect("internal error: no return"));
+                let (expr, mut statements) = inline_fn_expr_and_statements(asg, call);
                 statements.push(AsgStatement::Var(Self {
                     var: self.var,
-                    expr: Ok(Box::new(return_statement)),
+                    expr: Ok(Box::new(expr)),
                 }));
                 statements
             } else {
@@ -67,25 +65,34 @@ impl StatementInline for AsgVariableDefinition {
 
 impl StatementInline for AsgAssignment {
     fn inline(self, asg: &mut Asg) -> Vec<AsgStatement> {
-        if let Ok(AsgExpr::FnCall(call)) = &self.expr {
+        let (assigned, assigned_stmts) = if let Ok(AsgLeftValue::FnCall(call)) = &self.assigned {
+            let (assigned, statements) = inline_fn_expr_and_statements(asg, call);
+            (assigned.try_into(), statements)
+        } else {
+            (self.assigned, vec![])
+        };
+        let (expr, expr_stmts) = if let Ok(AsgExpr::FnCall(call)) = &self.expr {
             if call.fn_.is_inlined() {
-                let mut statements = inline_fn_statements(asg, call);
-                let return_statement =
-                    statement_return_expr(statements.pop().expect("internal error: no return"));
-                statements.push(AsgStatement::Assignment(Self {
-                    ast: self.ast,
-                    assigned: self.assigned,
-                    expr: Ok(return_statement),
-                    assigned_span: self.assigned_span,
-                    expr_span: self.expr_span,
-                }));
-                statements
+                let (assigned, statements) = inline_fn_expr_and_statements(asg, call);
+                (Ok(assigned), statements)
             } else {
-                vec![AsgStatement::Assignment(self)]
+                (self.expr, vec![])
             }
         } else {
-            vec![AsgStatement::Assignment(self)]
-        }
+            (self.expr, vec![])
+        };
+        [
+            assigned_stmts,
+            expr_stmts,
+            vec![AsgStatement::Assignment(Self {
+                ast: self.ast,
+                assigned,
+                expr,
+                assigned_span: self.assigned_span,
+                expr_span: self.expr_span,
+            })],
+        ]
+        .concat()
     }
 
     fn replace_params(&mut self, index: usize, param_replacements: &FxHashMap<usize, AsgIdent>) {
@@ -100,16 +107,23 @@ impl StatementInline for AsgAssignment {
     }
 }
 
+impl StatementInline for AsgLeftValue {
+    fn replace_params(&mut self, index: usize, param_replacements: &FxHashMap<usize, AsgIdent>) {
+        match self {
+            Self::Ident(ident) => ident.replace_params(index, param_replacements),
+            Self::FnCall(_) => unreachable!("internal error: left value is not inlined"),
+        }
+    }
+}
+
 impl StatementInline for AsgReturn {
     fn inline(self, asg: &mut Asg) -> Vec<AsgStatement> {
         if let Ok(AsgExpr::FnCall(call)) = &self.expr {
             if call.fn_.is_inlined() {
-                let mut statements = inline_fn_statements(asg, call);
-                let return_statement =
-                    statement_return_expr(statements.pop().expect("internal error: no return"));
+                let (expr, mut statements) = inline_fn_expr_and_statements(asg, call);
                 statements.push(AsgStatement::Return(Self {
                     ast: self.ast,
-                    expr: Ok(return_statement),
+                    expr: Ok(expr),
                 }));
                 statements
             } else {
@@ -166,6 +180,42 @@ impl StatementInline for AsgFnCall {
     }
 }
 
+fn inline_fn_expr_and_statements(asg: &mut Asg, call: &AsgFnCall) -> (AsgExpr, Vec<AsgStatement>) {
+    let mut statements = inline_fn_statements(asg, call);
+    let return_statement =
+        statement_return_expr(statements.pop().expect("internal error: no return"));
+    (return_statement, statements)
+}
+
+fn inline_fn_statements(asg: &mut Asg, call: &AsgFnCall) -> Vec<AsgStatement> {
+    let param_statements: Vec<_> = call.args.iter().map(|arg| inline_arg(asg, arg)).collect();
+    let param_replacements = param_statements
+        .iter()
+        .zip(&call.fn_.params)
+        .map(|((arg, _), param)| (param.index, expr_as_ident(arg).clone()))
+        .collect();
+    let index = asg.next_var_index();
+    let param_statements = param_statements
+        .into_iter()
+        .flat_map(|(_, statements)| statements);
+    let body_statements = asg.function_bodies[call.fn_.index]
+        .statements
+        .clone()
+        .into_iter()
+        .map(|mut statement| {
+            statement.replace_params(index, &param_replacements);
+            statement
+        });
+    param_statements.chain(body_statements).collect()
+}
+
+fn inline_arg(asg: &mut Asg, argument: &AsgExpr) -> (AsgExpr, Vec<AsgStatement>) {
+    match argument {
+        AsgExpr::Literal(_) | AsgExpr::Ident(_) => (argument.clone(), vec![]),
+        AsgExpr::FnCall(call) => inline_fn_expr_and_statements(asg, call),
+    }
+}
+
 fn statement_return_expr(statement: AsgStatement) -> AsgExpr {
     if let AsgStatement::Return(return_) = statement {
         return_
@@ -174,25 +224,6 @@ fn statement_return_expr(statement: AsgStatement) -> AsgExpr {
     } else {
         unreachable!("internal error: not return")
     }
-}
-
-fn inline_fn_statements(asg: &mut Asg, call: &AsgFnCall) -> Vec<AsgStatement> {
-    let index = asg.next_var_index();
-    let param_replacements = call
-        .args
-        .iter()
-        .zip(&call.fn_.params)
-        .map(|(arg, param)| (param.index, expr_as_ident(arg).clone()))
-        .collect();
-    asg.function_bodies[call.fn_.index]
-        .statements
-        .clone()
-        .into_iter()
-        .map(|mut statement| {
-            statement.replace_params(index, &param_replacements);
-            statement
-        })
-        .collect()
 }
 
 fn expr_as_ident(expr: &AsgExpr) -> &AsgIdent {

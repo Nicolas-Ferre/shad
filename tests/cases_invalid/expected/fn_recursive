@@ -33,3 +33,21 @@ error: function `inner_recursive()` defined recursively
 18 |     inner_recursive();
    |     ^^^^^^^^^^^^^^^^^ `inner_recursive()` function called here
    |
+
+error: function `inner_returned_recursive(i32)` defined recursively
+  --> ./cases_invalid/code/fn_recursive.shd:22:12
+   |
+21 | fn inner_returned_recursive(ref a: i32) -> i32 {
+   |    ^^^^^^^^^^^^^^^^^^^^^^^^ `inner_returned_recursive(i32)` function defined here
+22 |     return inner_returned_recursive(a);
+   |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^ `inner_returned_recursive(i32)` function called here
+   |
+
+error: function `recursive_left_value(i32)` defined recursively
+  --> ./cases_invalid/code/fn_recursive.shd:26:5
+   |
+25 | fn recursive_left_value(a: i32) -> ref i32 {
+   |    ^^^^^^^^^^^^^^^^^^^^ `recursive_left_value(i32)` function defined here
+26 |     recursive_left_value(1) = 2;
+   |     ^^^^^^^^^^^^^^^^^^^^^^^ `recursive_left_value(i32)` function called here
+   |

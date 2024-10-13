@@ -20,6 +20,7 @@ mod ast;
 mod atom;
 mod expr;
 mod item;
+mod left_value;
 mod statement;
 mod token;
 
@@ -27,4 +28,5 @@ pub use ast::*;
 pub use atom::*;
 pub use expr::*;
 pub use item::*;
+pub use left_value::*;
 pub use statement::*;

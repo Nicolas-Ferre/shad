@@ -70,9 +70,9 @@ impl Asg {
         extract_fn_params(&mut asg);
         if asg.errors.is_empty() {
             inline_fns(&mut asg);
+            asg.register_init_shaders();
+            asg.register_step_shaders();
         }
-        asg.register_init_shaders();
-        asg.register_step_shaders();
         asg
     }
 

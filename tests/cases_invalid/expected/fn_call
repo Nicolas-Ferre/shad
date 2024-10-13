@@ -35,7 +35,7 @@ error: function `with_return_type()` called as a statement while having a return
    |     ^^^^^^^^^^^^^^^^^^ returned value needs to be stored in a variable
    |
 
-error: function `without_return_type()` in an expression while not having a return type
+error: expected function with a return type, got function `without_return_type()`
   --> ./cases_invalid/code/fn_call.shd:28:13
    |
 28 |     var x = without_return_type();
@@ -52,4 +52,37 @@ error: invalid reference expression
 34 | run {
 35 |     fn_with_ref_param(42);
    |                       ^^ not a reference
+   |
+
+error: expected function with a return type, got function `without_return_type()`
+  --> ./cases_invalid/code/fn_call.shd:44:5
+   |
+44 |     without_return_type() = 2;
+   |     ^^^^^^^^^^^^^^^^^^^^^ this function cannot be called here
+   |
+
+error: left value in assignment is not a reference
+  --> ./cases_invalid/code/fn_call.shd:45:5
+   |
+45 |     returned_copy() = 2;
+   |     ^^^^^^^^^^^^^^^ this function doesn't return a reference
+   |
+
+error: invalid reference expression
+  --> ./cases_invalid/code/fn_call.shd:46:23
+   |
+31 | fn fn_with_ref_param(ref param: i32) {
+   |                      --- info: parameter is a reference
+32 | }
+...
+45 |     returned_copy() = 2;
+46 |     fn_with_ref_param(returned_copy());
+   |                       ^^^^^^^^^^^^^^^ not a reference
+   |
+
+error: returned expression is not a reference
+  --> ./cases_invalid/code/fn_call.shd:50:12
+   |
+50 |     return 0;
+   |            ^ this expression is not a valid reference
    |

@@ -74,7 +74,7 @@ pub struct AstFnItem {
     /// The parameters of the function.
     pub params: Vec<AstFnParam>,
     /// The return type of the function.
-    pub return_type: Option<AstIdent>,
+    pub return_type: Option<AstReturnType>,
     /// The qualifier of the function.
     pub qualifier: AstFnQualifier,
     /// The qualifier of the function.
@@ -92,7 +92,7 @@ impl AstFnItem {
         parse_token(lexer, TokenType::Fn)?;
         let name = AstIdent::parse(lexer)?;
         let params = Self::parse_params(lexer)?;
-        let return_type = Self::parse_return_type(lexer)?;
+        let return_type = AstReturnType::parse(lexer)?;
         let statements = parse_statement_block(lexer)?;
         Ok(Self {
             name,
@@ -112,7 +112,7 @@ impl AstFnItem {
         parse_token(lexer, TokenType::Fn)?;
         let name = AstIdent::parse(lexer)?;
         let params = Self::parse_params(lexer)?;
-        let return_type = Self::parse_return_type(lexer)?;
+        let return_type = AstReturnType::parse(lexer)?;
         parse_token(lexer, TokenType::SemiColon)?;
         Ok(Self {
             name,
@@ -135,13 +135,32 @@ impl AstFnItem {
         parse_token(lexer, TokenType::CloseParenthesis)?;
         Ok(params)
     }
+}
 
-    fn parse_return_type(
-        lexer: &mut Lexer<'_, TokenType>,
-    ) -> Result<Option<AstIdent>, SyntaxError> {
+/// A parsed function return type.
+///
+///
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct AstReturnType {
+    /// The type name.
+    pub name: AstIdent,
+    /// Whether the return type is a reference.
+    pub is_ref: bool,
+}
+
+impl AstReturnType {
+    fn parse(lexer: &mut Lexer<'_, TokenType>) -> Result<Option<Self>, SyntaxError> {
         if parse_token(&mut lexer.clone(), TokenType::Arrow).is_ok() {
             parse_token(lexer, TokenType::Arrow)?;
-            Ok(Some(AstIdent::parse(lexer)?))
+            let ref_span = if parse_token(&mut lexer.clone(), TokenType::Ref).is_ok() {
+                Some(parse_token(lexer, TokenType::Ref)?.span)
+            } else {
+                None
+            };
+            Ok(Some(Self {
+                name: AstIdent::parse(lexer)?,
+                is_ref: ref_span.is_some(),
+            }))
         } else {
             Ok(None)
         }

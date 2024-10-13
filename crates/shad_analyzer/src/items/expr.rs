@@ -44,6 +44,14 @@ impl AsgExpr {
             Self::FnCall(call) => call.span,
         }
     }
+
+    pub(crate) fn is_ref(&self) -> bool {
+        match self {
+            Self::Literal(_) => false,
+            Self::Ident(_) => true,
+            Self::FnCall(call) => call.fn_.is_returning_ref(),
+        }
+    }
 }
 
 /// An analyzed literal value.
@@ -102,14 +110,6 @@ impl AsgIdent {
             },
         })
     }
-
-    pub(crate) fn name(&self) -> &str {
-        match &self.source {
-            AsgIdentSource::Buffer(buffer) => &buffer.ast.name.label,
-            AsgIdentSource::Var(variable) => &variable.name.label,
-            AsgIdentSource::Param(param) => &param.ast.name.label,
-        }
-    }
 }
 
 /// An analyzed identifier.
@@ -132,8 +132,6 @@ pub struct AsgFnCall {
     pub fn_: Rc<AsgFn>,
     /// The function arguments.
     pub args: Vec<AsgExpr>,
-    /// Whether the call has been reduced for inlining.
-    pub is_reduced: bool,
 }
 
 impl AsgFnCall {
@@ -148,7 +146,6 @@ impl AsgFnCall {
             span: fn_call.span,
             fn_: asg.find_function(fn_call.name.span, &signature)?.clone(),
             args,
-            is_reduced: false,
         })
     }
 
@@ -169,7 +166,6 @@ impl AsgFnCall {
                 .find_function(operation.operator_span, &signature)?
                 .clone(),
             args,
-            is_reduced: false,
         })
     }
 
@@ -204,7 +200,6 @@ impl AsgFnCall {
                 .find_function(operation.operator_span, &signature)?
                 .clone(),
             args,
-            is_reduced: false,
         })
     }
 }

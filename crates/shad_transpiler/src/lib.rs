@@ -2,9 +2,9 @@
 
 use shad_analyzer::{
     Asg, AsgBuffer, AsgComputeShader, AsgExpr, AsgFn, AsgFnCall, AsgFnParam, AsgIdent,
-    AsgIdentSource, AsgStatement, AsgType, AsgVariable, Result, TypeResolving, ADD_FN, AND_FN,
-    DIV_FN, EQ_FN, GE_FN, GT_FN, LE_FN, LT_FN, MOD_FN, MUL_FN, NEG_FN, NE_FN, NOT_FN, OR_FN,
-    SUB_FN,
+    AsgIdentSource, AsgLeftValue, AsgStatement, AsgType, AsgVariable, Error, Result, TypeResolving,
+    ADD_FN, AND_FN, DIV_FN, EQ_FN, GE_FN, GT_FN, LE_FN, LT_FN, MOD_FN, MUL_FN, NEG_FN, NE_FN,
+    NOT_FN, OR_FN, SUB_FN,
 };
 use shad_parser::AstFnQualifier;
 use std::rc::Rc;
@@ -114,28 +114,31 @@ fn wgsl_statement(asg: &Asg, statement: &AsgStatement, indent: usize) -> Result<
                 width = indent * IDENT_UNIT,
             )
         }
-        AsgStatement::Assignment(statement) => {
-            let is_buffer = matches!(
-                statement.assigned,
-                Ok(AsgIdent {
-                    source: AsgIdentSource::Buffer(_),
-                    ..
-                })
-            );
-            let type_ = result_ref(&statement.expr)?.type_(asg)?;
-            let cast = if is_buffer && type_.buf_final_name != type_.expr_final_name {
-                &type_.buf_final_name
-            } else {
-                ""
-            };
-            format!(
-                "{empty: >width$}{} = {cast}({});",
-                wgsl_ident(asg, result_ref(&statement.assigned)?, false)?,
-                wgsl_expr(asg, result_ref(&statement.expr)?)?,
-                empty = "",
-                width = indent * IDENT_UNIT,
-            )
-        }
+        AsgStatement::Assignment(statement) => match result_ref(&statement.assigned)? {
+            AsgLeftValue::Ident(assigned) => {
+                let is_buffer = matches!(
+                    assigned,
+                    AsgIdent {
+                        source: AsgIdentSource::Buffer(_),
+                        ..
+                    }
+                );
+                let type_ = result_ref(&statement.expr)?.type_(asg)?;
+                let cast = if is_buffer && type_.buf_final_name != type_.expr_final_name {
+                    &type_.buf_final_name
+                } else {
+                    ""
+                };
+                format!(
+                    "{empty: >width$}{} = {cast}({});",
+                    wgsl_ident(asg, assigned, false)?,
+                    wgsl_expr(asg, result_ref(&statement.expr)?)?,
+                    empty = "",
+                    width = indent * IDENT_UNIT,
+                )
+            }
+            AsgLeftValue::FnCall(_) => return Err(Error), // no-coverage (should have been inlined)
+        },
         AsgStatement::Return(statement) => {
             format!("return {};", wgsl_expr(asg, result_ref(&statement.expr)?)?)
         }

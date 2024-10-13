@@ -1,4 +1,5 @@
 use crate::passes::fn_inlining::replacement::StatementInline;
+use crate::passes::fn_inlining::split::StatementSplitContext;
 use crate::{Asg, AsgFn, AsgStatement, FunctionListing};
 use shad_parser::AstFnQualifier;
 use split::StatementSplit;
@@ -44,7 +45,11 @@ fn are_all_dependent_fns_inlined(asg: &Asg, are_fns_inlined: &[bool], fn_: &AsgF
 fn inline(asg: &mut Asg, statements: Vec<AsgStatement>) -> Vec<AsgStatement> {
     statements
         .into_iter()
-        .flat_map(|statement| statement.split(asg).statements(Clone::clone))
+        .flat_map(|statement| {
+            statement
+                .split(asg, &mut StatementSplitContext::default())
+                .statements(Clone::clone)
+        })
         .collect::<Vec<_>>()
         .into_iter()
         .flat_map(|statement| statement.inline(asg))

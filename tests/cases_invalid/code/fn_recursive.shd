@@ -17,3 +17,12 @@ fn level2_recursive() {
 fn inner_recursive() {
     inner_recursive();
 }
+
+fn inner_returned_recursive(ref a: i32) -> i32 {
+    return inner_returned_recursive(a);
+}
+
+fn recursive_left_value(a: i32) -> ref i32 {
+    recursive_left_value(1) = 2;
+    return a;
+}
