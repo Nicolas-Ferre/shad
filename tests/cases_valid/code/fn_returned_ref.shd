@@ -12,10 +12,12 @@ run {
     expr_copy_result = add_copy(expr_copy_source, 10);
     add(assignment_result, 10) = add(assignment_result, 10);
     returned_ref_as_param_result = add(add(returned_ref_as_param_result, 10), 10);
+    ref_left_value(10);
 }
 
 fn add(ref value: i32, added: i32) -> ref i32 {
     value = value + added;
+    identity(value) = value;
     return identity(value);
 }
 
@@ -26,4 +28,8 @@ fn add_copy(value: i32, added: i32) -> ref i32 {
 
 fn identity(ref value: i32) -> ref i32 {
     return value;
+}
+
+fn ref_left_value(value: i32) {
+    identity(value) = value;
 }

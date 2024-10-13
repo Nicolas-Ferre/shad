@@ -56,7 +56,7 @@ impl BufferListing for AsgLeftValue {
     fn buffers(&self, asg: &Asg) -> Vec<Rc<AsgBuffer>> {
         match self {
             Self::Ident(ident) => ident.buffers(asg),
-            Self::FnCall(call) => call.buffers(asg),
+            Self::FnCall(_) => unreachable!("internal error: not inlined left value"),
         }
     }
 }
