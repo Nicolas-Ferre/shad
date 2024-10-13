@@ -1,7 +1,7 @@
 use crate::result::result_ref;
 use crate::{
-    Asg, AsgAssignment, AsgBuffer, AsgExpr, AsgFnCall, AsgIdent, AsgIdentSource, AsgStatement,
-    AsgVariableDefinition,
+    Asg, AsgAssignment, AsgBuffer, AsgExpr, AsgFnCall, AsgIdent, AsgIdentSource, AsgLeftValue,
+    AsgStatement, AsgVariableDefinition,
 };
 use fxhash::FxHashMap;
 use std::rc::Rc;
@@ -49,6 +49,15 @@ impl BufferListing for AsgAssignment {
             .map(|expr| expr.buffers(asg))
             .unwrap_or_default();
         [assigned_buffers, expr_buffer].concat()
+    }
+}
+
+impl BufferListing for AsgLeftValue {
+    fn buffers(&self, asg: &Asg) -> Vec<Rc<AsgBuffer>> {
+        match self {
+            Self::Ident(ident) => ident.buffers(asg),
+            Self::FnCall(call) => call.buffers(asg),
+        }
     }
 }
 

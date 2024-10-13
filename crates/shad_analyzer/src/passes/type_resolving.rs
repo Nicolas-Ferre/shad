@@ -1,5 +1,5 @@
 use crate::result::result_ref;
-use crate::{Asg, AsgExpr, AsgFnCall, AsgIdent, AsgType};
+use crate::{Asg, AsgExpr, AsgFnCall, AsgIdent, AsgLeftValue, AsgType, Error};
 use crate::{AsgIdentSource, Result};
 use std::rc::Rc;
 
@@ -35,8 +35,15 @@ impl TypeResolving for AsgIdent {
 
 impl TypeResolving for AsgFnCall {
     fn type_<'a>(&'a self, _asg: &'a Asg) -> Result<&'a Rc<AsgType>> {
-        Ok(result_ref(&self.fn_.return_type)?
-            .as_ref()
-            .expect("internal error: function call in expression without return type"))
+        result_ref(&self.fn_.return_type)?.as_ref().ok_or(Error)
+    }
+}
+
+impl TypeResolving for AsgLeftValue {
+    fn type_<'a>(&'a self, asg: &'a Asg) -> Result<&'a Rc<AsgType>> {
+        match self {
+            Self::Ident(ident) => ident.type_(asg),
+            Self::FnCall(call) => call.type_(asg),
+        }
     }
 }

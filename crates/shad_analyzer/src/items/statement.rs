@@ -1,9 +1,13 @@
 use crate::passes::check::StatementScope;
 use crate::result::result_ref;
-use crate::{Asg, AsgBuffer, AsgExpr, AsgFnCall, AsgFnParam, AsgIdent, AsgIdentSource, Result};
+use crate::{
+    Asg, AsgBuffer, AsgExpr, AsgFnCall, AsgFnParam, AsgIdent, AsgIdentSource, Error, Result,
+};
 use fxhash::FxHashMap;
 use shad_error::Span;
-use shad_parser::{AstAssignment, AstIdent, AstReturn, AstStatement, AstVarDefinition};
+use shad_parser::{
+    AstAssignment, AstIdent, AstLeftValue, AstReturn, AstStatement, AstVarDefinition,
+};
 use std::rc::Rc;
 
 #[derive(Debug, PartialEq, Eq, Clone)]
@@ -89,8 +93,8 @@ impl AsgStatement {
 pub struct AsgAssignment {
     /// The parsed assignment.
     pub ast: Option<AstAssignment>,
-    /// The updated variable.
-    pub assigned: Result<AsgIdent>,
+    /// The updated value.
+    pub assigned: Result<AsgLeftValue>,
     /// The new value.
     pub expr: Result<AsgExpr>,
     /// The span of the updated variable.
@@ -103,9 +107,9 @@ impl AsgAssignment {
     fn new(asg: &mut Asg, ctx: &StatementContext, assignment: &AstAssignment) -> Self {
         Self {
             ast: Some(assignment.clone()),
-            assigned: AsgIdent::new(asg, ctx, &assignment.value),
+            assigned: AsgLeftValue::new(asg, ctx, &assignment.value),
             expr: AsgExpr::new(asg, ctx, &assignment.expr),
-            assigned_span: assignment.value.span,
+            assigned_span: assignment.value.span(),
             expr_span: assignment.expr.span(),
         }
     }
@@ -113,13 +117,42 @@ impl AsgAssignment {
     pub(crate) fn buffer_init(buffer: &Rc<AsgBuffer>) -> Self {
         Self {
             ast: None,
-            assigned: Ok(AsgIdent {
+            assigned: Ok(AsgLeftValue::Ident(AsgIdent {
                 ast: buffer.ast.name.clone(),
                 source: AsgIdentSource::Buffer(buffer.clone()),
-            }),
+            })),
             expr: buffer.expr.clone(),
             assigned_span: buffer.ast.name.span,
             expr_span: buffer.ast.value.span(),
+        }
+    }
+}
+
+/// An analyzed left value in an assignment.
+#[derive(Debug, PartialEq, Eq, Clone)]
+pub enum AsgLeftValue {
+    /// An identifier.
+    Ident(AsgIdent),
+    /// A function call.
+    FnCall(AsgFnCall),
+}
+
+impl AsgLeftValue {
+    fn new(asg: &mut Asg, ctx: &StatementContext, value: &AstLeftValue) -> Result<Self> {
+        match value {
+            AstLeftValue::Ident(ident) => AsgIdent::new(asg, ctx, ident).map(Self::Ident),
+            AstLeftValue::FnCall(call) => AsgFnCall::new(asg, ctx, call).map(Self::FnCall),
+        }
+    }
+}
+
+impl TryFrom<AsgExpr> for AsgLeftValue {
+    type Error = Error;
+
+    fn try_from(value: AsgExpr) -> std::result::Result<Self, Self::Error> {
+        match value {
+            AsgExpr::Literal(_) | AsgExpr::FnCall(_) => Err(Error),
+            AsgExpr::Ident(ident) => Ok(Self::Ident(ident)),
         }
     }
 }

@@ -137,10 +137,10 @@ pub(crate) fn invalid_buf_fn_call(asg: &Asg, fn_call: &AsgFnCall) -> SemanticErr
     )
 }
 
-pub(crate) fn call_without_return_type_in_expr(asg: &Asg, fn_call: &AsgFnCall) -> SemanticError {
+pub(crate) fn call_without_return_type(asg: &Asg, fn_call: &AsgFnCall) -> SemanticError {
     SemanticError::new(
         format!(
-            "function `{}` in an expression while not having a return type",
+            "expected function with a return type, got function `{}`",
             signature_str(&fn_call.fn_.ast)
         ),
         vec![LocatedMessage {

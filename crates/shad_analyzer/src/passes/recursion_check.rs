@@ -1,8 +1,8 @@
 use crate::errors::fn_;
 use crate::result::result_ref;
 use crate::{
-    Asg, AsgAssignment, AsgExpr, AsgFn, AsgFnCall, AsgReturn, AsgStatement, AsgVariableDefinition,
-    Error,
+    Asg, AsgAssignment, AsgExpr, AsgFn, AsgFnCall, AsgLeftValue, AsgReturn, AsgStatement,
+    AsgVariableDefinition, Error,
 };
 use fxhash::FxHashSet;
 use shad_error::{SemanticError, Span};
@@ -48,7 +48,17 @@ impl RecursionCheck for AsgStatement {
 
 impl RecursionCheck for AsgAssignment {
     fn check_recursion(&self, asg: &Asg, ctx: &mut FnRecursionChecker) -> crate::Result<()> {
+        result_ref(&self.assigned).and_then(|expr| expr.check_recursion(asg, ctx))?;
         result_ref(&self.expr).and_then(|expr| expr.check_recursion(asg, ctx))
+    }
+}
+
+impl RecursionCheck for AsgLeftValue {
+    fn check_recursion(&self, asg: &Asg, ctx: &mut FnRecursionChecker) -> crate::Result<()> {
+        match self {
+            Self::Ident(_) => Ok(()),
+            Self::FnCall(call) => call.check_recursion(asg, ctx),
+        }
     }
 }
 

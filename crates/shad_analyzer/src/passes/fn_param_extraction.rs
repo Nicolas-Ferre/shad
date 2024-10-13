@@ -1,7 +1,7 @@
 use crate::items::statement::StatementContext;
 use crate::{
-    Asg, AsgAssignment, AsgExpr, AsgFn, AsgFnCall, AsgFnParam, AsgIdent, AsgIdentSource, AsgReturn,
-    AsgStatement, AsgVariableDefinition,
+    Asg, AsgAssignment, AsgExpr, AsgFn, AsgFnCall, AsgFnParam, AsgIdent, AsgIdentSource,
+    AsgLeftValue, AsgReturn, AsgStatement, AsgVariableDefinition,
 };
 use fxhash::FxHashMap;
 use shad_parser::{AstExpr, AstVarDefinition};
@@ -83,6 +83,15 @@ impl ParamVarReplacement for AsgAssignment {
         }
         if let Ok(expr) = &mut self.expr {
             expr.replace_params(vars);
+        }
+    }
+}
+
+impl ParamVarReplacement for AsgLeftValue {
+    fn replace_params(&mut self, vars: &FxHashMap<String, AsgVariableDefinition>) {
+        match self {
+            Self::Ident(ident) => ident.replace_params(vars),
+            Self::FnCall(call) => call.replace_params(vars),
         }
     }
 }

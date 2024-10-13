@@ -1,18 +1,14 @@
-use crate::{Asg, AsgAssignment, AsgIdent, AsgType};
-use shad_error::{ErrorLevel, LocatedMessage, SemanticError};
+use crate::{Asg, AsgAssignment, AsgType};
+use shad_error::{ErrorLevel, LocatedMessage, SemanticError, Span};
 
 pub(crate) fn invalid_type(
     asg: &Asg,
     assignment: &AsgAssignment,
-    assigned: &AsgIdent,
     assigned_type: &AsgType,
     expr_type: &AsgType,
 ) -> SemanticError {
     SemanticError::new(
-        format!(
-            "expression assigned to `{}` has invalid type",
-            assigned.name()
-        ),
+        "invalid type in assignment",
         vec![
             LocatedMessage {
                 level: ErrorLevel::Error,
@@ -25,6 +21,19 @@ pub(crate) fn invalid_type(
                 text: format!("expected type `{}`", assigned_type.name.as_str()),
             },
         ],
+        &asg.code,
+        &asg.path,
+    )
+}
+
+pub(crate) fn not_ref_left_value(asg: &Asg, value_span: Span) -> SemanticError {
+    SemanticError::new(
+        "left value in assignment is not a reference",
+        vec![LocatedMessage {
+            level: ErrorLevel::Error,
+            span: value_span,
+            text: "this function doesn't return a reference".into(),
+        }],
         &asg.code,
         &asg.path,
     )

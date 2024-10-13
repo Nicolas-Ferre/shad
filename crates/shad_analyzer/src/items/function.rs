@@ -66,8 +66,8 @@ impl AsgFnSignature {
             param_types: args
                 .iter()
                 .map(|arg| {
-                    let self1 = &arg.type_(asg)?;
-                    Ok(self1.name.as_str().into())
+                    let type_ = &arg.type_(asg)?;
+                    Ok(type_.name.as_str().into())
                 })
                 .collect::<Result<_>>()?,
         })
@@ -103,7 +103,7 @@ impl AsgFn {
             index: asg.functions.len(),
             params,
             return_type: if let Some(type_) = &fn_.return_type {
-                asg.find_type(type_).cloned().map(Some)
+                asg.find_type(&type_.name).cloned().map(Some)
             } else {
                 Ok(None)
             },
@@ -113,7 +113,15 @@ impl AsgFn {
     /// Whether the function has a `ref` parameter.
     pub fn is_inlined(&self) -> bool {
         self.ast.qualifier != AstFnQualifier::Gpu
-            && self.params.iter().any(|param| param.ast.ref_span.is_some())
+            && (self.is_returning_ref()
+                || self.params.iter().any(|param| param.ast.ref_span.is_some()))
+    }
+
+    pub(crate) fn is_returning_ref(&self) -> bool {
+        self.ast
+            .return_type
+            .as_ref()
+            .map_or(false, |type_| type_.is_ref)
     }
 
     pub(crate) fn scope(self: &Rc<Self>) -> StatementScope {

@@ -37,10 +37,24 @@ pub(crate) fn invalid_type(
                     .return_type
                     .as_ref()
                     .expect("internal error: no return type")
+                    .name
                     .span,
                 text: format!("expected type `{}`", expected.name.as_str()),
             },
         ],
+        &asg.code,
+        &asg.path,
+    )
+}
+
+pub(crate) fn not_ref_expr(asg: &Asg, return_: &AsgReturn) -> SemanticError {
+    SemanticError::new(
+        "returned expression is not a reference",
+        vec![LocatedMessage {
+            level: ErrorLevel::Error,
+            span: return_.ast.expr.span(),
+            text: "this expression is not a valid reference".into(),
+        }],
         &asg.code,
         &asg.path,
     )
@@ -92,6 +106,7 @@ pub(crate) fn missing_return(asg: &Asg, fn_: &AsgFn) -> SemanticError {
                 .return_type
                 .as_ref()
                 .expect("internal error: missing return type")
+                .name
                 .span,
             text: "the function should return a value".into(),
         }],

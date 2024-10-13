@@ -1,6 +1,6 @@
 use crate::atom::parse_token;
 use crate::token::{Token, TokenType};
-use crate::{AstExpr, AstFnCall, AstIdent};
+use crate::{AstExpr, AstFnCall, AstIdent, AstLeftValue};
 use logos::Lexer;
 use shad_error::{Span, SyntaxError};
 
@@ -32,12 +32,10 @@ impl AstStatement {
 
     #[allow(clippy::wildcard_enum_match_arm)]
     pub(crate) fn parse(lexer: &mut Lexer<'_, TokenType>) -> Result<Self, SyntaxError> {
-        let tmp_lexer = &mut lexer.clone();
-        let token = Token::next(tmp_lexer)?;
-        let next_token = Token::next(tmp_lexer)?;
+        let token = Token::next(&mut lexer.clone())?;
         match token.type_ {
             TokenType::Ident => {
-                if next_token.type_ == TokenType::OpenParenthesis {
+                if AstFnCallStatement::parse(&mut lexer.clone()).is_ok() {
                     Ok(Self::FnCall(AstFnCallStatement::parse(lexer)?))
                 } else {
                     Ok(Self::Assignment(AstAssignment::parse(lexer)?))
@@ -60,19 +58,19 @@ pub struct AstAssignment {
     /// The span of the assignment.
     pub span: Span,
     /// The updated value.
-    pub value: AstIdent,
+    pub value: AstLeftValue,
     /// The assigned expression.
     pub expr: AstExpr,
 }
 
 impl AstAssignment {
     fn parse(lexer: &mut Lexer<'_, TokenType>) -> Result<Self, SyntaxError> {
-        let value = AstIdent::parse(lexer)?;
+        let value = AstLeftValue::parse(lexer)?;
         parse_token(lexer, TokenType::Assigment)?;
         let expr = AstExpr::parse(lexer)?;
         let semi_colon = parse_token(lexer, TokenType::SemiColon)?;
         Ok(Self {
-            span: Span::join(value.span, semi_colon.span),
+            span: Span::join(value.span(), semi_colon.span),
             value,
             expr,
         })

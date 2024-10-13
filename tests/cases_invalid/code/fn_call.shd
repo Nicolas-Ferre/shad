@@ -34,3 +34,18 @@ fn fn_with_ref_param(ref param: i32) {
 run {
     fn_with_ref_param(42);
 }
+
+fn returned_copy() -> i32 {
+    return 0;
+}
+
+run {
+    var value = 0;
+    without_return_type() = 2;
+    returned_copy() = 2;
+    fn_with_ref_param(returned_copy());
+}
+
+fn returned_invalid_ref() -> ref i32 {
+    return 0;
+}
