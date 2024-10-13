@@ -86,6 +86,14 @@ impl AsgStatement {
             Self::FnCall(statement) => result_ref(statement).map(|s| s.span),
         }
     }
+
+    pub(crate) fn is_ref_def(&self) -> bool {
+        if let Self::Var(statement) = self {
+            statement.var.is_ref
+        } else {
+            false
+        }
+    }
 }
 
 /// An analyzed assignment statement.
@@ -151,9 +159,10 @@ impl TryFrom<AsgExpr> for AsgLeftValue {
 
     fn try_from(value: AsgExpr) -> std::result::Result<Self, Self::Error> {
         match value {
-            AsgExpr::Literal(_) | AsgExpr::FnCall(_) => {
-                unreachable!("internal error: not inlined expression")
+            AsgExpr::Literal(_) => {
+                unreachable!("internal error: invalid left value")
             }
+            AsgExpr::FnCall(call) => Ok(Self::FnCall(call)),
             AsgExpr::Ident(ident) => Ok(Self::Ident(ident)),
         }
     }
@@ -192,6 +201,7 @@ impl AsgVariableDefinition {
                 index: asg.next_var_index(),
                 inline_index: None,
                 expr: Ok(Box::new(expr.clone())),
+                is_ref: false,
             },
             expr: Ok(Box::new(expr.clone())),
         }
@@ -211,6 +221,8 @@ pub struct AsgVariable {
     pub inline_index: Option<usize>,
     /// The initial value of the variable.
     pub expr: Result<Box<AsgExpr>>,
+    /// Whether the variable is a reference.
+    pub is_ref: bool,
 }
 
 impl AsgVariable {
@@ -221,6 +233,7 @@ impl AsgVariable {
             index: asg.next_var_index(),
             inline_index: None,
             expr: AsgExpr::new(asg, ctx, &variable.expr).map(Box::new),
+            is_ref: variable.is_ref,
         };
         ctx.variables
             .insert(variable.name.label.clone(), final_variable.clone());

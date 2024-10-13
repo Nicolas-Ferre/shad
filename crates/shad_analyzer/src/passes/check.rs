@@ -144,10 +144,17 @@ impl ErrorCheck for AsgStatement {
 
 impl ErrorCheck for AsgVariableDefinition {
     fn check(&self, asg: &Asg, ctx: &mut ErrorCheckContext) -> Vec<SemanticError> {
-        self.expr
-            .as_ref()
-            .map(|expr| expr.check(asg, ctx))
-            .unwrap_or_default()
+        if let Ok(expr) = &self.expr {
+            let mut errors = expr.check(asg, ctx);
+            if let Ok(expr) = &self.expr {
+                if self.var.is_ref && !expr.is_ref() && expr.is_typed() {
+                    errors.push(errors::assignment::not_ref_expr(asg, expr.span()));
+                }
+            }
+            errors
+        } else {
+            vec![]
+        }
     }
 }
 
@@ -189,7 +196,7 @@ impl ErrorCheck for AsgLeftValue {
             Self::FnCall(call) => {
                 let mut errors = call.check(asg, ctx);
                 if call.fn_.ast.return_type.is_some() && !call.fn_.is_returning_ref() {
-                    errors.push(errors::assignment::not_ref_left_value(asg, call.span));
+                    errors.push(errors::assignment::not_ref_expr(asg, call.span));
                 }
                 errors
             }
@@ -321,7 +328,10 @@ fn check_return_type(asg: &Asg, fn_: &AsgFn, return_: &AsgReturn) -> Option<Sema
                     expected_type,
                 ))
             } else if fn_.is_returning_ref() && !expr.is_ref() {
-                Some(errors::return_::not_ref_expr(asg, return_))
+                Some(errors::assignment::not_ref_expr(
+                    asg,
+                    return_.ast.expr.span(),
+                ))
             } else {
                 None
             }

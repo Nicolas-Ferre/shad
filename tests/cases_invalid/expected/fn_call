@@ -61,11 +61,11 @@ error: expected function with a return type, got function `without_return_type()
    |     ^^^^^^^^^^^^^^^^^^^^^ this function cannot be called here
    |
 
-error: left value in assignment is not a reference
+error: expression is not a reference
   --> ./cases_invalid/code/fn_call.shd:45:5
    |
 45 |     returned_copy() = 2;
-   |     ^^^^^^^^^^^^^^^ this function doesn't return a reference
+   |     ^^^^^^^^^^^^^^^ a valid reference is expected here
    |
 
 error: invalid reference expression
@@ -80,9 +80,9 @@ error: invalid reference expression
    |                       ^^^^^^^^^^^^^^^ not a reference
    |
 
-error: returned expression is not a reference
+error: expression is not a reference
   --> ./cases_invalid/code/fn_call.shd:50:12
    |
 50 |     return 0;
-   |            ^ this expression is not a valid reference
+   |            ^ a valid reference is expected here
    |

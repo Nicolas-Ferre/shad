@@ -47,19 +47,6 @@ pub(crate) fn invalid_type(
     )
 }
 
-pub(crate) fn not_ref_expr(asg: &Asg, return_: &AsgReturn) -> SemanticError {
-    SemanticError::new(
-        "returned expression is not a reference",
-        vec![LocatedMessage {
-            level: ErrorLevel::Error,
-            span: return_.ast.expr.span(),
-            text: "this expression is not a valid reference".into(),
-        }],
-        &asg.code,
-        &asg.path,
-    )
-}
-
 pub(crate) fn statement_after(asg: &Asg, statement_span: Span, return_span: Span) -> SemanticError {
     SemanticError::new(
         "statement found after `return` statement",

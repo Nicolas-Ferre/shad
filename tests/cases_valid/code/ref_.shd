@@ -1,0 +1,14 @@
+gpu fn __add__(left: i32, right: i32) -> i32;
+
+buf result = 0;
+
+run {
+    ref outer_ref = result();
+    ref result_ref = outer_ref;
+    result_ref = result_ref + 1;
+}
+
+buf fn result() -> ref i32 {
+    result = result + 1;
+    return result;
+}

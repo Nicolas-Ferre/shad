@@ -41,7 +41,7 @@ impl AstStatement {
                     Ok(Self::Assignment(AstAssignment::parse(lexer)?))
                 }
             }
-            TokenType::Var => Ok(Self::Var(AstVarDefinition::parse(lexer)?)),
+            TokenType::Var | TokenType::Ref => Ok(Self::Var(AstVarDefinition::parse(lexer)?)),
             TokenType::Return => Ok(Self::Return(AstReturn::parse(lexer)?)),
             _ => Err(SyntaxError::new(token.span.start, "expected statement")),
         }
@@ -81,7 +81,9 @@ impl AstAssignment {
 ///
 /// # Examples
 ///
-/// The Shad code `var my_var = 2;` will be parsed as a variable definition.
+/// Following Shad snippets will be parsed as a variable definition:
+/// - `var my_var = 2;`
+/// - `ref my_ref = other_var;`
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AstVarDefinition {
     /// The span of the variable definition.
@@ -90,19 +92,26 @@ pub struct AstVarDefinition {
     pub name: AstIdent,
     /// The initial value of the variable.
     pub expr: AstExpr,
+    /// Whether the variable is a reference.
+    pub is_ref: bool,
 }
 
 impl AstVarDefinition {
     fn parse(lexer: &mut Lexer<'_, TokenType>) -> Result<Self, SyntaxError> {
-        let var_ = parse_token(lexer, TokenType::Var)?;
+        let keyword = if parse_token(&mut lexer.clone(), TokenType::Var).is_ok() {
+            parse_token(lexer, TokenType::Var)?
+        } else {
+            parse_token(lexer, TokenType::Ref)?
+        };
         let name = AstIdent::parse(lexer)?;
         parse_token(lexer, TokenType::Assigment)?;
         let expr = AstExpr::parse(lexer)?;
         let semi_colon = parse_token(lexer, TokenType::SemiColon)?;
         Ok(Self {
-            span: Span::join(var_.span, semi_colon.span),
+            span: Span::join(keyword.span, semi_colon.span),
             name,
             expr,
+            is_ref: keyword.type_ == TokenType::Ref,
         })
     }
 }

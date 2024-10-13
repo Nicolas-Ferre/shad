@@ -1,4 +1,4 @@
-use crate::passes::fn_inlining::replacement::StatementInline;
+use crate::passes::fn_inlining::replacement::{ReplacementContext, StatementInline};
 use crate::passes::fn_inlining::split::StatementSplitContext;
 use crate::{Asg, AsgFn, AsgStatement, FunctionListing};
 use shad_parser::AstFnQualifier;
@@ -43,6 +43,7 @@ fn are_all_dependent_fns_inlined(asg: &Asg, are_fns_inlined: &[bool], fn_: &AsgF
 }
 
 fn inline(asg: &mut Asg, statements: Vec<AsgStatement>) -> Vec<AsgStatement> {
+    let mut replacement_ctx = ReplacementContext::default();
     statements
         .into_iter()
         .flat_map(|statement| {
@@ -53,5 +54,10 @@ fn inline(asg: &mut Asg, statements: Vec<AsgStatement>) -> Vec<AsgStatement> {
         .collect::<Vec<_>>()
         .into_iter()
         .flat_map(|statement| statement.inline(asg))
+        .map(|mut statement| {
+            statement.replace_refs(&mut replacement_ctx);
+            statement
+        })
+        .filter(|statement| !statement.is_ref_def())
         .collect()
 }
