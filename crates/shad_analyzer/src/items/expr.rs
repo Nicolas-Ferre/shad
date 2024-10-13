@@ -22,6 +22,17 @@ pub enum AsgExpr {
     FnCall(AsgFnCall),
 }
 
+impl From<AsgExpr> for AsgIdent {
+    fn from(value: AsgExpr) -> Self {
+        match value {
+            AsgExpr::Ident(ident) => ident,
+            AsgExpr::Literal(_) | AsgExpr::FnCall(_) => {
+                unreachable!("internal error: expression is not an ident")
+            }
+        }
+    }
+}
+
 impl AsgExpr {
     pub(crate) fn new(asg: &mut Asg, ctx: &StatementContext, expr: &AstExpr) -> Result<Self> {
         match expr {
@@ -50,6 +61,13 @@ impl AsgExpr {
             Self::Literal(_) => false,
             Self::Ident(_) => true,
             Self::FnCall(call) => call.fn_.is_returning_ref(),
+        }
+    }
+
+    pub(crate) fn is_typed(&self) -> bool {
+        match self {
+            Self::Literal(_) | Self::Ident(_) => true,
+            Self::FnCall(call) => call.fn_.ast.return_type.is_some(),
         }
     }
 }

@@ -48,6 +48,7 @@ fn param_var_def(
         span: param.ast.name.span,
         name: param.ast.name.clone(),
         expr: AstExpr::Ident(param.ast.name.clone()),
+        is_ref: false,
     };
     AsgVariableDefinition::new(asg, ctx, &var_def)
 }

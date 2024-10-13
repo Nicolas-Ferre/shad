@@ -26,13 +26,13 @@ pub(crate) fn invalid_type(
     )
 }
 
-pub(crate) fn not_ref_left_value(asg: &Asg, value_span: Span) -> SemanticError {
+pub(crate) fn not_ref_expr(asg: &Asg, expr_span: Span) -> SemanticError {
     SemanticError::new(
-        "left value in assignment is not a reference",
+        "expression is not a reference",
         vec![LocatedMessage {
             level: ErrorLevel::Error,
-            span: value_span,
-            text: "this function doesn't return a reference".into(),
+            span: expr_span,
+            text: "a valid reference is expected here".into(),
         }],
         &asg.code,
         &asg.path,

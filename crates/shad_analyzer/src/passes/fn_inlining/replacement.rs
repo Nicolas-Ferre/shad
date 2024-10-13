@@ -3,6 +3,14 @@ use crate::{
     AsgStatement, AsgVariableDefinition,
 };
 use fxhash::FxHashMap;
+use std::ops::Deref;
+
+// TODO: extract ref_replacement pass and run it on shader inlined code directly
+
+#[derive(Default, Debug)]
+pub(crate) struct ReplacementContext {
+    ref_values: FxHashMap<String, AsgIdent>,
+}
 
 pub(crate) trait StatementInline: Sized {
     // coverage: off (unreachable)
@@ -12,6 +20,8 @@ pub(crate) trait StatementInline: Sized {
     // coverage: on
 
     fn replace_params(&mut self, index: usize, param_replacements: &FxHashMap<usize, AsgIdent>);
+
+    fn replace_refs(&mut self, ctx: &mut ReplacementContext);
 }
 
 impl StatementInline for AsgStatement {
@@ -31,6 +41,16 @@ impl StatementInline for AsgStatement {
             Self::Assignment(assignment) => assignment.replace_params(index, param_replacements),
             Self::Return(return_) => return_.replace_params(index, param_replacements),
             Self::FnCall(Ok(call)) => call.replace_params(index, param_replacements),
+            Self::FnCall(Err(_)) => unreachable!("internal error: inline invalid code"),
+        }
+    }
+
+    fn replace_refs(&mut self, ctx: &mut ReplacementContext) {
+        match self {
+            Self::Var(var) => var.replace_refs(ctx),
+            Self::Assignment(assignment) => assignment.replace_refs(ctx),
+            Self::Return(return_) => return_.replace_refs(ctx),
+            Self::FnCall(Ok(call)) => call.replace_refs(ctx),
             Self::FnCall(Err(_)) => unreachable!("internal error: inline invalid code"),
         }
     }
@@ -60,6 +80,24 @@ impl StatementInline for AsgVariableDefinition {
             .as_mut()
             .expect("internal error: inline invalid code")
             .replace_params(index, param_replacements);
+    }
+
+    fn replace_refs(&mut self, ctx: &mut ReplacementContext) {
+        self.expr
+            .as_mut()
+            .expect("internal error: inline invalid code")
+            .replace_refs(ctx);
+        if self.var.is_ref {
+            ctx.ref_values.insert(
+                self.var.name.label.clone(),
+                self.expr
+                    .as_ref()
+                    .expect("internal error: inline invalid code")
+                    .deref()
+                    .clone()
+                    .into(),
+            );
+        }
     }
 }
 
@@ -105,6 +143,17 @@ impl StatementInline for AsgAssignment {
             .expect("internal error: inline invalid code")
             .replace_params(index, param_replacements);
     }
+
+    fn replace_refs(&mut self, ctx: &mut ReplacementContext) {
+        self.assigned
+            .as_mut()
+            .expect("internal error: inline invalid code")
+            .replace_refs(ctx);
+        self.expr
+            .as_mut()
+            .expect("internal error: inline invalid code")
+            .replace_refs(ctx);
+    }
 }
 
 impl StatementInline for AsgLeftValue {
@@ -112,6 +161,13 @@ impl StatementInline for AsgLeftValue {
         match self {
             Self::Ident(ident) => ident.replace_params(index, param_replacements),
             Self::FnCall(_) => unreachable!("internal error: left value is not inlined"),
+        }
+    }
+
+    fn replace_refs(&mut self, ctx: &mut ReplacementContext) {
+        match self {
+            Self::Ident(ident) => ident.replace_refs(ctx),
+            Self::FnCall(call) => call.replace_refs(ctx),
         }
     }
 }
@@ -140,6 +196,13 @@ impl StatementInline for AsgReturn {
             .expect("internal error: inline invalid code")
             .replace_params(index, param_replacements);
     }
+
+    fn replace_refs(&mut self, ctx: &mut ReplacementContext) {
+        self.expr
+            .as_mut()
+            .expect("internal error: inline invalid code")
+            .replace_refs(ctx);
+    }
 }
 
 impl StatementInline for AsgExpr {
@@ -148,6 +211,14 @@ impl StatementInline for AsgExpr {
             Self::Literal(_) => (),
             Self::Ident(ident) => ident.replace_params(index, param_replacements),
             Self::FnCall(call) => call.replace_params(index, param_replacements),
+        }
+    }
+
+    fn replace_refs(&mut self, ctx: &mut ReplacementContext) {
+        match self {
+            Self::Literal(_) => (),
+            Self::Ident(ident) => ident.replace_refs(ctx),
+            Self::FnCall(call) => call.replace_refs(ctx),
         }
     }
 }
@@ -159,6 +230,14 @@ impl StatementInline for AsgIdent {
             AsgIdentSource::Var(var) => var.inline_index = Some(index),
             AsgIdentSource::Param(param) => {
                 self.source = param_replacements[&param.index].source.clone();
+            }
+        }
+    }
+
+    fn replace_refs(&mut self, ctx: &mut ReplacementContext) {
+        if let AsgIdentSource::Var(var) = &self.source {
+            if var.is_ref {
+                *self = ctx.ref_values[&var.name.label].clone();
             }
         }
     }
@@ -176,6 +255,12 @@ impl StatementInline for AsgFnCall {
     fn replace_params(&mut self, index: usize, param_replacements: &FxHashMap<usize, AsgIdent>) {
         for expr in &mut self.args {
             expr.replace_params(index, param_replacements);
+        }
+    }
+
+    fn replace_refs(&mut self, ctx: &mut ReplacementContext) {
+        for expr in &mut self.args {
+            expr.replace_refs(ctx);
         }
     }
 }
