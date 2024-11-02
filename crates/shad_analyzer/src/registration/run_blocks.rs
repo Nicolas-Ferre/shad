@@ -1,8 +1,10 @@
 use crate::Analysis;
 use shad_parser::{AstAssignment, AstItem, AstLeftValue, AstRunItem, AstStatement};
 
+/// An analyzed block of statements.
 #[derive(Debug, Clone)]
 pub struct RunBlock {
+    /// The block AST.
     pub ast: AstRunItem,
 }
 

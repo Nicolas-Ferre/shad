@@ -2,10 +2,14 @@ use crate::listing::{buffers, functions};
 use crate::{Analysis, RunBlock};
 use shad_parser::AstStatement;
 
+/// An analyzed compute shader.
 #[derive(Debug, Clone)]
 pub struct ComputeShader {
+    /// The buffers used by the shader.
     pub buffers: Vec<String>,
+    /// The signature of the functions used by the shader.
     pub fn_signatures: Vec<String>,
+    /// The statements of the shader.
     pub statements: Vec<AstStatement>,
 }
 

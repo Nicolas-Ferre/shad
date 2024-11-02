@@ -2,8 +2,10 @@ use crate::{errors, Analysis};
 use shad_parser::{AstBufferItem, AstItem};
 use std::mem;
 
+/// An analyzed buffer.
 #[derive(Debug, Clone)]
 pub struct Buffer {
+    /// The buffer AST.
     pub ast: AstBufferItem,
 }
 

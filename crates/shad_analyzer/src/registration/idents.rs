@@ -8,9 +8,12 @@ use shad_parser::{
 };
 use std::mem;
 
+/// An analyzed identifier.
 #[derive(Debug, Clone)]
 pub struct Ident {
+    /// The source of the identifier.
     pub source: IdentSource,
+    /// The type of the identifier.
     pub type_: Option<String>,
 }
 
@@ -20,10 +23,14 @@ impl Ident {
     }
 }
 
+/// The source of an identifier.
 #[derive(Debug, Clone)]
 pub enum IdentSource {
+    /// A buffer.
     Buffer(String),
-    Ident(u64),
+    /// A variable.
+    Var(u64),
+    /// A function.
     Fn(String),
 }
 
@@ -92,7 +99,7 @@ impl Visit for IdentRegistration<'_> {
         self.analysis.idents.insert(node.name.id, fn_ident);
         for param in &node.params {
             let param_type = types::name(self.analysis, &param.type_);
-            let param_ident = Ident::new(IdentSource::Ident(param.name.id), param_type);
+            let param_ident = Ident::new(IdentSource::Var(param.name.id), param_type);
             self.analysis.idents.insert(param.name.id, param_ident);
             self.add_variable(&param.name);
         }
@@ -106,7 +113,7 @@ impl Visit for IdentRegistration<'_> {
 
     fn exit_var_definition(&mut self, node: &AstVarDefinition) {
         let var_type = self.analysis.expr_type(&node.expr);
-        let var_ident = Ident::new(IdentSource::Ident(node.name.id), var_type);
+        let var_ident = Ident::new(IdentSource::Var(node.name.id), var_type);
         self.analysis.idents.insert(node.name.id, var_ident);
         self.add_variable(&node.name);
     }
@@ -163,7 +170,7 @@ impl Visit for IdentRegistration<'_> {
                 .idents
                 .get(&id)
                 .and_then(|var| var.type_.clone());
-            let var_ident = Ident::new(IdentSource::Ident(id), var_type);
+            let var_ident = Ident::new(IdentSource::Var(id), var_type);
             self.analysis.idents.insert(node.id, var_ident);
             return;
         } else if let (true, Some(buffer)) = (

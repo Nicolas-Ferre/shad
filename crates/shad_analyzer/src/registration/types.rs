@@ -10,10 +10,14 @@ pub const I32_TYPE: &str = "i32";
 /// The boolean type name.
 pub const BOOL_TYPE: &str = "bool";
 
+/// An analyzed type.
 #[derive(Debug, Clone)]
 pub struct Type {
+    /// The type name.
     pub name: String,
+    /// The type name when used for a buffer.
     pub buffer_name: String,
+    /// The type size in bytes.
     pub size: usize,
 }
 

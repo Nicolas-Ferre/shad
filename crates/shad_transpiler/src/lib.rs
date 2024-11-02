@@ -155,7 +155,7 @@ fn wgsl_ident(analysis: &Analysis, name: &AstIdent, is_expr: bool) -> String {
                 buf_name(analysis, name)
             }
         }
-        IdentSource::Ident(id) => format!("v{}_{}", id, name.label),
+        IdentSource::Var(id) => format!("v{}_{}", id, name.label),
         IdentSource::Fn(_) => unreachable!("internal error: variable as function"),
     }
 }
@@ -236,7 +236,7 @@ fn fn_name(analysis: &Analysis, ident: &AstIdent) -> String {
 fn fn_<'a>(analysis: &'a Analysis, ident: &AstIdent) -> &'a Function {
     match &analysis.idents[&ident.id].source {
         IdentSource::Fn(signature) => &analysis.fns[signature],
-        IdentSource::Buffer(_) | IdentSource::Ident(_) => {
+        IdentSource::Buffer(_) | IdentSource::Var(_) => {
             unreachable!("internal error: invalid fn")
         }
     }

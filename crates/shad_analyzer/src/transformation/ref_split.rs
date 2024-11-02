@@ -99,14 +99,14 @@ impl VisitMut for RefSplitTransform<'_> {
             self.analysis.idents.insert(
                 var_def_id,
                 Ident::new(
-                    IdentSource::Ident(var_def_id),
+                    IdentSource::Var(var_def_id),
                     Some(param.type_.label.clone()),
                 ),
             );
             self.analysis.idents.insert(
                 var_usage_id,
                 Ident::new(
-                    IdentSource::Ident(var_def_id),
+                    IdentSource::Var(var_def_id),
                     Some(param.type_.label.clone()),
                 ),
             );

@@ -3,9 +3,12 @@ use itertools::Itertools;
 use shad_parser::{AstFnItem, AstFnQualifier, AstItem};
 use std::mem;
 
+/// An analyzed function.
 #[derive(Debug, Clone)]
 pub struct Function {
+    /// The function AST.
     pub ast: AstFnItem,
+    /// Whether the function will be inlined.
     pub is_inlined: bool,
 }
 

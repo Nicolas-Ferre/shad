@@ -190,7 +190,7 @@ impl<'a> RefFnStatementsTransform<'a> {
 impl VisitMut for RefFnStatementsTransform<'_> {
     fn enter_left_value(&mut self, node: &mut AstLeftValue) {
         if let AstLeftValue::Ident(ident) = node {
-            if let IdentSource::Ident(id) = self.analysis.idents[&ident.id].source {
+            if let IdentSource::Var(id) = self.analysis.idents[&ident.id].source {
                 if let Some(expr) = self.param_args.get(&id) {
                     *node = expr
                         .clone()
@@ -205,7 +205,7 @@ impl VisitMut for RefFnStatementsTransform<'_> {
 
     fn enter_expr(&mut self, node: &mut AstExpr) {
         if let AstExpr::Ident(ident) = node {
-            if let IdentSource::Ident(id) = self.analysis.idents[&ident.id].source {
+            if let IdentSource::Var(id) = self.analysis.idents[&ident.id].source {
                 if let Some(expr) = self.param_args.get(&id) {
                     *node = expr.clone();
                 }
@@ -221,7 +221,7 @@ impl VisitMut for RefFnStatementsTransform<'_> {
             .expect("internal error: missing identifier ID");
         match ident.source {
             IdentSource::Buffer(_) | IdentSource::Fn(_) => {}
-            IdentSource::Ident(id) => {
+            IdentSource::Var(id) => {
                 let ident = ident.clone();
                 let old_id = node.id;
                 node.id = self.analysis.ast.next_id();
@@ -229,7 +229,7 @@ impl VisitMut for RefFnStatementsTransform<'_> {
                 self.analysis.idents.insert(
                     node.id,
                     Ident::new(
-                        IdentSource::Ident(self.old_new_id.get(&id).copied().unwrap_or(id)),
+                        IdentSource::Var(self.old_new_id.get(&id).copied().unwrap_or(id)),
                         ident.type_,
                     ),
                 );

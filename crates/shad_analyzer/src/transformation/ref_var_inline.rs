@@ -69,7 +69,7 @@ impl VisitMut for RefVarInlineTransform<'_> {
     fn enter_left_value(&mut self, node: &mut AstLeftValue) {
         if let AstLeftValue::Ident(ident) = node {
             match self.analysis.idents[&ident.id].source {
-                IdentSource::Ident(id) => {
+                IdentSource::Var(id) => {
                     if let Some(ref_expr) = self.ref_expressions.get(&id) {
                         *node = ref_expr
                             .clone()
@@ -87,7 +87,7 @@ impl VisitMut for RefVarInlineTransform<'_> {
     fn enter_expr(&mut self, node: &mut AstExpr) {
         if let AstExpr::Ident(ident) = node {
             match self.analysis.idents[&ident.id].source {
-                IdentSource::Ident(id) => {
+                IdentSource::Var(id) => {
                     if let Some(ref_expr) = self.ref_expressions.get(&id) {
                         *node = ref_expr.clone();
                     }

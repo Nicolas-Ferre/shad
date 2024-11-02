@@ -50,7 +50,7 @@ impl Visit for FunctionListing<'_> {
                     self.signatures.insert(signature.clone());
                 }
             }
-            IdentSource::Ident(_) | IdentSource::Buffer(_) => (),
+            IdentSource::Var(_) | IdentSource::Buffer(_) => (),
         }
     }
 }

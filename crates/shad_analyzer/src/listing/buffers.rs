@@ -40,7 +40,7 @@ impl Visit for BufferListing<'_> {
             IdentSource::Buffer(name) => {
                 self.buffers.insert(name.clone());
             }
-            IdentSource::Ident(_) | IdentSource::Fn(_) => (),
+            IdentSource::Var(_) | IdentSource::Fn(_) => (),
         }
     }
 }

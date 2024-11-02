@@ -9,21 +9,33 @@ use fxhash::FxHashMap;
 use shad_error::SemanticError;
 use shad_parser::{Ast, AstExpr, AstIdent, AstLiteralType};
 
+/// The semantic analysis of an AST.
 #[derive(Debug, Clone)]
 pub struct Analysis {
+    /// The AST.
     pub ast: Ast,
+    /// The analyzed identifiers.
     pub idents: FxHashMap<u64, Ident>,
+    /// The analyzed types.
     pub types: FxHashMap<String, Type>,
+    /// The analyzed functions.
     pub fns: FxHashMap<String, Function>,
+    /// The analyzed buffers.
     pub buffers: FxHashMap<String, Buffer>,
+    /// The analyzed init blocks.
     pub init_blocks: Vec<RunBlock>,
+    /// The analyzed run blocks.
     pub run_blocks: Vec<RunBlock>,
+    /// The analyzed init shaders.
     pub init_shaders: Vec<ComputeShader>,
+    /// The analyzed step shaders.
     pub step_shaders: Vec<ComputeShader>,
+    /// The semantic errors found during analysis.
     pub errors: Vec<SemanticError>,
 }
 
 impl Analysis {
+    /// Runs the semantic analysis on an `ast`.
     pub fn run(ast: &Ast) -> Self {
         let mut analysis = Self {
             ast: ast.clone(),
@@ -57,6 +69,7 @@ impl Analysis {
         analysis
     }
 
+    /// Returns the type of a buffer.
     pub fn buffer_type(&self, buffer_name: &str) -> &Type {
         let id = &self.buffers[buffer_name].ast.name.id;
         let type_ = self.idents[id]
@@ -84,7 +97,7 @@ impl Analysis {
             .get(&fn_name.id)
             .map(|ident| match &ident.source {
                 IdentSource::Fn(signature) => signature.clone(),
-                IdentSource::Buffer(_) | IdentSource::Ident(_) => {
+                IdentSource::Buffer(_) | IdentSource::Var(_) => {
                     unreachable!("internal error: retrieve non-function signature")
                 }
             })
