@@ -67,19 +67,3 @@ impl From<AstLeftValue> for AstExpr {
         }
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use crate::{AstExpr, AstFnCall};
-
-    fn fn_call_expr_to_left_value() {
-        let expr = AstExpr::FnCall(AstFnCall {
-            span: Span {},
-            name: AstIdent {},
-            args: vec![],
-            is_operator: false,
-            is_statement: false,
-        });
-        assert_eq!()
-    }
-}
