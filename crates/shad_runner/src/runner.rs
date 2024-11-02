@@ -1,12 +1,12 @@
 use futures::executor;
 use fxhash::FxHashMap;
-use shad_analyzer::{Asg, AsgBuffer, AsgComputeShader, TypeResolving};
+use shad_analyzer::{Analysis, Buffer, ComputeShader};
 use shad_error::Error;
 use shad_parser::Ast;
 use std::path::Path;
 use std::time::{Duration, Instant};
 use wgpu::{
-    Adapter, Backends, BindGroup, Buffer, BufferDescriptor, BufferUsages, CommandEncoder,
+    Adapter, Backends, BindGroup, BufferDescriptor, BufferUsages, CommandEncoder,
     CommandEncoderDescriptor, ComputePass, ComputePassDescriptor, ComputePipeline,
     ComputePipelineDescriptor, Device, DeviceDescriptor, Features, Gles3MinorVersion, Instance,
     InstanceFlags, Limits, MapMode, MemoryHints, PowerPreference, Queue, RequestAdapterOptions,
@@ -64,22 +64,20 @@ impl Runner {
     }
 
     /// Returns the analyzed code.
-    pub fn asg(&self) -> &Asg {
-        &self.program.asg
+    pub fn analysis(&self) -> &Analysis {
+        &self.program.analysis
     }
 
     /// Retrieves the bytes of the buffer with a specific Shad `name`.
     pub fn buffer(&self, name: &str) -> Vec<u8> {
-        if let (Some(asg_buffer), Some(wgpu_buffer)) = (
-            self.program.asg.buffers.get(name),
+        if let (Some(buffer), Some(wgpu_buffer)) = (
+            self.program.analysis.buffers.get(name),
             self.program.buffers.get(name),
         ) {
-            let size = asg_buffer
-                .expr
-                .as_ref()
-                .expect("internal error: invalid expr")
-                .type_(&self.program.asg)
-                .expect("internal error: invalid type")
+            let size = self
+                .program
+                .analysis
+                .buffer_type(&buffer.ast.name.label)
                 .size as u64;
             let tmp_buffer = self.device.create_buffer(&BufferDescriptor {
                 label: Some("modor_texture_buffer"),
@@ -141,37 +139,37 @@ impl Runner {
 
 #[derive(Debug)]
 struct Program {
-    asg: Asg,
-    buffers: FxHashMap<String, Buffer>,
-    init_shaders: Vec<ComputeShader>,
-    step_shaders: Vec<ComputeShader>,
+    analysis: Analysis,
+    buffers: FxHashMap<String, wgpu::Buffer>,
+    init_shaders: Vec<RunComputeShader>,
+    step_shaders: Vec<RunComputeShader>,
 }
 
 impl Program {
     #[allow(clippy::similar_names)]
     fn new(path: impl AsRef<Path>, device: &Device) -> Result<Self, Error> {
         let ast = Ast::from_file(path)?;
-        let asg = Asg::analyze(&ast);
-        if !asg.errors.is_empty() {
-            return Err(Error::Semantic(asg.errors));
+        let analysis = Analysis::run(&ast);
+        if !analysis.errors.is_empty() {
+            return Err(Error::Semantic(analysis.errors));
         }
-        let buffers: FxHashMap<_, _> = asg
+        let buffers: FxHashMap<_, _> = analysis
             .buffers
             .iter()
-            .map(|(name, buffer)| (name.clone(), Self::create_buffer(&asg, buffer, device)))
+            .map(|(name, buffer)| (name.clone(), Self::create_buffer(&analysis, buffer, device)))
             .collect();
-        let init_shaders = asg
+        let init_shaders = analysis
             .init_shaders
             .iter()
-            .map(|shader| ComputeShader::new(&asg, shader, &buffers, device))
+            .map(|shader| RunComputeShader::new(&analysis, shader, &buffers, device))
             .collect();
-        let step_shaders = asg
+        let step_shaders = analysis
             .step_shaders
             .iter()
-            .map(|shader| ComputeShader::new(&asg, shader, &buffers, device))
+            .map(|shader| RunComputeShader::new(&analysis, shader, &buffers, device))
             .collect();
         Ok(Self {
-            asg,
+            analysis,
             buffers,
             init_shaders,
             step_shaders,
@@ -206,16 +204,10 @@ impl Program {
         queue.submit(Some(encoder.finish()));
     }
 
-    fn create_buffer(asg: &Asg, buffer: &AsgBuffer, device: &Device) -> Buffer {
+    fn create_buffer(analysis: &Analysis, buffer: &Buffer, device: &Device) -> wgpu::Buffer {
         device.create_buffer(&BufferDescriptor {
             label: Some(&format!("shad:buffer:{}", buffer.ast.name.label)),
-            size: buffer
-                .expr
-                .as_ref()
-                .expect("internal error: invalid expr")
-                .type_(asg)
-                .expect("internal error: invalid type")
-                .size as u64,
+            size: analysis.buffer_type(&buffer.ast.name.label).size as u64,
             usage: BufferUsages::STORAGE | BufferUsages::COPY_SRC,
             mapped_at_creation: false,
         })
@@ -236,19 +228,19 @@ impl Program {
 }
 
 #[derive(Debug)]
-struct ComputeShader {
+struct RunComputeShader {
     pipeline: ComputePipeline,
     bind_group: Option<BindGroup>,
 }
 
-impl ComputeShader {
+impl RunComputeShader {
     fn new(
-        asg: &Asg,
-        shader: &AsgComputeShader,
-        buffers: &FxHashMap<String, Buffer>,
+        analysis: &Analysis,
+        shader: &ComputeShader,
+        buffers: &FxHashMap<String, wgpu::Buffer>,
         device: &Device,
     ) -> Self {
-        let pipeline = Self::create_pipeline(asg, shader, device);
+        let pipeline = Self::create_pipeline(analysis, shader, device);
         let bind_group = (!shader.buffers.is_empty())
             .then(|| Self::create_bind_group(&pipeline, shader, buffers, device));
         Self {
@@ -257,15 +249,18 @@ impl ComputeShader {
         }
     }
 
-    fn create_pipeline(asg: &Asg, shader: &AsgComputeShader, device: &Device) -> ComputePipeline {
-        let code = shad_transpiler::generate_wgsl_compute_shader(asg, shader)
-            .expect("internal error: invalid shader code");
+    fn create_pipeline(
+        analysis: &Analysis,
+        shader: &ComputeShader,
+        device: &Device,
+    ) -> ComputePipeline {
+        let code = shad_transpiler::generate_wgsl_compute_shader(analysis, shader);
         let module = device.create_shader_module(ShaderModuleDescriptor {
             label: Some("shad_shader"),
             source: wgpu::ShaderSource::Wgsl(code.into()),
         });
         device.create_compute_pipeline(&ComputePipelineDescriptor {
-            label: Some(&format!("shad:compute_shader:{}", shader.name)),
+            label: Some("shad:compute_shader"),
             layout: None,
             module: &module,
             entry_point: "main",
@@ -277,8 +272,8 @@ impl ComputeShader {
     #[allow(clippy::cast_possible_truncation)]
     fn create_bind_group(
         pipeline: &ComputePipeline,
-        shader: &AsgComputeShader,
-        buffers: &FxHashMap<String, Buffer>,
+        shader: &ComputeShader,
+        buffers: &FxHashMap<String, wgpu::Buffer>,
         device: &Device,
     ) -> BindGroup {
         device.create_bind_group(&wgpu::BindGroupDescriptor {
@@ -290,7 +285,7 @@ impl ComputeShader {
                 .enumerate()
                 .map(|(index, buffer)| wgpu::BindGroupEntry {
                     binding: index as u32,
-                    resource: buffers[&buffer.ast.name.label].as_entire_binding(),
+                    resource: buffers[buffer].as_entire_binding(),
                 })
                 .collect::<Vec<_>>(),
         })

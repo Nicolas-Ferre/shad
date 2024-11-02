@@ -3,7 +3,7 @@
 
 use clap::Parser;
 use itertools::Itertools;
-use shad_analyzer::Asg;
+use shad_analyzer::Analysis;
 use shad_parser::Ast;
 use shad_runner::Runner;
 use std::process;
@@ -114,11 +114,12 @@ impl AsgArgs {
                 process::exit(1);
             }
         };
-        let asg = Asg::analyze(&ast);
-        if asg.errors.is_empty() {
-            println!("{asg:#?}");
+        let analysis = Analysis::run(&ast);
+        if analysis.errors.is_empty() {
+            println!("{analysis:#?}");
         } else {
-            asg.errors
+            analysis
+                .errors
                 .iter()
                 .sorted_unstable_by_key(|err| err.located_messages[0].span.start)
                 .for_each(|err| println!("{err}"));

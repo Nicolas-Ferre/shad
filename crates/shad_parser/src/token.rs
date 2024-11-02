@@ -178,3 +178,22 @@ impl<'a> Token<'a> {
         })
     }
 }
+
+#[derive(Debug)]
+pub(crate) struct IdGenerator {
+    next_id: u64,
+}
+
+impl Default for IdGenerator {
+    fn default() -> Self {
+        Self { next_id: 1000 }
+    }
+}
+
+impl IdGenerator {
+    pub(crate) fn next(&mut self) -> u64 {
+        let id = self.next_id;
+        self.next_id += 1;
+        id
+    }
+}

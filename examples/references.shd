@@ -1,7 +1,8 @@
 buf result = 2;
 
 run {
-    add(result, 10) = add(add(result, 5), 5);
+    ref result_ref = add(result, 10);
+    result_ref = add(add(result_ref, 5), 5);
 }
 
 fn add(ref value: i32, added: i32) -> ref i32 {
@@ -10,7 +11,8 @@ fn add(ref value: i32, added: i32) -> ref i32 {
 }
 
 fn ident(ref value: i32) -> ref i32 {
-    return value;
+    ref val = value;
+    return val;
 }
 
 gpu fn __add__(left: i32, right: i32) -> i32;

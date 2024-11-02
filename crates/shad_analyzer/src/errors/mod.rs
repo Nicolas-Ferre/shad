@@ -1,7 +1,9 @@
-pub(crate) mod assignment;
-pub(crate) mod buffer;
-pub(crate) mod fn_;
-pub(crate) mod ident;
-pub(crate) mod literal;
-pub(crate) mod return_;
-pub(crate) mod type_;
+pub(crate) mod assignments;
+pub(crate) mod buffers;
+pub(crate) mod expressions;
+pub(crate) mod fn_calls;
+pub(crate) mod functions;
+pub(crate) mod literals;
+pub(crate) mod returns;
+pub(crate) mod types;
+pub(crate) mod variables;

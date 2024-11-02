@@ -1,5 +1,6 @@
-use crate::token::{Token, TokenType};
-use crate::{AstFnCall, AstIdent};
+use crate::fn_call::AstFnCall;
+use crate::token::{IdGenerator, Token, TokenType};
+use crate::{AstExpr, AstIdent, AstIdentType};
 use logos::Lexer;
 use shad_error::{Span, SyntaxError};
 
@@ -22,19 +23,47 @@ impl AstLeftValue {
     }
 
     #[allow(clippy::wildcard_enum_match_arm)]
-    pub(crate) fn parse(lexer: &mut Lexer<'_, TokenType>) -> Result<Self, SyntaxError> {
+    pub(crate) fn parse(
+        lexer: &mut Lexer<'_, TokenType>,
+        ids: &mut IdGenerator,
+    ) -> Result<Self, SyntaxError> {
         let tmp_lexer = &mut lexer.clone();
         let token = Token::next(tmp_lexer)?;
         let next_token = Token::next(tmp_lexer)?;
         match token.type_ {
             TokenType::Ident => {
                 if next_token.type_ == TokenType::OpenParenthesis {
-                    Ok(Self::FnCall(AstFnCall::parse(lexer)?))
+                    Ok(Self::FnCall(AstFnCall::parse(lexer, ids, false)?))
                 } else {
-                    Ok(Self::Ident(AstIdent::parse(lexer)?))
+                    Ok(Self::Ident(AstIdent::parse(
+                        lexer,
+                        ids,
+                        AstIdentType::VarUsage,
+                    )?))
                 }
             }
             _ => unreachable!("internal error: expected left value"),
+        }
+    }
+}
+
+impl TryFrom<AstExpr> for AstLeftValue {
+    type Error = ();
+
+    fn try_from(value: AstExpr) -> Result<Self, Self::Error> {
+        match value {
+            AstExpr::Ident(value) => Ok(Self::Ident(value)),
+            AstExpr::FnCall(value) => Ok(Self::FnCall(value)), // no-coverage (never reached)
+            AstExpr::Literal(_) => Err(()),                    // no-coverage (never reached)
+        }
+    }
+}
+
+impl From<AstLeftValue> for AstExpr {
+    fn from(value: AstLeftValue) -> Self {
+        match value {
+            AstLeftValue::Ident(value) => Self::Ident(value),
+            AstLeftValue::FnCall(value) => Self::FnCall(value),
         }
     }
 }
