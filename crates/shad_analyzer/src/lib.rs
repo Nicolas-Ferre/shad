@@ -1,40 +1,16 @@
-//! Analyzer for the Shad programming language.
-//!
-//! This crate provides utilities to analyze a Shad AST.
-//!
-//! # Examples
-//!
-//! ```rust
-//! # use shad_parser::*;
-//! # use shad_analyzer::*;
-//! #
-//! fn analyze_shad_program(ast: Ast) {
-//!     let asg = Asg::analyze(&ast);
-//!     if asg.errors.is_empty() {
-//!         println!("{asg:#?}")
-//!         
-//!     } else {
-//!         for err in &asg.errors {
-//!             println!("{err}");
-//!         }
-//!     }
-//! }
-//! ```
+#![allow(missing_docs)] // TODO: remove
 
-mod asg;
+mod analysis;
+mod checks;
 mod errors;
-mod items;
-mod passes;
-mod result;
+mod listing;
+mod registration;
+mod transformation;
 
-pub use asg::*;
-pub use items::buffer::*;
-pub use items::expr::*;
-pub use items::function::*;
-pub use items::shader::*;
-pub use items::statement::*;
-pub use items::type_::*;
-pub use passes::buffer_listing::*;
-pub use passes::fn_listing::*;
-pub use passes::type_resolving::*;
-pub use result::*;
+pub use analysis::*;
+pub use registration::buffers::*;
+pub use registration::functions::*;
+pub use registration::idents::*;
+pub use registration::run_blocks::*;
+pub use registration::shaders::*;
+pub use registration::types::*;

@@ -1,13 +1,12 @@
 //! Transpiler to convert Shad expressions to WGSL.
 
-use shad_analyzer::{
-    Asg, AsgBuffer, AsgComputeShader, AsgExpr, AsgFn, AsgFnCall, AsgFnParam, AsgIdent,
-    AsgIdentSource, AsgLeftValue, AsgStatement, AsgType, AsgVariable, Error, Result, TypeResolving,
-    ADD_FN, AND_FN, DIV_FN, EQ_FN, GE_FN, GT_FN, LE_FN, LT_FN, MOD_FN, MUL_FN, NEG_FN, NE_FN,
-    NOT_FN, OR_FN, SUB_FN,
+use itertools::Itertools;
+use shad_analyzer::{Analysis, ComputeShader, Function, IdentSource};
+use shad_parser::{
+    AstExpr, AstFnCall, AstFnParam, AstFnQualifier, AstIdent, AstLeftValue, AstStatement, ADD_FN,
+    AND_FN, DIV_FN, EQ_FN, GE_FN, GT_FN, LE_FN, LT_FN, MOD_FN, MUL_FN, NEG_FN, NE_FN, NOT_FN,
+    OR_FN, SUB_FN,
 };
-use shad_parser::AstFnQualifier;
-use std::rc::Rc;
 
 const IDENT_UNIT: usize = 4;
 
@@ -17,186 +16,176 @@ const IDENT_UNIT: usize = 4;
 ///
 /// An error is returned if the input shader definition is invalid.
 #[allow(clippy::result_unit_err)]
-pub fn generate_wgsl_compute_shader(asg: &Asg, shader: &AsgComputeShader) -> Result<String> {
-    Ok(format!(
+pub fn generate_wgsl_compute_shader(analysis: &Analysis, shader: &ComputeShader) -> String {
+    format!(
         "{}\n\n@compute @workgroup_size(1, 1, 1)\nfn main() {{\n{}\n}}\n\n{}",
-        wgsl_buf_definitions(asg, shader)?,
-        wgsl_statements(asg, &shader.statements)?,
-        wgsl_fn_definitions(asg, shader)?,
-    ))
-}
-
-fn wgsl_buf_definitions(asg: &Asg, shader: &AsgComputeShader) -> Result<String> {
-    Ok(shader
-        .buffers
-        .iter()
-        .enumerate()
-        .map(|(index, buffer)| wgsl_buf_definition(asg, buffer, index))
-        .collect::<Result<Vec<_>>>()?
-        .join("\n"))
-}
-
-fn wgsl_buf_definition(asg: &Asg, buffer: &AsgBuffer, binding_index: usize) -> Result<String> {
-    Ok(format!(
-        "@group(0) @binding({})\nvar<storage, read_write> {}: {};",
-        binding_index,
-        buf_name(buffer),
-        result_ref(&buffer.expr)?.type_(asg)?.buf_final_name
-    ))
-}
-
-fn wgsl_fn_definitions(asg: &Asg, shader: &AsgComputeShader) -> Result<String> {
-    Ok(shader
-        .functions
-        .iter()
-        .map(|fn_| wgsl_fn_definition(asg, fn_))
-        .collect::<Result<Vec<_>>>()?
-        .join("\n"))
-}
-
-fn wgsl_fn_definition(asg: &Asg, fn_: &AsgFn) -> Result<String> {
-    Ok(
-        if fn_.is_inlined() || fn_.ast.qualifier == AstFnQualifier::Gpu {
-            String::new()
-        } else {
-            format!(
-                "fn {}({}){} {{\n{}\n}}",
-                fn_name(fn_),
-                wgsl_fn_params(fn_)?,
-                wgsl_return_type(result_ref(&fn_.return_type)?),
-                wgsl_statements(asg, &asg.function_bodies[fn_.index].statements)?
-            )
-        },
+        wgsl_buf_definitions(analysis, shader),
+        wgsl_statements(analysis, &shader.statements),
+        wgsl_fn_definitions(analysis, shader),
     )
 }
 
-fn wgsl_return_type(type_: &Option<Rc<AsgType>>) -> String {
-    if let Some(type_) = type_ {
-        format!(" -> {}", type_.expr_final_name)
+fn wgsl_buf_definitions(analysis: &Analysis, shader: &ComputeShader) -> String {
+    shader
+        .buffers
+        .iter()
+        .enumerate()
+        .map(|(index, buffer)| wgsl_buf_definition(analysis, buffer, index))
+        .join("\n")
+}
+
+fn wgsl_buf_definition(analysis: &Analysis, buffer_name: &str, binding_index: usize) -> String {
+    format!(
+        "@group(0) @binding({})\nvar<storage, read_write> {}: {};",
+        binding_index,
+        buf_name(analysis, buffer_name),
+        analysis.buffer_type(buffer_name).buffer_name,
+    )
+}
+
+fn wgsl_fn_definitions(analysis: &Analysis, shader: &ComputeShader) -> String {
+    shader
+        .fn_signatures
+        .iter()
+        .map(|fn_signature| wgsl_fn_definition(analysis, fn_signature))
+        .join("\n")
+}
+
+fn wgsl_fn_definition(analysis: &Analysis, fn_signature: &str) -> String {
+    let fn_ = &analysis.fns[fn_signature];
+    format!(
+        "fn {}({}){} {{\n{}\n}}",
+        fn_name(analysis, &fn_.ast.name),
+        wgsl_fn_params(analysis, fn_),
+        wgsl_return_type(fn_),
+        wgsl_statements(analysis, &fn_.ast.statements)
+    )
+}
+
+fn wgsl_fn_params(analysis: &Analysis, fn_: &Function) -> String {
+    fn_.ast
+        .params
+        .iter()
+        .map(|param| wgsl_fn_param(analysis, param))
+        .join(", ")
+}
+
+fn wgsl_fn_param(analysis: &Analysis, param: &AstFnParam) -> String {
+    format!(
+        "{}: {}",
+        wgsl_ident(analysis, &param.name, false),
+        param.type_.label
+    )
+}
+
+fn wgsl_return_type(type_: &Function) -> String {
+    if let Some(type_) = &type_.ast.return_type {
+        format!(" -> {}", type_.name.label)
     } else {
         String::new()
     }
 }
 
-fn wgsl_fn_params(fn_: &AsgFn) -> Result<String> {
-    Ok(fn_
-        .params
+fn wgsl_statements(analysis: &Analysis, statements: &[AstStatement]) -> String {
+    statements
         .iter()
-        .map(|param| wgsl_fn_param(param))
-        .collect::<Result<Vec<_>>>()?
-        .join(", "))
+        .map(|statement| wgsl_statement(analysis, statement, 1))
+        .join("\n")
 }
 
-fn wgsl_fn_param(param: &AsgFnParam) -> Result<String> {
-    Ok(format!(
-        "{}: {}",
-        fn_param_name(param),
-        result_ref(&param.type_)?.expr_final_name
-    ))
-}
-
-fn wgsl_statements(asg: &Asg, statements: &[AsgStatement]) -> Result<String> {
-    Ok(statements
-        .iter()
-        .map(|statement| wgsl_statement(asg, statement, 1))
-        .collect::<Result<Vec<_>>>()?
-        .join("\n"))
-}
-
-fn wgsl_statement(asg: &Asg, statement: &AsgStatement, indent: usize) -> Result<String> {
-    Ok(match statement {
-        AsgStatement::Var(statement) => {
+fn wgsl_statement(analysis: &Analysis, statement: &AstStatement, indent: usize) -> String {
+    match statement {
+        AstStatement::Var(statement) => {
             format!(
                 "{empty: >width$}var {} = {};",
-                var_name(&statement.var),
-                wgsl_expr(asg, result_ref(&statement.expr)?)?,
+                wgsl_ident(analysis, &statement.name, false),
+                wgsl_expr(analysis, &statement.expr),
                 empty = "",
                 width = indent * IDENT_UNIT,
             )
         }
-        AsgStatement::Assignment(statement) => match result_ref(&statement.assigned)? {
-            AsgLeftValue::Ident(assigned) => {
-                let is_buffer = matches!(
-                    assigned,
-                    AsgIdent {
-                        source: AsgIdentSource::Buffer(_),
-                        ..
-                    }
-                );
-                let type_ = result_ref(&statement.expr)?.type_(asg)?;
-                let cast = if is_buffer && type_.buf_final_name != type_.expr_final_name {
-                    &type_.buf_final_name
+        AstStatement::Assignment(statement) => match &statement.value {
+            AstLeftValue::Ident(assigned) => {
+                let value_ident = &analysis.idents[&assigned.id];
+                let is_buffer = matches!(value_ident.source, IdentSource::Buffer(_));
+                let type_name = value_ident
+                    .type_
+                    .as_ref()
+                    .expect("internal error: missing type");
+                let type_ = &analysis.types[type_name];
+                let cast = if is_buffer && type_.buffer_name != type_.name {
+                    &type_.buffer_name
                 } else {
                     ""
                 };
                 format!(
                     "{empty: >width$}{} = {cast}({});",
-                    wgsl_ident(asg, assigned, false)?,
-                    wgsl_expr(asg, result_ref(&statement.expr)?)?,
+                    wgsl_ident(analysis, assigned, false),
+                    wgsl_expr(analysis, &statement.expr),
                     empty = "",
                     width = indent * IDENT_UNIT,
                 )
             }
-            AsgLeftValue::FnCall(_) => return Err(Error), // no-coverage (should have been inlined)
+            AstLeftValue::FnCall(_) => unreachable!("internal error: invalid inlining"),
         },
-        AsgStatement::Return(statement) => {
-            format!("return {};", wgsl_expr(asg, result_ref(&statement.expr)?)?)
+        AstStatement::Return(statement) => {
+            format!("return {};", wgsl_expr(analysis, &statement.expr))
         }
-        AsgStatement::FnCall(statement) => {
-            format!("{};", wgsl_fn_call(asg, result_ref(statement)?)?)
+        AstStatement::FnCall(statement) => {
+            format!("{};", wgsl_fn_call(analysis, &statement.call))
         }
-    })
+    }
 }
 
-fn wgsl_expr(asg: &Asg, expr: &AsgExpr) -> Result<String> {
-    Ok(match expr {
-        AsgExpr::Literal(expr) => format!("{}({})", expr.type_.expr_final_name, expr.value),
-        AsgExpr::Ident(expr) => wgsl_ident(asg, expr, true)?,
-        AsgExpr::FnCall(expr) => wgsl_fn_call(asg, expr)?,
-    })
+fn wgsl_expr(analysis: &Analysis, expr: &AstExpr) -> String {
+    match expr {
+        AstExpr::Literal(expr) => expr.value.clone(),
+        AstExpr::Ident(expr) => wgsl_ident(analysis, expr, true),
+        AstExpr::FnCall(expr) => wgsl_fn_call(analysis, expr),
+    }
 }
 
-fn wgsl_ident(asg: &Asg, ident: &AsgIdent, is_expr: bool) -> Result<String> {
-    Ok(match &ident.source {
-        AsgIdentSource::Buffer(buffer) => {
-            let type_ = result_ref(&buffer.expr)?.type_(asg)?;
-            if is_expr && type_.buf_final_name != type_.expr_final_name {
-                format!("{}({})", type_.expr_final_name, buf_name(buffer))
+fn wgsl_ident(analysis: &Analysis, name: &AstIdent, is_expr: bool) -> String {
+    match &analysis.idents[&name.id].source {
+        IdentSource::Buffer(name) => {
+            let type_ = analysis.buffer_type(name);
+            if is_expr && type_.buffer_name != type_.name {
+                format!("{}({})", type_.name, buf_name(analysis, name))
             } else {
-                buf_name(buffer)
+                buf_name(analysis, name)
             }
         }
-        AsgIdentSource::Var(variable) => var_name(variable),
-        AsgIdentSource::Param(param) => fn_param_name(param),
-    })
+        IdentSource::Ident(id) => format!("v{}_{}", id, name.label),
+        IdentSource::Fn(_) => unreachable!("internal error: variable as function"),
+    }
 }
 
-fn wgsl_fn_call(asg: &Asg, call: &AsgFnCall) -> Result<String> {
-    Ok(if let Some(operator) = wgsl_unary_operator(call) {
-        format!("({}{})", operator, wgsl_expr(asg, &call.args[0])?)
-    } else if let Some(operator) = wgsl_binary_operator(call) {
+fn wgsl_fn_call(analysis: &Analysis, call: &AstFnCall) -> String {
+    if let Some(operator) = wgsl_unary_operator(analysis, call) {
+        format!("({}{})", operator, wgsl_expr(analysis, &call.args[0]))
+    } else if let Some(operator) = wgsl_binary_operator(analysis, call) {
         format!(
             "({} {} {})",
-            wgsl_expr(asg, &call.args[0])?,
+            wgsl_expr(analysis, &call.args[0]),
             operator,
-            wgsl_expr(asg, &call.args[1])?
+            wgsl_expr(analysis, &call.args[1])
         )
     } else {
         format!(
             "{}({})",
-            fn_name(&call.fn_),
+            fn_name(analysis, &call.name),
             call.args
                 .iter()
-                .map(|arg| wgsl_expr(asg, arg))
-                .collect::<Result<Vec<_>>>()?
+                .map(|arg| wgsl_expr(analysis, arg))
                 .join(", ")
         )
-    })
+    }
 }
 
-fn wgsl_unary_operator(expr: &AsgFnCall) -> Option<&str> {
-    if expr.fn_.ast.qualifier == AstFnQualifier::Gpu {
-        match expr.fn_.ast.name.label.as_str() {
+fn wgsl_unary_operator(analysis: &Analysis, call: &AstFnCall) -> Option<&'static str> {
+    let fn_ = fn_(analysis, &call.name);
+    if fn_.ast.qualifier == AstFnQualifier::Gpu {
+        match fn_.ast.name.label.as_str() {
             n if n == NEG_FN => Some("-"),
             n if n == NOT_FN => Some("!"),
             _ => None,
@@ -206,9 +195,10 @@ fn wgsl_unary_operator(expr: &AsgFnCall) -> Option<&str> {
     }
 }
 
-fn wgsl_binary_operator(expr: &AsgFnCall) -> Option<&str> {
-    if expr.fn_.ast.qualifier == AstFnQualifier::Gpu {
-        match expr.fn_.ast.name.label.as_str() {
+fn wgsl_binary_operator(analysis: &Analysis, call: &AstFnCall) -> Option<&'static str> {
+    let fn_ = fn_(analysis, &call.name);
+    if fn_.ast.qualifier == AstFnQualifier::Gpu {
+        match fn_.ast.name.label.as_str() {
             n if n == ADD_FN => Some("+"),
             n if n == SUB_FN => Some("-"),
             n if n == MUL_FN => Some("*"),
@@ -229,34 +219,25 @@ fn wgsl_binary_operator(expr: &AsgFnCall) -> Option<&str> {
     }
 }
 
-fn buf_name(buffer: &AsgBuffer) -> String {
-    format!("b{}_{}", buffer.index, buffer.ast.name.label)
+fn buf_name(analysis: &Analysis, buffer_name: &str) -> String {
+    let name = &analysis.buffers[buffer_name].ast.name;
+    format!("b{}_{}", name.id, name.label)
 }
 
-fn fn_name(fn_: &AsgFn) -> String {
+fn fn_name(analysis: &Analysis, ident: &AstIdent) -> String {
+    let fn_ = fn_(analysis, ident);
     if fn_.ast.qualifier == AstFnQualifier::Gpu {
         fn_.ast.name.label.clone()
     } else {
-        format!("f{}_{}", fn_.index, fn_.ast.name.label)
+        format!("f{}_{}", fn_.ast.name.id, fn_.ast.name.label)
     }
 }
 
-fn fn_param_name(param: &AsgFnParam) -> String {
-    format!("p{}", param.ast.name.label)
-}
-
-fn var_name(variable: &AsgVariable) -> String {
-    format!(
-        "{}v{}_{}",
-        variable
-            .inline_index
-            .map(|index| format!("inl{index}_"))
-            .unwrap_or_default(),
-        variable.index,
-        variable.name.label
-    )
-}
-
-fn result_ref<T>(result: &Result<T>) -> Result<&T> {
-    result.as_ref().map_err(|&err| err)
+fn fn_<'a>(analysis: &'a Analysis, ident: &AstIdent) -> &'a Function {
+    match &analysis.idents[&ident.id].source {
+        IdentSource::Fn(signature) => &analysis.fns[signature],
+        IdentSource::Buffer(_) | IdentSource::Ident(_) => {
+            unreachable!("internal error: invalid fn")
+        }
+    }
 }

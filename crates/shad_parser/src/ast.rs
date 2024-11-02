@@ -1,4 +1,4 @@
-use crate::token::{Token, TokenType};
+use crate::token::{IdGenerator, Token, TokenType};
 use crate::AstItem;
 use logos::{Lexer, Logos};
 use shad_error::{Error, SyntaxError};
@@ -14,6 +14,8 @@ pub struct Ast {
     pub path: String,
     /// All the items.
     pub items: Vec<AstItem>,
+    /// The next unique ID.
+    pub next_id: u64,
 }
 
 impl Ast {
@@ -37,24 +39,34 @@ impl Ast {
     pub fn from_str(code: &str, path: &str) -> Result<Self, Error> {
         let cleaned_code = Self::remove_comments(code);
         let mut lexer = TokenType::lexer(&cleaned_code);
-        Self::parse(&mut lexer, code, path)
+        let mut ids = IdGenerator::default();
+        Self::parse(&mut lexer, &mut ids, code, path)
             .map_err(|e| e.with_pretty_message(path, code))
             .map_err(Error::Syntax)
     }
 
+    /// Generates a new unique ID.
+    pub fn next_id(&mut self) -> u64 {
+        let id = self.next_id;
+        self.next_id += 1;
+        id
+    }
+
     fn parse(
         lexer: &mut Lexer<'_, TokenType>,
+        ids: &mut IdGenerator,
         code: &str,
         path: &str,
     ) -> Result<Self, SyntaxError> {
         let mut items = vec![];
         while Token::next(&mut lexer.clone()).is_ok() {
-            items.push(AstItem::parse(lexer)?);
+            items.push(AstItem::parse(lexer, ids)?);
         }
         Ok(Self {
             code: code.to_string(),
             path: path.to_string(),
             items,
+            next_id: ids.next(),
         })
     }
 

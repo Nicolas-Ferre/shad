@@ -1,6 +1,7 @@
 use crate::atom::parse_token;
-use crate::token::{Token, TokenType};
-use crate::{AstExpr, AstFnCall, AstIdent, AstLeftValue};
+use crate::fn_call::AstFnCall;
+use crate::token::{IdGenerator, Token, TokenType};
+use crate::{AstExpr, AstIdent, AstIdentType, AstLeftValue};
 use logos::Lexer;
 use shad_error::{Span, SyntaxError};
 
@@ -31,18 +32,21 @@ impl AstStatement {
     // coverage: on
 
     #[allow(clippy::wildcard_enum_match_arm)]
-    pub(crate) fn parse(lexer: &mut Lexer<'_, TokenType>) -> Result<Self, SyntaxError> {
+    pub(crate) fn parse(
+        lexer: &mut Lexer<'_, TokenType>,
+        ids: &mut IdGenerator,
+    ) -> Result<Self, SyntaxError> {
         let token = Token::next(&mut lexer.clone())?;
         match token.type_ {
             TokenType::Ident => {
-                if AstFnCallStatement::parse(&mut lexer.clone()).is_ok() {
-                    Ok(Self::FnCall(AstFnCallStatement::parse(lexer)?))
+                if AstFnCallStatement::parse(&mut lexer.clone(), ids).is_ok() {
+                    Ok(Self::FnCall(AstFnCallStatement::parse(lexer, ids)?))
                 } else {
-                    Ok(Self::Assignment(AstAssignment::parse(lexer)?))
+                    Ok(Self::Assignment(AstAssignment::parse(lexer, ids)?))
                 }
             }
-            TokenType::Var | TokenType::Ref => Ok(Self::Var(AstVarDefinition::parse(lexer)?)),
-            TokenType::Return => Ok(Self::Return(AstReturn::parse(lexer)?)),
+            TokenType::Var | TokenType::Ref => Ok(Self::Var(AstVarDefinition::parse(lexer, ids)?)),
+            TokenType::Return => Ok(Self::Return(AstReturn::parse(lexer, ids)?)),
             _ => Err(SyntaxError::new(token.span.start, "expected statement")),
         }
     }
@@ -64,10 +68,10 @@ pub struct AstAssignment {
 }
 
 impl AstAssignment {
-    fn parse(lexer: &mut Lexer<'_, TokenType>) -> Result<Self, SyntaxError> {
-        let value = AstLeftValue::parse(lexer)?;
+    fn parse(lexer: &mut Lexer<'_, TokenType>, ids: &mut IdGenerator) -> Result<Self, SyntaxError> {
+        let value = AstLeftValue::parse(lexer, ids)?;
         parse_token(lexer, TokenType::Assigment)?;
-        let expr = AstExpr::parse(lexer)?;
+        let expr = AstExpr::parse(lexer, ids)?;
         let semi_colon = parse_token(lexer, TokenType::SemiColon)?;
         Ok(Self {
             span: Span::join(value.span(), semi_colon.span),
@@ -92,26 +96,31 @@ pub struct AstVarDefinition {
     pub name: AstIdent,
     /// The initial value of the variable.
     pub expr: AstExpr,
-    /// Whether the variable is a reference.
-    pub is_ref: bool,
 }
 
 impl AstVarDefinition {
-    fn parse(lexer: &mut Lexer<'_, TokenType>) -> Result<Self, SyntaxError> {
+    fn parse(lexer: &mut Lexer<'_, TokenType>, ids: &mut IdGenerator) -> Result<Self, SyntaxError> {
         let keyword = if parse_token(&mut lexer.clone(), TokenType::Var).is_ok() {
             parse_token(lexer, TokenType::Var)?
         } else {
             parse_token(lexer, TokenType::Ref)?
         };
-        let name = AstIdent::parse(lexer)?;
+        let name = AstIdent::parse(
+            lexer,
+            ids,
+            if keyword.type_ == TokenType::Ref {
+                AstIdentType::RefDef
+            } else {
+                AstIdentType::VarDef
+            },
+        )?;
         parse_token(lexer, TokenType::Assigment)?;
-        let expr = AstExpr::parse(lexer)?;
+        let expr = AstExpr::parse(lexer, ids)?;
         let semi_colon = parse_token(lexer, TokenType::SemiColon)?;
         Ok(Self {
             span: Span::join(keyword.span, semi_colon.span),
             name,
             expr,
-            is_ref: keyword.type_ == TokenType::Ref,
         })
     }
 }
@@ -130,9 +139,9 @@ pub struct AstReturn {
 }
 
 impl AstReturn {
-    fn parse(lexer: &mut Lexer<'_, TokenType>) -> Result<Self, SyntaxError> {
+    fn parse(lexer: &mut Lexer<'_, TokenType>, ids: &mut IdGenerator) -> Result<Self, SyntaxError> {
         let return_ = parse_token(lexer, TokenType::Return)?;
-        let expr = AstExpr::parse(lexer)?;
+        let expr = AstExpr::parse(lexer, ids)?;
         let semi_colon = parse_token(lexer, TokenType::SemiColon)?;
         Ok(Self {
             span: Span::join(return_.span, semi_colon.span),
@@ -155,8 +164,8 @@ pub struct AstFnCallStatement {
 }
 
 impl AstFnCallStatement {
-    fn parse(lexer: &mut Lexer<'_, TokenType>) -> Result<Self, SyntaxError> {
-        let call = AstFnCall::parse(lexer)?;
+    fn parse(lexer: &mut Lexer<'_, TokenType>, ids: &mut IdGenerator) -> Result<Self, SyntaxError> {
+        let call = AstFnCall::parse(lexer, ids, true)?;
         let semi_colon = parse_token(lexer, TokenType::SemiColon)?;
         Ok(Self {
             span: Span::join(call.span, semi_colon.span),

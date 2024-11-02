@@ -16,8 +16,8 @@ error: `f32` literal with too many digits in integer part
  --> ./cases_invalid/code/atom.shd:3:27
   |
 3 | buf f32_too_many_digits = 123456789012345678901234567890123456_789.;
-  |                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ found 39 digits
-  |                           ---------------------------------------- info: maximum 38 digits are expected
+  |                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ found 39 digits in integer part
+  |                           ----------------------------------------- info: maximum 38 digits are expected
   |
 
 error: `u32` literal out of range

@@ -1,4 +1,4 @@
-use crate::token::{Token, TokenType};
+use crate::token::{IdGenerator, Token, TokenType};
 use logos::Lexer;
 use shad_error::{Span, SyntaxError};
 
@@ -17,16 +17,47 @@ pub struct AstIdent {
     pub span: Span,
     /// The identifier as a string.
     pub label: String,
+    /// The unique ID of the identifier.
+    pub id: u64,
+    /// The identifier type.
+    pub type_: AstIdentType,
 }
 
 impl AstIdent {
-    pub(crate) fn parse(lexer: &mut Lexer<'_, TokenType>) -> Result<Self, SyntaxError> {
+    pub(crate) fn parse(
+        lexer: &mut Lexer<'_, TokenType>,
+        ids: &mut IdGenerator,
+        type_: AstIdentType,
+    ) -> Result<Self, SyntaxError> {
         let token = parse_token(lexer, TokenType::Ident)?;
         Ok(Self {
             span: token.span,
             label: token.slice.to_string(),
+            id: ids.next(),
+            type_,
         })
     }
+}
+
+/// The type of a parsed identifier.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum AstIdentType {
+    /// A function name usage.
+    FnUsage,
+    /// A type name usage.
+    TypeUsage,
+    /// A variable name usage.
+    VarUsage,
+    /// A function name definition.
+    FnDef,
+    /// A buffer name definition.
+    BufDef,
+    /// A variable name definition.
+    VarDef,
+    /// A reference name definition.
+    RefDef,
+    /// A function parameter name definition.
+    ParamDef,
 }
 
 /// A parsed literal.

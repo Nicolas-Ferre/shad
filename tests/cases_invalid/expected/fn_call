@@ -2,14 +2,14 @@ error: could not find `pow(f32, i32)` function
  --> ./cases_invalid/code/fn_call.shd:4:20
   |
 4 | buf undefined_fn = pow(10., 2);
-  |                    ^^^ undefined function
+  |                    ^^^^^^^^^^^ undefined function
   |
 
 error: could not find `a(i32)` function
  --> ./cases_invalid/code/fn_call.shd:5:27
   |
 5 | buf invalid_return_type = a(a(0.));
-  |                           ^ undefined function
+  |                           ^^^^^^^^ undefined function
   |
 
 error: `buf` function `buffer_fn()` called in invalid context
