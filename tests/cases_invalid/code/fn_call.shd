@@ -4,6 +4,11 @@ gpu fn a(value: f32) -> i32;
 buf undefined_fn = pow(10., 2);
 buf invalid_return_type = a(a(0.));
 
+fn fn_with_undefined_fn_call() {
+    var undefined_fn = pow(10., 2);
+    var undefined_fn = pow(10., pow(10., 2));
+}
+
 buf buffer = 0;
 
 buf invalid_init = buffer_fn();

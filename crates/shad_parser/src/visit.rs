@@ -6,6 +6,7 @@ use crate::{
     AstLeftValue, AstLiteral, AstReturn, AstRunItem, AstStatement, AstVarDefinition,
 };
 
+// coverage: off (not all functions are used by other crates)
 macro_rules! visit_trait {
     ($name:ident: $($mut_keyword:tt)?) => {
         #[allow(unused_variables)]
@@ -189,6 +190,7 @@ macro_rules! visit_trait {
         }
     };
 }
+// coverage: on
 
 visit_trait!(Visit: );
 visit_trait!(VisitMut: mut);

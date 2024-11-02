@@ -82,9 +82,11 @@ impl Analysis {
     pub(crate) fn fn_signature(&self, fn_name: &AstIdent) -> Option<String> {
         self.idents
             .get(&fn_name.id)
-            .and_then(|ident| match &ident.source {
-                IdentSource::Fn(signature) => Some(signature.clone()),
-                IdentSource::Buffer(_) | IdentSource::Ident(_) => None,
+            .map(|ident| match &ident.source {
+                IdentSource::Fn(signature) => signature.clone(),
+                IdentSource::Buffer(_) | IdentSource::Ident(_) => {
+                    unreachable!("internal error: retrieve non-function signature")
+                }
             })
     }
 }

@@ -79,6 +79,8 @@ impl VisitMut for RefVarInlineTransform<'_> {
                 }
                 IdentSource::Buffer(_) | IdentSource::Fn(_) => {}
             }
+        } else {
+            unreachable!("internal error: not inlined left value call");
         }
     }
 

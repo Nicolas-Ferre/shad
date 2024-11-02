@@ -53,8 +53,8 @@ impl TryFrom<AstExpr> for AstLeftValue {
     fn try_from(value: AstExpr) -> Result<Self, Self::Error> {
         match value {
             AstExpr::Ident(value) => Ok(Self::Ident(value)),
-            AstExpr::FnCall(value) => Ok(Self::FnCall(value)),
-            AstExpr::Literal(_) => Err(()),
+            AstExpr::FnCall(value) => Ok(Self::FnCall(value)), // no-coverage (never reached)
+            AstExpr::Literal(_) => Err(()),                    // no-coverage (never reached)
         }
     }
 }
@@ -65,5 +65,21 @@ impl From<AstLeftValue> for AstExpr {
             AstLeftValue::Ident(value) => Self::Ident(value),
             AstLeftValue::FnCall(value) => Self::FnCall(value),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::{AstExpr, AstFnCall};
+
+    fn fn_call_expr_to_left_value() {
+        let expr = AstExpr::FnCall(AstFnCall {
+            span: Span {},
+            name: AstIdent {},
+            args: vec![],
+            is_operator: false,
+            is_statement: false,
+        });
+        assert_eq!()
     }
 }

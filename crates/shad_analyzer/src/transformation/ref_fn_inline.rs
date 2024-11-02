@@ -106,21 +106,19 @@ impl<'a> RefFnInlineTransform<'a> {
 impl VisitMut for RefFnInlineTransform<'_> {
     fn exit_left_value(&mut self, node: &mut AstLeftValue) {
         if let AstLeftValue::FnCall(call) = node {
-            let statements = inlined_fn_statements(self.analysis, call);
-            if !statements.is_empty() {
-                self.statements.extend(statements);
-                let last_statement = self
-                    .statements
-                    .pop()
-                    .expect("internal error: missing return");
-                if let AstStatement::Return(return_) = last_statement {
-                    *node = return_
-                        .expr
-                        .try_into()
-                        .expect("internal error: found literal ref");
-                } else {
-                    unreachable!("internal error: invalid last function statement")
-                }
+            self.statements
+                .extend(inlined_fn_statements(self.analysis, call));
+            let last_statement = self
+                .statements
+                .pop()
+                .expect("internal error: missing return");
+            if let AstStatement::Return(return_) = last_statement {
+                *node = return_
+                    .expr
+                    .try_into()
+                    .expect("internal error: found literal ref");
+            } else {
+                unreachable!("internal error: invalid last function statement")
             }
         }
     }
@@ -200,6 +198,8 @@ impl VisitMut for RefFnStatementsTransform<'_> {
                         .expect("internal error: invalid literal left value");
                 }
             }
+        } else {
+            unreachable!("internal error: not inlined left value call");
         }
     }
 
@@ -214,22 +214,25 @@ impl VisitMut for RefFnStatementsTransform<'_> {
     }
 
     fn exit_ident(&mut self, node: &mut AstIdent) {
-        if let Some(ident) = self.analysis.idents.get(&node.id) {
-            match ident.source {
-                IdentSource::Buffer(_) | IdentSource::Fn(_) => {}
-                IdentSource::Ident(id) => {
-                    let ident = ident.clone();
-                    let old_id = node.id;
-                    node.id = self.analysis.ast.next_id();
-                    self.old_new_id.insert(old_id, node.id);
-                    self.analysis.idents.insert(
-                        node.id,
-                        Ident::new(
-                            IdentSource::Ident(self.old_new_id.get(&id).copied().unwrap_or(id)),
-                            ident.type_,
-                        ),
-                    );
-                }
+        let ident = self
+            .analysis
+            .idents
+            .get(&node.id)
+            .expect("internal error: missing identifier ID");
+        match ident.source {
+            IdentSource::Buffer(_) | IdentSource::Fn(_) => {}
+            IdentSource::Ident(id) => {
+                let ident = ident.clone();
+                let old_id = node.id;
+                node.id = self.analysis.ast.next_id();
+                self.old_new_id.insert(old_id, node.id);
+                self.analysis.idents.insert(
+                    node.id,
+                    Ident::new(
+                        IdentSource::Ident(self.old_new_id.get(&id).copied().unwrap_or(id)),
+                        ident.type_,
+                    ),
+                );
             }
         }
     }

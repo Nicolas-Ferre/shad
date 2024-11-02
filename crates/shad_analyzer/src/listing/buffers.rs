@@ -31,13 +31,16 @@ impl Visit for BufferListing<'_> {
     }
 
     fn enter_ident(&mut self, node: &AstIdent) {
-        if let Some(ident) = self.analysis.idents.get(&node.id) {
-            match &ident.source {
-                IdentSource::Buffer(name) => {
-                    self.buffers.insert(name.clone());
-                }
-                IdentSource::Ident(_) | IdentSource::Fn(_) => (),
+        let ident = self
+            .analysis
+            .idents
+            .get(&node.id)
+            .expect("internal error: missing identifier ID");
+        match &ident.source {
+            IdentSource::Buffer(name) => {
+                self.buffers.insert(name.clone());
             }
+            IdentSource::Ident(_) | IdentSource::Fn(_) => (),
         }
     }
 }

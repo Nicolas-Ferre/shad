@@ -12,77 +12,91 @@ error: could not find `a(i32)` function
   |                           ^^^^^^^^ undefined function
   |
 
-error: `buf` function `buffer_fn()` called in invalid context
- --> ./cases_invalid/code/fn_call.shd:9:20
+error: could not find `pow(f32, i32)` function
+ --> ./cases_invalid/code/fn_call.shd:8:24
   |
-9 | buf invalid_init = buffer_fn();
-  |                    ^^^^^^^^^^^ this function cannot be called here
-  |                    ----------- info: `buf` functions can only be called in `run` blocks and `buf fn` functions
+8 |     var undefined_fn = pow(10., 2);
+  |                        ^^^^^^^^^^^ undefined function
+  |
+
+error: could not find `pow(f32, i32)` function
+ --> ./cases_invalid/code/fn_call.shd:9:33
+  |
+9 |     var undefined_fn = pow(10., pow(10., 2));
+  |                                 ^^^^^^^^^^^ undefined function
   |
 
 error: `buf` function `buffer_fn()` called in invalid context
-  --> ./cases_invalid/code/fn_call.shd:16:12
+  --> ./cases_invalid/code/fn_call.shd:14:20
    |
-16 |     return buffer_fn();
+14 | buf invalid_init = buffer_fn();
+   |                    ^^^^^^^^^^^ this function cannot be called here
+   |                    ----------- info: `buf` functions can only be called in `run` blocks and `buf fn` functions
+   |
+
+error: `buf` function `buffer_fn()` called in invalid context
+  --> ./cases_invalid/code/fn_call.shd:21:12
+   |
+21 |     return buffer_fn();
    |            ^^^^^^^^^^^ this function cannot be called here
    |            ----------- info: `buf` functions can only be called in `run` blocks and `buf fn` functions
    |
 
 error: function `with_return_type()` called as a statement while having a return type
-  --> ./cases_invalid/code/fn_call.shd:27:5
+  --> ./cases_invalid/code/fn_call.shd:32:5
    |
-27 |     with_return_type();
+32 |     with_return_type();
    |     ^^^^^^^^^^^^^^^^^^ returned value needs to be stored in a variable
    |
 
 error: expected function with a return type, got function `without_return_type()`
-  --> ./cases_invalid/code/fn_call.shd:28:13
+  --> ./cases_invalid/code/fn_call.shd:33:13
    |
-28 |     var x = without_return_type();
+33 |     var x = without_return_type();
    |             ^^^^^^^^^^^^^^^^^^^^^ this function cannot be called here
    |
 
 error: invalid reference expression
-  --> ./cases_invalid/code/fn_call.shd:35:23
+  --> ./cases_invalid/code/fn_call.shd:40:23
    |
-31 | fn fn_with_ref_param(ref param: i32) {
+36 | fn fn_with_ref_param(ref param: i32) {
    |                      --- info: parameter is a reference
-32 | }
-33 | 
-34 | run {
-35 |     fn_with_ref_param(42);
+37 | }
+38 | 
+39 | run {
+40 |     fn_with_ref_param(42);
    |                       ^^ not a reference
    |
 
 error: expected function with a return type, got function `without_return_type()`
-  --> ./cases_invalid/code/fn_call.shd:44:5
+  --> ./cases_invalid/code/fn_call.shd:49:5
    |
-44 |     without_return_type() = 2;
+49 |     without_return_type() = 2;
    |     ^^^^^^^^^^^^^^^^^^^^^ this function cannot be called here
    |
 
 error: expression is not a reference
-  --> ./cases_invalid/code/fn_call.shd:45:5
+  --> ./cases_invalid/code/fn_call.shd:50:5
    |
-45 |     returned_copy() = 2;
+50 |     returned_copy() = 2;
    |     ^^^^^^^^^^^^^^^ a valid reference is expected here
    |
 
 error: invalid reference expression
-  --> ./cases_invalid/code/fn_call.shd:46:23
+  --> ./cases_invalid/code/fn_call.shd:51:23
    |
-31 | fn fn_with_ref_param(ref param: i32) {
+36 | fn fn_with_ref_param(ref param: i32) {
    |                      --- info: parameter is a reference
-32 | }
+37 | }
 ...
-45 |     returned_copy() = 2;
-46 |     fn_with_ref_param(returned_copy());
+50 |     returned_copy() = 2;
+51 |     fn_with_ref_param(returned_copy());
    |                       ^^^^^^^^^^^^^^^ not a reference
    |
 
 error: expression is not a reference
-  --> ./cases_invalid/code/fn_call.shd:50:12
+  --> ./cases_invalid/code/fn_call.shd:55:12
    |
-50 |     return 0;
+55 |     return 0;
    |            ^ a valid reference is expected here
    |

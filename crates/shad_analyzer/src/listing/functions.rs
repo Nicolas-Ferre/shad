@@ -37,17 +37,20 @@ impl Visit for FunctionListing<'_> {
     }
 
     fn enter_ident(&mut self, node: &AstIdent) {
-        if let Some(ident) = self.analysis.idents.get(&node.id) {
-            match &ident.source {
-                IdentSource::Fn(signature) => {
-                    if self.analysis.fns.get(signature).map_or(false, |fn_| {
-                        !fn_.is_inlined() && fn_.ast.qualifier != AstFnQualifier::Gpu
-                    }) {
-                        self.signatures.insert(signature.clone());
-                    }
+        let ident = self
+            .analysis
+            .idents
+            .get(&node.id)
+            .expect("internal error: missing identifier ID");
+        match &ident.source {
+            IdentSource::Fn(signature) => {
+                if self.analysis.fns.get(signature).map_or(false, |fn_| {
+                    !fn_.is_inlined() && fn_.ast.qualifier != AstFnQualifier::Gpu
+                }) {
+                    self.signatures.insert(signature.clone());
                 }
-                IdentSource::Ident(_) | IdentSource::Buffer(_) => (),
             }
+            IdentSource::Ident(_) | IdentSource::Buffer(_) => (),
         }
     }
 }

@@ -68,26 +68,28 @@ enum ExprSemantic {
 
 impl Visit for StatementCheck<'_> {
     fn enter_fn_item(&mut self, node: &AstFnItem) {
-        if let Some(signature) = self.analysis.fn_signature(&node.name) {
-            if let Some(return_pos) = node
-                .statements
-                .iter()
-                .position(|statement| matches!(statement, AstStatement::Return(_)))
-            {
-                if return_pos + 1 < node.statements.len() {
-                    self.errors.push(errors::returns::statement_after(
-                        self.analysis,
-                        &node.statements[return_pos],
-                        &node.statements[return_pos + 1],
-                    ));
-                }
-            } else if node.return_type.is_some() && node.qualifier != AstFnQualifier::Gpu {
-                self.errors.push(errors::returns::missing_return(
+        let signature = self
+            .analysis
+            .fn_signature(&node.name)
+            .expect("internal error: missing signature");
+        if let Some(return_pos) = node
+            .statements
+            .iter()
+            .position(|statement| matches!(statement, AstStatement::Return(_)))
+        {
+            if return_pos + 1 < node.statements.len() {
+                self.errors.push(errors::returns::statement_after(
                     self.analysis,
-                    node,
-                    &signature,
+                    &node.statements[return_pos],
+                    &node.statements[return_pos + 1],
                 ));
             }
+        } else if node.return_type.is_some() && node.qualifier != AstFnQualifier::Gpu {
+            self.errors.push(errors::returns::missing_return(
+                self.analysis,
+                node,
+                &signature,
+            ));
         }
     }
 
