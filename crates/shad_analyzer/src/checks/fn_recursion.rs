@@ -62,7 +62,6 @@ impl<'a> FnRecursionCheck<'a> {
             self.errored_fn_signatures
                 .insert(self.current_fn_signature.clone());
             self.errors.push(errors::functions::recursion_found(
-                self.analysis,
                 &self.current_fn_signature,
                 &self.called_fn_signatures,
             ));
@@ -92,8 +91,8 @@ impl Visit for FnRecursionCheck<'_> {
         if let Some(signature) = self.analysis.fn_signature(&node.name) {
             let fn_ = &self.analysis.fns[&signature].ast;
             self.called_fn_signatures.push(CalledFn {
-                call_span: node.span,
-                fn_def_span: fn_.name.span,
+                call_span: node.span.clone(),
+                fn_def_span: fn_.name.span.clone(),
                 signature: signature.clone(),
             });
             if !self.detect_error() {

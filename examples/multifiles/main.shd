@@ -1,0 +1,5 @@
+import objects.ball;
+
+run {
+    update_ball();
+}

@@ -3,6 +3,7 @@ use fxhash::FxHashMap;
 use shad_analyzer::{Analysis, Buffer, ComputeShader};
 use shad_error::Error;
 use shad_parser::Ast;
+use std::iter;
 use std::path::Path;
 use std::time::{Duration, Instant};
 use wgpu::{
@@ -26,6 +27,10 @@ pub struct Runner {
 
 impl Runner {
     /// Initializes a runner for a Shad script located at a specific `path`.
+    ///
+    /// `path` can be:
+    /// - a folder: the file `main.shd` at the root of the folder will be taken as entrypoint.
+    /// - a file: the file will be taken as entry point.
     ///
     /// # Errors
     ///
@@ -148,8 +153,13 @@ struct Program {
 impl Program {
     #[allow(clippy::similar_names)]
     fn new(path: impl AsRef<Path>, device: &Device) -> Result<Self, Error> {
-        let ast = Ast::from_file(path)?;
-        let analysis = Analysis::run(&ast);
+        let path = path.as_ref();
+        let asts = if path.is_dir() {
+            Ast::from_dir(path)?
+        } else {
+            iter::once(("main".to_string(), Ast::from_file(path, "main")?)).collect()
+        };
+        let analysis = Analysis::run(asts);
         if !analysis.errors.is_empty() {
             return Err(Error::Semantic(analysis.errors));
         }

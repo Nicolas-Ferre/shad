@@ -1,22 +1,18 @@
-use crate::Analysis;
 use shad_error::{ErrorLevel, LocatedMessage, SemanticError};
 use shad_parser::{AstFnItem, AstReturn, AstStatement};
 
-pub(crate) fn outside_fn(analysis: &Analysis, return_: &AstReturn) -> SemanticError {
+pub(crate) fn outside_fn(return_: &AstReturn) -> SemanticError {
     SemanticError::new(
         "`return` statement used outside function",
         vec![LocatedMessage {
             level: ErrorLevel::Error,
-            span: return_.span,
+            span: return_.span.clone(),
             text: "invalid statement".into(),
         }],
-        &analysis.ast.code,
-        &analysis.ast.path,
     )
 }
 
 pub(crate) fn invalid_type(
-    analysis: &Analysis,
     return_: &AstReturn,
     fn_: &AstFnItem,
     actual: &str,
@@ -27,7 +23,7 @@ pub(crate) fn invalid_type(
         vec![
             LocatedMessage {
                 level: ErrorLevel::Error,
-                span: return_.expr.span(),
+                span: return_.expr.span().clone(),
                 text: format!("expression of type `{actual}`"),
             },
             LocatedMessage {
@@ -37,17 +33,15 @@ pub(crate) fn invalid_type(
                     .as_ref()
                     .expect("internal error: no return type")
                     .name
-                    .span,
+                    .span
+                    .clone(),
                 text: format!("expected type `{expected}`"),
             },
         ],
-        &analysis.ast.code,
-        &analysis.ast.path,
     )
 }
 
 pub(crate) fn statement_after(
-    analysis: &Analysis,
     return_: &AstStatement,
     next_statement: &AstStatement,
 ) -> SemanticError {
@@ -56,38 +50,30 @@ pub(crate) fn statement_after(
         vec![
             LocatedMessage {
                 level: ErrorLevel::Error,
-                span: next_statement.span(),
+                span: next_statement.span().clone(),
                 text: "this statement cannot be defined after a `return` statement".into(),
             },
             LocatedMessage {
                 level: ErrorLevel::Info,
-                span: return_.span(),
+                span: return_.span().clone(),
                 text: "`return` statement defined here".into(),
             },
         ],
-        &analysis.ast.code,
-        &analysis.ast.path,
     )
 }
 
-pub(crate) fn no_return_type(analysis: &Analysis, return_: &AstReturn) -> SemanticError {
+pub(crate) fn no_return_type(return_: &AstReturn) -> SemanticError {
     SemanticError::new(
         "use of `return` in a function with no return type",
         vec![LocatedMessage {
             level: ErrorLevel::Error,
-            span: return_.span,
+            span: return_.span.clone(),
             text: "invalid statement".into(),
         }],
-        &analysis.ast.code,
-        &analysis.ast.path,
     )
 }
 
-pub(crate) fn missing_return(
-    analysis: &Analysis,
-    fn_: &AstFnItem,
-    signature: &str,
-) -> SemanticError {
+pub(crate) fn missing_return(fn_: &AstFnItem, signature: &str) -> SemanticError {
     SemanticError::new(
         format!("missing `return` statement in function `{signature}`"),
         vec![LocatedMessage {
@@ -97,10 +83,9 @@ pub(crate) fn missing_return(
                 .as_ref()
                 .expect("internal error: missing return type")
                 .name
-                .span,
+                .span
+                .clone(),
             text: "the function should return a value".into(),
         }],
-        &analysis.ast.code,
-        &analysis.ast.path,
     )
 }

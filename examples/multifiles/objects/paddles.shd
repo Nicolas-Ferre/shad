@@ -1,0 +1,13 @@
+import objects.ball;
+pub import objects.paddle_child;
+
+buf updated = false;
+buf value = pub_buffer; // check to make sure there is no circular dependency between buffers
+
+pub fn paddle_position(index: u32) −> f32x2 {
+    return f32x2();
+}
+
+run {
+    updated = true;
+}

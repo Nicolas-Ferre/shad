@@ -23,6 +23,8 @@ pub enum Error {
     Semantic(Vec<SemanticError>),
     /// An I/O error.
     Io(io::Error),
+    /// Another type of error.
+    Other(String),
 }
 
 // coverage: off (not critical logic)
@@ -40,6 +42,7 @@ impl Display for Error {
                 writeln!(f, "{sorted_errors}")
             }
             Self::Io(err) => writeln!(f, "{err}"),
+            Self::Other(err) => writeln!(f, "{err}"),
         }
     }
 }

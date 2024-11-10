@@ -33,7 +33,6 @@ pub(crate) fn register(analysis: &mut Analysis) {
             );
             if let Some(existing_fn) = existing_function {
                 analysis.errors.push(errors::functions::duplicated(
-                    analysis,
                     &signature,
                     fn_,
                     &existing_fn.ast,

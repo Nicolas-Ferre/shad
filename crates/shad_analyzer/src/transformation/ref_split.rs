@@ -80,16 +80,16 @@ impl VisitMut for RefSplitTransform<'_> {
             let arg = mem::replace(
                 arg,
                 AstExpr::Ident(AstIdent {
-                    span: arg.span(),
+                    span: arg.span().clone(),
                     label: var_label.into(),
                     id: var_usage_id,
                     type_: AstIdentType::VarUsage,
                 }),
             );
             self.statements.push(AstStatement::Var(AstVarDefinition {
-                span: arg.span(),
+                span: arg.span().clone(),
                 name: AstIdent {
-                    span: arg.span(),
+                    span: arg.span().clone(),
                     label: var_label.into(),
                     id: var_def_id,
                     type_: AstIdentType::VarDef,

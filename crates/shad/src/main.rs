@@ -2,9 +2,6 @@
 #![allow(clippy::print_stdout, clippy::use_debug)]
 
 use clap::Parser;
-use itertools::Itertools;
-use shad_analyzer::Analysis;
-use shad_parser::Ast;
 use shad_runner::Runner;
 use std::process;
 
@@ -19,18 +16,15 @@ fn main() {
 enum Args {
     /// Run a Shad script
     Run(RunArgs),
-    /// Display the Abstract Syntax Tree of a Shad script.
-    Ast(AstArgs),
-    /// Display the Abstract Semantic Graph of a Shad script.
-    Asg(AsgArgs),
+    /// Display the analysis result of a Shad script.
+    Analyze(AnalyzeArgs),
 }
 
 impl Args {
     fn run(self) {
         match self {
             Self::Run(args) => args.run(),
-            Self::Ast(args) => args.run(),
-            Self::Asg(args) => args.run(),
+            Self::Analyze(args) => args.run(),
         }
     }
 }
@@ -38,7 +32,7 @@ impl Args {
 #[derive(Parser, Debug)]
 #[command(version, about, long_about=None)]
 struct RunArgs {
-    /// Path to the Shad script to run
+    /// Path to the Shad file or folder to run
     path: String,
     /// List of buffers to display at the end
     #[arg(short, long, num_args(0..), default_values_t = Vec::<String>::new())]
@@ -80,50 +74,22 @@ impl RunArgs {
 
 #[derive(Parser, Debug)]
 #[command(version, about, long_about=None)]
-struct AstArgs {
-    /// Path to the Shad script to run
+struct AnalyzeArgs {
+    /// Path to the Shad file or folder to analyze
     path: String,
 }
 
-impl AstArgs {
-    fn run(self) {
-        match Ast::from_file(self.path) {
-            Ok(ast) => println!("{ast:#?}"),
-            Err(err) => {
-                println!("{err}");
-                process::exit(1);
-            }
-        }
-    }
-}
-
-#[derive(Parser, Debug)]
-#[command(version, about, long_about=None)]
-struct AsgArgs {
-    /// Path to the Shad script to run
-    path: String,
-}
-
-impl AsgArgs {
+impl AnalyzeArgs {
     #[allow(clippy::similar_names)]
     fn run(self) {
-        let ast = match Ast::from_file(self.path) {
-            Ok(ast) => ast,
+        match Runner::new(&self.path) {
+            Ok(runner) => {
+                println!("{:#?}", runner.analysis());
+            }
             Err(err) => {
                 println!("{err}");
                 process::exit(1);
             }
-        };
-        let analysis = Analysis::run(&ast);
-        if analysis.errors.is_empty() {
-            println!("{analysis:#?}");
-        } else {
-            analysis
-                .errors
-                .iter()
-                .sorted_unstable_by_key(|err| err.located_messages[0].span.start)
-                .for_each(|err| println!("{err}"));
-            process::exit(1);
         }
     }
 }

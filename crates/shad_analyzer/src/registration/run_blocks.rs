@@ -19,7 +19,7 @@ fn register_init(analysis: &mut Analysis) {
             analysis.init_blocks.push(RunBlock {
                 ast: AstRunItem {
                     statements: vec![AstStatement::Assignment(AstAssignment {
-                        span: buffer.value.span(),
+                        span: buffer.value.span().clone(),
                         value: AstLeftValue::Ident(buffer.name.clone()),
                         expr: buffer.value.clone(),
                     })],

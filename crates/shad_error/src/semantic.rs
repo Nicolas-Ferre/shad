@@ -1,5 +1,6 @@
 use crate::Span;
 use annotate_snippets::{Level, Renderer, Snippet};
+use itertools::Itertools;
 use std::error;
 use std::fmt::{Display, Formatter};
 
@@ -26,31 +27,35 @@ impl error::Error for SemanticError {}
 
 impl SemanticError {
     /// Creates a semantic error.
-    pub fn new(
-        message: impl Into<String>,
-        located_messages: Vec<LocatedMessage>,
-        code: &str,
-        path: &str,
-    ) -> Self {
-        let mut snippet = Snippet::source(code).fold(true).origin(path);
-        for message in &located_messages {
-            let start = message.span.start.min(code.len());
-            let end = message.span.end.min(code.len());
-            snippet = snippet.annotation(
-                Level::from(message.level)
-                    .span(start..end)
-                    .label(&message.text),
-            );
-        }
+    pub fn new(message: impl Into<String>, located_messages: Vec<LocatedMessage>) -> Self {
         let message = message.into();
-        let pretty_message = format!(
-            "{}",
-            Renderer::styled().render(Level::Error.title(&message).snippet(snippet))
-        );
+        let snippets = located_messages
+            .iter()
+            .into_group_map_by(|message| &message.span.module)
+            .into_iter()
+            .sorted_unstable_by_key(|(_, messages)| messages[0].level)
+            .map(|(module, messages)| {
+                let mut snippet = Snippet::source(&module.code)
+                    .fold(true)
+                    .origin(&module.path);
+                for message in &messages {
+                    let start = message.span.start.min(module.code.len());
+                    let end = message.span.end.min(module.code.len());
+                    snippet = snippet.annotation(
+                        Level::from(message.level)
+                            .span(start..end)
+                            .label(&message.text),
+                    );
+                }
+                snippet
+            });
         Self {
+            pretty_message: format!(
+                "{}",
+                Renderer::styled().render(Level::Error.title(&message).snippets(snippets))
+            ),
             message,
             located_messages,
-            pretty_message,
         }
     }
 }
@@ -67,7 +72,7 @@ pub struct LocatedMessage {
 }
 
 /// The level of a message.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum ErrorLevel {
     /// An error.
     Error,

@@ -1,6 +1,6 @@
-use crate::token::{IdGenerator, Token, TokenType};
+use crate::token::{Lexer, Token};
 use crate::AstItem;
-use logos::{Lexer, Logos};
+use fxhash::FxHashMap;
 use shad_error::{Error, SyntaxError};
 use std::path::Path;
 use std::{fs, io, iter};
@@ -19,14 +19,58 @@ pub struct Ast {
 }
 
 impl Ast {
+    /// Parses all Shad files in a directory to obtain their ASTs.
+    ///
+    /// The returned [`FxHashMap`] contains found file paths as keys, and parsed files as values.
+    ///
+    /// Shad files in subdirectories are also parsed recursively.
+    ///
+    /// # Errors
+    ///
+    /// An error is returned if the parsing has failed.
+    pub fn from_dir(path: impl AsRef<Path>) -> Result<FxHashMap<String, Self>, Error> {
+        let path = path.as_ref();
+        Ok(fs::read_dir(path)
+            .map_err(Error::Io)?
+            .map(|entry| match entry {
+                Ok(entry) => {
+                    let file_path = entry.path();
+                    if file_path.is_dir() {
+                        Self::from_dir(file_path)
+                    } else {
+                        let module = Self::path_to_module(path, &file_path);
+                        Self::from_file(&file_path, &module)
+                            .map(|ast| iter::once((module, ast)).collect())
+                    }
+                }
+                Err(err) => Err(Error::Io(err)),
+            })
+            .collect::<Result<Vec<_>, Error>>()?
+            .into_iter()
+            .flatten()
+            .collect())
+    }
+
     /// Parses a file containing Shad code to obtain an AST.
     ///
     /// # Errors
     ///
     /// An error is returned if the parsing has failed.
-    pub fn from_file(path: impl AsRef<Path>) -> Result<Self, Error> {
+    pub fn from_file(path: impl AsRef<Path>, module_name: &str) -> Result<Self, Error> {
         let code = Self::retrieve_code(&path).map_err(Error::Io)?;
-        Self::from_str(&code, path.as_ref().to_str().unwrap_or_default())
+        Self::from_str(
+            &code,
+            path.as_ref().to_str().unwrap_or_default(),
+            module_name,
+        )
+    }
+
+    fn path_to_module(base_path: &Path, path: &Path) -> String {
+        path.iter()
+            .skip(base_path.components().count())
+            .map(|component| component.to_str().unwrap_or("<invalid>"))
+            .collect::<Vec<_>>()
+            .join(".")
     }
 
     /// Parses a string containing Shad code to obtain an AST.
@@ -36,11 +80,10 @@ impl Ast {
     /// # Errors
     ///
     /// An error is returned if the parsing has failed.
-    pub fn from_str(code: &str, path: &str) -> Result<Self, Error> {
+    pub fn from_str(code: &str, path: &str, module_name: &str) -> Result<Self, Error> {
         let cleaned_code = Self::remove_comments(code);
-        let mut lexer = TokenType::lexer(&cleaned_code);
-        let mut ids = IdGenerator::default();
-        Self::parse(&mut lexer, &mut ids, code, path)
+        let mut lexer = Lexer::new(&cleaned_code, path, module_name);
+        Self::parse(&mut lexer, code, path)
             .map_err(|e| e.with_pretty_message(path, code))
             .map_err(Error::Syntax)
     }
@@ -52,21 +95,16 @@ impl Ast {
         id
     }
 
-    fn parse(
-        lexer: &mut Lexer<'_, TokenType>,
-        ids: &mut IdGenerator,
-        code: &str,
-        path: &str,
-    ) -> Result<Self, SyntaxError> {
+    fn parse(lexer: &mut Lexer<'_>, code: &str, path: &str) -> Result<Self, SyntaxError> {
         let mut items = vec![];
         while Token::next(&mut lexer.clone()).is_ok() {
-            items.push(AstItem::parse(lexer, ids)?);
+            items.push(AstItem::parse(lexer)?);
         }
         Ok(Self {
             code: code.to_string(),
             path: path.to_string(),
             items,
-            next_id: ids.next(),
+            next_id: lexer.next_id(),
         })
     }
 

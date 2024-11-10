@@ -1,5 +1,5 @@
-error: unexpected token
- --> ./cases_invalid/code/expr_invalid_underscore_f32_int_part.shd:1:17
+error: expected `;`
+ --> ./cases_invalid/code/expr_invalid_underscore_f32_int_part/main.shd:1:17
   |
 1 | buf value = _123.;
   |                 ^ here

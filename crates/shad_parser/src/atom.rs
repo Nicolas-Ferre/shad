@@ -1,5 +1,4 @@
-use crate::token::{IdGenerator, Token, TokenType};
-use logos::Lexer;
+use crate::token::{Lexer, Token, TokenType};
 use shad_error::{Span, SyntaxError};
 
 /// A parsed identifier.
@@ -24,16 +23,12 @@ pub struct AstIdent {
 }
 
 impl AstIdent {
-    pub(crate) fn parse(
-        lexer: &mut Lexer<'_, TokenType>,
-        ids: &mut IdGenerator,
-        type_: AstIdentType,
-    ) -> Result<Self, SyntaxError> {
+    pub(crate) fn parse(lexer: &mut Lexer<'_>, type_: AstIdentType) -> Result<Self, SyntaxError> {
         let token = parse_token(lexer, TokenType::Ident)?;
         Ok(Self {
             span: token.span,
             label: token.slice.to_string(),
-            id: ids.next(),
+            id: lexer.next_id(),
             type_,
         })
     }
@@ -58,6 +53,8 @@ pub enum AstIdentType {
     RefDef,
     /// A function parameter name definition.
     ParamDef,
+    /// A module path segment.
+    ModPathSegment,
 }
 
 /// A parsed literal.
@@ -86,10 +83,7 @@ pub struct AstLiteral {
 
 impl AstLiteral {
     #[allow(clippy::wildcard_enum_match_arm)]
-    pub(crate) fn parse(
-        lexer: &mut Lexer<'_, TokenType>,
-        type_: TokenType,
-    ) -> Result<Self, SyntaxError> {
+    pub(crate) fn parse(lexer: &mut Lexer<'_>, type_: TokenType) -> Result<Self, SyntaxError> {
         let token = parse_token(lexer, type_)?;
         Ok(Self {
             span: token.span,
@@ -119,7 +113,7 @@ pub enum AstLiteralType {
 }
 
 pub(crate) fn parse_token<'a>(
-    lexer: &mut Lexer<'a, TokenType>,
+    lexer: &mut Lexer<'a>,
     expected_type: TokenType,
 ) -> Result<Token<'a>, SyntaxError> {
     let token = Token::next(lexer)?;

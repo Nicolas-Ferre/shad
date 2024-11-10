@@ -3,8 +3,8 @@ use std::fs;
 use std::path::PathBuf;
 
 #[rstest::rstest]
-fn run_valid_code(#[files("./cases_valid/code/*.shd")] path: PathBuf) {
-    let mut runner = Runner::new(&path).unwrap();
+fn run_valid_code(#[files("./cases_valid/code/*")] path: PathBuf) {
+    let mut runner = Runner::new(path.join("main.shd")).unwrap();
     runner.run_step();
     let asg = runner.analysis();
     let mut buffers = asg

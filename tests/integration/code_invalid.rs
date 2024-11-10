@@ -3,18 +3,18 @@ use std::fs;
 use std::path::PathBuf;
 
 #[rstest::rstest]
-fn run_invalid_code(#[files("./cases_invalid/code/*.shd")] path: PathBuf) {
+fn run_invalid_code(#[files("./cases_invalid/code/*")] path: PathBuf) {
     let path = PathBuf::from(format!(
         "./cases_invalid/code/{}",
         path.file_name().unwrap().to_str().unwrap()
     ));
-    let result = Runner::new(&path);
+    let result = Runner::new(path.join("main.shd"));
     let actual = String::from_utf8(strip_ansi_escapes::strip(format!(
         "{}",
         result.expect_err("invalid code has successfully compiled")
     )))
     .unwrap();
-    let case_name = path.file_stem().unwrap();
+    let case_name = path.file_name().unwrap();
     let error_path = path
         .parent()
         .unwrap()

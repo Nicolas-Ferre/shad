@@ -1,5 +1,5 @@
 error: could not find `undefined` value
- --> ./cases_invalid/code/variable_undefined_assigned_value.shd:2:17
+ --> ./cases_invalid/code/variable_undefined_assigned_value/main.shd:2:17
   |
 2 |     var value = undefined;
   |                 ^^^^^^^^^ undefined identifier

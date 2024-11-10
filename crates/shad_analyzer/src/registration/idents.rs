@@ -129,11 +129,7 @@ impl Visit for IdentRegistration<'_> {
             if let Some(fn_) = self.analysis.fns.get(&signature) {
                 if let Some(return_type) = fn_.ast.return_type.clone() {
                     if node.is_statement {
-                        let error = errors::fn_calls::unexpected_return_type(
-                            self.analysis,
-                            node,
-                            &signature,
-                        );
+                        let error = errors::fn_calls::unexpected_return_type(node, &signature);
                         self.analysis.errors.push(error);
                     } else {
                         let fn_type = types::name(self.analysis, &return_type.name);
@@ -144,18 +140,14 @@ impl Visit for IdentRegistration<'_> {
                     let fn_ident = Ident::new(IdentSource::Fn(signature), None);
                     self.analysis.idents.insert(node.name.id, fn_ident);
                 } else {
-                    self.analysis.errors.push(errors::fn_calls::no_return_type(
-                        self.analysis,
-                        &signature,
-                        node,
-                    ));
+                    self.analysis
+                        .errors
+                        .push(errors::fn_calls::no_return_type(&signature, node));
                 }
             } else {
-                self.analysis.errors.push(errors::functions::not_found(
-                    self.analysis,
-                    node,
-                    &signature,
-                ));
+                self.analysis
+                    .errors
+                    .push(errors::functions::not_found(node, &signature));
             }
         }
     }
@@ -187,7 +179,7 @@ impl Visit for IdentRegistration<'_> {
         }
         self.analysis
             .errors
-            .push(errors::variables::not_found(self.analysis, node));
+            .push(errors::variables::not_found(node));
     }
 }
 

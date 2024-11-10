@@ -1,7 +1,8 @@
 use crate::fn_call::AstFnCall;
 use crate::{
-    Ast, AstAssignment, AstBufferItem, AstExpr, AstFnCallStatement, AstFnItem, AstIdent, AstItem,
-    AstLeftValue, AstLiteral, AstReturn, AstRunItem, AstStatement, AstVarDefinition,
+    Ast, AstAssignment, AstBufferItem, AstExpr, AstFnCallStatement, AstFnItem, AstIdent,
+    AstImportItem, AstItem, AstLeftValue, AstLiteral, AstReturn, AstRunItem, AstStatement,
+    AstVarDefinition,
 };
 
 // coverage: off (not all functions are used by other crates)
@@ -22,11 +23,14 @@ macro_rules! visit_trait {
             /// Runs logic when entering in a function item.
             fn enter_fn_item(&mut self, node: &$($mut_keyword)? AstFnItem) {}
 
-            /// Runs logic when entering in a statement.
-            fn enter_statement(&mut self, node: &$($mut_keyword)? AstStatement) {}
-
             /// Runs logic when entering in a `run` item.
             fn enter_run_item(&mut self, node: &$($mut_keyword)? AstRunItem) {}
+
+            /// Runs logic when entering in an `import` item.
+            fn enter_import_item(&mut self, node: &$($mut_keyword)? AstImportItem) {}
+
+            /// Runs logic when entering in a statement.
+            fn enter_statement(&mut self, node: &$($mut_keyword)? AstStatement) {}
 
             /// Runs logic when entering in an assignment.
             fn enter_assignment(&mut self, node: &$($mut_keyword)? AstAssignment) {}
@@ -67,11 +71,14 @@ macro_rules! visit_trait {
             /// Runs logic when exiting a function item.
             fn exit_fn_item(&mut self, node: &$($mut_keyword)? AstFnItem) {}
 
-            /// Runs logic when exiting a statement.
-            fn exit_statement(&mut self, node: &$($mut_keyword)? AstStatement) {}
-
             /// Runs logic when exiting a `run` item.
             fn exit_run_item(&mut self, node: &$($mut_keyword)? AstRunItem) {}
+
+            /// Runs logic when exiting an `import` item.
+            fn exit_import_item(&mut self, node: &$($mut_keyword)? AstImportItem) {}
+
+            /// Runs logic when exiting a statement.
+            fn exit_statement(&mut self, node: &$($mut_keyword)? AstStatement) {}
 
             /// Runs logic when exiting an assignment.
             fn exit_assignment(&mut self, node: &$($mut_keyword)? AstAssignment) {}
@@ -116,6 +123,7 @@ macro_rules! visit_trait {
                     AstItem::Buffer(node) => self.visit_buffer_item(node),
                     AstItem::Fn(node) => self.visit_fn_item(node),
                     AstItem::Run(node) => self.visit_run_item(node),
+                    AstItem::Import(node) => self.visit_import_item(node),
                 }
                 self.exit_item(node);
             }
@@ -138,6 +146,24 @@ macro_rules! visit_trait {
                 self.exit_fn_item(node);
             }
 
+            /// Visit a `run` item.
+            fn visit_run_item(&mut self, node: &$($mut_keyword)? AstRunItem) {
+                self.enter_run_item(node);
+                for node in &$($mut_keyword)? node.statements {
+                    self.visit_statement(node);
+                }
+                self.exit_run_item(node);
+            }
+
+            /// Visit an `import` item.
+            fn visit_import_item(&mut self, node: &$($mut_keyword)? AstImportItem) {
+                self.enter_import_item(node);
+                for node in &$($mut_keyword)? node.segments {
+                    self.visit_ident(node);
+                }
+                self.exit_import_item(node);
+            }
+
             /// Visit a statement.
             fn visit_statement(&mut self, node: &$($mut_keyword)? AstStatement) {
                 self.enter_statement(node);
@@ -148,15 +174,6 @@ macro_rules! visit_trait {
                     AstStatement::FnCall(node) => self.visit_fn_call_statement(node),
                 }
                 self.exit_statement(node);
-            }
-
-            /// Visit a `run` item.
-            fn visit_run_item(&mut self, node: &$($mut_keyword)? AstRunItem) {
-                self.enter_run_item(node);
-                for node in &$($mut_keyword)? node.statements {
-                    self.visit_statement(node);
-                }
-                self.exit_run_item(node);
             }
 
             /// Visit an assignment.

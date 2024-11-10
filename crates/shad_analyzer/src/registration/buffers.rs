@@ -20,11 +20,9 @@ pub(crate) fn register(analysis: &mut Analysis) {
                 .buffers
                 .insert(buffer.name.label.clone(), buffer_details);
             if let Some(existing_buffer) = existing_buffer {
-                analysis.errors.push(errors::buffers::duplicated(
-                    analysis,
-                    buffer,
-                    &existing_buffer,
-                ));
+                analysis
+                    .errors
+                    .push(errors::buffers::duplicated(buffer, &existing_buffer));
             }
         }
     }

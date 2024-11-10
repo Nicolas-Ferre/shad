@@ -36,9 +36,10 @@ pub struct Analysis {
 
 impl Analysis {
     /// Runs the semantic analysis on an `ast`.
-    pub fn run(ast: &Ast) -> Self {
+    pub fn run(asts: FxHashMap<String, Ast>) -> Self {
+        // TODO: check if main module is missing
         let mut analysis = Self {
-            ast: ast.clone(),
+            ast: asts["main"].clone(), // TODO: improve
             idents: FxHashMap::default(),
             types: FxHashMap::default(),
             fns: FxHashMap::default(),
