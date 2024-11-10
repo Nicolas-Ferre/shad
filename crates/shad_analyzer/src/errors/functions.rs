@@ -1,14 +1,15 @@
 use crate::checks::fn_recursion::CalledFn;
+use crate::FnId;
 use shad_error::{ErrorLevel, LocatedMessage, SemanticError};
 use shad_parser::{AstFnCall, AstFnItem, AstIdent};
 
 pub(crate) fn duplicated(
-    signature: &str,
+    id: &FnId,
     duplicated_fn: &AstFnItem,
     existing_fn: &AstFnItem,
 ) -> SemanticError {
     SemanticError::new(
-        format!("function `{signature}` is defined multiple times"),
+        format!("function `{}` is defined multiple times", id.signature),
         vec![
             LocatedMessage {
                 level: ErrorLevel::Error,
@@ -24,9 +25,9 @@ pub(crate) fn duplicated(
     )
 }
 
-pub(crate) fn not_found(call: &AstFnCall, signature: &str) -> SemanticError {
+pub(crate) fn not_found(call: &AstFnCall, fn_id: &FnId) -> SemanticError {
     SemanticError::new(
-        format!("could not find `{signature}` function"),
+        format!("could not find `{}` function", fn_id.signature),
         vec![LocatedMessage {
             level: ErrorLevel::Error,
             span: call.span.clone(),
@@ -35,9 +36,9 @@ pub(crate) fn not_found(call: &AstFnCall, signature: &str) -> SemanticError {
     )
 }
 
-pub(crate) fn recursion_found(current_fn_signatures: &str, fn_stack: &[CalledFn]) -> SemanticError {
+pub(crate) fn recursion_found(current_fn_id: &FnId, fn_stack: &[CalledFn]) -> SemanticError {
     SemanticError::new(
-        format!("function `{current_fn_signatures}` defined recursively"),
+        format!("function `{}` defined recursively", current_fn_id.signature),
         fn_stack
             .iter()
             .flat_map(|call| {
@@ -45,12 +46,12 @@ pub(crate) fn recursion_found(current_fn_signatures: &str, fn_stack: &[CalledFn]
                     LocatedMessage {
                         level: ErrorLevel::Error,
                         span: call.call_span.clone(),
-                        text: format!("`{}` function called here", call.signature),
+                        text: format!("`{}` function called here", call.fn_id.signature),
                     },
                     LocatedMessage {
                         level: ErrorLevel::Error,
                         span: call.fn_def_span.clone(),
-                        text: format!("`{}` function defined here", call.signature),
+                        text: format!("`{}` function defined here", call.fn_id.signature),
                     },
                 ]
             })

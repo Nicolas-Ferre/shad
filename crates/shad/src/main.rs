@@ -2,6 +2,7 @@
 #![allow(clippy::print_stdout, clippy::use_debug)]
 
 use clap::Parser;
+use shad_analyzer::BufferId;
 use shad_runner::Runner;
 use std::process;
 
@@ -66,7 +67,17 @@ impl RunArgs {
     fn run_step(&self, runner: &mut Runner) {
         runner.run_step();
         for buffer in &self.buffer {
-            println!("Buffer `{buffer}`: {:?}", runner.buffer(buffer));
+            let buffer_id = buffer.rsplit_once('.').map_or_else(
+                || BufferId {
+                    module: String::new(),
+                    name: buffer.into(),
+                },
+                |(module, name)| BufferId {
+                    module: module.into(),
+                    name: name.into(),
+                },
+            );
+            println!("Buffer `{buffer}`: {:?}", runner.buffer(&buffer_id));
         }
         println!("Step duration: {}µs", runner.delta().as_micros());
     }

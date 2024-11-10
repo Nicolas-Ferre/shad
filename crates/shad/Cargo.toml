@@ -13,6 +13,7 @@ repository.workspace = true
 rust-version.workspace = true
 
 [dependencies]
+shad_analyzer.workspace = true
 shad_runner.workspace = true
 clap.workspace = true
 

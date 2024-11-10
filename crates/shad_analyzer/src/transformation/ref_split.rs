@@ -62,11 +62,11 @@ impl<'a> RefSplitTransform<'a> {
 
 impl VisitMut for RefSplitTransform<'_> {
     fn exit_fn_call(&mut self, node: &mut AstFnCall) {
-        let signature = self
+        let fn_id = self
             .analysis
-            .fn_signature(&node.name)
-            .expect("internal error: missing signature");
-        let fn_ = &self.analysis.fns[&signature];
+            .fn_id(&node.name)
+            .expect("internal error: missing function");
+        let fn_ = self.analysis.fns[&fn_id].clone();
         if !fn_.is_inlined {
             return;
         }
@@ -75,8 +75,8 @@ impl VisitMut for RefSplitTransform<'_> {
                 continue;
             }
             let var_label = "tmp";
-            let var_def_id = self.analysis.ast.next_id();
-            let var_usage_id = self.analysis.ast.next_id();
+            let var_def_id = self.analysis.next_id();
+            let var_usage_id = self.analysis.next_id();
             let arg = mem::replace(
                 arg,
                 AstExpr::Ident(AstIdent {

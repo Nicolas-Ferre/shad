@@ -14,14 +14,15 @@ pub struct Ast {
     pub path: String,
     /// All the items.
     pub items: Vec<AstItem>,
-    /// The next unique ID.
+    /// The next available unique ID.
     pub next_id: u64,
 }
 
 impl Ast {
     /// Parses all Shad files in a directory to obtain their ASTs.
     ///
-    /// The returned [`FxHashMap`] contains found file paths as keys, and parsed files as values.
+    /// The returned [`FxHashMap`] contains dot-separated module path as keys,
+    /// and parsed files as values.
     ///
     /// Shad files in subdirectories are also parsed recursively.
     ///
@@ -30,6 +31,7 @@ impl Ast {
     /// An error is returned if the parsing has failed.
     pub fn from_dir(path: impl AsRef<Path>) -> Result<FxHashMap<String, Self>, Error> {
         let path = path.as_ref();
+        let mut next_id = 0;
         Ok(fs::read_dir(path)
             .map_err(Error::Io)?
             .map(|entry| match entry {
@@ -39,8 +41,10 @@ impl Ast {
                         Self::from_dir(file_path)
                     } else {
                         let module = Self::path_to_module(path, &file_path);
-                        Self::from_file(&file_path, &module)
-                            .map(|ast| iter::once((module, ast)).collect())
+                        Self::parse_file(&file_path, &module, next_id).map(|ast| {
+                            next_id = ast.next_id;
+                            iter::once((module, ast)).collect()
+                        })
                     }
                 }
                 Err(err) => Err(Error::Io(err)),
@@ -57,54 +61,30 @@ impl Ast {
     ///
     /// An error is returned if the parsing has failed.
     pub fn from_file(path: impl AsRef<Path>, module_name: &str) -> Result<Self, Error> {
+        Self::parse_file(path, module_name, 0)
+    }
+
+    fn parse_file(path: impl AsRef<Path>, module_name: &str, next_id: u64) -> Result<Self, Error> {
         let code = Self::retrieve_code(&path).map_err(Error::Io)?;
-        Self::from_str(
-            &code,
-            path.as_ref().to_str().unwrap_or_default(),
-            module_name,
-        )
-    }
-
-    fn path_to_module(base_path: &Path, path: &Path) -> String {
-        path.iter()
-            .skip(base_path.components().count())
-            .map(|component| component.to_str().unwrap_or("<invalid>"))
-            .collect::<Vec<_>>()
-            .join(".")
-    }
-
-    /// Parses a string containing Shad code to obtain an AST.
-    ///
-    /// A `path` can be provided to improve formatted error messages.
-    ///
-    /// # Errors
-    ///
-    /// An error is returned if the parsing has failed.
-    pub fn from_str(code: &str, path: &str, module_name: &str) -> Result<Self, Error> {
-        let cleaned_code = Self::remove_comments(code);
-        let mut lexer = Lexer::new(&cleaned_code, path, module_name);
-        Self::parse(&mut lexer, code, path)
-            .map_err(|e| e.with_pretty_message(path, code))
+        let path = path.as_ref().to_str().unwrap_or_default();
+        let cleaned_code = Self::remove_comments(&code);
+        let mut lexer = Lexer::new(&cleaned_code, path, module_name, next_id);
+        Self::parse_str(&mut lexer, &code, path)
+            .map_err(|e| e.with_pretty_message(path, &code))
             .map_err(Error::Syntax)
     }
 
-    /// Generates a new unique ID.
-    pub fn next_id(&mut self) -> u64 {
-        let id = self.next_id;
-        self.next_id += 1;
-        id
-    }
-
-    fn parse(lexer: &mut Lexer<'_>, code: &str, path: &str) -> Result<Self, SyntaxError> {
+    fn parse_str(lexer: &mut Lexer<'_>, code: &str, path: &str) -> Result<Self, SyntaxError> {
         let mut items = vec![];
         while Token::next(&mut lexer.clone()).is_ok() {
             items.push(AstItem::parse(lexer)?);
         }
+        let next_id = lexer.next_id();
         Ok(Self {
             code: code.to_string(),
             path: path.to_string(),
             items,
-            next_id: lexer.next_id(),
+            next_id,
         })
     }
 
@@ -123,5 +103,13 @@ impl Ast {
             })
             .collect::<Vec<_>>()
             .join("\n")
+    }
+
+    fn path_to_module(base_path: &Path, path: &Path) -> String {
+        path.iter()
+            .skip(base_path.components().count())
+            .map(|component| component.to_str().unwrap_or("<invalid>"))
+            .collect::<Vec<_>>()
+            .join(".")
     }
 }

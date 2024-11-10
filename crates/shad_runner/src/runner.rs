@@ -1,6 +1,6 @@
 use futures::executor;
 use fxhash::FxHashMap;
-use shad_analyzer::{Analysis, Buffer, ComputeShader};
+use shad_analyzer::{Analysis, BufferId, ComputeShader};
 use shad_error::Error;
 use shad_parser::Ast;
 use std::iter;
@@ -74,16 +74,9 @@ impl Runner {
     }
 
     /// Retrieves the bytes of the buffer with a specific Shad `name`.
-    pub fn buffer(&self, name: &str) -> Vec<u8> {
-        if let (Some(buffer), Some(wgpu_buffer)) = (
-            self.program.analysis.buffers.get(name),
-            self.program.buffers.get(name),
-        ) {
-            let size = self
-                .program
-                .analysis
-                .buffer_type(&buffer.ast.name.label)
-                .size as u64;
+    pub fn buffer(&self, buffer_id: &BufferId) -> Vec<u8> {
+        if let Some(wgpu_buffer) = self.program.buffers.get(buffer_id) {
+            let size = self.program.analysis.buffer_type(buffer_id).size as u64;
             let tmp_buffer = self.device.create_buffer(&BufferDescriptor {
                 label: Some("modor_texture_buffer"),
                 size,
@@ -145,7 +138,7 @@ impl Runner {
 #[derive(Debug)]
 struct Program {
     analysis: Analysis,
-    buffers: FxHashMap<String, wgpu::Buffer>,
+    buffers: FxHashMap<BufferId, wgpu::Buffer>,
     init_shaders: Vec<RunComputeShader>,
     step_shaders: Vec<RunComputeShader>,
 }
@@ -165,8 +158,8 @@ impl Program {
         }
         let buffers: FxHashMap<_, _> = analysis
             .buffers
-            .iter()
-            .map(|(name, buffer)| (name.clone(), Self::create_buffer(&analysis, buffer, device)))
+            .keys()
+            .map(|id| (id.clone(), Self::create_buffer(&analysis, id, device)))
             .collect();
         let init_shaders = analysis
             .init_shaders
@@ -214,10 +207,10 @@ impl Program {
         queue.submit(Some(encoder.finish()));
     }
 
-    fn create_buffer(analysis: &Analysis, buffer: &Buffer, device: &Device) -> wgpu::Buffer {
+    fn create_buffer(analysis: &Analysis, buffer: &BufferId, device: &Device) -> wgpu::Buffer {
         device.create_buffer(&BufferDescriptor {
-            label: Some(&format!("shad:buffer:{}", buffer.ast.name.label)),
-            size: analysis.buffer_type(&buffer.ast.name.label).size as u64,
+            label: Some(&format!("shad:buffer:{}.{}", buffer.module, buffer.name)),
+            size: analysis.buffer_type(buffer).size as u64,
             usage: BufferUsages::STORAGE | BufferUsages::COPY_SRC,
             mapped_at_creation: false,
         })
@@ -247,7 +240,7 @@ impl RunComputeShader {
     fn new(
         analysis: &Analysis,
         shader: &ComputeShader,
-        buffers: &FxHashMap<String, wgpu::Buffer>,
+        buffers: &FxHashMap<BufferId, wgpu::Buffer>,
         device: &Device,
     ) -> Self {
         let pipeline = Self::create_pipeline(analysis, shader, device);
@@ -283,7 +276,7 @@ impl RunComputeShader {
     fn create_bind_group(
         pipeline: &ComputePipeline,
         shader: &ComputeShader,
-        buffers: &FxHashMap<String, wgpu::Buffer>,
+        buffers: &FxHashMap<BufferId, wgpu::Buffer>,
         device: &Device,
     ) -> BindGroup {
         device.create_bind_group(&wgpu::BindGroupDescriptor {

@@ -46,8 +46,8 @@ impl<'a> StatementCheck<'a> {
             AstExpr::Ident(_) => ExprSemantic::Ref,
             AstExpr::FnCall(call) => self
                 .analysis
-                .fn_signature(&call.name)
-                .and_then(|signature| self.analysis.fns[&signature].ast.return_type.as_ref())
+                .fn_id(&call.name)
+                .and_then(|id| self.analysis.fns[&id].ast.return_type.as_ref())
                 .map_or(ExprSemantic::None, |type_| {
                     if type_.is_ref {
                         ExprSemantic::Ref
@@ -68,10 +68,10 @@ enum ExprSemantic {
 
 impl Visit for StatementCheck<'_> {
     fn enter_fn_item(&mut self, node: &AstFnItem) {
-        let signature = self
+        let fn_id = self
             .analysis
-            .fn_signature(&node.name)
-            .expect("internal error: missing signature");
+            .fn_id(&node.name)
+            .expect("internal error: missing function");
         if let Some(return_pos) = node
             .statements
             .iter()
@@ -85,7 +85,7 @@ impl Visit for StatementCheck<'_> {
             }
         } else if node.return_type.is_some() && node.qualifier != AstFnQualifier::Gpu {
             self.errors
-                .push(errors::returns::missing_return(node, &signature));
+                .push(errors::returns::missing_return(node, &fn_id));
         }
     }
 
@@ -152,11 +152,11 @@ impl Visit for StatementCheck<'_> {
     }
 
     fn enter_fn_call(&mut self, node: &AstFnCall) {
-        if let Some(signature) = self.analysis.fn_signature(&node.name) {
-            let fn_ = &self.analysis.fns[&signature];
+        if let Some(fn_id) = self.analysis.fn_id(&node.name) {
+            let fn_ = &self.analysis.fns[&fn_id];
             if fn_.ast.qualifier == AstFnQualifier::Buf && !self.are_buffer_fns_allowed {
                 self.errors
-                    .push(errors::fn_calls::not_allowed_buf_fn(node, &signature));
+                    .push(errors::fn_calls::not_allowed_buf_fn(node, &fn_id));
             }
             for (arg, param) in node.args.iter().zip(&fn_.ast.params) {
                 if let (Some(ref_span), ExprSemantic::Value) =

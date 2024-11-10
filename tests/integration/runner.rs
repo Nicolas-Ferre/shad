@@ -1,3 +1,4 @@
+use shad_analyzer::BufferId;
 use shad_error::Error;
 use shad_runner::Runner;
 use std::time::{Duration, Instant};
@@ -13,7 +14,12 @@ fn run_missing_file() {
 #[test]
 fn access_invalid_buffer() {
     let runner = Runner::new("./cases_valid/code/atom/main.shd").unwrap();
-    assert!(runner.buffer("invalid_name").is_empty());
+    assert!(runner
+        .buffer(&BufferId {
+            module: "main".into(),
+            name: "invalid_name".into()
+        })
+        .is_empty());
 }
 
 #[test]

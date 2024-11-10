@@ -5,11 +5,12 @@
 //! # Examples
 //!
 //! ```rust
+//! # use fxhash::*;
 //! # use shad_parser::*;
 //! # use shad_analyzer::*;
 //! #
-//! fn analyze_shad_program(ast: Ast) {
-//!     let asg = Analysis::run(&ast);
+//! fn analyze_shad_program(asts: FxHashMap<String, Ast>) {
+//!     let asg = Analysis::run(asts);
 //!     if asg.errors.is_empty() {
 //!         println!("{asg:#?}")
 //!

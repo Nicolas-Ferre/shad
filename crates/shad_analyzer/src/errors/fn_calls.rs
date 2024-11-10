@@ -1,9 +1,13 @@
+use crate::FnId;
 use shad_error::{ErrorLevel, LocatedMessage, SemanticError, Span};
 use shad_parser::{AstExpr, AstFnCall};
 
-pub(crate) fn not_allowed_buf_fn(call: &AstFnCall, signature: &str) -> SemanticError {
+pub(crate) fn not_allowed_buf_fn(call: &AstFnCall, fn_id: &FnId) -> SemanticError {
     SemanticError::new(
-        format!("`buf` function `{signature}` called in invalid context"),
+        format!(
+            "`buf` function `{}` called in invalid context",
+            fn_id.signature
+        ),
         vec![
             LocatedMessage {
                 level: ErrorLevel::Error,
@@ -20,9 +24,12 @@ pub(crate) fn not_allowed_buf_fn(call: &AstFnCall, signature: &str) -> SemanticE
     )
 }
 
-pub(crate) fn no_return_type(signature: &str, fn_call: &AstFnCall) -> SemanticError {
+pub(crate) fn no_return_type(fn_id: &FnId, fn_call: &AstFnCall) -> SemanticError {
     SemanticError::new(
-        format!("expected function with a return type, got function `{signature}`"),
+        format!(
+            "expected function with a return type, got function `{}`",
+            fn_id.signature
+        ),
         vec![LocatedMessage {
             level: ErrorLevel::Error,
             span: fn_call.span.clone(),
@@ -31,9 +38,12 @@ pub(crate) fn no_return_type(signature: &str, fn_call: &AstFnCall) -> SemanticEr
     )
 }
 
-pub(crate) fn unexpected_return_type(call: &AstFnCall, signature: &String) -> SemanticError {
+pub(crate) fn unexpected_return_type(call: &AstFnCall, id: &FnId) -> SemanticError {
     SemanticError::new(
-        format!("function `{signature}` called as a statement while having a return type"),
+        format!(
+            "function `{}` called as a statement while having a return type",
+            id.signature
+        ),
         vec![LocatedMessage {
             level: ErrorLevel::Error,
             span: call.span.clone(),

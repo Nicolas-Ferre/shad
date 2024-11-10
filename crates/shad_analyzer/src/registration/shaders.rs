@@ -1,14 +1,14 @@
 use crate::listing::{buffers, functions};
-use crate::{Analysis, RunBlock};
+use crate::{Analysis, BufferId, FnId, RunBlock};
 use shad_parser::AstStatement;
 
 /// An analyzed compute shader.
 #[derive(Debug, Clone)]
 pub struct ComputeShader {
     /// The buffers used by the shader.
-    pub buffers: Vec<String>,
-    /// The signature of the functions used by the shader.
-    pub fn_signatures: Vec<String>,
+    pub buffers: Vec<BufferId>,
+    /// The identifiers of the functions used by the shader.
+    pub fn_ids: Vec<FnId>,
     /// The statements of the shader.
     pub statements: Vec<AstStatement>,
 }
@@ -17,7 +17,7 @@ impl ComputeShader {
     fn new(analysis: &Analysis, block: &RunBlock) -> Self {
         Self {
             buffers: buffers::list(analysis, &block.ast),
-            fn_signatures: functions::list_in_block(analysis, &block.ast),
+            fn_ids: functions::list_in_block(analysis, &block.ast),
             statements: block.ast.statements.clone(),
         }
     }

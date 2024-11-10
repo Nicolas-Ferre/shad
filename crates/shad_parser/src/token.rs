@@ -207,7 +207,7 @@ pub(crate) struct Lexer<'a> {
 }
 
 impl<'a> Lexer<'a> {
-    pub(crate) fn new(code: &'a str, path: &str, module: &str) -> Self {
+    pub(crate) fn new(code: &'a str, path: &str, module: &str, next_id: u64) -> Self {
         Self {
             inner: TokenType::lexer(code),
             module: Rc::new(ModuleLocation {
@@ -215,7 +215,7 @@ impl<'a> Lexer<'a> {
                 path: path.into(),
                 code: code.into(),
             }),
-            next_id: 1000,
+            next_id,
         }
     }
 

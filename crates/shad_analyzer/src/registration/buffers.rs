@@ -10,21 +10,41 @@ pub struct Buffer {
 }
 
 pub(crate) fn register(analysis: &mut Analysis) {
-    let items = mem::take(&mut analysis.ast.items);
-    for item in &items {
-        if let AstItem::Buffer(buffer) = item {
-            let buffer_details = Buffer {
-                ast: buffer.clone(),
-            };
-            let existing_buffer = analysis
-                .buffers
-                .insert(buffer.name.label.clone(), buffer_details);
-            if let Some(existing_buffer) = existing_buffer {
-                analysis
-                    .errors
-                    .push(errors::buffers::duplicated(buffer, &existing_buffer));
+    let asts = mem::take(&mut analysis.asts);
+    for ast in asts.values() {
+        for item in &ast.items {
+            if let AstItem::Buffer(buffer) = item {
+                let buffer_details = Buffer {
+                    ast: buffer.clone(),
+                };
+                let existing_buffer = analysis
+                    .buffers
+                    .insert(BufferId::new(buffer), buffer_details);
+                if let Some(existing_buffer) = existing_buffer {
+                    analysis
+                        .errors
+                        .push(errors::buffers::duplicated(buffer, &existing_buffer));
+                }
             }
         }
     }
-    analysis.ast.items = items;
+    analysis.asts = asts;
+}
+
+/// The unique identifier of a buffer.
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct BufferId {
+    /// The module in which the buffer is defined.
+    pub module: String,
+    /// The buffer name.
+    pub name: String,
+}
+
+impl BufferId {
+    fn new(buffer: &AstBufferItem) -> Self {
+        Self {
+            module: buffer.name.span.module.name.clone(),
+            name: buffer.name.label.clone(),
+        }
+    }
 }

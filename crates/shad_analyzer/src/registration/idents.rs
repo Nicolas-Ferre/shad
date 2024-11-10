@@ -1,6 +1,5 @@
-use crate::registration::functions::signature;
 use crate::registration::types;
-use crate::{errors, Analysis};
+use crate::{errors, Analysis, BufferId, FnId};
 use fxhash::FxHashMap;
 use shad_parser::{
     AstBufferItem, AstFnCall, AstFnItem, AstFnQualifier, AstIdent, AstIdentType, AstItem,
@@ -27,11 +26,11 @@ impl Ident {
 #[derive(Debug, Clone)]
 pub enum IdentSource {
     /// A buffer.
-    Buffer(String),
+    Buffer(BufferId),
     /// A variable.
     Var(u64),
     /// A function.
-    Fn(String),
+    Fn(FnId),
 }
 
 pub(crate) fn register(analysis: &mut Analysis) {
@@ -41,19 +40,21 @@ pub(crate) fn register(analysis: &mut Analysis) {
 }
 
 fn register_buffers(analysis: &mut Analysis) {
-    let items = mem::take(&mut analysis.ast.items);
-    for item in &items {
-        if let AstItem::Buffer(buffer) = item {
-            IdentRegistration::new(analysis, Scope::BufDef).visit_buffer_item(buffer);
+    let asts = mem::take(&mut analysis.asts);
+    for (module, ast) in &asts {
+        for item in &ast.items {
+            if let AstItem::Buffer(buffer) = item {
+                IdentRegistration::new(analysis, module, Scope::BufDef).visit_buffer_item(buffer);
+            }
         }
     }
-    analysis.ast.items = items;
+    analysis.asts = asts;
 }
 
 fn register_run_blocks(analysis: &mut Analysis) {
     let blocks = mem::take(&mut analysis.run_blocks);
     for block in &blocks {
-        IdentRegistration::new(analysis, Scope::RunBlock).visit_run_item(&block.ast);
+        IdentRegistration::new(analysis, &block.module, Scope::RunBlock).visit_run_item(&block.ast);
     }
     analysis.run_blocks = blocks;
 }
@@ -65,20 +66,23 @@ fn register_fns(analysis: &mut Analysis) {
         } else {
             Scope::FnBody
         };
-        IdentRegistration::new(analysis, scope).visit_fn_item(&fn_.ast);
+        IdentRegistration::new(analysis, &fn_.ast.name.span.module.name, scope)
+            .visit_fn_item(&fn_.ast);
     }
 }
 
 struct IdentRegistration<'a> {
     analysis: &'a mut Analysis,
+    module: &'a str,
     scope: Scope,
     variables: FxHashMap<String, u64>,
 }
 
 impl<'a> IdentRegistration<'a> {
-    pub(crate) fn new(analysis: &'a mut Analysis, scope: Scope) -> Self {
+    pub(crate) fn new(analysis: &'a mut Analysis, module: &'a str, scope: Scope) -> Self {
         Self {
             analysis,
+            module,
             scope,
             variables: FxHashMap::default(),
         }
@@ -95,7 +99,7 @@ impl Visit for IdentRegistration<'_> {
             .return_type
             .as_ref()
             .and_then(|type_| types::name(self.analysis, &type_.name));
-        let fn_ident = Ident::new(IdentSource::Fn(signature(node)), return_type);
+        let fn_ident = Ident::new(IdentSource::Fn(FnId::new(node)), return_type);
         self.analysis.idents.insert(node.name.id, fn_ident);
         for param in &node.params {
             let param_type = types::name(self.analysis, &param.type_);
@@ -107,7 +111,13 @@ impl Visit for IdentRegistration<'_> {
 
     fn exit_buffer_item(&mut self, node: &AstBufferItem) {
         let buffer_type = self.analysis.expr_type(&node.value);
-        let buffer_ident = Ident::new(IdentSource::Buffer(node.name.label.clone()), buffer_type);
+        let buffer_ident = Ident::new(
+            IdentSource::Buffer(BufferId {
+                module: self.module.into(),
+                name: node.name.label.clone(),
+            }),
+            buffer_type,
+        );
         self.analysis.idents.insert(node.name.id, buffer_ident);
     }
 
@@ -125,29 +135,32 @@ impl Visit for IdentRegistration<'_> {
             .map(|node| self.analysis.expr_type(node))
             .collect::<Option<Vec<_>>>()
         {
-            let signature = format!("{}({})", node.name.label, arg_types.join(", "));
-            if let Some(fn_) = self.analysis.fns.get(&signature) {
+            let id = FnId {
+                module: self.module.into(),
+                signature: format!("{}({})", node.name.label, arg_types.join(", ")),
+            };
+            if let Some(fn_) = self.analysis.fns.get(&id) {
                 if let Some(return_type) = fn_.ast.return_type.clone() {
                     if node.is_statement {
-                        let error = errors::fn_calls::unexpected_return_type(node, &signature);
+                        let error = errors::fn_calls::unexpected_return_type(node, &id);
                         self.analysis.errors.push(error);
                     } else {
                         let fn_type = types::name(self.analysis, &return_type.name);
-                        let fn_ident = Ident::new(IdentSource::Fn(signature), fn_type);
+                        let fn_ident = Ident::new(IdentSource::Fn(id), fn_type);
                         self.analysis.idents.insert(node.name.id, fn_ident);
                     }
                 } else if node.is_statement {
-                    let fn_ident = Ident::new(IdentSource::Fn(signature), None);
+                    let fn_ident = Ident::new(IdentSource::Fn(id), None);
                     self.analysis.idents.insert(node.name.id, fn_ident);
                 } else {
                     self.analysis
                         .errors
-                        .push(errors::fn_calls::no_return_type(&signature, node));
+                        .push(errors::fn_calls::no_return_type(&id, node));
                 }
             } else {
                 self.analysis
                     .errors
-                    .push(errors::functions::not_found(node, &signature));
+                    .push(errors::functions::not_found(node, &id));
             }
         }
     }
@@ -167,12 +180,18 @@ impl Visit for IdentRegistration<'_> {
             return;
         } else if let (true, Some(buffer)) = (
             self.scope.are_buffers_accessible(),
-            self.analysis.buffers.get(&node.label),
+            self.analysis.buffers.get(&BufferId {
+                module: self.module.into(),
+                name: node.label.clone(),
+            }),
         ) {
             if let Some(buffer_ident) = self.analysis.idents.get(&buffer.ast.name.id) {
-                let buffer_name = buffer.ast.name.label.clone();
+                let buffer_id = BufferId {
+                    module: self.module.into(),
+                    name: buffer.ast.name.label.clone(),
+                };
                 let buffer_type = buffer_ident.type_.clone();
-                let buffer_ident = Ident::new(IdentSource::Buffer(buffer_name), buffer_type);
+                let buffer_ident = Ident::new(IdentSource::Buffer(buffer_id), buffer_type);
                 self.analysis.idents.insert(node.id, buffer_ident);
                 return;
             }

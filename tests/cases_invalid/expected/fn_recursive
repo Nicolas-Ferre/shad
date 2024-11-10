@@ -1,5 +1,5 @@
-error: function `level2_recursive()` defined recursively
-  --> ./cases_invalid/code/fn_recursive/main.shd:14:5
+error: function `level1_recursive()` defined recursively
+  --> ./cases_invalid/code/fn_recursive/main.shd:2:5
    |
  1 | fn level1_recursive() {
    |    ^^^^^^^^^^^^^^^^ `level1_recursive()` function defined here
