@@ -106,8 +106,11 @@ impl Ast {
     }
 
     fn path_to_module(base_path: &Path, path: &Path) -> String {
+        let segment_count = path.iter().count() - base_path.components().count();
         path.iter()
             .skip(base_path.components().count())
+            .take(segment_count - 1)
+            .chain(path.file_stem())
             .map(|component| component.to_str().unwrap_or("<invalid>"))
             .collect::<Vec<_>>()
             .join(".")

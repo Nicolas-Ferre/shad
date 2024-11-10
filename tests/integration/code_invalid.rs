@@ -8,7 +8,7 @@ fn run_invalid_code(#[files("./cases_invalid/code/*")] path: PathBuf) {
         "./cases_invalid/code/{}",
         path.file_name().unwrap().to_str().unwrap()
     ));
-    let result = Runner::new(path.join("main.shd"));
+    let result = Runner::new(&path);
     let actual = String::from_utf8(strip_ansi_escapes::strip(format!(
         "{}",
         result.expect_err("invalid code has successfully compiled")
