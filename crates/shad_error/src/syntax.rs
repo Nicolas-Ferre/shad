@@ -52,25 +52,4 @@ impl SyntaxError {
             message,
         }
     }
-
-    /// Generates the formatted error string.
-    #[allow(clippy::range_plus_one)]
-    pub fn with_pretty_message(self, file_path: &str, code: &str) -> Self {
-        let message = Level::Error.title(&self.message).snippet(
-            Snippet::source(code)
-                .fold(true)
-                .origin(file_path)
-                .annotation(
-                    Level::Error
-                        .span(self.span.start.min(code.len() - 1)..self.span.end.min(code.len()))
-                        .label("here"),
-                ),
-        );
-        let pretty_message = format!("{}", Renderer::styled().render(message));
-        Self {
-            span: self.span,
-            message: self.message,
-            pretty_message,
-        }
-    }
 }

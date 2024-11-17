@@ -109,9 +109,11 @@ impl Analysis {
     pub(crate) fn fn_id(&self, fn_name: &AstIdent) -> Option<FnId> {
         self.idents
             .get(&fn_name.id)
-            .and_then(|ident| match &ident.source {
-                IdentSource::Fn(id) => Some(id.clone()),
-                IdentSource::Buffer(_) | IdentSource::Var(_) => None,
+            .map(|ident| match &ident.source {
+                IdentSource::Fn(id) => id.clone(),
+                IdentSource::Buffer(_) | IdentSource::Var(_) => {
+                    unreachable!("internal error: retrieve non-function ID")
+                }
             })
     }
 
