@@ -1,0 +1,8 @@
+import missing;
+import nested.missing;
+import nested.child;
+
+run {
+    private_buffer = 1;
+    private_function();
+}

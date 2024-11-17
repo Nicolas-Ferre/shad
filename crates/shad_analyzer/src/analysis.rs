@@ -16,6 +16,8 @@ pub struct Analysis {
     pub asts: FxHashMap<String, Ast>,
     /// From each module, the list of visible modules sorted by priority.
     pub visible_modules: FxHashMap<String, Vec<String>>,
+    /// From each module, the priority index for `run` blocks.
+    pub run_module_priority: FxHashMap<String, usize>,
     /// The analyzed identifiers.
     pub idents: FxHashMap<u64, Ident>,
     /// The analyzed types.
@@ -24,6 +26,8 @@ pub struct Analysis {
     pub fns: FxHashMap<FnId, Function>,
     /// The analyzed buffers.
     pub buffers: FxHashMap<BufferId, Buffer>,
+    /// The order in which buffers are initialized.
+    pub ordered_buffers: Vec<BufferId>,
     /// The analyzed init blocks.
     pub init_blocks: Vec<RunBlock>,
     /// The analyzed run blocks.
@@ -44,10 +48,12 @@ impl Analysis {
         let mut analysis = Self {
             asts,
             visible_modules: FxHashMap::default(),
+            run_module_priority: FxHashMap::default(),
             idents: FxHashMap::default(),
             types: FxHashMap::default(),
             fns: FxHashMap::default(),
             buffers: FxHashMap::default(),
+            ordered_buffers: vec![],
             init_blocks: vec![],
             run_blocks: vec![],
             init_shaders: vec![],
@@ -59,10 +65,11 @@ impl Analysis {
         registration::types::register(&mut analysis);
         registration::functions::register(&mut analysis);
         registration::buffers::register(&mut analysis);
+        registration::idents::register_buffer(&mut analysis);
         registration::run_blocks::register(&mut analysis);
         transformation::literals::transform(&mut analysis);
         transformation::fn_params::transform(&mut analysis);
-        registration::idents::register(&mut analysis);
+        registration::idents::register_other(&mut analysis);
         checks::functions::check(&mut analysis);
         checks::literals::check(&mut analysis);
         checks::statements::check(&mut analysis);
@@ -102,11 +109,9 @@ impl Analysis {
     pub(crate) fn fn_id(&self, fn_name: &AstIdent) -> Option<FnId> {
         self.idents
             .get(&fn_name.id)
-            .map(|ident| match &ident.source {
-                IdentSource::Fn(id) => id.clone(),
-                IdentSource::Buffer(_) | IdentSource::Var(_) => {
-                    unreachable!("internal error: retrieve non-function ID")
-                }
+            .and_then(|ident| match &ident.source {
+                IdentSource::Fn(id) => Some(id.clone()),
+                IdentSource::Buffer(_) | IdentSource::Var(_) => None,
             })
     }
 

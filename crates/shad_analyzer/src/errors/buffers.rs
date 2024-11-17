@@ -1,4 +1,4 @@
-use crate::Buffer;
+use crate::{Buffer, BufferId};
 use shad_error::{ErrorLevel, LocatedMessage, SemanticError};
 use shad_parser::AstBufferItem;
 
@@ -23,5 +23,16 @@ pub(crate) fn duplicated(
                 text: "buffer with same name is defined here".into(),
             },
         ],
+    )
+}
+
+pub(crate) fn recursion_found(buffer_id: &BufferId, buffer: &Buffer) -> SemanticError {
+    SemanticError::new(
+        format!("buffer `{}` defined recursively", buffer_id.name),
+        vec![LocatedMessage {
+            level: ErrorLevel::Error,
+            span: buffer.ast.name.span.clone(),
+            text: format!("`{}` buffer defined here", buffer_id.name),
+        }],
     )
 }

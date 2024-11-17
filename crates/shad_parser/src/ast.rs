@@ -32,17 +32,34 @@ impl Ast {
     pub fn from_dir(path: impl AsRef<Path>) -> Result<FxHashMap<String, Self>, Error> {
         let path = path.as_ref();
         let mut next_id = 0;
+        Self::parse_dir(path, path, &mut next_id)
+    }
+
+    /// Parses a file containing Shad code to obtain an AST.
+    ///
+    /// # Errors
+    ///
+    /// An error is returned if the parsing has failed.
+    pub fn from_file(path: impl AsRef<Path>, module_name: &str) -> Result<Self, Error> {
+        Self::parse_file(path, module_name, 0)
+    }
+
+    fn parse_dir(
+        path: &Path,
+        base_path: &Path,
+        next_id: &mut u64,
+    ) -> Result<FxHashMap<String, Self>, Error> {
         Ok(fs::read_dir(path)
             .map_err(Error::Io)?
             .map(|entry| match entry {
                 Ok(entry) => {
                     let file_path = entry.path();
                     if file_path.is_dir() {
-                        Self::from_dir(file_path)
+                        Self::parse_dir(&file_path, base_path, next_id)
                     } else {
-                        let module = Self::path_to_module(path, &file_path);
-                        Self::parse_file(&file_path, &module, next_id).map(|ast| {
-                            next_id = ast.next_id;
+                        let module = Self::path_to_module(base_path, &file_path);
+                        Self::parse_file(&file_path, &module, *next_id).map(|ast| {
+                            *next_id = ast.next_id;
                             iter::once((module, ast)).collect()
                         })
                     }
@@ -55,23 +72,12 @@ impl Ast {
             .collect())
     }
 
-    /// Parses a file containing Shad code to obtain an AST.
-    ///
-    /// # Errors
-    ///
-    /// An error is returned if the parsing has failed.
-    pub fn from_file(path: impl AsRef<Path>, module_name: &str) -> Result<Self, Error> {
-        Self::parse_file(path, module_name, 0)
-    }
-
     fn parse_file(path: impl AsRef<Path>, module_name: &str, next_id: u64) -> Result<Self, Error> {
-        let code = Self::retrieve_code(&path).map_err(Error::Io)?;
         let path = path.as_ref().to_str().unwrap_or_default();
-        let cleaned_code = Self::remove_comments(&code);
-        let mut lexer = Lexer::new(&cleaned_code, path, module_name, next_id);
-        Self::parse_str(&mut lexer, &code, path)
-            .map_err(|e| e.with_pretty_message(path, &code))
-            .map_err(Error::Syntax)
+        let raw_code = Self::retrieve_code(&path).map_err(Error::Io)?;
+        let cleaned_code = Self::remove_comments(&raw_code);
+        let mut lexer = Lexer::new(&cleaned_code, &raw_code, path, module_name, next_id);
+        Self::parse_str(&mut lexer, &raw_code, path).map_err(Error::Syntax)
     }
 
     fn parse_str(lexer: &mut Lexer<'_>, code: &str, path: &str) -> Result<Self, SyntaxError> {
@@ -106,7 +112,7 @@ impl Ast {
     }
 
     fn path_to_module(base_path: &Path, path: &Path) -> String {
-        let segment_count = path.iter().count() - base_path.components().count();
+        let segment_count = path.components().count() - base_path.components().count();
         path.iter()
             .skip(base_path.components().count())
             .take(segment_count - 1)

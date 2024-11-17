@@ -35,7 +35,11 @@ impl Display for Error {
             Self::Semantic(err) => {
                 let sorted_errors = err
                     .iter()
-                    .sorted_unstable_by_key(|err| err.located_messages[0].span.start)
+                    .sorted_unstable_by_key(|err| {
+                        err.located_messages
+                            .first()
+                            .map(|message| message.span.start)
+                    })
                     .map(|err| format!("{err}"))
                     .collect::<Vec<_>>()
                     .join("\n\n");

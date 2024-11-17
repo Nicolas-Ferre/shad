@@ -122,6 +122,7 @@ pub(crate) fn parse_token<'a>(
     } else {
         Err(SyntaxError::new(
             token.span.start,
+            lexer.module.clone(),
             format!("expected {}", expected_type.label()),
         ))
     }

@@ -1,0 +1,5 @@
+pub buf unchanged_value = 0;
+
+run {
+    unchanged_value = 1;
+}

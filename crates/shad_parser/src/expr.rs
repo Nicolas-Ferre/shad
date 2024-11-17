@@ -88,7 +88,11 @@ impl AstExpr {
             }
             TokenType::Minus => Ok(Self::FnCall(AstFnCall::parse_unary_operation(lexer)?)),
             TokenType::Not => Ok(Self::FnCall(AstFnCall::parse_unary_operation(lexer)?)),
-            _ => Err(SyntaxError::new(token.span.start, "expected expression")),
+            _ => Err(SyntaxError::new(
+                token.span.start,
+                lexer.module.clone(),
+                "expected expression",
+            )),
         }
     }
 }

@@ -25,9 +25,9 @@ pub(crate) fn duplicated(
     )
 }
 
-pub(crate) fn not_found(call: &AstFnCall, fn_id: &FnId) -> SemanticError {
+pub(crate) fn not_found(call: &AstFnCall, signature: &str) -> SemanticError {
     SemanticError::new(
-        format!("could not find `{}` function", fn_id.signature),
+        format!("could not find `{}` function", signature),
         vec![LocatedMessage {
             level: ErrorLevel::Error,
             span: call.span.clone(),

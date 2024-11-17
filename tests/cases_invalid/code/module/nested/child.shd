@@ -1,0 +1,4 @@
+buf private_buffer = 0;
+
+fn private_function() {
+}

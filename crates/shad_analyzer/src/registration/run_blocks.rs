@@ -16,21 +16,19 @@ pub(crate) fn register(analysis: &mut Analysis) {
 }
 
 fn register_init(analysis: &mut Analysis) {
-    for (module, ast) in &analysis.asts {
-        for item in &ast.items {
-            if let AstItem::Buffer(buffer) = item {
-                analysis.init_blocks.push(RunBlock {
-                    ast: AstRunItem {
-                        statements: vec![AstStatement::Assignment(AstAssignment {
-                            span: buffer.value.span().clone(),
-                            value: AstLeftValue::Ident(buffer.name.clone()),
-                            expr: buffer.value.clone(),
-                        })],
-                    },
-                    module: module.clone(),
-                });
-            }
-        }
+    for (id, buffer_id) in analysis.ordered_buffers.iter().enumerate() {
+        let buffer = &analysis.buffers[buffer_id];
+        analysis.init_blocks.push(RunBlock {
+            ast: AstRunItem {
+                statements: vec![AstStatement::Assignment(AstAssignment {
+                    span: buffer.ast.value.span().clone(),
+                    value: AstLeftValue::Ident(buffer.ast.name.clone()),
+                    expr: buffer.ast.value.clone(),
+                })],
+                id: id as u64,
+            },
+            module: buffer_id.module.clone(),
+        });
     }
 }
 

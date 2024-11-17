@@ -44,7 +44,11 @@ impl AstItem {
             TokenType::Fn => Ok(Self::Fn(AstFnItem::parse(lexer, is_pub)?)),
             TokenType::Run => Ok(Self::Run(AstRunItem::parse(lexer)?)),
             TokenType::Import => Ok(Self::Import(AstImportItem::parse(lexer, is_pub)?)),
-            _ => Err(SyntaxError::new(token.span.start, "expected item")),
+            _ => Err(SyntaxError::new(
+                token.span.start,
+                lexer.module.clone(),
+                "expected item",
+            )),
         }
     }
 }
@@ -244,13 +248,18 @@ impl AstFnParam {
 pub struct AstRunItem {
     /// The statements inside the block.
     pub statements: Vec<AstStatement>,
+    /// The unique ID of the `run` block.
+    pub id: u64,
 }
 
 impl AstRunItem {
     fn parse(lexer: &mut Lexer<'_>) -> Result<Self, SyntaxError> {
         parse_token(lexer, TokenType::Run)?;
         let statements = parse_statement_block(lexer)?;
-        Ok(Self { statements })
+        Ok(Self {
+            statements,
+            id: lexer.next_id(),
+        })
     }
 }
 

@@ -186,9 +186,19 @@ impl<'a> Token<'a> {
                 .inner
                 .next()
                 .ok_or_else(|| {
-                    SyntaxError::new(lexer.inner.span().start, "unexpected end of file")
+                    SyntaxError::new(
+                        lexer.inner.span().start,
+                        lexer.module.clone(),
+                        "unexpected end of file",
+                    )
                 })?
-                .map_err(|()| SyntaxError::new(lexer.inner.span().start, "unexpected token"))?,
+                .map_err(|()| {
+                    SyntaxError::new(
+                        lexer.inner.span().start,
+                        lexer.module.clone(),
+                        "unexpected token",
+                    )
+                })?,
             span: Span::new(
                 lexer.inner.span().start,
                 lexer.inner.span().end,
@@ -207,13 +217,19 @@ pub(crate) struct Lexer<'a> {
 }
 
 impl<'a> Lexer<'a> {
-    pub(crate) fn new(code: &'a str, path: &str, module: &str, next_id: u64) -> Self {
+    pub(crate) fn new(
+        cleaned_code: &'a str,
+        raw_code: &'a str,
+        path: &str,
+        module: &str,
+        next_id: u64,
+    ) -> Self {
         Self {
-            inner: TokenType::lexer(code),
+            inner: TokenType::lexer(cleaned_code),
             module: Rc::new(ModuleLocation {
                 name: module.into(),
                 path: path.into(),
-                code: code.into(),
+                code: raw_code.into(),
             }),
             next_id,
         }

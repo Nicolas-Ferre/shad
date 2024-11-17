@@ -1,5 +1,2 @@
+import objects.paddles;
 import objects.ball;
-
-run {
-    update_ball();
-}

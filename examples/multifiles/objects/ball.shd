@@ -1,11 +1,9 @@
 import objects.paddles;
+import id;
 
-buf updated = false;
-pub buf pub_buffer = 10;
+buf update_id = 0;
 
-pub buf fn update_ball() {
+run {
     var paddle_pos = paddle_position(0u);
-    updated = true;
-    update_child_pub(); // ok
-    update_child_private(); // ERROR: private item
+    update_id = next_id();
 }

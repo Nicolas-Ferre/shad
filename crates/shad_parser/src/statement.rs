@@ -43,7 +43,11 @@ impl AstStatement {
             }
             TokenType::Var | TokenType::Ref => Ok(Self::Var(AstVarDefinition::parse(lexer)?)),
             TokenType::Return => Ok(Self::Return(AstReturn::parse(lexer)?)),
-            _ => Err(SyntaxError::new(token.span.start, "expected statement")),
+            _ => Err(SyntaxError::new(
+                token.span.start,
+                lexer.module.clone(),
+                "expected statement",
+            )),
         }
     }
 }

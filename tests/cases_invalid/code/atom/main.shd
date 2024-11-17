@@ -1,5 +1,4 @@
 buf undefined_ident = undefined;
-buf not_yet_defined = f32_too_many_digits;
 buf f32_too_many_digits = 123456789012345678901234567890123456_789.;
 buf u32_too_big = 4_294_967_296u;
 buf i32_too_big = 2_147_483_648;
