@@ -15,7 +15,6 @@ rust-version.workspace = true
 [dependencies]
 shad_error.workspace = true
 annotate-snippets.workspace = true
-derivative.workspace = true
 fxhash.workspace = true
 glob.workspace = true
 logos.workspace = true

@@ -1,4 +1,3 @@
-use derivative::Derivative;
 use std::rc::Rc;
 
 /// The span of a group of token in a file.
@@ -29,17 +28,15 @@ impl Span {
 }
 
 /// The location of a Shad module.
-#[derive(Debug, Clone, Derivative)]
-#[derivative(PartialEq, Eq, Hash)]
+#[derive(Debug, Clone)]
+#[derive_where::derive_where(PartialEq, Eq, Hash)]
 pub struct ModuleLocation {
     /// The name of the module.
     pub name: String,
     /// The file path of the module.
-    #[derivative(PartialEq = "ignore")]
-    #[derivative(Hash = "ignore")]
+    #[derive_where(skip)]
     pub path: String,
     /// The code of the module.
-    #[derivative(PartialEq = "ignore")]
-    #[derivative(Hash = "ignore")]
+    #[derive_where(skip)]
     pub code: String,
 }

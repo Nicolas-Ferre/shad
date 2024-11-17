@@ -26,7 +26,5 @@ allow = [
     "ISC",
     "MIT",
     "Unicode-DFS-2016",
-    "Unicode-3.0",
     "Zlib",
-    "0BSD",
 ]
