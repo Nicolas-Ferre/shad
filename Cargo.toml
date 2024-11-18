@@ -39,7 +39,7 @@ strip-ansi-escapes = "0.2"
 wasm-bindgen-futures = "0.4"
 wasm-bindgen-test = "0.3"
 web-sys = { version = "0.3", features = ["Location"] }
-wgpu = "22.0"
+wgpu = "23.0"
 winit = "0.30"
 
 shad_error = { version = "0.1.0", path = "crates/shad_error" }
