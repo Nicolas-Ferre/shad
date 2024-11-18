@@ -1,4 +1,4 @@
-use crate::{listing, Analysis, Ident, IdentSource};
+use crate::{listing, Analysis, FnId, Ident, IdentSource};
 use fxhash::FxHashMap;
 use shad_parser::{
     AstExpr, AstFnCall, AstFnCallStatement, AstFnItem, AstFnQualifier, AstIdent, AstLeftValue,
@@ -16,18 +16,17 @@ fn transform_fns(analysis: &mut Analysis) {
     let mut are_fns_inlined: FxHashMap<_, _> = analysis
         .fns
         .iter()
-        .map(|(signature, fn_)| (signature.clone(), fn_.ast.qualifier == AstFnQualifier::Gpu))
+        .map(|(fn_id, fn_)| (fn_id.clone(), fn_.ast.qualifier == AstFnQualifier::Gpu))
         .collect();
-    let signatures: Vec<_> = analysis.fns.keys().cloned().collect();
+    let ids: Vec<_> = analysis.fns.keys().cloned().collect();
     while are_fns_inlined.values().any(|is_inlined| !is_inlined) {
-        for signature in &signatures {
-            if !are_fns_inlined[signature]
-                && are_all_dependent_fns_inlined(analysis, &are_fns_inlined, signature)
+        for id in &ids {
+            if !are_fns_inlined[id] && are_all_dependent_fns_inlined(analysis, &are_fns_inlined, id)
             {
-                let mut fn_ = analysis.fns[signature].clone();
+                let mut fn_ = analysis.fns[id].clone();
                 visit_statements(analysis, &mut fn_.ast.statements);
-                are_fns_inlined.insert(signature.clone(), true);
-                analysis.fns.insert(signature.clone(), fn_);
+                are_fns_inlined.insert(id.clone(), true);
+                analysis.fns.insert(id.clone(), fn_);
             }
         }
     }
@@ -51,15 +50,15 @@ fn transform_run_blocks(analysis: &mut Analysis) {
 
 fn are_all_dependent_fns_inlined(
     analysis: &Analysis,
-    are_fns_inlined: &FxHashMap<String, bool>,
-    signature: &str,
+    are_fns_inlined: &FxHashMap<FnId, bool>,
+    fn_id: &FnId,
 ) -> bool {
-    analysis.fns[signature]
+    analysis.fns[fn_id]
         .ast
         .statements
         .iter()
         .flat_map(|s| listing::functions::list_in_statement(analysis, s))
-        .all(|signature| are_fns_inlined[&signature])
+        .all(|id| are_fns_inlined[&id])
 }
 
 fn visit_statements(analysis: &mut Analysis, statements: &mut Vec<AstStatement>) {
@@ -80,10 +79,10 @@ fn visit_statements(analysis: &mut Analysis, statements: &mut Vec<AstStatement>)
 fn is_inline_fn_call_statement(analysis: &Analysis, statement: &AstStatement) -> bool {
     match statement {
         AstStatement::FnCall(call) => {
-            let signature = analysis
-                .fn_signature(&call.call.name)
-                .expect("internal error: missing signature");
-            analysis.fns[&signature].is_inlined
+            let id = analysis
+                .fn_id(&call.call.name)
+                .expect("internal error: missing function");
+            analysis.fns[&id].is_inlined
         }
         AstStatement::Assignment(_) | AstStatement::Var(_) | AstStatement::Return(_) => false,
     }
@@ -148,10 +147,10 @@ impl VisitMut for RefFnInlineTransform<'_> {
 }
 
 fn inlined_fn_statements(analysis: &mut Analysis, call: &AstFnCall) -> Vec<AstStatement> {
-    let signature = analysis
-        .fn_signature(&call.name)
-        .expect("internal error: missing signature");
-    let fn_ = analysis.fns[&signature].clone();
+    let fn_id = analysis
+        .fn_id(&call.name)
+        .expect("internal error: missing function");
+    let fn_ = analysis.fns[&fn_id].clone();
     if !fn_.is_inlined {
         return vec![];
     }
@@ -224,7 +223,7 @@ impl VisitMut for RefFnStatementsTransform<'_> {
             IdentSource::Var(id) => {
                 let ident = ident.clone();
                 let old_id = node.id;
-                node.id = self.analysis.ast.next_id();
+                node.id = self.analysis.next_id();
                 self.old_new_id.insert(old_id, node.id);
                 self.analysis.idents.insert(
                     node.id,

@@ -1,7 +1,6 @@
 use crate::fn_call::AstFnCall;
-use crate::token::{IdGenerator, Token, TokenType};
+use crate::token::{Lexer, Token, TokenType};
 use crate::{AstExpr, AstIdent, AstIdentType};
-use logos::Lexer;
 use shad_error::{Span, SyntaxError};
 
 /// A parsed left value that can be assigned.
@@ -15,31 +14,24 @@ pub enum AstLeftValue {
 
 impl AstLeftValue {
     /// Returns the span of the value.
-    pub fn span(&self) -> Span {
+    pub fn span(&self) -> &Span {
         match self {
-            Self::Ident(value) => value.span,
-            Self::FnCall(value) => value.span,
+            Self::Ident(value) => &value.span,
+            Self::FnCall(value) => &value.span,
         }
     }
 
     #[allow(clippy::wildcard_enum_match_arm)]
-    pub(crate) fn parse(
-        lexer: &mut Lexer<'_, TokenType>,
-        ids: &mut IdGenerator,
-    ) -> Result<Self, SyntaxError> {
+    pub(crate) fn parse(lexer: &mut Lexer<'_>) -> Result<Self, SyntaxError> {
         let tmp_lexer = &mut lexer.clone();
         let token = Token::next(tmp_lexer)?;
         let next_token = Token::next(tmp_lexer)?;
         match token.type_ {
             TokenType::Ident => {
                 if next_token.type_ == TokenType::OpenParenthesis {
-                    Ok(Self::FnCall(AstFnCall::parse(lexer, ids, false)?))
+                    Ok(Self::FnCall(AstFnCall::parse(lexer, false)?))
                 } else {
-                    Ok(Self::Ident(AstIdent::parse(
-                        lexer,
-                        ids,
-                        AstIdentType::VarUsage,
-                    )?))
+                    Ok(Self::Ident(AstIdent::parse(lexer, AstIdentType::VarUsage)?))
                 }
             }
             _ => unreachable!("internal error: expected left value"),

@@ -1,0 +1,11 @@
+import id;
+
+buf update_id = 0;
+
+run {
+    update_id = next_id();
+}
+
+pub fn paddle_position(index: u32) -> f32 {
+    return 0.;
+}

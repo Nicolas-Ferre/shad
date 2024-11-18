@@ -1,10 +1,14 @@
-use logos::{Lexer, Logos};
-use shad_error::{Span, SyntaxError};
+use logos::Logos;
+use shad_error::{ModuleLocation, Span, SyntaxError};
 use std::fmt::Debug;
+use std::rc::Rc;
 
 #[derive(Logos, Debug, PartialEq, Eq, Clone, Copy)]
 #[logos(skip r"[ \t\r\n\f]+")]
 pub(crate) enum TokenType {
+    #[token("import")]
+    Import,
+
     #[token("buf")]
     Buf,
 
@@ -16,6 +20,9 @@ pub(crate) enum TokenType {
 
     #[token("gpu")]
     Gpu,
+
+    #[token("pub")]
+    Pub,
 
     #[token("var")]
     Var,
@@ -80,6 +87,9 @@ pub(crate) enum TokenType {
     #[token(":")]
     Colon,
 
+    #[token(".")]
+    Dot,
+
     #[token("->")]
     Arrow,
 
@@ -118,10 +128,12 @@ impl TokenType {
     // coverage: off (not all labels are used in practice)
     pub(crate) fn label(self) -> &'static str {
         match self {
+            Self::Import => "`import`",
             Self::Buf => "`buf`",
             Self::Run => "`run`",
             Self::Fn => "`fn`",
             Self::Gpu => "`gpu`",
+            Self::Pub => "`pub`",
             Self::Var => "`var`",
             Self::Ref => "`ref`",
             Self::Return => "`return`",
@@ -143,6 +155,7 @@ impl TokenType {
             Self::Comma => "`,`",
             Self::SemiColon => "`;`",
             Self::Colon => "`:`",
+            Self::Dot => "`.`",
             Self::Arrow => "`->`",
             Self::OpenParenthesis => "`(`",
             Self::CloseParenthesis => "`)`",
@@ -167,31 +180,66 @@ pub(crate) struct Token<'a> {
 }
 
 impl<'a> Token<'a> {
-    pub(crate) fn next(lexer: &mut Lexer<'a, TokenType>) -> Result<Self, SyntaxError> {
+    pub(crate) fn next(lexer: &mut Lexer<'a>) -> Result<Self, SyntaxError> {
         Ok(Self {
             type_: lexer
+                .inner
                 .next()
-                .ok_or_else(|| SyntaxError::new(lexer.span().start, "unexpected end of file"))?
-                .map_err(|()| SyntaxError::new(lexer.span().start, "unexpected token"))?,
-            span: Span::new(lexer.span().start, lexer.span().end),
-            slice: lexer.slice(),
+                .ok_or_else(|| {
+                    SyntaxError::new(
+                        lexer.inner.span().start,
+                        lexer.module.clone(),
+                        "unexpected end of file",
+                    )
+                })?
+                .map_err(|()| {
+                    SyntaxError::new(
+                        lexer.inner.span().start,
+                        lexer.module.clone(),
+                        "unexpected token",
+                    )
+                })?,
+            span: Span::new(
+                lexer.inner.span().start,
+                lexer.inner.span().end,
+                lexer.module.clone(),
+            ),
+            slice: lexer.inner.slice(),
         })
     }
 }
 
-#[derive(Debug)]
-pub(crate) struct IdGenerator {
-    next_id: u64,
+#[derive(Debug, Clone)]
+pub(crate) struct Lexer<'a> {
+    pub(crate) inner: logos::Lexer<'a, TokenType>,
+    pub(crate) module: Rc<ModuleLocation>,
+    pub(crate) next_id: u64,
 }
 
-impl Default for IdGenerator {
-    fn default() -> Self {
-        Self { next_id: 1000 }
+impl<'a> Lexer<'a> {
+    pub(crate) fn new(
+        cleaned_code: &'a str,
+        raw_code: &'a str,
+        path: &str,
+        module: &str,
+        next_id: u64,
+    ) -> Self {
+        Self {
+            inner: TokenType::lexer(cleaned_code),
+            module: Rc::new(ModuleLocation {
+                name: module.into(),
+                path: path.into(),
+                code: raw_code.into(),
+            }),
+            next_id,
+        }
     }
-}
 
-impl IdGenerator {
-    pub(crate) fn next(&mut self) -> u64 {
+    pub(crate) fn has_next_token(&self) -> bool {
+        self.inner.clone().next().is_some()
+    }
+
+    pub(crate) fn next_id(&mut self) -> u64 {
         let id = self.next_id;
         self.next_id += 1;
         id

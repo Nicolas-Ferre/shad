@@ -57,9 +57,7 @@ fn exists(analysis: &mut Analysis, ident: &AstIdent) -> bool {
     if analysis.types.contains_key(&ident.label) {
         true
     } else {
-        analysis
-            .errors
-            .push(errors::types::not_found(analysis, ident));
+        analysis.errors.push(errors::types::not_found(ident));
         false
     }
 }

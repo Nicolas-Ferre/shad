@@ -1,0 +1,10 @@
+main.call_count=5
+main.inlined_assignment_ref_result=7
+main.inlined_assignment_var_result=7
+main.inlined_fn_as_not_inlined_fn_param_result=12
+main.inlined_fn_call_result=7
+main.inlined_return_ref_result=12
+main.inlined_return_var_result=12
+main.inlined_var_def_ref_result=7
+main.inlined_var_def_var_result=7
+main.not_inlined_fn_as_inlined_fn_param_result=12

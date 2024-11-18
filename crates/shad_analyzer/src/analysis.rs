@@ -2,8 +2,8 @@ use crate::registration::functions::Function;
 use crate::registration::idents::Ident;
 use crate::registration::shaders::ComputeShader;
 use crate::{
-    checks, registration, transformation, Buffer, IdentSource, RunBlock, Type, BOOL_TYPE, F32_TYPE,
-    I32_TYPE, U32_TYPE,
+    checks, registration, transformation, Buffer, BufferId, FnId, IdentSource, RunBlock, Type,
+    BOOL_TYPE, F32_TYPE, I32_TYPE, U32_TYPE,
 };
 use fxhash::FxHashMap;
 use shad_error::SemanticError;
@@ -12,16 +12,22 @@ use shad_parser::{Ast, AstExpr, AstIdent, AstLiteralType};
 /// The semantic analysis of an AST.
 #[derive(Debug, Clone)]
 pub struct Analysis {
-    /// The AST.
-    pub ast: Ast,
+    /// The module ASTs.
+    pub asts: FxHashMap<String, Ast>,
+    /// From each module, the list of visible modules sorted by priority.
+    pub visible_modules: FxHashMap<String, Vec<String>>,
+    /// From each module, the priority index for `run` blocks.
+    pub run_module_priority: FxHashMap<String, usize>,
     /// The analyzed identifiers.
     pub idents: FxHashMap<u64, Ident>,
     /// The analyzed types.
     pub types: FxHashMap<String, Type>,
     /// The analyzed functions.
-    pub fns: FxHashMap<String, Function>,
+    pub fns: FxHashMap<FnId, Function>,
     /// The analyzed buffers.
-    pub buffers: FxHashMap<String, Buffer>,
+    pub buffers: FxHashMap<BufferId, Buffer>,
+    /// The order in which buffers are initialized.
+    pub ordered_buffers: Vec<BufferId>,
     /// The analyzed init blocks.
     pub init_blocks: Vec<RunBlock>,
     /// The analyzed run blocks.
@@ -32,30 +38,38 @@ pub struct Analysis {
     pub step_shaders: Vec<ComputeShader>,
     /// The semantic errors found during analysis.
     pub errors: Vec<SemanticError>,
+    next_id: u64,
 }
 
 impl Analysis {
     /// Runs the semantic analysis on an `ast`.
-    pub fn run(ast: &Ast) -> Self {
+    pub fn run(asts: FxHashMap<String, Ast>) -> Self {
+        let next_id = asts.values().map(|ast| ast.next_id).max().unwrap_or(0);
         let mut analysis = Self {
-            ast: ast.clone(),
+            asts,
+            visible_modules: FxHashMap::default(),
+            run_module_priority: FxHashMap::default(),
             idents: FxHashMap::default(),
             types: FxHashMap::default(),
             fns: FxHashMap::default(),
             buffers: FxHashMap::default(),
+            ordered_buffers: vec![],
             init_blocks: vec![],
             run_blocks: vec![],
             init_shaders: vec![],
             step_shaders: vec![],
             errors: vec![],
+            next_id,
         };
+        registration::modules::register(&mut analysis);
         registration::types::register(&mut analysis);
         registration::functions::register(&mut analysis);
         registration::buffers::register(&mut analysis);
+        registration::idents::register_buffer(&mut analysis);
         registration::run_blocks::register(&mut analysis);
         transformation::literals::transform(&mut analysis);
         transformation::fn_params::transform(&mut analysis);
-        registration::idents::register(&mut analysis);
+        registration::idents::register_other(&mut analysis);
         checks::functions::check(&mut analysis);
         checks::literals::check(&mut analysis);
         checks::statements::check(&mut analysis);
@@ -70,8 +84,8 @@ impl Analysis {
     }
 
     /// Returns the type of a buffer.
-    pub fn buffer_type(&self, buffer_name: &str) -> &Type {
-        let id = &self.buffers[buffer_name].ast.name.id;
+    pub fn buffer_type(&self, buffer_id: &BufferId) -> &Type {
+        let id = &self.buffers[buffer_id].ast.name.id;
         let type_ = self.idents[id]
             .type_
             .as_deref()
@@ -92,14 +106,20 @@ impl Analysis {
         }
     }
 
-    pub(crate) fn fn_signature(&self, fn_name: &AstIdent) -> Option<String> {
+    pub(crate) fn fn_id(&self, fn_name: &AstIdent) -> Option<FnId> {
         self.idents
             .get(&fn_name.id)
             .map(|ident| match &ident.source {
-                IdentSource::Fn(signature) => signature.clone(),
+                IdentSource::Fn(id) => id.clone(),
                 IdentSource::Buffer(_) | IdentSource::Var(_) => {
-                    unreachable!("internal error: retrieve non-function signature")
+                    unreachable!("internal error: retrieve non-function ID")
                 }
             })
+    }
+
+    pub(crate) fn next_id(&mut self) -> u64 {
+        let next_id = self.next_id;
+        self.next_id += 1;
+        next_id
     }
 }

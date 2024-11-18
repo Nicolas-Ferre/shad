@@ -7,8 +7,8 @@
 //! ```rust
 //! # use shad_parser::*;
 //! #
-//! fn parse_shad_program(path: &str) {
-//!     let ast = Ast::from_file(path);
+//! fn parse_shad_program(folder_path: &str) {
+//!     let ast = Ast::from_dir(folder_path);
 //!     match ast {
 //!         Ok(ast) => println!("{ast:#?}"),
 //!         Err(err) => println!("{err}"),

@@ -1,9 +1,7 @@
-use crate::Analysis;
 use shad_error::{ErrorLevel, LocatedMessage, SemanticError};
 use shad_parser::AstAssignment;
 
 pub(crate) fn invalid_type(
-    analysis: &Analysis,
     assignment: &AstAssignment,
     expected_type: &str,
     expr_type: &str,
@@ -13,16 +11,14 @@ pub(crate) fn invalid_type(
         vec![
             LocatedMessage {
                 level: ErrorLevel::Error,
-                span: assignment.expr.span(),
+                span: assignment.expr.span().clone(),
                 text: format!("expression of type `{expr_type}`"),
             },
             LocatedMessage {
                 level: ErrorLevel::Info,
-                span: assignment.value.span(),
+                span: assignment.value.span().clone(),
                 text: format!("expected type `{expected_type}`"),
             },
         ],
-        &analysis.ast.code,
-        &analysis.ast.path,
     )
 }

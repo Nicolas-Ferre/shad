@@ -1,0 +1,20 @@
+pub import state;
+
+pub buf main_buffer = 0;
+pub buf child_buffer = 0;
+
+pub buf called_main_fn = false;
+
+pub buf fn main_fn() {
+    called_main_fn = true;
+}
+
+pub buf called_child_fn = false;
+
+pub buf fn child_fn() {
+    called_child_fn = true;
+}
+
+run {
+    state = select(0, 2, state == 1);
+}

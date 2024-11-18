@@ -15,4 +15,5 @@ buf i32_max_value = 2_147_483_647;
 buf false_val = false;
 buf true_val = true;
 
+buf not_yet_defined = copied_buffer;
 buf copied_buffer = i32_max_value;

@@ -1,17 +1,23 @@
 use crate::registration::idents::IdentSource;
-use crate::Analysis;
+use crate::{Analysis, BufferId};
 use fxhash::FxHashSet;
-use shad_parser::{AstFnCall, AstIdent, AstRunItem, Visit};
+use shad_parser::{AstExpr, AstFnCall, AstIdent, AstRunItem, Visit};
 
-pub(crate) fn list(analysis: &Analysis, block: &AstRunItem) -> Vec<String> {
+pub(crate) fn list_in_block(analysis: &Analysis, block: &AstRunItem) -> Vec<BufferId> {
     let mut listing = BufferListing::new(analysis);
     listing.visit_run_item(block);
     listing.buffers.into_iter().collect()
 }
 
+pub(crate) fn list_in_expr(analysis: &Analysis, expr: &AstExpr) -> Vec<BufferId> {
+    let mut listing = BufferListing::new(analysis);
+    listing.visit_expr(expr);
+    listing.buffers.into_iter().collect()
+}
+
 struct BufferListing<'a> {
     analysis: &'a Analysis,
-    buffers: FxHashSet<String>,
+    buffers: FxHashSet<BufferId>,
 }
 
 impl<'a> BufferListing<'a> {
@@ -25,22 +31,19 @@ impl<'a> BufferListing<'a> {
 
 impl Visit for BufferListing<'_> {
     fn enter_fn_call(&mut self, node: &AstFnCall) {
-        if let Some(signature) = self.analysis.fn_signature(&node.name) {
-            self.visit_fn_item(&self.analysis.fns[&signature].ast);
+        if let Some(id) = self.analysis.fn_id(&node.name) {
+            self.visit_fn_item(&self.analysis.fns[&id].ast);
         }
     }
 
     fn enter_ident(&mut self, node: &AstIdent) {
-        let ident = self
-            .analysis
-            .idents
-            .get(&node.id)
-            .expect("internal error: missing identifier ID");
-        match &ident.source {
-            IdentSource::Buffer(name) => {
-                self.buffers.insert(name.clone());
+        if let Some(ident) = self.analysis.idents.get(&node.id) {
+            match &ident.source {
+                IdentSource::Buffer(name) => {
+                    self.buffers.insert(name.clone());
+                }
+                IdentSource::Var(_) | IdentSource::Fn(_) => (),
             }
-            IdentSource::Var(_) | IdentSource::Fn(_) => (),
         }
     }
 }
