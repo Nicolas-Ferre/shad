@@ -1,5 +1,5 @@
-aliased_value=2
-buffer_bool=1
-set_f32=2
-set_from_local_var=3
-set_i32=3
+main.aliased_value=2
+main.buffer_bool=1
+main.set_f32=2
+main.set_from_local_var=3
+main.set_i32=3

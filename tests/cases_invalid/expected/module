@@ -1,0 +1,27 @@
+error: could not find `missing` module
+ --> ./cases_invalid/code/module/main.shd:1:1
+  |
+1 | import missing;
+  | ^^^^^^^^^^^^^^^ invalid import
+  |
+
+error: could not find `nested.missing` module
+ --> ./cases_invalid/code/module/main.shd:2:1
+  |
+2 | import nested.missing;
+  | ^^^^^^^^^^^^^^^^^^^^^^ invalid import
+  |
+
+error: could not find `private_buffer` value
+ --> ./cases_invalid/code/module/main.shd:6:5
+  |
+6 |     private_buffer = 1;
+  |     ^^^^^^^^^^^^^^ undefined identifier
+  |
+
+error: could not find `private_function()` function
+ --> ./cases_invalid/code/module/main.shd:7:5
+  |
+7 |     private_function();
+  |     ^^^^^^^^^^^^^^^^^^ undefined function
+  |

@@ -1,7 +1,6 @@
 use crate::atom::parse_token;
-use crate::token::{IdGenerator, Token, TokenType};
+use crate::token::{Lexer, Token, TokenType};
 use crate::{AstExpr, AstIdent, AstIdentType};
-use logos::Lexer;
 use shad_error::{Span, SyntaxError};
 
 /// The function name corresponding to unary `-` operator behavior.
@@ -75,23 +74,19 @@ pub struct AstFnCall {
 
 impl AstFnCall {
     #[allow(clippy::wildcard_enum_match_arm)]
-    pub(crate) fn parse(
-        lexer: &mut Lexer<'_, TokenType>,
-        ids: &mut IdGenerator,
-        is_statement: bool,
-    ) -> Result<Self, SyntaxError> {
-        let name = AstIdent::parse(lexer, ids, AstIdentType::FnUsage)?;
+    pub(crate) fn parse(lexer: &mut Lexer<'_>, is_statement: bool) -> Result<Self, SyntaxError> {
+        let name = AstIdent::parse(lexer, AstIdentType::FnUsage)?;
         parse_token(lexer, TokenType::OpenParenthesis)?;
         let mut args = vec![];
         while parse_token(&mut lexer.clone(), TokenType::CloseParenthesis).is_err() {
-            args.push(AstExpr::parse(lexer, ids)?);
+            args.push(AstExpr::parse(lexer)?);
             if parse_token(&mut lexer.clone(), TokenType::Comma).is_ok() {
                 parse_token(lexer, TokenType::Comma)?;
             }
         }
         let close_parenthesis = parse_token(lexer, TokenType::CloseParenthesis)?;
         Ok(Self {
-            span: Span::join(name.span, close_parenthesis.span),
+            span: Span::join(&name.span, &close_parenthesis.span),
             name,
             args,
             is_operator: false,
@@ -100,7 +95,7 @@ impl AstFnCall {
     }
 
     pub(crate) fn parse_binary_operation(
-        ids: &mut IdGenerator,
+        lexer: &mut Lexer<'_>,
         expressions: &[AstExpr],
         operators: &[(TokenType, Span)],
     ) -> Result<Self, SyntaxError> {
@@ -121,7 +116,7 @@ impl AstFnCall {
             expressions[0].clone()
         } else {
             AstExpr::FnCall(Self::parse_binary_operation(
-                ids,
+                lexer,
                 &expressions[..=operator_index],
                 &operators[..operator_index],
             )?)
@@ -130,7 +125,7 @@ impl AstFnCall {
             expressions[expressions.len() - 1].clone()
         } else {
             AstExpr::FnCall(Self::parse_binary_operation(
-                ids,
+                lexer,
                 &expressions[operator_index + 1..],
                 &operators[operator_index + 1..],
             )?)
@@ -138,9 +133,9 @@ impl AstFnCall {
         Ok(Self {
             span: Span::join(left.span(), right.span()),
             name: AstIdent {
-                span: operators[operator_index].1,
+                span: operators[operator_index].1.clone(),
                 label: Self::binary_operator_fn_name(operators[operator_index].0).into(),
-                id: ids.next(),
+                id: lexer.next_id(),
                 type_: AstIdentType::FnUsage,
             },
             args: vec![left, right],
@@ -149,18 +144,15 @@ impl AstFnCall {
         })
     }
 
-    pub(crate) fn parse_unary_operation(
-        lexer: &mut Lexer<'_, TokenType>,
-        ids: &mut IdGenerator,
-    ) -> Result<Self, SyntaxError> {
+    pub(crate) fn parse_unary_operation(lexer: &mut Lexer<'_>) -> Result<Self, SyntaxError> {
         let operator_token = Token::next(lexer)?;
-        let expr = AstExpr::parse_part(lexer, ids)?;
+        let expr = AstExpr::parse_part(lexer)?;
         Ok(Self {
-            span: Span::join(operator_token.span, expr.span()),
+            span: Span::join(&operator_token.span, expr.span()),
             name: AstIdent {
                 span: operator_token.span,
                 label: Self::unary_operator_fn_name(operator_token.type_).into(),
-                id: ids.next(),
+                id: lexer.next_id(),
                 type_: AstIdentType::FnUsage,
             },
             args: vec![expr],

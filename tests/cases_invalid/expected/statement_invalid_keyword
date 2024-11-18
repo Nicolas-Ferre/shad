@@ -1,5 +1,5 @@
 error: expected statement
- --> ./cases_invalid/code/statement_invalid_keyword.shd:2:5
+ --> ./cases_invalid/code/statement_invalid_keyword/main.shd:2:5
   |
 2 |     run
   |     ^ here

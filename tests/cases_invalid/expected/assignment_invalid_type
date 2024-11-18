@@ -1,5 +1,5 @@
 error: invalid type in assignment
- --> ./cases_invalid/code/assignment_invalid_type.shd:5:15
+ --> ./cases_invalid/code/assignment_invalid_type/main.shd:5:15
   |
 5 |     f32_val = i32_val;
   |               ^^^^^^^ expression of type `i32`
@@ -7,7 +7,7 @@ error: invalid type in assignment
   |
 
 error: invalid type in assignment
- --> ./cases_invalid/code/assignment_invalid_type.shd:7:21
+ --> ./cases_invalid/code/assignment_invalid_type/main.shd:7:21
   |
 7 |     local_f32_val = i32_val;
   |                     ^^^^^^^ expression of type `i32`
@@ -15,7 +15,7 @@ error: invalid type in assignment
   |
 
 error: invalid type in assignment
-  --> ./cases_invalid/code/assignment_invalid_type.shd:11:13
+  --> ./cases_invalid/code/assignment_invalid_type/main.shd:11:13
    |
 11 |     param = 0;
    |             ^ expression of type `i32`

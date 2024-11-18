@@ -1,0 +1,25 @@
+import main;
+import root;
+import nested.child;
+
+buf main_buffer = 0;
+
+pub buf called_main_fn = false;
+
+pub buf fn main_fn() {
+    called_main_fn = true;
+}
+
+run {
+    main_buffer = 1;
+    child_buffer = 2;
+    root_buffer = 3;
+    main_fn();
+    child_fn();
+    root_fn();
+    state = select(0, 3, state == 2);
+}
+
+run {
+    state = select(0, 4, state == 3);
+}

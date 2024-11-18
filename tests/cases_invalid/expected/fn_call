@@ -1,33 +1,33 @@
 error: could not find `pow(f32, i32)` function
- --> ./cases_invalid/code/fn_call.shd:4:20
+ --> ./cases_invalid/code/fn_call/main.shd:4:20
   |
 4 | buf undefined_fn = pow(10., 2);
   |                    ^^^^^^^^^^^ undefined function
   |
 
 error: could not find `a(i32)` function
- --> ./cases_invalid/code/fn_call.shd:5:27
+ --> ./cases_invalid/code/fn_call/main.shd:5:27
   |
 5 | buf invalid_return_type = a(a(0.));
   |                           ^^^^^^^^ undefined function
   |
 
 error: could not find `pow(f32, i32)` function
- --> ./cases_invalid/code/fn_call.shd:8:24
+ --> ./cases_invalid/code/fn_call/main.shd:8:24
   |
 8 |     var undefined_fn = pow(10., 2);
   |                        ^^^^^^^^^^^ undefined function
   |
 
 error: could not find `pow(f32, i32)` function
- --> ./cases_invalid/code/fn_call.shd:9:33
+ --> ./cases_invalid/code/fn_call/main.shd:9:33
   |
 9 |     var undefined_fn = pow(10., pow(10., 2));
   |                                 ^^^^^^^^^^^ undefined function
   |
 
 error: `buf` function `buffer_fn()` called in invalid context
-  --> ./cases_invalid/code/fn_call.shd:14:20
+  --> ./cases_invalid/code/fn_call/main.shd:14:20
    |
 14 | buf invalid_init = buffer_fn();
    |                    ^^^^^^^^^^^ this function cannot be called here
@@ -35,7 +35,7 @@ error: `buf` function `buffer_fn()` called in invalid context
    |
 
 error: `buf` function `buffer_fn()` called in invalid context
-  --> ./cases_invalid/code/fn_call.shd:21:12
+  --> ./cases_invalid/code/fn_call/main.shd:21:12
    |
 21 |     return buffer_fn();
    |            ^^^^^^^^^^^ this function cannot be called here
@@ -43,21 +43,21 @@ error: `buf` function `buffer_fn()` called in invalid context
    |
 
 error: function `with_return_type()` called as a statement while having a return type
-  --> ./cases_invalid/code/fn_call.shd:32:5
+  --> ./cases_invalid/code/fn_call/main.shd:32:5
    |
 32 |     with_return_type();
    |     ^^^^^^^^^^^^^^^^^^ returned value needs to be stored in a variable
    |
 
 error: expected function with a return type, got function `without_return_type()`
-  --> ./cases_invalid/code/fn_call.shd:33:13
+  --> ./cases_invalid/code/fn_call/main.shd:33:13
    |
 33 |     var x = without_return_type();
    |             ^^^^^^^^^^^^^^^^^^^^^ this function cannot be called here
    |
 
 error: invalid reference expression
-  --> ./cases_invalid/code/fn_call.shd:40:23
+  --> ./cases_invalid/code/fn_call/main.shd:40:23
    |
 36 | fn fn_with_ref_param(ref param: i32) {
    |                      --- info: parameter is a reference
@@ -69,21 +69,21 @@ error: invalid reference expression
    |
 
 error: expected function with a return type, got function `without_return_type()`
-  --> ./cases_invalid/code/fn_call.shd:49:5
+  --> ./cases_invalid/code/fn_call/main.shd:49:5
    |
 49 |     without_return_type() = 2;
    |     ^^^^^^^^^^^^^^^^^^^^^ this function cannot be called here
    |
 
 error: expression is not a reference
-  --> ./cases_invalid/code/fn_call.shd:50:5
+  --> ./cases_invalid/code/fn_call/main.shd:50:5
    |
 50 |     returned_copy() = 2;
    |     ^^^^^^^^^^^^^^^ a valid reference is expected here
    |
 
 error: invalid reference expression
-  --> ./cases_invalid/code/fn_call.shd:51:23
+  --> ./cases_invalid/code/fn_call/main.shd:51:23
    |
 36 | fn fn_with_ref_param(ref param: i32) {
    |                      --- info: parameter is a reference
@@ -95,7 +95,7 @@ error: invalid reference expression
    |
 
 error: expression is not a reference
-  --> ./cases_invalid/code/fn_call.shd:55:12
+  --> ./cases_invalid/code/fn_call/main.shd:55:12
    |
 55 |     return 0;
    |            ^ a valid reference is expected here

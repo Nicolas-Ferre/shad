@@ -19,37 +19,50 @@ impl Function {
     }
 }
 
+/// The unique identifier of a function.
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct FnId {
+    /// The module in which the function is defined.
+    pub module: String,
+    /// The function signature, including the function name and parameter types.
+    pub signature: String,
+}
+
+impl FnId {
+    pub(crate) fn new(fn_: &AstFnItem) -> Self {
+        Self {
+            module: fn_.name.span.module.name.clone(),
+            signature: format!(
+                "{}({})",
+                fn_.name.label,
+                fn_.params.iter().map(|param| &param.type_.label).join(", ")
+            ),
+        }
+    }
+}
+
 pub(crate) fn register(analysis: &mut Analysis) {
-    let items = mem::take(&mut analysis.ast.items);
-    for items in &items {
-        if let AstItem::Fn(fn_) = items {
-            let signature = signature(fn_);
-            let existing_function = analysis.fns.insert(
-                signature.clone(),
-                Function {
-                    ast: fn_.clone(),
-                    is_inlined: is_inlined(fn_),
-                },
-            );
-            if let Some(existing_fn) = existing_function {
-                analysis.errors.push(errors::functions::duplicated(
-                    analysis,
-                    &signature,
-                    fn_,
-                    &existing_fn.ast,
-                ));
+    let asts = mem::take(&mut analysis.asts);
+    for ast in asts.values() {
+        for items in &ast.items {
+            if let AstItem::Fn(fn_) = items {
+                let id = FnId::new(fn_);
+                let existing_function = analysis.fns.insert(
+                    id.clone(),
+                    Function {
+                        ast: fn_.clone(),
+                        is_inlined: is_inlined(fn_),
+                    },
+                );
+                if let Some(existing_fn) = existing_function {
+                    analysis
+                        .errors
+                        .push(errors::functions::duplicated(&id, fn_, &existing_fn.ast));
+                }
             }
         }
     }
-    analysis.ast.items = items;
-}
-
-pub(crate) fn signature(fn_: &AstFnItem) -> String {
-    format!(
-        "{}({})",
-        fn_.name.label,
-        fn_.params.iter().map(|param| &param.type_.label).join(", ")
-    )
+    analysis.asts = asts;
 }
 
 fn is_inlined(fn_: &AstFnItem) -> bool {

@@ -3,25 +3,25 @@ use std::fs;
 use std::path::PathBuf;
 
 #[rstest::rstest]
-fn run_valid_code(#[files("./cases_valid/code/*.shd")] path: PathBuf) {
+fn run_valid_code(#[files("./cases_valid/code/*")] path: PathBuf) {
     let mut runner = Runner::new(&path).unwrap();
     runner.run_step();
     let asg = runner.analysis();
     let mut buffers = asg
         .buffers
         .keys()
-        .map(|buffer_name| {
-            match runner
-                .analysis()
-                .buffer_type(buffer_name)
-                .buffer_name
-                .as_str()
-            {
-                "i32" => format!("{}={}", buffer_name, to_i32(&runner.buffer(buffer_name))),
-                "u32" => format!("{}={}", buffer_name, to_u32(&runner.buffer(buffer_name))),
-                "f32" => format!("{}={}", buffer_name, to_f32(&runner.buffer(buffer_name))),
-                _ => format!("{}={:?}", buffer_name, runner.buffer(buffer_name)),
-            }
+        .map(|buffer| {
+            format!(
+                "{}.{}={}",
+                buffer.module,
+                buffer.name,
+                match runner.analysis().buffer_type(buffer).buffer_name.as_str() {
+                    "i32" => format!("{}", to_i32(&runner.buffer(buffer))),
+                    "u32" => format!("{}", to_u32(&runner.buffer(buffer))),
+                    "f32" => format!("{}", to_f32(&runner.buffer(buffer))),
+                    _ => format!("{:?}", runner.buffer(buffer)),
+                }
+            )
         })
         .collect::<Vec<_>>();
     buffers.sort_unstable();

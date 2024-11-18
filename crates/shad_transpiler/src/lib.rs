@@ -1,7 +1,7 @@
 //! Transpiler to convert Shad expressions to WGSL.
 
 use itertools::Itertools;
-use shad_analyzer::{Analysis, ComputeShader, Function, IdentSource};
+use shad_analyzer::{Analysis, BufferId, ComputeShader, FnId, Function, IdentSource};
 use shad_parser::{
     AstExpr, AstFnCall, AstFnParam, AstFnQualifier, AstIdent, AstLeftValue, AstStatement, ADD_FN,
     AND_FN, DIV_FN, EQ_FN, GE_FN, GT_FN, LE_FN, LT_FN, MOD_FN, MUL_FN, NEG_FN, NE_FN, NOT_FN,
@@ -34,25 +34,29 @@ fn wgsl_buf_definitions(analysis: &Analysis, shader: &ComputeShader) -> String {
         .join("\n")
 }
 
-fn wgsl_buf_definition(analysis: &Analysis, buffer_name: &str, binding_index: usize) -> String {
+fn wgsl_buf_definition(analysis: &Analysis, buffer: &BufferId, binding_index: usize) -> String {
     format!(
         "@group(0) @binding({})\nvar<storage, read_write> {}: {};",
         binding_index,
-        buf_name(analysis, buffer_name),
-        analysis.buffer_type(buffer_name).buffer_name,
+        buf_name(analysis, buffer),
+        analysis.buffer_type(buffer).buffer_name,
     )
 }
 
 fn wgsl_fn_definitions(analysis: &Analysis, shader: &ComputeShader) -> String {
     shader
-        .fn_signatures
+        .fn_ids
         .iter()
-        .map(|fn_signature| wgsl_fn_definition(analysis, fn_signature))
+        .filter(|id| {
+            let fn_ = &analysis.fns[id];
+            !fn_.is_inlined && analysis.fns[id].ast.qualifier != AstFnQualifier::Gpu
+        })
+        .map(|id| wgsl_fn_definition(analysis, id))
         .join("\n")
 }
 
-fn wgsl_fn_definition(analysis: &Analysis, fn_signature: &str) -> String {
-    let fn_ = &analysis.fns[fn_signature];
+fn wgsl_fn_definition(analysis: &Analysis, fn_id: &FnId) -> String {
+    let fn_ = &analysis.fns[fn_id];
     format!(
         "fn {}({}){} {{\n{}\n}}",
         fn_name(analysis, &fn_.ast.name),
@@ -219,8 +223,8 @@ fn wgsl_binary_operator(analysis: &Analysis, call: &AstFnCall) -> Option<&'stati
     }
 }
 
-fn buf_name(analysis: &Analysis, buffer_name: &str) -> String {
-    let name = &analysis.buffers[buffer_name].ast.name;
+fn buf_name(analysis: &Analysis, buffer: &BufferId) -> String {
+    let name = &analysis.buffers[buffer].ast.name;
     format!("b{}_{}", name.id, name.label)
 }
 

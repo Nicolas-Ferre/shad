@@ -32,15 +32,15 @@ impl VisitMut for FnParamTransform<'_> {
             node.statements.insert(
                 index,
                 AstStatement::Var(AstVarDefinition {
-                    span: param.name.span,
+                    span: param.name.span.clone(),
                     name: AstIdent {
-                        span: param.name.span,
+                        span: param.name.span.clone(),
                         label: param.name.label.clone(),
-                        id: self.analysis.ast.next_id(),
+                        id: self.analysis.next_id(),
                         type_: AstIdentType::VarDef,
                     },
                     expr: AstExpr::Ident(AstIdent {
-                        span: param.name.span,
+                        span: param.name.span.clone(),
                         label: param.name.label.clone(),
                         id: param.name.id,
                         type_: AstIdentType::VarUsage,

@@ -1,0 +1,9 @@
+import objects.paddles;
+import id;
+
+buf update_id = 0;
+
+run {
+    var paddle_pos = paddle_position(0u);
+    update_id = next_id();
+}

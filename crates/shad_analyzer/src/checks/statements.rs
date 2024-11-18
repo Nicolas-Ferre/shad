@@ -46,8 +46,8 @@ impl<'a> StatementCheck<'a> {
             AstExpr::Ident(_) => ExprSemantic::Ref,
             AstExpr::FnCall(call) => self
                 .analysis
-                .fn_signature(&call.name)
-                .and_then(|signature| self.analysis.fns[&signature].ast.return_type.as_ref())
+                .fn_id(&call.name)
+                .and_then(|id| self.analysis.fns[&id].ast.return_type.as_ref())
                 .map_or(ExprSemantic::None, |type_| {
                     if type_.is_ref {
                         ExprSemantic::Ref
@@ -68,10 +68,10 @@ enum ExprSemantic {
 
 impl Visit for StatementCheck<'_> {
     fn enter_fn_item(&mut self, node: &AstFnItem) {
-        let signature = self
+        let fn_id = self
             .analysis
-            .fn_signature(&node.name)
-            .expect("internal error: missing signature");
+            .fn_id(&node.name)
+            .expect("internal error: missing function");
         if let Some(return_pos) = node
             .statements
             .iter()
@@ -79,17 +79,13 @@ impl Visit for StatementCheck<'_> {
         {
             if return_pos + 1 < node.statements.len() {
                 self.errors.push(errors::returns::statement_after(
-                    self.analysis,
                     &node.statements[return_pos],
                     &node.statements[return_pos + 1],
                 ));
             }
         } else if node.return_type.is_some() && node.qualifier != AstFnQualifier::Gpu {
-            self.errors.push(errors::returns::missing_return(
-                self.analysis,
-                node,
-                &signature,
-            ));
+            self.errors
+                .push(errors::returns::missing_return(node, &fn_id));
         }
     }
 
@@ -107,7 +103,6 @@ impl Visit for StatementCheck<'_> {
         if let (Some(expected_type), Some(expr_type)) = (expected_type, expr_type) {
             if expected_type != expr_type {
                 self.errors.push(errors::assignments::invalid_type(
-                    self.analysis,
                     node,
                     expected_type,
                     &expr_type,
@@ -119,8 +114,7 @@ impl Visit for StatementCheck<'_> {
     fn enter_left_value(&mut self, node: &AstLeftValue) {
         let expr = node.clone().into();
         if self.expr_semantic(&expr) == ExprSemantic::Value {
-            self.errors
-                .push(errors::expressions::not_ref(self.analysis, &expr));
+            self.errors.push(errors::expressions::not_ref(&expr));
         }
     }
 
@@ -128,8 +122,7 @@ impl Visit for StatementCheck<'_> {
         if node.name.type_ == AstIdentType::RefDef
             && self.expr_semantic(&node.expr) == ExprSemantic::Value
         {
-            self.errors
-                .push(errors::expressions::not_ref(self.analysis, &node.expr));
+            self.errors.push(errors::expressions::not_ref(&node.expr));
         }
     }
 
@@ -139,7 +132,6 @@ impl Visit for StatementCheck<'_> {
                 if let Some(type_) = self.analysis.expr_type(&node.expr) {
                     if type_ != return_type.name.label {
                         self.errors.push(errors::returns::invalid_type(
-                            self.analysis,
                             node,
                             &fn_.ast,
                             &type_,
@@ -149,35 +141,29 @@ impl Visit for StatementCheck<'_> {
                     }
                 }
                 if return_type.is_ref && self.expr_semantic(&node.expr) == ExprSemantic::Value {
-                    self.errors
-                        .push(errors::expressions::not_ref(self.analysis, &node.expr));
+                    self.errors.push(errors::expressions::not_ref(&node.expr));
                 }
             } else {
-                self.errors
-                    .push(errors::returns::no_return_type(self.analysis, node));
+                self.errors.push(errors::returns::no_return_type(node));
             }
         } else {
-            self.errors
-                .push(errors::returns::outside_fn(self.analysis, node));
+            self.errors.push(errors::returns::outside_fn(node));
         }
     }
 
     fn enter_fn_call(&mut self, node: &AstFnCall) {
-        if let Some(signature) = self.analysis.fn_signature(&node.name) {
-            let fn_ = &self.analysis.fns[&signature];
+        if let Some(fn_id) = self.analysis.fn_id(&node.name) {
+            let fn_ = &self.analysis.fns[&fn_id];
             if fn_.ast.qualifier == AstFnQualifier::Buf && !self.are_buffer_fns_allowed {
-                self.errors.push(errors::fn_calls::not_allowed_buf_fn(
-                    self.analysis,
-                    node,
-                    &signature,
-                ));
+                self.errors
+                    .push(errors::fn_calls::not_allowed_buf_fn(node, &fn_id));
             }
             for (arg, param) in node.args.iter().zip(&fn_.ast.params) {
                 if let (Some(ref_span), ExprSemantic::Value) =
-                    (param.ref_span, self.expr_semantic(arg))
+                    (param.ref_span.clone(), self.expr_semantic(arg))
                 {
                     self.errors
-                        .push(errors::fn_calls::invalid_ref(self.analysis, arg, ref_span));
+                        .push(errors::fn_calls::invalid_ref(arg, ref_span));
                 }
             }
         }
