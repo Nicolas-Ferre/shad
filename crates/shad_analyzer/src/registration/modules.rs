@@ -65,37 +65,33 @@ fn find_visible_modules(
     module_level: u32,
     already_found_modules: &mut FxHashSet<String>,
 ) -> Vec<String> {
-    if let Some(modules) = imported_modules.get(module) {
-        iter::once(module.to_string())
-            .chain({
-                let child_modules = modules
-                    .iter()
-                    .rev()
-                    .filter(|module| !already_found_modules.contains(&module.path))
-                    .filter(|module| {
-                        if module_level == 0 {
-                            true
-                        } else {
-                            module.is_pub
-                        }
-                    })
-                    .collect::<Vec<_>>();
-                for module in &child_modules {
-                    already_found_modules.insert(module.path.clone());
-                }
-                child_modules.into_iter().flat_map(|module| {
-                    find_visible_modules(
-                        &module.path,
-                        imported_modules,
-                        module_level + 1,
-                        already_found_modules,
-                    )
+    iter::once(module.to_string())
+        .chain({
+            let child_modules = imported_modules[module]
+                .iter()
+                .rev()
+                .filter(|module| !already_found_modules.contains(&module.path))
+                .filter(|module| {
+                    if module_level == 0 {
+                        true
+                    } else {
+                        module.is_pub
+                    }
                 })
+                .collect::<Vec<_>>();
+            for module in &child_modules {
+                already_found_modules.insert(module.path.clone());
+            }
+            child_modules.into_iter().flat_map(|module| {
+                find_visible_modules(
+                    &module.path,
+                    imported_modules,
+                    module_level + 1,
+                    already_found_modules,
+                )
             })
-            .collect::<Vec<_>>()
-    } else {
-        vec![]
-    }
+        })
+        .collect::<Vec<_>>()
 }
 
 fn find_run_modules(
