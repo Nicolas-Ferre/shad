@@ -266,7 +266,7 @@ impl RunComputeShader {
             label: Some("shad:compute_shader"),
             layout: None,
             module: &module,
-            entry_point: "main",
+            entry_point: None,
             compilation_options: wgpu::PipelineCompilationOptions::default(),
             cache: None,
         })

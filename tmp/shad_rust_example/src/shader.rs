@@ -26,13 +26,13 @@ pub(crate) fn create_render_pipeline(
         layout: Some(&layout),
         vertex: VertexState {
             module: &module,
-            entry_point: "vs_main",
+            entry_point: None,
             compilation_options: wgpu::PipelineCompilationOptions::default(),
             buffers: buffer_layout,
         },
         fragment: Some(FragmentState {
             module: &module,
-            entry_point: "fs_main",
+            entry_point: None,
             compilation_options: wgpu::PipelineCompilationOptions::default(),
             targets: &[Some(ColorTargetState {
                 format: texture_format,
@@ -75,7 +75,7 @@ pub(crate) fn create_compute_pipeline(device: &Device, code: &str) -> ComputePip
         label: None,
         layout: None,
         module: &module,
-        entry_point: "main",
+        entry_point: None,
         compilation_options: wgpu::PipelineCompilationOptions::default(),
         cache: None,
     })
