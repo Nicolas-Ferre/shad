@@ -12,6 +12,11 @@ fn run_missing_file() {
 }
 
 #[test]
+fn run_missing_folder() {
+    matches!(Runner::new("./cases_valid/code/missing"), Err(Error::Io(_)));
+}
+
+#[test]
 fn access_invalid_buffer() {
     let runner = Runner::new("./cases_valid/code/atom/main.shd").unwrap();
     assert!(runner

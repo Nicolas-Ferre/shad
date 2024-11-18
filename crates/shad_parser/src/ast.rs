@@ -1,4 +1,4 @@
-use crate::token::{Lexer, Token};
+use crate::token::Lexer;
 use crate::AstItem;
 use fxhash::FxHashMap;
 use shad_error::{Error, SyntaxError};
@@ -64,7 +64,7 @@ impl Ast {
                         })
                     }
                 }
-                Err(err) => Err(Error::Io(err)),
+                Err(err) => Err(Error::Io(err)), // no-coverage (difficult to test)
             })
             .collect::<Result<Vec<_>, Error>>()?
             .into_iter()
@@ -82,7 +82,7 @@ impl Ast {
 
     fn parse_str(lexer: &mut Lexer<'_>, code: &str, path: &str) -> Result<Self, SyntaxError> {
         let mut items = vec![];
-        while Token::next(&mut lexer.clone()).is_ok() {
+        while lexer.has_next_token() {
             items.push(AstItem::parse(lexer)?);
         }
         let next_id = lexer.next_id();

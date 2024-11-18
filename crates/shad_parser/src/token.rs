@@ -235,6 +235,10 @@ impl<'a> Lexer<'a> {
         }
     }
 
+    pub(crate) fn has_next_token(&self) -> bool {
+        self.inner.clone().next().is_some()
+    }
+
     pub(crate) fn next_id(&mut self) -> u64 {
         let id = self.next_id;
         self.next_id += 1;

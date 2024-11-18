@@ -29,6 +29,12 @@ impl SyntaxError {
     /// Creates a syntax error.
     pub fn new(offset: usize, module: Rc<ModuleLocation>, message: impl Into<String>) -> Self {
         let message = message.into();
+        let start = offset.min(module.code.len().saturating_sub(1));
+        let end = offset
+            + module.code[offset..]
+                .chars()
+                .next()
+                .map_or(0, char::len_utf8);
         Self {
             pretty_message: format!(
                 "{}",
@@ -37,18 +43,11 @@ impl SyntaxError {
                         Snippet::source(&module.code)
                             .fold(true)
                             .origin(&module.path)
-                            .annotation(
-                                Level::Error
-                                    .span(
-                                        offset.min(module.code.len().saturating_sub(1))
-                                            ..(offset + 1).min(module.code.len())
-                                    )
-                                    .label("here"),
-                            ),
+                            .annotation(Level::Error.span(start..end).label("here")),
                     )
                 )
             ),
-            span: Span::new(offset, offset + 1, module),
+            span: Span::new(start, end, module),
             message,
         }
     }

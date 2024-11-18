@@ -1,7 +1,6 @@
 import main;
 import root;
 import nested.child;
-import state;
 
 buf main_buffer = 0;
 

@@ -1,4 +1,4 @@
-import state;
+pub import state;
 
 pub buf main_buffer = 0;
 pub buf child_buffer = 0;
