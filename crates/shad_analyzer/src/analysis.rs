@@ -16,8 +16,6 @@ pub struct Analysis {
     pub asts: FxHashMap<String, Ast>,
     /// From each module, the list of visible modules sorted by priority.
     pub visible_modules: FxHashMap<String, Vec<String>>,
-    /// From each module, the priority index for `run` blocks.
-    pub run_module_priority: FxHashMap<String, usize>,
     /// The analyzed identifiers.
     pub idents: FxHashMap<u64, Ident>,
     /// The analyzed types.
@@ -48,7 +46,6 @@ impl Analysis {
         let mut analysis = Self {
             asts,
             visible_modules: FxHashMap::default(),
-            run_module_priority: FxHashMap::default(),
             idents: FxHashMap::default(),
             types: FxHashMap::default(),
             fns: FxHashMap::default(),

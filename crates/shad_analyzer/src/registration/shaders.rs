@@ -30,27 +30,17 @@ pub(crate) fn register(analysis: &mut Analysis) {
 }
 
 fn register_init(analysis: &mut Analysis) {
-    for block in analysis
-        .init_blocks
-        .iter()
-        .filter(|block| analysis.run_module_priority.contains_key(&block.module))
-    {
+    for block in &analysis.init_blocks {
         let shader = ComputeShader::new(analysis, block);
         analysis.init_shaders.push(shader);
     }
 }
 
 fn register_steps(analysis: &mut Analysis) {
-    for (block, _) in analysis
+    for block in analysis
         .run_blocks
         .iter()
-        .filter_map(|block| {
-            analysis
-                .run_module_priority
-                .get(&block.module)
-                .map(|priority| (block, priority))
-        })
-        .sorted_unstable_by_key(|(block, priority)| (*priority, block.ast.id))
+        .sorted_unstable_by_key(|block| (&block.module, block.ast.id))
     {
         let shader = ComputeShader::new(analysis, block);
         analysis.step_shaders.push(shader);

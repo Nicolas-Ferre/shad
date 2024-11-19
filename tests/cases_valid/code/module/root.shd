@@ -23,5 +23,5 @@ pub buf fn root_fn() {
 }
 
 run {
-    state = 1;
+    state = select(0, 5, state == 4);
 }
