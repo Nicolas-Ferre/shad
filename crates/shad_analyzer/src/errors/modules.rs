@@ -11,10 +11,3 @@ pub(crate) fn not_found(import: &AstImportItem, module_name: &str) -> SemanticEr
         }],
     )
 }
-
-pub(crate) fn not_found_main() -> SemanticError {
-    SemanticError::new(
-        "could not find `main.shd` file in root folder".to_string(),
-        vec![],
-    )
-}

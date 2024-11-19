@@ -17,9 +17,9 @@ run {
     main_fn();
     child_fn();
     root_fn();
-    state = select(0, 3, state == 2);
+    state = 1;
 }
 
 run {
-    state = select(0, 4, state == 3);
+    state = select(0, 2, state == 1);
 }

@@ -1,5 +1,5 @@
-pub buf unchanged_value = 0;
+import state;
 
 run {
-    unchanged_value = 1;
+    state = select(0, 4, state == 3);
 }

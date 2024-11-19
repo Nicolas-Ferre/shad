@@ -16,5 +16,5 @@ pub buf fn child_fn() {
 }
 
 run {
-    state = select(0, 2, state == 1);
+    state = select(0, 3, state == 2);
 }

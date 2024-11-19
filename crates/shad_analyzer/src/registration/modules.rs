@@ -7,10 +7,6 @@ use std::iter;
 pub(crate) fn register(analysis: &mut Analysis) {
     let imported_modules = imported_modules(analysis);
     register_visible(analysis, &imported_modules);
-    register_run(analysis, &imported_modules);
-    if !analysis.visible_modules.contains_key("main") {
-        analysis.errors.push(errors::modules::not_found_main());
-    }
 }
 
 fn imported_modules(analysis: &mut Analysis) -> FxHashMap<String, Vec<Module>> {
@@ -50,15 +46,6 @@ fn register_visible(analysis: &mut Analysis, imported_modules: &FxHashMap<String
     }
 }
 
-fn register_run(analysis: &mut Analysis, imported_modules: &FxHashMap<String, Vec<Module>>) {
-    analysis.run_module_priority =
-        find_run_modules("main", imported_modules, &mut FxHashSet::default())
-            .into_iter()
-            .enumerate()
-            .map(|(priority, module)| (module, priority))
-            .collect();
-}
-
 fn find_visible_modules(
     module: &str,
     imported_modules: &FxHashMap<String, Vec<Module>>,
@@ -92,31 +79,6 @@ fn find_visible_modules(
             })
         })
         .collect::<Vec<_>>()
-}
-
-fn find_run_modules(
-    module: &str,
-    imported_modules: &FxHashMap<String, Vec<Module>>,
-    already_found_modules: &mut FxHashSet<String>,
-) -> Vec<String> {
-    if let Some(modules) = imported_modules.get(module) {
-        {
-            let child_modules = modules
-                .iter()
-                .filter(|module| !already_found_modules.contains(&module.path))
-                .collect::<Vec<_>>();
-            for module in &child_modules {
-                already_found_modules.insert(module.path.clone());
-            }
-            child_modules.into_iter().flat_map(|module| {
-                find_run_modules(&module.path, imported_modules, already_found_modules)
-            })
-        }
-        .chain(iter::once(module.to_string()))
-        .collect::<Vec<_>>()
-    } else {
-        vec![]
-    }
 }
 
 struct Module {
