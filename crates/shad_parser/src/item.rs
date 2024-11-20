@@ -2,6 +2,7 @@ use crate::atom::parse_token;
 use crate::token::{Lexer, Token, TokenType};
 use crate::{AstExpr, AstIdent, AstIdentType, AstStatement};
 use shad_error::{Span, SyntaxError};
+use std::str::FromStr;
 
 /// A parsed item.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -243,11 +244,16 @@ impl AstFnParam {
 ///
 /// # Examples
 ///
-/// In Shad code `run { my_buffer = 2.; }` will be parsed as a run block.
+/// The following Shad examples will be parsed as a run block:
+/// - `run { my_buffer = 2.; }`
+/// - `run priority 10 { my_buffer = 2.; }`
+/// - `run priority -42 { my_buffer = 2.; }`
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AstRunItem {
     /// The statements inside the block.
     pub statements: Vec<AstStatement>,
+    /// The execution priority.
+    pub priority: Option<i32>,
     /// The unique ID of the `run` block.
     pub id: u64,
 }
@@ -255,9 +261,33 @@ pub struct AstRunItem {
 impl AstRunItem {
     fn parse(lexer: &mut Lexer<'_>) -> Result<Self, SyntaxError> {
         parse_token(lexer, TokenType::Run)?;
+        let priority = if parse_token(&mut lexer.clone(), TokenType::Priority).is_ok() {
+            parse_token(lexer, TokenType::Priority)?;
+            let is_neg = if parse_token(&mut lexer.clone(), TokenType::Minus).is_ok() {
+                parse_token(lexer, TokenType::Minus)?;
+                true
+            } else {
+                false
+            };
+            let value = parse_token(lexer, TokenType::I32Literal)?;
+            Some(
+                i32::from_str(&value.slice.replace('_', ""))
+                    .map(|value| if is_neg { -value } else { value })
+                    .map_err(|_| {
+                        SyntaxError::new(
+                            value.span.start,
+                            lexer.module.clone(),
+                            "`i32` literal out of range".to_string(),
+                        )
+                    })?,
+            )
+        } else {
+            None
+        };
         let statements = parse_statement_block(lexer)?;
         Ok(Self {
             statements,
+            priority,
             id: lexer.next_id(),
         })
     }

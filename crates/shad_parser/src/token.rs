@@ -15,6 +15,9 @@ pub(crate) enum TokenType {
     #[token("run")]
     Run,
 
+    #[token("priority")]
+    Priority,
+
     #[token("fn")]
     Fn,
 
@@ -131,6 +134,7 @@ impl TokenType {
             Self::Import => "`import`",
             Self::Buf => "`buf`",
             Self::Run => "`run`",
+            Self::Priority => "`priority`",
             Self::Fn => "`fn`",
             Self::Gpu => "`gpu`",
             Self::Pub => "`pub`",

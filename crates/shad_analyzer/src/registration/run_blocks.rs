@@ -25,6 +25,7 @@ fn register_init(analysis: &mut Analysis) {
                     value: AstLeftValue::Ident(buffer.ast.name.clone()),
                     expr: buffer.ast.value.clone(),
                 })],
+                priority: None,
                 id: id as u64,
             },
             module: buffer_id.module.clone(),
