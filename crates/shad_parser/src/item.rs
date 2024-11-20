@@ -1,7 +1,8 @@
-use crate::atom::parse_token;
+use crate::atom::{parse_token, parse_token_option};
 use crate::token::{Lexer, Token, TokenType};
 use crate::{AstExpr, AstIdent, AstIdentType, AstStatement};
 use shad_error::{Span, SyntaxError};
+use std::str::FromStr;
 
 /// A parsed item.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -107,12 +108,7 @@ pub struct AstFnItem {
 
 impl AstFnItem {
     fn parse(lexer: &mut Lexer<'_>, is_pub: bool) -> Result<Self, SyntaxError> {
-        let is_buf_qualifier = if parse_token(&mut lexer.clone(), TokenType::Fn).is_ok() {
-            false
-        } else {
-            parse_token(lexer, TokenType::Buf)?;
-            true
-        };
+        let is_buf_qualifier = parse_token_option(lexer, TokenType::Buf)?.is_some();
         parse_token(lexer, TokenType::Fn)?;
         let name = AstIdent::parse(lexer, AstIdentType::FnDef)?;
         let params = Self::parse_params(lexer)?;
@@ -152,13 +148,10 @@ impl AstFnItem {
     fn parse_params(lexer: &mut Lexer<'_>) -> Result<Vec<AstFnParam>, SyntaxError> {
         parse_token(lexer, TokenType::OpenParenthesis)?;
         let mut params = vec![];
-        while parse_token(&mut lexer.clone(), TokenType::CloseParenthesis).is_err() {
+        while parse_token_option(lexer, TokenType::CloseParenthesis)?.is_none() {
             params.push(AstFnParam::parse(lexer)?);
-            if parse_token(&mut lexer.clone(), TokenType::Comma).is_ok() {
-                parse_token(lexer, TokenType::Comma)?;
-            }
+            parse_token_option(lexer, TokenType::Comma)?;
         }
-        parse_token(lexer, TokenType::CloseParenthesis)?;
         Ok(params)
     }
 }
@@ -176,13 +169,8 @@ pub struct AstReturnType {
 
 impl AstReturnType {
     fn parse(lexer: &mut Lexer<'_>) -> Result<Option<Self>, SyntaxError> {
-        if parse_token(&mut lexer.clone(), TokenType::Arrow).is_ok() {
-            parse_token(lexer, TokenType::Arrow)?;
-            let ref_span = if parse_token(&mut lexer.clone(), TokenType::Ref).is_ok() {
-                Some(parse_token(lexer, TokenType::Ref)?.span)
-            } else {
-                None
-            };
+        if parse_token_option(lexer, TokenType::Arrow)?.is_some() {
+            let ref_span = parse_token_option(lexer, TokenType::Ref)?.map(|ref_| ref_.span);
             Ok(Some(Self {
                 name: AstIdent::parse(lexer, AstIdentType::TypeUsage)?,
                 is_ref: ref_span.is_some(),
@@ -223,11 +211,7 @@ pub struct AstFnParam {
 
 impl AstFnParam {
     fn parse(lexer: &mut Lexer<'_>) -> Result<Self, SyntaxError> {
-        let ref_span = if parse_token(&mut lexer.clone(), TokenType::Ref).is_ok() {
-            Some(parse_token(lexer, TokenType::Ref)?.span)
-        } else {
-            None
-        };
+        let ref_span = parse_token_option(lexer, TokenType::Ref)?.map(|ref_| ref_.span);
         let name = AstIdent::parse(lexer, AstIdentType::ParamDef)?;
         parse_token(lexer, TokenType::Colon)?;
         let type_ = AstIdent::parse(lexer, AstIdentType::TypeUsage)?;
@@ -243,11 +227,16 @@ impl AstFnParam {
 ///
 /// # Examples
 ///
-/// In Shad code `run { my_buffer = 2.; }` will be parsed as a run block.
+/// The following Shad examples will be parsed as a run block:
+/// - `run { my_buffer = 2.; }`
+/// - `run priority 10 { my_buffer = 2.; }`
+/// - `run priority -42 { my_buffer = 2.; }`
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AstRunItem {
     /// The statements inside the block.
     pub statements: Vec<AstStatement>,
+    /// The execution priority.
+    pub priority: Option<i32>,
     /// The unique ID of the `run` block.
     pub id: u64,
 }
@@ -255,21 +244,46 @@ pub struct AstRunItem {
 impl AstRunItem {
     fn parse(lexer: &mut Lexer<'_>) -> Result<Self, SyntaxError> {
         parse_token(lexer, TokenType::Run)?;
+        let priority = Self::parse_priority(lexer)?;
         let statements = parse_statement_block(lexer)?;
         Ok(Self {
             statements,
+            priority,
             id: lexer.next_id(),
         })
+    }
+
+    fn parse_priority(lexer: &mut Lexer<'_>) -> Result<Option<i32>, SyntaxError> {
+        Ok(
+            if parse_token_option(lexer, TokenType::Priority)?.is_some() {
+                Some(Self::parse_priority_value(lexer)?)
+            } else {
+                None
+            },
+        )
+    }
+
+    fn parse_priority_value(lexer: &mut Lexer<'_>) -> Result<i32, SyntaxError> {
+        let is_neg = parse_token_option(lexer, TokenType::Minus)?.is_some();
+        let value = parse_token(lexer, TokenType::I32Literal)?;
+        i32::from_str(&value.slice.replace('_', ""))
+            .map(|value| if is_neg { -value } else { value })
+            .map_err(|_| {
+                SyntaxError::new(
+                    value.span.start,
+                    lexer.module.clone(),
+                    "`i32` literal out of range".to_string(),
+                )
+            })
     }
 }
 
 fn parse_statement_block(lexer: &mut Lexer<'_>) -> Result<Vec<AstStatement>, SyntaxError> {
     parse_token(lexer, TokenType::OpenBrace)?;
     let mut statements = vec![];
-    while parse_token(&mut lexer.clone(), TokenType::CloseBrace).is_err() {
+    while parse_token_option(lexer, TokenType::CloseBrace)?.is_none() {
         statements.push(AstStatement::parse(lexer)?);
     }
-    parse_token(lexer, TokenType::CloseBrace)?;
     Ok(statements)
 }
 
@@ -292,8 +306,7 @@ impl AstImportItem {
     fn parse(lexer: &mut Lexer<'_>, is_pub: bool) -> Result<Self, SyntaxError> {
         let import = parse_token(lexer, TokenType::Import)?;
         let mut segments = vec![AstIdent::parse(lexer, AstIdentType::ModPathSegment)?];
-        while parse_token(&mut lexer.clone(), TokenType::Dot).is_ok() {
-            parse_token(lexer, TokenType::Dot)?;
+        while parse_token_option(lexer, TokenType::Dot)?.is_some() {
             segments.push(AstIdent::parse(lexer, AstIdentType::ModPathSegment)?);
         }
         let semi_colon = parse_token(lexer, TokenType::SemiColon)?;

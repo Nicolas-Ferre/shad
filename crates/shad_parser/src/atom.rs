@@ -127,3 +127,14 @@ pub(crate) fn parse_token<'a>(
         ))
     }
 }
+
+pub(crate) fn parse_token_option<'a>(
+    lexer: &mut Lexer<'a>,
+    expected_type: TokenType,
+) -> Result<Option<Token<'a>>, SyntaxError> {
+    if parse_token(&mut lexer.clone(), expected_type).is_ok() {
+        parse_token(lexer, expected_type).map(Some)
+    } else {
+        Ok(None)
+    }
+}

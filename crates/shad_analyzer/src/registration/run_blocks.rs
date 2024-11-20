@@ -10,6 +10,12 @@ pub struct RunBlock {
     pub module: String,
 }
 
+impl RunBlock {
+    pub(crate) fn priority(&self) -> i32 {
+        self.ast.priority.unwrap_or(0)
+    }
+}
+
 pub(crate) fn register(analysis: &mut Analysis) {
     register_init(analysis);
     register_steps(analysis);
@@ -25,6 +31,7 @@ fn register_init(analysis: &mut Analysis) {
                     value: AstLeftValue::Ident(buffer.ast.name.clone()),
                     expr: buffer.ast.value.clone(),
                 })],
+                priority: None,
                 id: id as u64,
             },
             module: buffer_id.module.clone(),

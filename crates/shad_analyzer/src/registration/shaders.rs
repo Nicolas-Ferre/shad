@@ -40,7 +40,7 @@ fn register_steps(analysis: &mut Analysis) {
     for block in analysis
         .run_blocks
         .iter()
-        .sorted_unstable_by_key(|block| (&block.module, block.ast.id))
+        .sorted_unstable_by_key(|block| (-block.priority(), &block.module, block.ast.id))
     {
         let shader = ComputeShader::new(analysis, block);
         analysis.step_shaders.push(shader);

@@ -1,4 +1,4 @@
-use crate::atom::parse_token;
+use crate::atom::{parse_token, parse_token_option};
 use crate::token::{Lexer, Token, TokenType};
 use crate::{AstExpr, AstIdent, AstIdentType};
 use shad_error::{Span, SyntaxError};
@@ -80,9 +80,7 @@ impl AstFnCall {
         let mut args = vec![];
         while parse_token(&mut lexer.clone(), TokenType::CloseParenthesis).is_err() {
             args.push(AstExpr::parse(lexer)?);
-            if parse_token(&mut lexer.clone(), TokenType::Comma).is_ok() {
-                parse_token(lexer, TokenType::Comma)?;
-            }
+            parse_token_option(lexer, TokenType::Comma)?;
         }
         let close_parenthesis = parse_token(lexer, TokenType::CloseParenthesis)?;
         Ok(Self {

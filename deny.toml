@@ -25,6 +25,6 @@ allow = [
     "CC0-1.0",
     "ISC",
     "MIT",
-    "Unicode-DFS-2016",
-    "Zlib",
+    "Unicode-3.0",
+    "Zlib"
 ]

@@ -1,4 +1,4 @@
-use crate::atom::parse_token;
+use crate::atom::{parse_token, parse_token_option};
 use crate::fn_call::AstFnCall;
 use crate::token::{Lexer, Token, TokenType};
 use crate::{AstExpr, AstIdent, AstIdentType, AstLeftValue};
@@ -100,8 +100,8 @@ pub struct AstVarDefinition {
 
 impl AstVarDefinition {
     fn parse(lexer: &mut Lexer<'_>) -> Result<Self, SyntaxError> {
-        let keyword = if parse_token(&mut lexer.clone(), TokenType::Var).is_ok() {
-            parse_token(lexer, TokenType::Var)?
+        let keyword = if let Some(var_) = parse_token_option(lexer, TokenType::Var)? {
+            var_
         } else {
             parse_token(lexer, TokenType::Ref)?
         };
