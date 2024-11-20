@@ -37,9 +37,11 @@ fn register_init(analysis: &mut Analysis) {
 }
 
 fn register_steps(analysis: &mut Analysis) {
-    for block in analysis.run_blocks.iter().sorted_unstable_by_key(|block| {
-        (-block.ast.priority.unwrap_or(0), &block.module, block.ast.id)
-    }) {
+    for block in analysis
+        .run_blocks
+        .iter()
+        .sorted_unstable_by_key(|block| (-block.priority(), &block.module, block.ast.id))
+    {
         let shader = ComputeShader::new(analysis, block);
         analysis.step_shaders.push(shader);
     }

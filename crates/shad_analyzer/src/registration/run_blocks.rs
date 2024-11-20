@@ -10,6 +10,12 @@ pub struct RunBlock {
     pub module: String,
 }
 
+impl RunBlock {
+    pub(crate) fn priority(&self) -> i32 {
+        self.ast.priority.unwrap_or(0)
+    }
+}
+
 pub(crate) fn register(analysis: &mut Analysis) {
     register_init(analysis);
     register_steps(analysis);
