@@ -46,12 +46,12 @@ pub(crate) fn recursion_found(current_fn_id: &FnId, fn_stack: &[CalledFn]) -> Se
                     LocatedMessage {
                         level: ErrorLevel::Error,
                         span: call.call_span.clone(),
-                        text: format!("`{}` function called here", call.fn_id.signature),
+                        text: format!("`{}` function called here", call.id.signature),
                     },
                     LocatedMessage {
                         level: ErrorLevel::Error,
-                        span: call.fn_def_span.clone(),
-                        text: format!("`{}` function defined here", call.fn_id.signature),
+                        span: call.def_span.clone(),
+                        text: format!("`{}` function defined here", call.id.signature),
                     },
                 ]
             })

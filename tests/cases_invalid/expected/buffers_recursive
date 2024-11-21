@@ -1,41 +1,33 @@
-error: buffer `recursive2_direct` defined recursively
+error: buffer `recursive1_direct` defined recursively
  --> ./cases_invalid/code/buffers_recursive/other.shd:3:9
   |
 3 | pub buf recursive2_direct = recursive1_direct;
   |         ^^^^^^^^^^^^^^^^^ `recursive2_direct` buffer defined here
+  |                             ^^^^^^^^^^^^^^^^^ `recursive1_direct` buffer called here
   |
-
-error: buffer `recursive1_direct` defined recursively
- --> ./cases_invalid/code/buffers_recursive/main.shd:3:9
+ ::: ./cases_invalid/code/buffers_recursive/main.shd:3:29
   |
 3 | pub buf recursive1_direct = recursive2_direct;
+  |                             ^^^^^^^^^^^^^^^^^ `recursive2_direct` buffer called here
   |         ^^^^^^^^^^^^^^^^^ `recursive1_direct` buffer defined here
   |
 
-error: buffer `recursive2_indirect` defined recursively
- --> ./cases_invalid/code/buffers_recursive/other.shd:4:9
-  |
-4 | pub buf recursive2_indirect = recursive3_indirect;
-  |         ^^^^^^^^^^^^^^^^^^^ `recursive2_indirect` buffer defined here
-  |
-
-error: buffer `recursive1_indirect` defined recursively
- --> ./cases_invalid/code/buffers_recursive/main.shd:4:9
+error: buffer `recursive4_indirect` defined recursively
+ --> ./cases_invalid/code/buffers_recursive/main.shd:5:31
   |
 4 | pub buf recursive1_indirect = recursive2_indirect;
   |         ^^^^^^^^^^^^^^^^^^^ `recursive1_indirect` buffer defined here
+  |                               ^^^^^^^^^^^^^^^^^^^ `recursive2_indirect` buffer called here
+5 | pub buf recursive4_indirect = recursive1_indirect;
+  |                               ^^^^^^^^^^^^^^^^^^^ `recursive1_indirect` buffer called here
+  |         ^^^^^^^^^^^^^^^^^^^ `recursive4_indirect` buffer defined here
   |
-
-error: buffer `recursive3_indirect` defined recursively
- --> ./cases_invalid/code/buffers_recursive/other.shd:5:9
+ ::: ./cases_invalid/code/buffers_recursive/other.shd:4:9
   |
+4 | pub buf recursive2_indirect = recursive3_indirect;
+  |         ^^^^^^^^^^^^^^^^^^^ `recursive2_indirect` buffer defined here
+  |                               ^^^^^^^^^^^^^^^^^^^ `recursive3_indirect` buffer called here
 5 | pub buf recursive3_indirect = recursive4_indirect;
   |         ^^^^^^^^^^^^^^^^^^^ `recursive3_indirect` buffer defined here
-  |
-
-error: buffer `recursive4_indirect` defined recursively
- --> ./cases_invalid/code/buffers_recursive/main.shd:5:9
-  |
-5 | pub buf recursive4_indirect = recursive1_indirect;
-  |         ^^^^^^^^^^^^^^^^^^^ `recursive4_indirect` buffer defined here
+  |                               ^^^^^^^^^^^^^^^^^^^ `recursive4_indirect` buffer called here
   |

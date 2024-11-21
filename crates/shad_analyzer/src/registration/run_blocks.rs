@@ -3,6 +3,18 @@ use shad_parser::{AstAssignment, AstItem, AstLeftValue, AstRunItem, AstStatement
 
 /// An analyzed block of statements.
 #[derive(Debug, Clone)]
+pub struct BufferInitRunBlock {
+    /// The block AST.
+    pub ast: AstRunItem,
+    // TODO: use BufferId ?
+    /// The module where the block comes from.
+    pub module: String,
+    /// The buffer name.
+    pub buffer: String,
+}
+
+/// An analyzed block of statements.
+#[derive(Debug, Clone)]
 pub struct RunBlock {
     /// The block AST.
     pub ast: AstRunItem,
@@ -22,20 +34,24 @@ pub(crate) fn register(analysis: &mut Analysis) {
 }
 
 fn register_init(analysis: &mut Analysis) {
-    for (id, buffer_id) in analysis.ordered_buffers.iter().enumerate() {
-        let buffer = &analysis.buffers[buffer_id];
-        analysis.init_blocks.push(RunBlock {
-            ast: AstRunItem {
-                statements: vec![AstStatement::Assignment(AstAssignment {
-                    span: buffer.ast.value.span().clone(),
-                    value: AstLeftValue::Ident(buffer.ast.name.clone()),
-                    expr: buffer.ast.value.clone(),
-                })],
-                priority: None,
-                id: id as u64,
-            },
-            module: buffer_id.module.clone(),
-        });
+    for (module, ast) in &analysis.asts {
+        for item in &ast.items {
+            if let AstItem::Buffer(buffer) = item {
+                analysis.init_blocks.push(BufferInitRunBlock {
+                    ast: AstRunItem {
+                        statements: vec![AstStatement::Assignment(AstAssignment {
+                            span: buffer.value.span().clone(),
+                            value: AstLeftValue::Ident(buffer.name.clone()),
+                            expr: buffer.value.clone(),
+                        })],
+                        priority: None,
+                        id: 0,
+                    },
+                    module: module.clone(),
+                    buffer: buffer.name.label.clone(),
+                });
+            }
+        }
     }
 }
 
