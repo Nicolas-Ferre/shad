@@ -10,7 +10,7 @@ pub(crate) fn check(analysis: &mut Analysis) {
     for buffer in analysis.buffers.values() {
         let mut checker = BufferRecursionCheck::new(
             analysis,
-            BufferId::from_item(&buffer.ast),
+            BufferId::new(&buffer.ast),
             mem::take(&mut errored_buffer_ids),
         );
         checker.visit_expr(&buffer.ast.value);

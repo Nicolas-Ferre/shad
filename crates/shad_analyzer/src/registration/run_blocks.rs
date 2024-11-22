@@ -44,7 +44,7 @@ fn register_init(analysis: &mut Analysis) {
                         priority: None,
                         id: 0,
                     },
-                    buffer: BufferId::from_item(buffer),
+                    buffer: BufferId::new(buffer),
                 });
             }
         }

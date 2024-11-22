@@ -71,9 +71,6 @@ impl Analysis {
             return analysis;
         }
         checks::buffer_recursion::check(&mut analysis);
-        if !analysis.errors.is_empty() {
-            return analysis;
-        }
         transformation::ref_split::transform(&mut analysis);
         transformation::ref_fn_inline::transform(&mut analysis);
         transformation::ref_var_inline::transform(&mut analysis);

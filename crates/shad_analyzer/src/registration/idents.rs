@@ -54,31 +54,21 @@ fn register_buffer_init(analysis: &mut Analysis) {
 }
 
 fn register_buffer_types(analysis: &mut Analysis) {
-    let buffer_count = analysis
-        .idents
-        .values()
-        .filter(|e| matches!(e.source, IdentSource::Buffer(_)))
-        .count();
+    let buffer_count = count_buffers(analysis);
     let mut typed_buffer_count = 0;
     let mut last_typed_buffer_count = 0;
     let buffers = analysis.buffers.clone();
     while typed_buffer_count < buffer_count {
         for buffer in buffers.values() {
-            if analysis.idents[&buffer.ast.name.id].type_.is_some() {
-                continue;
+            if analysis.idents[&buffer.ast.name.id].type_.is_none() {
+                let module = &buffer.ast.name.span.module.name;
+                IdentRegistration::new(analysis, module, Scope::BufDef, false)
+                    .visit_buffer_item(&buffer.ast);
             }
-            let module = &buffer.ast.name.span.module.name;
-            IdentRegistration::new(analysis, module, Scope::BufDef, false)
-                .visit_buffer_item(&buffer.ast);
         }
-        typed_buffer_count = analysis
-            .idents
-            .values()
-            .filter(|e| matches!(e.source, IdentSource::Buffer(_)))
-            .filter(|e| e.type_.is_some())
-            .count();
+        typed_buffer_count = count_typed_buffers(analysis);
         if typed_buffer_count == last_typed_buffer_count {
-            break;
+            break; // recursive buffer init
         }
         last_typed_buffer_count = typed_buffer_count;
     }
@@ -103,6 +93,23 @@ fn register_fns(analysis: &mut Analysis) {
         IdentRegistration::new(analysis, &fn_.ast.name.span.module.name, scope, true)
             .visit_fn_item(&fn_.ast);
     }
+}
+
+fn count_buffers(analysis: &Analysis) -> usize {
+    analysis
+        .idents
+        .values()
+        .filter(|e| matches!(e.source, IdentSource::Buffer(_)))
+        .count()
+}
+
+fn count_typed_buffers(analysis: &Analysis) -> usize {
+    analysis
+        .idents
+        .values()
+        .filter(|e| matches!(e.source, IdentSource::Buffer(_)))
+        .filter(|e| e.type_.is_some())
+        .count()
 }
 
 struct IdentRegistration<'a> {
