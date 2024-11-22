@@ -35,7 +35,7 @@ fn register_init(analysis: &mut Analysis) {
     for (block, _) in analysis
         .init_blocks
         .iter()
-        .map(|block| (block, BufferId::from_run_block(block)))
+        .map(|block| (block, &block.buffer))
         .sorted_unstable_by(|(_, id1), (_, id2)| {
             if dependent_buffers[id1].contains(id2) {
                 Ordering::Greater
@@ -62,13 +62,13 @@ fn register_steps(analysis: &mut Analysis) {
     }
 }
 
-fn find_dependent_buffers(analysis: &Analysis) -> FxHashMap<BufferId, FxHashSet<BufferId>> {
+fn find_dependent_buffers(analysis: &Analysis) -> FxHashMap<&BufferId, FxHashSet<BufferId>> {
     analysis
         .init_blocks
         .iter()
         .map(|block| {
             (
-                BufferId::from_run_block(block),
+                &block.buffer,
                 listing::buffers::list_in_block(analysis, &block.ast)
                     .into_iter()
                     .collect::<FxHashSet<_>>(),

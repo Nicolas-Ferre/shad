@@ -4,8 +4,6 @@ use shad_error::{SemanticError, Span};
 use shad_parser::{AstIdent, Visit};
 use std::mem;
 
-// TODO: fix error ordering
-
 pub(crate) fn check(analysis: &mut Analysis) {
     let mut errors = vec![];
     let mut errored_buffer_ids = FxHashSet::default();

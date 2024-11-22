@@ -1,7 +1,9 @@
-use crate::checks::fn_recursion::CalledFn;
+use crate::checks::fn_recursion::UsedFn;
 use crate::FnId;
+use itertools::Itertools;
 use shad_error::{ErrorLevel, LocatedMessage, SemanticError};
 use shad_parser::{AstFnCall, AstFnItem, AstIdent};
+use std::iter;
 
 pub(crate) fn duplicated(
     id: &FnId,
@@ -36,26 +38,31 @@ pub(crate) fn not_found(call: &AstFnCall, signature: &str) -> SemanticError {
     )
 }
 
-pub(crate) fn recursion_found(current_fn_id: &FnId, fn_stack: &[CalledFn]) -> SemanticError {
+pub(crate) fn recursion_found(current_fn_id: &FnId, fn_stack: &[UsedFn]) -> SemanticError {
     SemanticError::new(
         format!("function `{}` defined recursively", current_fn_id.signature),
-        fn_stack
-            .iter()
-            .flat_map(|call| {
-                [
-                    LocatedMessage {
-                        level: ErrorLevel::Error,
-                        span: call.call_span.clone(),
-                        text: format!("`{}` function called here", call.id.signature),
-                    },
-                    LocatedMessage {
-                        level: ErrorLevel::Error,
-                        span: call.def_span.clone(),
-                        text: format!("`{}` function defined here", call.id.signature),
-                    },
-                ]
-            })
-            .collect(),
+        iter::once(LocatedMessage {
+            level: ErrorLevel::Error,
+            span: fn_stack[fn_stack.len() - 1].def_span.clone(),
+            text: format!(
+                "recursive function `{}` defined here",
+                fn_stack[fn_stack.len() - 1].id.signature
+            ),
+        })
+        .chain(
+            fn_stack
+                .iter()
+                .circular_tuple_windows()
+                .map(|(usage, next_usage)| LocatedMessage {
+                    level: ErrorLevel::Info,
+                    span: next_usage.usage_span.clone(),
+                    text: format!(
+                        "`{}` function called in `{}` function",
+                        next_usage.id.signature, usage.id.signature,
+                    ),
+                }),
+        )
+        .collect(),
     )
 }
 

@@ -1,4 +1,4 @@
-use crate::Analysis;
+use crate::{Analysis, BufferId};
 use shad_parser::{AstAssignment, AstItem, AstLeftValue, AstRunItem, AstStatement};
 
 /// An analyzed block of statements.
@@ -6,11 +6,8 @@ use shad_parser::{AstAssignment, AstItem, AstLeftValue, AstRunItem, AstStatement
 pub struct BufferInitRunBlock {
     /// The block AST.
     pub ast: AstRunItem,
-    // TODO: use BufferId ?
-    /// The module where the block comes from.
-    pub module: String,
-    /// The buffer name.
-    pub buffer: String,
+    /// The initialized buffer ID.
+    pub buffer: BufferId,
 }
 
 /// An analyzed block of statements.
@@ -34,7 +31,7 @@ pub(crate) fn register(analysis: &mut Analysis) {
 }
 
 fn register_init(analysis: &mut Analysis) {
-    for (module, ast) in &analysis.asts {
+    for ast in analysis.asts.values() {
         for item in &ast.items {
             if let AstItem::Buffer(buffer) = item {
                 analysis.init_blocks.push(BufferInitRunBlock {
@@ -47,8 +44,7 @@ fn register_init(analysis: &mut Analysis) {
                         priority: None,
                         id: 0,
                     },
-                    module: module.clone(),
-                    buffer: buffer.name.label.clone(),
+                    buffer: BufferId::from_item(buffer),
                 });
             }
         }

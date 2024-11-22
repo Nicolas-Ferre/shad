@@ -4,8 +4,6 @@ use shad_error::{SemanticError, Span};
 use shad_parser::{AstFnCall, Visit};
 use std::mem;
 
-// TODO: fix error ordering
-
 pub(crate) fn check(analysis: &mut Analysis) {
     let mut errors = vec![];
     let mut errored_fn_ids = FxHashSet::default();
@@ -23,8 +21,8 @@ pub(crate) fn check(analysis: &mut Analysis) {
 }
 
 #[derive(Debug)]
-pub(crate) struct CalledFn {
-    pub(crate) call_span: Span,
+pub(crate) struct UsedFn {
+    pub(crate) usage_span: Span,
     pub(crate) def_span: Span,
     pub(crate) id: FnId,
 }
@@ -32,7 +30,7 @@ pub(crate) struct CalledFn {
 struct FnRecursionCheck<'a> {
     analysis: &'a Analysis,
     current_fn_id: FnId,
-    called_fn_ids: Vec<CalledFn>,
+    called_fn_ids: Vec<UsedFn>,
     errored_fn_ids: FxHashSet<FnId>,
     errors: Vec<SemanticError>,
 }
@@ -86,8 +84,8 @@ impl Visit for FnRecursionCheck<'_> {
     fn enter_fn_call(&mut self, node: &AstFnCall) {
         if let Some(id) = self.analysis.fn_id(&node.name) {
             let fn_ = &self.analysis.fns[&id].ast;
-            self.called_fn_ids.push(CalledFn {
-                call_span: node.span.clone(),
+            self.called_fn_ids.push(UsedFn {
+                usage_span: node.span.clone(),
                 def_span: fn_.name.span.clone(),
                 id: id.clone(),
             });

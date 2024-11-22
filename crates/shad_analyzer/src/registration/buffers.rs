@@ -1,4 +1,4 @@
-use crate::{errors, Analysis, BufferInitRunBlock};
+use crate::{errors, Analysis};
 use shad_parser::{AstBufferItem, AstItem};
 use std::mem;
 
@@ -41,13 +41,6 @@ pub struct BufferId {
 }
 
 impl BufferId {
-    pub(crate) fn from_run_block(block: &BufferInitRunBlock) -> Self {
-        Self {
-            module: block.module.clone(),
-            name: block.buffer.clone(),
-        }
-    }
-
     pub(crate) fn from_item(buffer: &AstBufferItem) -> Self {
         Self {
             module: buffer.name.span.module.name.clone(),
