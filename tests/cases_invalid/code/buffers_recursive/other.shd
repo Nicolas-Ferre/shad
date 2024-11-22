@@ -1,5 +1,4 @@
 import main;
 
-pub buf recursive2_direct = recursive1_direct;
 pub buf recursive2_indirect = recursive3_indirect;
 pub buf recursive3_indirect = recursive4_indirect;

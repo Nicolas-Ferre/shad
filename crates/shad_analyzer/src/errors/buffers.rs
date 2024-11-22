@@ -1,6 +1,9 @@
+use crate::checks::buffer_recursion::UsedBuffer;
 use crate::{Buffer, BufferId};
+use itertools::Itertools;
 use shad_error::{ErrorLevel, LocatedMessage, SemanticError};
 use shad_parser::AstBufferItem;
+use std::iter;
 
 pub(crate) fn duplicated(
     duplicated_buffer: &AstBufferItem,
@@ -26,13 +29,33 @@ pub(crate) fn duplicated(
     )
 }
 
-pub(crate) fn recursion_found(buffer_id: &BufferId, buffer: &Buffer) -> SemanticError {
+pub(crate) fn recursion_found(
+    current_buffer_id: &BufferId,
+    buffer_stack: &[UsedBuffer],
+) -> SemanticError {
     SemanticError::new(
-        format!("buffer `{}` defined recursively", buffer_id.name),
-        vec![LocatedMessage {
+        format!("buffer `{}` defined recursively", current_buffer_id.name),
+        iter::once(LocatedMessage {
             level: ErrorLevel::Error,
-            span: buffer.ast.name.span.clone(),
-            text: format!("`{}` buffer defined here", buffer_id.name),
-        }],
+            span: buffer_stack[buffer_stack.len() - 1].def_span.clone(),
+            text: format!(
+                "recursive buffer `{}` defined here",
+                buffer_stack[buffer_stack.len() - 1].id.name
+            ),
+        })
+        .chain(
+            buffer_stack
+                .iter()
+                .circular_tuple_windows()
+                .map(|(usage, next_usage)| LocatedMessage {
+                    level: ErrorLevel::Info,
+                    span: next_usage.usage_span.clone(),
+                    text: format!(
+                        "`{}` buffer used during `{}` buffer init",
+                        next_usage.id.name, usage.id.name,
+                    ),
+                }),
+        )
+        .collect(),
     )
 }

@@ -1,17 +1,11 @@
 use crate::registration::idents::IdentSource;
 use crate::{Analysis, BufferId};
 use fxhash::FxHashSet;
-use shad_parser::{AstExpr, AstFnCall, AstIdent, AstRunItem, Visit};
+use shad_parser::{AstFnCall, AstIdent, AstRunItem, Visit};
 
 pub(crate) fn list_in_block(analysis: &Analysis, block: &AstRunItem) -> Vec<BufferId> {
     let mut listing = BufferListing::new(analysis);
     listing.visit_run_item(block);
-    listing.buffers.into_iter().collect()
-}
-
-pub(crate) fn list_in_expr(analysis: &Analysis, expr: &AstExpr) -> Vec<BufferId> {
-    let mut listing = BufferListing::new(analysis);
-    listing.visit_expr(expr);
     listing.buffers.into_iter().collect()
 }
 
@@ -37,13 +31,16 @@ impl Visit for BufferListing<'_> {
     }
 
     fn enter_ident(&mut self, node: &AstIdent) {
-        if let Some(ident) = self.analysis.idents.get(&node.id) {
-            match &ident.source {
-                IdentSource::Buffer(name) => {
-                    self.buffers.insert(name.clone());
-                }
-                IdentSource::Var(_) | IdentSource::Fn(_) => (),
+        let ident = self
+            .analysis
+            .idents
+            .get(&node.id)
+            .expect("internal error: missing identifier ID");
+        match &ident.source {
+            IdentSource::Buffer(name) => {
+                self.buffers.insert(name.clone());
             }
+            IdentSource::Var(_) | IdentSource::Fn(_) => (),
         }
     }
 }

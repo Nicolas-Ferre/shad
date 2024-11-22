@@ -2,8 +2,8 @@ use crate::registration::functions::Function;
 use crate::registration::idents::Ident;
 use crate::registration::shaders::ComputeShader;
 use crate::{
-    checks, registration, transformation, Buffer, BufferId, FnId, IdentSource, RunBlock, Type,
-    BOOL_TYPE, F32_TYPE, I32_TYPE, U32_TYPE,
+    checks, registration, transformation, Buffer, BufferId, BufferInitRunBlock, FnId, IdentSource,
+    RunBlock, Type, BOOL_TYPE, F32_TYPE, I32_TYPE, U32_TYPE,
 };
 use fxhash::FxHashMap;
 use shad_error::SemanticError;
@@ -24,10 +24,8 @@ pub struct Analysis {
     pub fns: FxHashMap<FnId, Function>,
     /// The analyzed buffers.
     pub buffers: FxHashMap<BufferId, Buffer>,
-    /// The order in which buffers are initialized.
-    pub ordered_buffers: Vec<BufferId>,
     /// The analyzed init blocks.
-    pub init_blocks: Vec<RunBlock>,
+    pub init_blocks: Vec<BufferInitRunBlock>,
     /// The analyzed run blocks.
     pub run_blocks: Vec<RunBlock>,
     /// The analyzed init shaders.
@@ -50,7 +48,6 @@ impl Analysis {
             types: FxHashMap::default(),
             fns: FxHashMap::default(),
             buffers: FxHashMap::default(),
-            ordered_buffers: vec![],
             init_blocks: vec![],
             run_blocks: vec![],
             init_shaders: vec![],
@@ -62,21 +59,22 @@ impl Analysis {
         registration::types::register(&mut analysis);
         registration::functions::register(&mut analysis);
         registration::buffers::register(&mut analysis);
-        registration::idents::register_buffer(&mut analysis);
         registration::run_blocks::register(&mut analysis);
         transformation::literals::transform(&mut analysis);
         transformation::fn_params::transform(&mut analysis);
-        registration::idents::register_other(&mut analysis);
+        registration::idents::register(&mut analysis);
         checks::functions::check(&mut analysis);
         checks::literals::check(&mut analysis);
         checks::statements::check(&mut analysis);
         checks::fn_recursion::check(&mut analysis);
-        if analysis.errors.is_empty() {
-            transformation::ref_split::transform(&mut analysis);
-            transformation::ref_fn_inline::transform(&mut analysis);
-            transformation::ref_var_inline::transform(&mut analysis);
-            registration::shaders::register(&mut analysis);
+        if !analysis.errors.is_empty() {
+            return analysis;
         }
+        checks::buffer_recursion::check(&mut analysis);
+        transformation::ref_split::transform(&mut analysis);
+        transformation::ref_fn_inline::transform(&mut analysis);
+        transformation::ref_var_inline::transform(&mut analysis);
+        registration::shaders::register(&mut analysis);
         analysis
     }
 

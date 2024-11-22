@@ -32,7 +32,7 @@ pub(crate) fn register(analysis: &mut Analysis) {
 }
 
 /// The unique identifier of a buffer.
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct BufferId {
     /// The module in which the buffer is defined.
     pub module: String,
@@ -41,7 +41,7 @@ pub struct BufferId {
 }
 
 impl BufferId {
-    fn new(buffer: &AstBufferItem) -> Self {
+    pub(crate) fn new(buffer: &AstBufferItem) -> Self {
         Self {
             module: buffer.name.span.module.name.clone(),
             name: buffer.name.label.clone(),

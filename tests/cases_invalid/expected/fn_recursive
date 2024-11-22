@@ -1,53 +1,50 @@
 error: function `level1_recursive()` defined recursively
-  --> ./cases_invalid/code/fn_recursive/main.shd:2:5
+  --> ./cases_invalid/code/fn_recursive/main.shd:1:4
    |
  1 | fn level1_recursive() {
-   |    ^^^^^^^^^^^^^^^^ `level1_recursive()` function defined here
+   |    ^^^^^^^^^^^^^^^^ recursive function `level1_recursive()` defined here
  2 |     level2_recursive();
-   |     ^^^^^^^^^^^^^^^^^^ `level2_recursive()` function called here
+   |     ------------------ info: `level2_recursive()` function called in `level1_recursive()` function
  3 | }
  4 | 
  5 | fn level3_recursive() {
-   |    ^^^^^^^^^^^^^^^^ `level3_recursive()` function defined here
  6 |     level4_recursive();
-   |     ^^^^^^^^^^^^^^^^^^ `level4_recursive()` function called here
+   |     ------------------ info: `level4_recursive()` function called in `level3_recursive()` function
  7 | }
  8 | 
  9 | fn level4_recursive() {
-   |    ^^^^^^^^^^^^^^^^ `level4_recursive()` function defined here
 10 |     level1_recursive();
-   |     ^^^^^^^^^^^^^^^^^^ `level1_recursive()` function called here
+   |     ------------------ info: `level1_recursive()` function called in `level4_recursive()` function
 11 | }
 12 | 
 13 | fn level2_recursive() {
-   |    ^^^^^^^^^^^^^^^^ `level2_recursive()` function defined here
 14 |     level3_recursive();
-   |     ^^^^^^^^^^^^^^^^^^ `level3_recursive()` function called here
+   |     ------------------ info: `level3_recursive()` function called in `level2_recursive()` function
    |
 
 error: function `inner_recursive()` defined recursively
-  --> ./cases_invalid/code/fn_recursive/main.shd:18:5
+  --> ./cases_invalid/code/fn_recursive/main.shd:17:4
    |
 17 | fn inner_recursive() {
-   |    ^^^^^^^^^^^^^^^ `inner_recursive()` function defined here
+   |    ^^^^^^^^^^^^^^^ recursive function `inner_recursive()` defined here
 18 |     inner_recursive();
-   |     ^^^^^^^^^^^^^^^^^ `inner_recursive()` function called here
+   |     ----------------- info: `inner_recursive()` function called in `inner_recursive()` function
    |
 
 error: function `inner_returned_recursive(i32)` defined recursively
-  --> ./cases_invalid/code/fn_recursive/main.shd:22:12
+  --> ./cases_invalid/code/fn_recursive/main.shd:21:4
    |
 21 | fn inner_returned_recursive(ref a: i32) -> i32 {
-   |    ^^^^^^^^^^^^^^^^^^^^^^^^ `inner_returned_recursive(i32)` function defined here
+   |    ^^^^^^^^^^^^^^^^^^^^^^^^ recursive function `inner_returned_recursive(i32)` defined here
 22 |     return inner_returned_recursive(a);
-   |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^ `inner_returned_recursive(i32)` function called here
+   |            --------------------------- info: `inner_returned_recursive(i32)` function called in `inner_returned_recursive(i32)` function
    |
 
 error: function `recursive_left_value(i32)` defined recursively
-  --> ./cases_invalid/code/fn_recursive/main.shd:26:5
+  --> ./cases_invalid/code/fn_recursive/main.shd:25:4
    |
 25 | fn recursive_left_value(a: i32) -> ref i32 {
-   |    ^^^^^^^^^^^^^^^^^^^^ `recursive_left_value(i32)` function defined here
+   |    ^^^^^^^^^^^^^^^^^^^^ recursive function `recursive_left_value(i32)` defined here
 26 |     recursive_left_value(1) = 2;
-   |     ^^^^^^^^^^^^^^^^^^^^^^^ `recursive_left_value(i32)` function called here
+   |     ----------------------- info: `recursive_left_value(i32)` function called in `recursive_left_value(i32)` function
    |

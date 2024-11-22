@@ -1,7 +1,8 @@
-use crate::listing::{buffers, functions};
-use crate::{Analysis, BufferId, FnId, RunBlock};
+use crate::{listing, Analysis, BufferId, FnId};
+use fxhash::{FxHashMap, FxHashSet};
 use itertools::Itertools;
-use shad_parser::AstStatement;
+use shad_parser::{AstRunItem, AstStatement};
+use std::cmp::Ordering;
 
 /// An analyzed compute shader.
 #[derive(Debug, Clone)]
@@ -15,11 +16,11 @@ pub struct ComputeShader {
 }
 
 impl ComputeShader {
-    fn new(analysis: &Analysis, block: &RunBlock) -> Self {
+    fn new(analysis: &Analysis, block: &AstRunItem) -> Self {
         Self {
-            buffers: buffers::list_in_block(analysis, &block.ast),
-            fn_ids: functions::list_in_block(analysis, &block.ast),
-            statements: block.ast.statements.clone(),
+            buffers: listing::buffers::list_in_block(analysis, block),
+            fn_ids: listing::functions::list_in_block(analysis, block),
+            statements: block.statements.clone(),
         }
     }
 }
@@ -30,8 +31,22 @@ pub(crate) fn register(analysis: &mut Analysis) {
 }
 
 fn register_init(analysis: &mut Analysis) {
-    for block in &analysis.init_blocks {
-        let shader = ComputeShader::new(analysis, block);
+    let dependent_buffers: FxHashMap<_, _> = find_dependent_buffers(analysis);
+    for (block, _) in analysis
+        .init_blocks
+        .iter()
+        .map(|block| (block, &block.buffer))
+        .sorted_unstable_by(|(_, id1), (_, id2)| {
+            if dependent_buffers[id1].contains(id2) {
+                Ordering::Greater
+            } else if dependent_buffers[id2].contains(id1) {
+                Ordering::Less
+            } else {
+                id1.cmp(id2)
+            }
+        })
+    {
+        let shader = ComputeShader::new(analysis, &block.ast);
         analysis.init_shaders.push(shader);
     }
 }
@@ -42,7 +57,22 @@ fn register_steps(analysis: &mut Analysis) {
         .iter()
         .sorted_unstable_by_key(|block| (-block.priority(), &block.module, block.ast.id))
     {
-        let shader = ComputeShader::new(analysis, block);
+        let shader = ComputeShader::new(analysis, &block.ast);
         analysis.step_shaders.push(shader);
     }
+}
+
+fn find_dependent_buffers(analysis: &Analysis) -> FxHashMap<&BufferId, FxHashSet<BufferId>> {
+    analysis
+        .init_blocks
+        .iter()
+        .map(|block| {
+            (
+                &block.buffer,
+                listing::buffers::list_in_block(analysis, &block.ast)
+                    .into_iter()
+                    .collect::<FxHashSet<_>>(),
+            )
+        })
+        .collect()
 }

@@ -1,6 +1,6 @@
 use crate::registration::types;
-use crate::{errors, listing, Analysis, Buffer, BufferId, FnId, Function};
-use fxhash::{FxHashMap, FxHashSet};
+use crate::{errors, Analysis, Buffer, BufferId, FnId, Function};
+use fxhash::FxHashMap;
 use shad_parser::{
     AstBufferItem, AstFnCall, AstFnItem, AstFnQualifier, AstIdent, AstIdentType, AstItem,
     AstVarDefinition, Visit,
@@ -33,13 +33,9 @@ pub enum IdentSource {
     Fn(FnId),
 }
 
-pub(crate) fn register_buffer(analysis: &mut Analysis) {
+pub(crate) fn register(analysis: &mut Analysis) {
     register_buffer_init(analysis);
-    register_buffer_order(analysis);
     register_buffer_types(analysis);
-}
-
-pub(crate) fn register_other(analysis: &mut Analysis) {
     register_run_blocks(analysis);
     register_fns(analysis);
 }
@@ -57,45 +53,25 @@ fn register_buffer_init(analysis: &mut Analysis) {
     analysis.asts = asts;
 }
 
-fn register_buffer_order(analysis: &mut Analysis) {
-    let mut ordered_buffers = vec![];
-    let mut defined_buffers = FxHashSet::default();
-    let mut last_defined_buffer_count = 0;
-    while defined_buffers.len() != analysis.buffers.len() {
-        for (buffer_id, buffer) in &analysis.buffers {
-            if !defined_buffers.contains(buffer_id)
-                && listing::buffers::list_in_expr(analysis, &buffer.ast.value)
-                    .iter()
-                    .all(|buffer_id| defined_buffers.contains(buffer_id))
-            {
-                ordered_buffers.push(buffer_id.clone());
-                defined_buffers.insert(buffer_id);
-            }
-        }
-        if defined_buffers.len() == last_defined_buffer_count {
-            for (buffer_id, buffer) in &analysis.buffers {
-                if !defined_buffers.contains(buffer_id) {
-                    analysis
-                        .errors
-                        .push(errors::buffers::recursion_found(buffer_id, buffer));
-                }
-            }
-            break;
-        }
-        last_defined_buffer_count = defined_buffers.len();
-    }
-    analysis.ordered_buffers = ordered_buffers;
-}
-
 fn register_buffer_types(analysis: &mut Analysis) {
+    let buffer_count = count_buffers(analysis);
+    let mut typed_buffer_count = 0;
+    let mut last_typed_buffer_count = 0;
     let buffers = analysis.buffers.clone();
-    let ordered_buffers = mem::take(&mut analysis.ordered_buffers);
-    for buffer_id in &ordered_buffers {
-        let test = &buffers[buffer_id].ast;
-        IdentRegistration::new(analysis, &buffer_id.module, Scope::BufDef, false)
-            .visit_buffer_item(test);
+    while typed_buffer_count < buffer_count {
+        for buffer in buffers.values() {
+            if analysis.idents[&buffer.ast.name.id].type_.is_none() {
+                let module = &buffer.ast.name.span.module.name;
+                IdentRegistration::new(analysis, module, Scope::BufDef, false)
+                    .visit_buffer_item(&buffer.ast);
+            }
+        }
+        typed_buffer_count = count_typed_buffers(analysis);
+        if typed_buffer_count == last_typed_buffer_count {
+            break; // recursive buffer init
+        }
+        last_typed_buffer_count = typed_buffer_count;
     }
-    analysis.ordered_buffers = ordered_buffers;
 }
 
 fn register_run_blocks(analysis: &mut Analysis) {
@@ -117,6 +93,23 @@ fn register_fns(analysis: &mut Analysis) {
         IdentRegistration::new(analysis, &fn_.ast.name.span.module.name, scope, true)
             .visit_fn_item(&fn_.ast);
     }
+}
+
+fn count_buffers(analysis: &Analysis) -> usize {
+    analysis
+        .idents
+        .values()
+        .filter(|e| matches!(e.source, IdentSource::Buffer(_)))
+        .count()
+}
+
+fn count_typed_buffers(analysis: &Analysis) -> usize {
+    analysis
+        .idents
+        .values()
+        .filter(|e| matches!(e.source, IdentSource::Buffer(_)))
+        .filter(|e| e.type_.is_some())
+        .count()
 }
 
 struct IdentRegistration<'a> {
