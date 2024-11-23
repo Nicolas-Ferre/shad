@@ -1,7 +1,7 @@
 gpu fn __add__(left: f32, right: f32) -> f32;
 gpu fn __mul__(left: f32, right: f32) -> f32;
 
-buf result_from_fn = double(two);
+buf result_from_fn = double(two,);
 buf two = 2.;
 
 run {

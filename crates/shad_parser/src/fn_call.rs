@@ -80,7 +80,9 @@ impl AstFnCall {
         let mut args = vec![];
         while parse_token(&mut lexer.clone(), TokenType::CloseParenthesis).is_err() {
             args.push(AstExpr::parse(lexer)?);
-            parse_token_option(lexer, TokenType::Comma)?; // TODO: comma is optional only at the end
+            if parse_token_option(lexer, TokenType::Comma)?.is_none() {
+                break;
+            }
         }
         let close_parenthesis = parse_token(lexer, TokenType::CloseParenthesis)?;
         Ok(Self {
