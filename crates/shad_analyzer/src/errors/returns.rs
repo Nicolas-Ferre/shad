@@ -1,4 +1,4 @@
-use crate::FnId;
+use crate::{FnId, TypeId};
 use shad_error::{ErrorLevel, LocatedMessage, SemanticError};
 use shad_parser::{AstFnItem, AstReturn, AstStatement};
 
@@ -16,8 +16,8 @@ pub(crate) fn outside_fn(return_: &AstReturn) -> SemanticError {
 pub(crate) fn invalid_type(
     return_: &AstReturn,
     fn_: &AstFnItem,
-    actual: &str,
-    expected: &str,
+    actual: &TypeId,
+    expected: &TypeId,
 ) -> SemanticError {
     SemanticError::new(
         "invalid type for returned expression",
@@ -25,7 +25,7 @@ pub(crate) fn invalid_type(
             LocatedMessage {
                 level: ErrorLevel::Error,
                 span: return_.expr.span().clone(),
-                text: format!("expression of type `{actual}`"),
+                text: format!("expression of type `{}`", actual.name),
             },
             LocatedMessage {
                 level: ErrorLevel::Info,
@@ -36,7 +36,7 @@ pub(crate) fn invalid_type(
                     .name
                     .span
                     .clone(),
-                text: format!("expected type `{expected}`"),
+                text: format!("expected type `{}`", expected.name),
             },
         ],
     )

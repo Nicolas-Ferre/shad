@@ -1,5 +1,5 @@
 use crate::registration::types;
-use crate::{errors, Analysis, Buffer, BufferId, FnId, Function};
+use crate::{errors, Analysis, Buffer, BufferId, FnId, Function, TypeId};
 use fxhash::FxHashMap;
 use shad_parser::{
     AstBufferItem, AstFnCall, AstFnItem, AstIdent, AstIdentType, AstItem, AstVarDefinition, Visit,
@@ -12,11 +12,11 @@ pub struct Ident {
     /// The source of the identifier.
     pub source: IdentSource,
     /// The type of the identifier.
-    pub type_: Option<String>,
+    pub type_: Option<TypeId>,
 }
 
 impl Ident {
-    pub(crate) fn new(source: IdentSource, type_: Option<String>) -> Self {
+    pub(crate) fn new(source: IdentSource, type_: Option<TypeId>) -> Self {
         Self { source, type_ }
     }
 }
@@ -163,15 +163,27 @@ impl<'a> IdentRegistration<'a> {
 
 impl Visit for IdentRegistration<'_> {
     fn enter_fn_item(&mut self, node: &AstFnItem) {
-        let return_type = node
-            .return_type
-            .as_ref()
-            .and_then(|type_| types::name(self.analysis, &type_.name));
-        let fn_ident = Ident::new(IdentSource::Fn(FnId::new(node)), return_type);
+        let return_type_id = if let Some(return_type) = &node.return_type {
+            let type_id = types::find_type(self.analysis, self.module, &return_type.name);
+            if type_id.is_none() {
+                self.analysis
+                    .errors
+                    .push(errors::types::not_found(&return_type.name));
+            }
+            type_id
+        } else {
+            None
+        };
+        let fn_ident = Ident::new(IdentSource::Fn(FnId::new(node)), return_type_id);
         self.analysis.idents.insert(node.name.id, fn_ident);
         for param in &node.params {
-            let param_type = types::name(self.analysis, &param.type_);
-            let param_ident = Ident::new(IdentSource::Var(param.name.id), param_type);
+            let param_type_id = types::find_type(self.analysis, self.module, &param.type_);
+            if param_type_id.is_none() {
+                self.analysis
+                    .errors
+                    .push(errors::types::not_found(&param.type_));
+            }
+            let param_ident = Ident::new(IdentSource::Var(param.name.id), param_type_id);
             self.analysis.idents.insert(param.name.id, param_ident);
             self.add_variable(&param.name);
         }
@@ -200,7 +212,7 @@ impl Visit for IdentRegistration<'_> {
         if let Some(arg_types) = node
             .args
             .iter()
-            .map(|node| self.analysis.expr_type(node))
+            .map(|node| self.analysis.expr_type(node).map(|t| t.full_name()))
             .collect::<Option<Vec<_>>>()
         {
             let signature = format!("{}({})", node.name.label, arg_types.join(", "));
@@ -210,8 +222,14 @@ impl Visit for IdentRegistration<'_> {
                         let error = errors::fn_calls::unexpected_return_type(node, &fn_id);
                         self.analysis.errors.push(error);
                     } else if !node.is_statement {
-                        let fn_type = types::name(self.analysis, &return_type.name);
-                        let fn_ident = Ident::new(IdentSource::Fn(fn_id), fn_type);
+                        let fn_type_id =
+                            types::find_type(self.analysis, self.module, &return_type.name);
+                        if fn_type_id.is_none() {
+                            self.analysis
+                                .errors
+                                .push(errors::types::not_found(&return_type.name));
+                        }
+                        let fn_ident = Ident::new(IdentSource::Fn(fn_id), fn_type_id);
                         self.analysis.idents.insert(node.name.id, fn_ident);
                     }
                 } else if node.is_statement {
