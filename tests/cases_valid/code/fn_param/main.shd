@@ -6,7 +6,7 @@ run {
     value_from_aliased_param = calculate_from_aliased_param(4);
 }
 
-fn calculate_from_modified_param(param: i32) -> i32 {
+fn calculate_from_modified_param(param: i32,) -> i32 {
     param = param * 2;
     return param;
 }
