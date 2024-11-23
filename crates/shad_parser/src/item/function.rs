@@ -10,15 +10,15 @@ use shad_error::{Span, SyntaxError};
 /// Shad code `gpu fn sqrt(value: f32) -> f32;` will be parsed as a GPU function.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AstFnItem {
-    /// The name of the function.
+    /// The function name.
     pub name: AstIdent,
-    /// The parameters of the function.
+    /// The function parameters.
     pub params: Vec<AstFnParam>,
     /// The return type of the function.
     pub return_type: Option<AstReturnType>,
-    /// The qualifier of the function.
+    /// The function qualifier.
     pub qualifier: AstFnQualifier,
-    /// The qualifier of the function.
+    /// The function body statements.
     pub statements: Vec<AstStatement>,
     /// Whether the item is public.
     pub is_pub: bool,
@@ -63,7 +63,7 @@ impl AstFnItem {
         let mut params = vec![];
         while parse_token_option(lexer, TokenType::CloseParenthesis)?.is_none() {
             params.push(AstFnParam::parse(lexer)?);
-            parse_token_option(lexer, TokenType::Comma)?;
+            parse_token_option(lexer, TokenType::Comma)?; // TODO: comma is optional only at the end
         }
         Ok(params)
     }

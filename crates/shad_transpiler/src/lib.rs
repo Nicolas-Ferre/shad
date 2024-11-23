@@ -2,7 +2,11 @@
 
 use itertools::Itertools;
 use shad_analyzer::{Analysis, BufferId, ComputeShader, FnId, Function, IdentSource};
-use shad_parser::{AstExpr, AstFnCall, AstFnQualifier, AstIdent, AstLeftValue, AstStatement, ADD_FN, AND_FN, DIV_FN, EQ_FN, GE_FN, GT_FN, LE_FN, LT_FN, MOD_FN, MUL_FN, NEG_FN, NE_FN, NOT_FN, OR_FN, SUB_FN, AstFnParam};
+use shad_parser::{
+    AstExpr, AstFnCall, AstFnParam, AstFnQualifier, AstIdent, AstLeftValue, AstStatement, ADD_FN,
+    AND_FN, DIV_FN, EQ_FN, GE_FN, GT_FN, LE_FN, LT_FN, MOD_FN, MUL_FN, NEG_FN, NE_FN, NOT_FN,
+    OR_FN, SUB_FN,
+};
 
 const IDENT_UNIT: usize = 4;
 

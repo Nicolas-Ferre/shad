@@ -34,6 +34,7 @@ pub use item::buffer::*;
 pub use item::function::*;
 pub use item::import::*;
 pub use item::run_block::*;
+pub use item::struct_::*;
 pub use item::*;
 pub use left_value::*;
 pub use statement::*;

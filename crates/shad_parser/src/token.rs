@@ -9,6 +9,9 @@ pub(crate) enum TokenType {
     #[token("import")]
     Import,
 
+    #[token("struct")]
+    Struct,
+
     #[token("buf")]
     Buf,
 
@@ -132,6 +135,7 @@ impl TokenType {
     pub(crate) fn label(self) -> &'static str {
         match self {
             Self::Import => "`import`",
+            Self::Struct => "`struct`",
             Self::Buf => "`buf`",
             Self::Run => "`run`",
             Self::Priority => "`priority`",

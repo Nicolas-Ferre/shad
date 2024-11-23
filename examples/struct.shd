@@ -1,0 +1,5 @@
+struct Character {
+    life: f32,
+    energy: f32,
+    mana: f32,
+}

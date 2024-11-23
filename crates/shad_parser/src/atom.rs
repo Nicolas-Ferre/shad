@@ -43,7 +43,11 @@ pub enum AstIdentType {
     TypeUsage,
     /// A variable name usage.
     VarUsage,
-    /// A function name definition.
+    /// A type name definition.
+    StructDef,
+    /// A type name definition.
+    StructFieldDef,
+    /// A buffer name definition.
     FnDef,
     /// A buffer name definition.
     BufDef,

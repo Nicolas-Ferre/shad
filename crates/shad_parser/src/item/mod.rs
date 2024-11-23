@@ -1,6 +1,6 @@
 use crate::atom::{parse_token, parse_token_option};
 use crate::token::{Lexer, Token, TokenType};
-use crate::AstStatement;
+use crate::{AstStatement, AstStructItem};
 use buffer::AstBufferItem;
 use function::AstFnItem;
 use import::AstImportItem;
@@ -11,10 +11,13 @@ pub(crate) mod buffer;
 pub(crate) mod function;
 pub(crate) mod import;
 pub(crate) mod run_block;
+pub(crate) mod struct_;
 
 /// A parsed item.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum AstItem {
+    /// A struct definition.
+    Struct(AstStructItem),
     /// A buffer definition.
     Buffer(AstBufferItem),
     /// A function definition.
@@ -40,6 +43,7 @@ impl AstItem {
     fn parse_without_visibility(lexer: &mut Lexer<'_>, is_pub: bool) -> Result<Self, SyntaxError> {
         let token = Token::next(&mut lexer.clone())?;
         match token.type_ {
+            TokenType::Struct => Ok(Self::Struct(AstStructItem::parse(lexer)?)),
             TokenType::Buf => Ok(Self::Buffer(AstBufferItem::parse(lexer, is_pub)?)),
             TokenType::Gpu => Ok(Self::Fn(AstFnItem::parse_gpu(lexer, is_pub)?)),
             TokenType::Fn => Ok(Self::Fn(AstFnItem::parse(lexer, is_pub)?)),
