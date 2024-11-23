@@ -63,7 +63,10 @@ impl AstFnItem {
         let mut params = vec![];
         while parse_token_option(lexer, TokenType::CloseParenthesis)?.is_none() {
             params.push(AstFnParam::parse(lexer)?);
-            parse_token_option(lexer, TokenType::Comma)?;
+            if parse_token_option(lexer, TokenType::Comma)?.is_none() {
+                parse_token(lexer, TokenType::CloseParenthesis)?;
+                break;
+            }
         }
         Ok(params)
     }
