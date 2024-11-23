@@ -31,7 +31,10 @@ impl AstStructItem {
         let mut fields = vec![];
         while parse_token_option(lexer, TokenType::CloseBrace)?.is_none() {
             fields.push(AstStructField::parse(lexer)?);
-            parse_token_option(lexer, TokenType::Comma)?; // TODO: comma is optional only at the end
+            if parse_token_option(lexer, TokenType::Comma)?.is_none() {
+                parse_token(lexer, TokenType::CloseBrace)?;
+                break;
+            }
         }
         Ok(Self { name, fields })
     }
