@@ -224,11 +224,6 @@ impl Visit for IdentRegistration<'_> {
                     } else if !node.is_statement {
                         let fn_type_id =
                             types::find_type(self.analysis, self.module, &return_type.name);
-                        if fn_type_id.is_none() {
-                            self.analysis
-                                .errors
-                                .push(errors::types::not_found(&return_type.name));
-                        }
                         let fn_ident = Ident::new(IdentSource::Fn(fn_id), fn_type_id);
                         self.analysis.idents.insert(node.name.id, fn_ident);
                     }

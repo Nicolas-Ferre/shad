@@ -1,0 +1,9 @@
+error: type `A` is defined multiple times
+ --> ./cases_invalid/code/struct/main.shd:3:8
+  |
+1 | struct A {}
+  |        - info: type with same name is defined here
+2 | struct B {}
+3 | struct A {}
+  |        ^ duplicated type
+  |

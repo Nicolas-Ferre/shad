@@ -21,3 +21,10 @@ error: invalid type in assignment
    |             ^ expression of type `i32`
    |     ----- info: expected type `f32`
    |
+
+error: could not find `undef` type
+  --> ./cases_invalid/code/assignment_invalid_type/main.shd:14:31
+   |
+14 | fn invalid_returned_type() -> undef {
+   |                               ^^^^^ undefined type
+   |
