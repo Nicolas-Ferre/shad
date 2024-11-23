@@ -1,7 +1,7 @@
 use crate::{errors, Analysis, BufferId, IdentSource};
 use fxhash::FxHashSet;
 use shad_error::{SemanticError, Span};
-use shad_parser::{AstIdent, Visit};
+use shad_parser::{AstFnCall, AstIdent, Visit};
 use std::mem;
 
 pub(crate) fn check(analysis: &mut Analysis) {
@@ -86,6 +86,13 @@ impl<'a> BufferRecursionCheck<'a> {
 }
 
 impl Visit for BufferRecursionCheck<'_> {
+    fn enter_fn_call(&mut self, node: &AstFnCall) {
+        if let Some(id) = self.analysis.fn_id(&node.name) {
+            let fn_ = &self.analysis.fns[&id].ast;
+            self.visit_fn_item(fn_);
+        }
+    }
+
     fn enter_ident(&mut self, node: &AstIdent) {
         if let IdentSource::Buffer(id) = &self.analysis.idents[&node.id].source {
             let buffer = &self.analysis.buffers[id].ast;
