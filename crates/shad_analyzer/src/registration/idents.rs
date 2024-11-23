@@ -2,8 +2,7 @@ use crate::registration::types;
 use crate::{errors, Analysis, Buffer, BufferId, FnId, Function};
 use fxhash::FxHashMap;
 use shad_parser::{
-    AstBufferItem, AstFnCall, AstFnItem, AstFnQualifier, AstIdent, AstIdentType, AstItem,
-    AstVarDefinition, Visit,
+    AstBufferItem, AstFnCall, AstFnItem, AstIdent, AstIdentType, AstItem, AstVarDefinition, Visit,
 };
 use std::mem;
 
@@ -45,8 +44,7 @@ fn register_buffer_init(analysis: &mut Analysis) {
     for (module, ast) in &asts {
         for item in &ast.items {
             if let AstItem::Buffer(buffer) = item {
-                IdentRegistration::new(analysis, module, Scope::BufDef, true)
-                    .visit_buffer_item(buffer);
+                IdentRegistration::new(analysis, module, true).visit_buffer_item(buffer);
             }
         }
     }
@@ -62,8 +60,7 @@ fn register_buffer_types(analysis: &mut Analysis) {
         for buffer in buffers.values() {
             if analysis.idents[&buffer.ast.name.id].type_.is_none() {
                 let module = &buffer.ast.name.span.module.name;
-                IdentRegistration::new(analysis, module, Scope::BufDef, false)
-                    .visit_buffer_item(&buffer.ast);
+                IdentRegistration::new(analysis, module, false).visit_buffer_item(&buffer.ast);
             }
         }
         typed_buffer_count = count_typed_buffers(analysis);
@@ -77,20 +74,14 @@ fn register_buffer_types(analysis: &mut Analysis) {
 fn register_run_blocks(analysis: &mut Analysis) {
     let blocks = mem::take(&mut analysis.run_blocks);
     for block in &blocks {
-        IdentRegistration::new(analysis, &block.module, Scope::RunBlock, true)
-            .visit_run_item(&block.ast);
+        IdentRegistration::new(analysis, &block.module, true).visit_run_item(&block.ast);
     }
     analysis.run_blocks = blocks;
 }
 
 fn register_fns(analysis: &mut Analysis) {
     for fn_ in analysis.fns.clone().into_values() {
-        let scope = if fn_.ast.qualifier == AstFnQualifier::Buf {
-            Scope::BufFnBody
-        } else {
-            Scope::FnBody
-        };
-        IdentRegistration::new(analysis, &fn_.ast.name.span.module.name, scope, true)
+        IdentRegistration::new(analysis, &fn_.ast.name.span.module.name, true)
             .visit_fn_item(&fn_.ast);
     }
 }
@@ -115,7 +106,6 @@ fn count_typed_buffers(analysis: &Analysis) -> usize {
 struct IdentRegistration<'a> {
     analysis: &'a mut Analysis,
     module: &'a str,
-    scope: Scope,
     are_errors_enabled: bool,
     variables: FxHashMap<String, u64>,
 }
@@ -124,13 +114,11 @@ impl<'a> IdentRegistration<'a> {
     pub(crate) fn new(
         analysis: &'a mut Analysis,
         module: &'a str,
-        scope: Scope,
         are_errors_enabled: bool,
     ) -> Self {
         Self {
             analysis,
             module,
-            scope,
             are_errors_enabled,
             variables: FxHashMap::default(),
         }
@@ -254,10 +242,7 @@ impl Visit for IdentRegistration<'_> {
                 .and_then(|var| var.type_.clone());
             let var_ident = Ident::new(IdentSource::Var(id), var_type);
             self.analysis.idents.insert(node.id, var_ident);
-        } else if let (true, Some((buffer_id, buffer))) = (
-            self.scope.are_buffers_accessible(),
-            self.find_buffer(&node.label),
-        ) {
+        } else if let Some((buffer_id, buffer)) = self.find_buffer(&node.label) {
             let buffer_type = self
                 .analysis
                 .idents
@@ -269,23 +254,6 @@ impl Visit for IdentRegistration<'_> {
             self.analysis
                 .errors
                 .push(errors::variables::not_found(node));
-        }
-    }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum Scope {
-    BufDef,
-    BufFnBody,
-    FnBody,
-    RunBlock,
-}
-
-impl Scope {
-    fn are_buffers_accessible(self) -> bool {
-        match self {
-            Self::BufDef | Self::BufFnBody | Self::RunBlock => true,
-            Self::FnBody => false,
         }
     }
 }

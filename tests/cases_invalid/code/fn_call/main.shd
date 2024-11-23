@@ -11,16 +11,6 @@ fn fn_with_undefined_fn_call() {
 
 buf buffer = 0;
 
-buf invalid_init = buffer_fn();
-
-buf fn buffer_fn() -> i32 {
-    return 0;
-}
-
-fn buf_fn_in_fn() -> i32 {
-    return buffer_fn();
-}
-
 fn without_return_type() {
 }
 

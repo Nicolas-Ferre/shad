@@ -1,4 +1,12 @@
 import main;
 
-pub buf recursive2_indirect = recursive3_indirect;
+pub buf recursive2_indirect = recursive3_indirect_value();
 pub buf recursive3_indirect = recursive4_indirect;
+
+fn recursive3_indirect_value() -> u32 {
+    return recursive3_indirect_value_inner();
+}
+
+fn recursive3_indirect_value_inner() -> u32 {
+    return recursive3_indirect;
+}

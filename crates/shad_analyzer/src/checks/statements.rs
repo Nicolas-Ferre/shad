@@ -8,15 +8,12 @@ use shad_parser::{
 pub(crate) fn check(analysis: &mut Analysis) {
     let mut checker = StatementCheck::new(analysis);
     for block in &analysis.init_blocks {
-        checker.are_buffer_fns_allowed = false;
         checker.visit_run_item(&block.ast);
     }
     for block in &analysis.run_blocks {
-        checker.are_buffer_fns_allowed = true;
         checker.visit_run_item(&block.ast);
     }
     for fn_ in analysis.fns.values() {
-        checker.are_buffer_fns_allowed = fn_.ast.qualifier == AstFnQualifier::Buf;
         checker.fn_ = Some(fn_);
         checker.visit_fn_item(&fn_.ast);
     }
@@ -25,7 +22,6 @@ pub(crate) fn check(analysis: &mut Analysis) {
 
 struct StatementCheck<'a> {
     analysis: &'a Analysis,
-    are_buffer_fns_allowed: bool,
     errors: Vec<SemanticError>,
     fn_: Option<&'a Function>,
 }
@@ -34,7 +30,6 @@ impl<'a> StatementCheck<'a> {
     fn new(analysis: &'a Analysis) -> Self {
         Self {
             analysis,
-            are_buffer_fns_allowed: true,
             errors: vec![],
             fn_: None,
         }
@@ -154,10 +149,6 @@ impl Visit for StatementCheck<'_> {
     fn enter_fn_call(&mut self, node: &AstFnCall) {
         if let Some(fn_id) = self.analysis.fn_id(&node.name) {
             let fn_ = &self.analysis.fns[&fn_id];
-            if fn_.ast.qualifier == AstFnQualifier::Buf && !self.are_buffer_fns_allowed {
-                self.errors
-                    .push(errors::fn_calls::not_allowed_buf_fn(node, &fn_id));
-            }
             for (arg, param) in node.args.iter().zip(&fn_.ast.params) {
                 if let (Some(ref_span), ExprSemantic::Value) =
                     (param.ref_span.clone(), self.expr_semantic(arg))

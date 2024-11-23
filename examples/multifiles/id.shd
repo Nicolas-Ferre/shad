@@ -1,6 +1,6 @@
 buf next_id = 1;
 
-pub buf fn next_id() -> i32 {
+pub fn next_id() -> i32 {
     var id = next_id;
     next_id = next_id + 1;
     return id;

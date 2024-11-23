@@ -6,19 +6,19 @@ pub buf root_buffer = 0;
 
 pub buf called_main_fn = false;
 
-pub buf fn main_fn() {
+pub fn main_fn() {
     called_main_fn = true;
 }
 
 pub buf called_child_fn = false;
 
-pub buf fn child_fn() {
+pub fn child_fn() {
     called_child_fn = true;
 }
 
 pub buf called_root_fn = false;
 
-pub buf fn root_fn() {
+pub fn root_fn() {
     called_root_fn = true;
 }
 
