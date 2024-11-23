@@ -8,13 +8,13 @@ run {
     result_from_fn = transformed_buffer();
 }
 
-buf fn transformed_buffer() -> f32 {
+fn transformed_buffer() -> f32 {
     var a = square(result_from_fn);
     var b = double(result_from_fn);
     return a + b;
 }
 
-buf fn square(value: f32) -> f32 {
+fn square(value: f32) -> f32 {
     return value * value;
 }
 
@@ -28,6 +28,6 @@ run {
     update_buffer();
 }
 
-buf fn update_buffer() {
+fn update_buffer() {
     no_return_value_result = 1;
 }

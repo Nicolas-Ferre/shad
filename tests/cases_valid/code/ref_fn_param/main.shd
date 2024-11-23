@@ -38,14 +38,14 @@ fn without_return_value(ref ref_: i32, copied: i32) {
     ref_ = ref_ + copied - 1 + 1;
 }
 
-buf fn with_return_value(ref ref_: i32, copied: i32) -> i32 {
+fn with_return_value(ref ref_: i32, copied: i32) -> i32 {
     call_count = call_count + 1;
     not_inlined_fn();
     without_return_value(ref_, copied);
     return ref_;
 }
 
-buf fn with_return_inlined_value(ref ref_: i32, copied: i32) -> i32 {
+fn with_return_inlined_value(ref ref_: i32, copied: i32) -> i32 {
     ref_ = ref_ + copied;
     return with_return_value(ref_, copied);
 }

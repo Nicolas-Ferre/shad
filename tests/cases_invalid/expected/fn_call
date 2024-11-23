@@ -26,77 +26,61 @@ error: could not find `pow(f32, i32)` function
   |                                 ^^^^^^^^^^^ undefined function
   |
 
-error: `buf` function `buffer_fn()` called in invalid context
-  --> ./cases_invalid/code/fn_call/main.shd:14:20
-   |
-14 | buf invalid_init = buffer_fn();
-   |                    ^^^^^^^^^^^ this function cannot be called here
-   |                    ----------- info: `buf` functions can only be called in `run` blocks and `buf fn` functions
-   |
-
-error: `buf` function `buffer_fn()` called in invalid context
-  --> ./cases_invalid/code/fn_call/main.shd:21:12
-   |
-21 |     return buffer_fn();
-   |            ^^^^^^^^^^^ this function cannot be called here
-   |            ----------- info: `buf` functions can only be called in `run` blocks and `buf fn` functions
-   |
-
 error: function `with_return_type()` called as a statement while having a return type
-  --> ./cases_invalid/code/fn_call/main.shd:32:5
+  --> ./cases_invalid/code/fn_call/main.shd:22:5
    |
-32 |     with_return_type();
+22 |     with_return_type();
    |     ^^^^^^^^^^^^^^^^^^ returned value needs to be stored in a variable
    |
 
 error: expected function with a return type, got function `without_return_type()`
-  --> ./cases_invalid/code/fn_call/main.shd:33:13
+  --> ./cases_invalid/code/fn_call/main.shd:23:13
    |
-33 |     var x = without_return_type();
+23 |     var x = without_return_type();
    |             ^^^^^^^^^^^^^^^^^^^^^ this function cannot be called here
    |
 
 error: invalid reference expression
-  --> ./cases_invalid/code/fn_call/main.shd:40:23
+  --> ./cases_invalid/code/fn_call/main.shd:30:23
    |
-36 | fn fn_with_ref_param(ref param: i32) {
+26 | fn fn_with_ref_param(ref param: i32) {
    |                      --- info: parameter is a reference
-37 | }
-38 | 
-39 | run {
-40 |     fn_with_ref_param(42);
+27 | }
+28 | 
+29 | run {
+30 |     fn_with_ref_param(42);
    |                       ^^ not a reference
    |
 
 error: expected function with a return type, got function `without_return_type()`
-  --> ./cases_invalid/code/fn_call/main.shd:49:5
+  --> ./cases_invalid/code/fn_call/main.shd:39:5
    |
-49 |     without_return_type() = 2;
+39 |     without_return_type() = 2;
    |     ^^^^^^^^^^^^^^^^^^^^^ this function cannot be called here
    |
 
 error: expression is not a reference
-  --> ./cases_invalid/code/fn_call/main.shd:50:5
+  --> ./cases_invalid/code/fn_call/main.shd:40:5
    |
-50 |     returned_copy() = 2;
+40 |     returned_copy() = 2;
    |     ^^^^^^^^^^^^^^^ a valid reference is expected here
    |
 
 error: invalid reference expression
-  --> ./cases_invalid/code/fn_call/main.shd:51:23
+  --> ./cases_invalid/code/fn_call/main.shd:41:23
    |
-36 | fn fn_with_ref_param(ref param: i32) {
+26 | fn fn_with_ref_param(ref param: i32) {
    |                      --- info: parameter is a reference
-37 | }
+27 | }
 ...
-50 |     returned_copy() = 2;
-51 |     fn_with_ref_param(returned_copy());
+40 |     returned_copy() = 2;
+41 |     fn_with_ref_param(returned_copy());
    |                       ^^^^^^^^^^^^^^^ not a reference
    |
 
 error: expression is not a reference
-  --> ./cases_invalid/code/fn_call/main.shd:55:12
+  --> ./cases_invalid/code/fn_call/main.shd:45:12
    |
-55 |     return 0;
+45 |     return 0;
    |            ^ a valid reference is expected here
    |

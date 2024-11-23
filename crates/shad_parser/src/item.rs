@@ -30,17 +30,9 @@ impl AstItem {
 
     #[allow(clippy::wildcard_enum_match_arm)]
     fn parse_without_visibility(lexer: &mut Lexer<'_>, is_pub: bool) -> Result<Self, SyntaxError> {
-        let mut tmp_lexer = lexer.clone();
-        let token = Token::next(&mut tmp_lexer)?;
-        let next_token = Token::next(&mut tmp_lexer)?;
+        let token = Token::next(&mut lexer.clone())?;
         match token.type_ {
-            TokenType::Buf => {
-                if next_token.type_ == TokenType::Fn {
-                    Ok(Self::Fn(AstFnItem::parse(lexer, is_pub)?))
-                } else {
-                    Ok(Self::Buffer(AstBufferItem::parse(lexer, is_pub)?))
-                }
-            }
+            TokenType::Buf => Ok(Self::Buffer(AstBufferItem::parse(lexer, is_pub)?)),
             TokenType::Gpu => Ok(Self::Fn(AstFnItem::parse_gpu(lexer, is_pub)?)),
             TokenType::Fn => Ok(Self::Fn(AstFnItem::parse(lexer, is_pub)?)),
             TokenType::Run => Ok(Self::Run(AstRunItem::parse(lexer)?)),
@@ -108,7 +100,6 @@ pub struct AstFnItem {
 
 impl AstFnItem {
     fn parse(lexer: &mut Lexer<'_>, is_pub: bool) -> Result<Self, SyntaxError> {
-        let is_buf_qualifier = parse_token_option(lexer, TokenType::Buf)?.is_some();
         parse_token(lexer, TokenType::Fn)?;
         let name = AstIdent::parse(lexer, AstIdentType::FnDef)?;
         let params = Self::parse_params(lexer)?;
@@ -118,11 +109,7 @@ impl AstFnItem {
             name,
             params,
             return_type,
-            qualifier: if is_buf_qualifier {
-                AstFnQualifier::Buf
-            } else {
-                AstFnQualifier::None
-            },
+            qualifier: AstFnQualifier::None,
             statements,
             is_pub,
         })
@@ -188,8 +175,6 @@ impl AstReturnType {
 pub enum AstFnQualifier {
     /// No qualifier.
     None,
-    /// The `buf` qualifier.
-    Buf,
     /// The `gpu` qualifier.
     Gpu,
 }

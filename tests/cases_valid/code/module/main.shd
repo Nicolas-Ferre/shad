@@ -6,7 +6,7 @@ buf main_buffer = 0;
 
 pub buf called_main_fn = false;
 
-pub buf fn main_fn() {
+pub fn main_fn() {
     called_main_fn = true;
 }
 

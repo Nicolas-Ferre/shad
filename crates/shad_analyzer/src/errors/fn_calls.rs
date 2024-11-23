@@ -2,28 +2,6 @@ use crate::FnId;
 use shad_error::{ErrorLevel, LocatedMessage, SemanticError, Span};
 use shad_parser::{AstExpr, AstFnCall};
 
-pub(crate) fn not_allowed_buf_fn(call: &AstFnCall, fn_id: &FnId) -> SemanticError {
-    SemanticError::new(
-        format!(
-            "`buf` function `{}` called in invalid context",
-            fn_id.signature
-        ),
-        vec![
-            LocatedMessage {
-                level: ErrorLevel::Error,
-                span: call.span.clone(),
-                text: "this function cannot be called here".into(),
-            },
-            LocatedMessage {
-                level: ErrorLevel::Info,
-                span: call.span.clone(),
-                text: "`buf` functions can only be called in `run` blocks and `buf fn` functions"
-                    .into(),
-            },
-        ],
-    )
-}
-
 pub(crate) fn no_return_type(fn_id: &FnId, fn_call: &AstFnCall) -> SemanticError {
     SemanticError::new(
         format!(

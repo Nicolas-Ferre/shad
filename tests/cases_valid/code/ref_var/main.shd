@@ -8,7 +8,7 @@ run {
     result_ref = result_ref + 1;
 }
 
-buf fn result() -> ref i32 {
+fn result() -> ref i32 {
     result = result + 1;
     return result;
 }

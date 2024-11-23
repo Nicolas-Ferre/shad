@@ -20,6 +20,6 @@ fn double(value: f32) -> f32 {
     return value * 2.;
 }
 
-buf fn update_buffer() {
+fn update_buffer() {
     buffer_f32 = pow(3., 2.);
 }
