@@ -1,8 +1,8 @@
-struct Empty {}
-
-struct Fields {
+struct ValidFields {
     field1: f32,
-    field2: f32,
+    field2: i32,
+    field3: u32,
+    field4: bool,
 }
 
 struct FieldsWithoutLastComma {
@@ -10,6 +10,6 @@ struct FieldsWithoutLastComma {
     field2: f32
 }
 
-fn copy(value: Fields) -> Fields {
+fn copy(value: ValidFields) -> ValidFields {
     return value;
 }

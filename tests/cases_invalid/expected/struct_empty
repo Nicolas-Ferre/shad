@@ -1,0 +1,6 @@
+error: expected identifier
+ --> ./cases_invalid/code/struct_empty/main.shd:1:15
+  |
+1 | struct Empty {}
+  |               ^ here
+  |
