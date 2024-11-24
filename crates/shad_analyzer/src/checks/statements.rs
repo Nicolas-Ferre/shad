@@ -2,8 +2,8 @@ use crate::registration::types;
 use crate::{errors, Analysis, Function};
 use shad_error::SemanticError;
 use shad_parser::{
-    AstAssignment, AstExpr, AstFnCall, AstFnItem, AstFnQualifier, AstIdentType, AstLeftValue,
-    AstReturn, AstStatement, AstVarDefinition, Visit,
+    AstAssignment, AstExpr, AstFnCall, AstFnItem, AstFnQualifier, AstLeftValue, AstReturn,
+    AstStatement, AstVarDefinition, Visit,
 };
 
 pub(crate) fn check(analysis: &mut Analysis) {
@@ -113,9 +113,7 @@ impl Visit for StatementCheck<'_> {
     }
 
     fn enter_var_definition(&mut self, node: &AstVarDefinition) {
-        if node.name.type_ == AstIdentType::RefDef
-            && self.expr_semantic(&node.expr) == ExprSemantic::Value
-        {
+        if node.is_ref && self.expr_semantic(&node.expr) == ExprSemantic::Value {
             self.errors.push(errors::expressions::not_ref(&node.expr));
         }
     }

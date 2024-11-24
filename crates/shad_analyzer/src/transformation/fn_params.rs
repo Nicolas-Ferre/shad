@@ -37,8 +37,9 @@ impl VisitMut for FnParamTransform<'_> {
                         span: param.name.span.clone(),
                         label: param.name.label.clone(),
                         id: self.analysis.next_id(),
-                        type_: AstIdentType::VarDef,
+                        type_: AstIdentType::Other,
                     },
+                    is_ref: false,
                     expr: AstExpr::Ident(AstIdent {
                         span: param.name.span.clone(),
                         label: param.name.label.clone(),

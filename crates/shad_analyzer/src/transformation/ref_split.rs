@@ -96,8 +96,9 @@ impl VisitMut for RefSplitTransform<'_> {
                     span: arg.span().clone(),
                     label: var_label.into(),
                     id: var_def_id,
-                    type_: AstIdentType::VarDef,
+                    type_: AstIdentType::Other,
                 },
+                is_ref: false,
                 expr: arg,
             }));
             let type_id = types::find(self.analysis, self.module, &param.type_)

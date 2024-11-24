@@ -27,7 +27,7 @@ pub struct AstFnItem {
 impl AstFnItem {
     pub(crate) fn parse(lexer: &mut Lexer<'_>, is_pub: bool) -> Result<Self, SyntaxError> {
         parse_token(lexer, TokenType::Fn)?;
-        let name = AstIdent::parse(lexer, AstIdentType::FnDef)?;
+        let name = AstIdent::parse(lexer, AstIdentType::Other)?;
         let params = Self::parse_params(lexer)?;
         let return_type = AstReturnType::parse(lexer)?;
         let statements = super::parse_statement_block(lexer)?;
@@ -44,7 +44,7 @@ impl AstFnItem {
     pub(crate) fn parse_gpu(lexer: &mut Lexer<'_>, is_pub: bool) -> Result<Self, SyntaxError> {
         parse_token(lexer, TokenType::Gpu)?;
         parse_token(lexer, TokenType::Fn)?;
-        let name = AstIdent::parse(lexer, AstIdentType::FnDef)?;
+        let name = AstIdent::parse(lexer, AstIdentType::Other)?;
         let params = Self::parse_params(lexer)?;
         let return_type = AstReturnType::parse(lexer)?;
         parse_token(lexer, TokenType::SemiColon)?;
@@ -88,7 +88,7 @@ impl AstReturnType {
         if parse_token_option(lexer, TokenType::Arrow)?.is_some() {
             let ref_span = parse_token_option(lexer, TokenType::Ref)?.map(|ref_| ref_.span);
             Ok(Some(Self {
-                name: AstIdent::parse(lexer, AstIdentType::TypeUsage)?,
+                name: AstIdent::parse(lexer, AstIdentType::Other)?,
                 is_ref: ref_span.is_some(),
             }))
         } else {
@@ -126,9 +126,9 @@ pub struct AstFnParam {
 impl AstFnParam {
     fn parse(lexer: &mut Lexer<'_>) -> Result<Self, SyntaxError> {
         let ref_span = parse_token_option(lexer, TokenType::Ref)?.map(|ref_| ref_.span);
-        let name = AstIdent::parse(lexer, AstIdentType::ParamDef)?;
+        let name = AstIdent::parse(lexer, AstIdentType::Other)?;
         parse_token(lexer, TokenType::Colon)?;
-        let type_ = AstIdent::parse(lexer, AstIdentType::TypeUsage)?;
+        let type_ = AstIdent::parse(lexer, AstIdentType::Other)?;
         Ok(Self {
             name,
             type_,

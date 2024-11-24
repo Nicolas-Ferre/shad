@@ -2,7 +2,8 @@ use crate::registration::types;
 use crate::{errors, Analysis, Buffer, BufferId, FnId, Function, TypeId};
 use fxhash::FxHashMap;
 use shad_parser::{
-    AstBufferItem, AstFnCall, AstFnItem, AstIdent, AstIdentType, AstItem, AstVarDefinition, Visit,
+    AstBufferItem, AstFnCall, AstFnItem, AstFnParam, AstIdent, AstIdentType, AstItem,
+    AstVarDefinition, Visit,
 };
 use std::mem;
 
@@ -160,36 +161,40 @@ impl<'a> IdentRegistration<'a> {
             })
             .find(|(buffer_id, buffer)| buffer.ast.is_pub || buffer_id.module == self.module)
     }
-}
 
-impl Visit for IdentRegistration<'_> {
-    fn enter_fn_item(&mut self, node: &AstFnItem) {
+    fn register_fn_item(&mut self, node: &AstFnItem) {
         let return_type_id = if let Some(return_type) = &node.return_type {
             let type_id = types::find(self.analysis, self.module, &return_type.name);
             if type_id.is_none() {
-                self.analysis
-                    .errors
-                    .push(errors::types::not_found(&return_type.name));
+                let error = errors::types::not_found(&return_type.name);
+                self.analysis.errors.push(error);
             }
             type_id
         } else {
             None
         };
-        let fn_ident = Ident::new(
-            IdentSource::Fn(FnId::from_item(self.analysis, node)),
-            return_type_id,
-        );
+        let fn_ident_source = IdentSource::Fn(FnId::from_item(self.analysis, node));
+        let fn_ident = Ident::new(fn_ident_source, return_type_id);
         self.analysis.idents.insert(node.name.id, fn_ident);
+    }
+
+    fn register_fn_param(&mut self, param: &AstFnParam) {
+        let type_id = types::find(self.analysis, self.module, &param.type_);
+        if type_id.is_none() {
+            let error = errors::types::not_found(&param.type_);
+            self.analysis.errors.push(error);
+        }
+        let ident = Ident::new(IdentSource::Var(param.name.id), type_id);
+        self.analysis.idents.insert(param.name.id, ident);
+        self.add_variable(&param.name);
+    }
+}
+
+impl Visit for IdentRegistration<'_> {
+    fn enter_fn_item(&mut self, node: &AstFnItem) {
+        self.register_fn_item(node);
         for param in &node.params {
-            let param_type_id = types::find(self.analysis, self.module, &param.type_);
-            if param_type_id.is_none() {
-                self.analysis
-                    .errors
-                    .push(errors::types::not_found(&param.type_));
-            }
-            let param_ident = Ident::new(IdentSource::Var(param.name.id), param_type_id);
-            self.analysis.idents.insert(param.name.id, param_ident);
-            self.add_variable(&param.name);
+            self.register_fn_param(param);
         }
     }
 
@@ -233,14 +238,12 @@ impl Visit for IdentRegistration<'_> {
                     let fn_ident = Ident::new(IdentSource::Fn(fn_id), None);
                     self.analysis.idents.insert(node.name.id, fn_ident);
                 } else if self.are_errors_enabled {
-                    self.analysis
-                        .errors
-                        .push(errors::fn_calls::no_return_type(&fn_id, node));
+                    let error = errors::fn_calls::no_return_type(&fn_id, node);
+                    self.analysis.errors.push(error);
                 }
             } else if self.are_errors_enabled {
-                self.analysis
-                    .errors
-                    .push(errors::functions::not_found(node, &arg_type_ids));
+                let error = errors::functions::not_found(node, &arg_type_ids);
+                self.analysis.errors.push(error);
             }
         }
     }
@@ -266,9 +269,8 @@ impl Visit for IdentRegistration<'_> {
             let buffer_ident = Ident::new(IdentSource::Buffer(buffer_id), buffer_type);
             self.analysis.idents.insert(node.id, buffer_ident);
         } else if self.are_errors_enabled {
-            self.analysis
-                .errors
-                .push(errors::variables::not_found(node));
+            let error = errors::variables::not_found(node);
+            self.analysis.errors.push(error);
         }
     }
 }

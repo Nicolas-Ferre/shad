@@ -50,11 +50,7 @@ impl FnId {
             self.name,
             self.param_types
                 .iter()
-                .map(|type_| if let Some(type_) = type_ {
-                    &type_.name
-                } else {
-                    "<invalid>"
-                })
+                .map(|type_| type_.as_ref().map_or("?", |t| t.name.as_str()))
                 .join(", ")
         )
     }

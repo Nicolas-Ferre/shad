@@ -75,7 +75,7 @@ pub struct AstFnCall {
 impl AstFnCall {
     #[allow(clippy::wildcard_enum_match_arm)]
     pub(crate) fn parse(lexer: &mut Lexer<'_>, is_statement: bool) -> Result<Self, SyntaxError> {
-        let name = AstIdent::parse(lexer, AstIdentType::FnUsage)?;
+        let name = AstIdent::parse(lexer, AstIdentType::Other)?;
         parse_token(lexer, TokenType::OpenParenthesis)?;
         let mut args = vec![];
         while parse_token(&mut lexer.clone(), TokenType::CloseParenthesis).is_err() {
@@ -136,7 +136,7 @@ impl AstFnCall {
                 span: operators[operator_index].1.clone(),
                 label: Self::binary_operator_fn_name(operators[operator_index].0).into(),
                 id: lexer.next_id(),
-                type_: AstIdentType::FnUsage,
+                type_: AstIdentType::Other,
             },
             args: vec![left, right],
             is_operator: true,
@@ -153,7 +153,7 @@ impl AstFnCall {
                 span: operator_token.span,
                 label: Self::unary_operator_fn_name(operator_token.type_).into(),
                 id: lexer.next_id(),
-                type_: AstIdentType::FnUsage,
+                type_: AstIdentType::Other,
             },
             args: vec![expr],
             is_operator: true,

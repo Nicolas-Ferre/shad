@@ -26,7 +26,7 @@ pub struct AstStructItem {
 impl AstStructItem {
     pub(crate) fn parse(lexer: &mut Lexer<'_>) -> Result<Self, SyntaxError> {
         parse_token(lexer, TokenType::Struct)?;
-        let name = AstIdent::parse(lexer, AstIdentType::StructDef)?;
+        let name = AstIdent::parse(lexer, AstIdentType::Other)?;
         parse_token(lexer, TokenType::OpenBrace)?;
         let mut fields = vec![];
         while parse_token_option(lexer, TokenType::CloseBrace)?.is_none() {
@@ -62,9 +62,9 @@ pub struct AstStructField {
 
 impl AstStructField {
     fn parse(lexer: &mut Lexer<'_>) -> Result<Self, SyntaxError> {
-        let name = AstIdent::parse(lexer, AstIdentType::StructFieldDef)?;
+        let name = AstIdent::parse(lexer, AstIdentType::Other)?;
         parse_token(lexer, TokenType::Colon)?;
-        let type_ = AstIdent::parse(lexer, AstIdentType::TypeUsage)?;
+        let type_ = AstIdent::parse(lexer, AstIdentType::Other)?;
         Ok(Self { name, type_ })
     }
 }
