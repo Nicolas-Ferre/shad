@@ -10,6 +10,8 @@ pub(crate) fn check(analysis: &mut Analysis) {
             if field_type.module.is_some() {
                 errors.push(errors::types::invalid_field_type(struct_, &field.type_));
             }
+        } else {
+            errors.push(errors::types::not_found(&field.type_));
         }
     }
     analysis.errors.extend(errors);

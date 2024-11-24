@@ -14,3 +14,10 @@ error: not allowed type `B` in struct `InvalidTypes`
 10 |     e: B,
    |        ^ only `u32`, `i32`, `f32` and `bool` types are allowed here
    |
+
+error: could not find `undef` type
+  --> ./cases_invalid/code/struct/main.shd:11:8
+   |
+11 |     e: undef,
+   |        ^^^^^ undefined type
+   |

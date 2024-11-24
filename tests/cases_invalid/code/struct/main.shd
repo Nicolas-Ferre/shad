@@ -8,4 +8,5 @@ struct InvalidTypes {
     c: u32,
     d: bool,
     e: B,
+    e: undef,
 }
