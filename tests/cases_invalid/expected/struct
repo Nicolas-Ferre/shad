@@ -7,3 +7,10 @@ error: type `A` is defined multiple times
 3 | struct A {}
   |        ^ duplicated type
   |
+
+error: not allowed type `B` in struct `InvalidTypes`
+  --> ./cases_invalid/code/struct/main.shd:10:8
+   |
+10 |     e: B,
+   |        ^ only `u32`, `i32`, `f32` and `bool` types are allowed here
+   |

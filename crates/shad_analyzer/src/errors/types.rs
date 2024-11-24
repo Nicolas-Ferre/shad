@@ -34,3 +34,17 @@ pub(crate) fn not_found(ident: &AstIdent) -> SemanticError {
         }],
     )
 }
+
+pub(crate) fn invalid_field_type(struct_: &AstStructItem, field_type: &AstIdent) -> SemanticError {
+    SemanticError::new(
+        format!(
+            "not allowed type `{}` in struct `{}`",
+            field_type.label, struct_.name.label
+        ),
+        vec![LocatedMessage {
+            level: ErrorLevel::Error,
+            span: field_type.span.clone(),
+            text: "only `u32`, `i32`, `f32` and `bool` types are allowed here".into(),
+        }],
+    )
+}
