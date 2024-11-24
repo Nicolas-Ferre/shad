@@ -100,7 +100,7 @@ impl VisitMut for RefSplitTransform<'_> {
                 },
                 expr: arg,
             }));
-            let type_id = types::find_type(self.analysis, self.module, &param.type_)
+            let type_id = types::find(self.analysis, self.module, &param.type_)
                 .expect("internal error: invalid type");
             self.analysis.idents.insert(
                 var_def_id,

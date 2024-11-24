@@ -78,7 +78,7 @@ pub(crate) fn missing_return(fn_: &AstFnItem, fn_id: &FnId) -> SemanticError {
     SemanticError::new(
         format!(
             "missing `return` statement in function `{}`",
-            fn_id.signature
+            fn_id.signature()
         ),
         vec![LocatedMessage {
             level: ErrorLevel::Error,

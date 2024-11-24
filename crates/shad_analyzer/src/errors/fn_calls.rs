@@ -6,7 +6,7 @@ pub(crate) fn no_return_type(fn_id: &FnId, fn_call: &AstFnCall) -> SemanticError
     SemanticError::new(
         format!(
             "expected function with a return type, got function `{}`",
-            fn_id.signature
+            fn_id.signature()
         ),
         vec![LocatedMessage {
             level: ErrorLevel::Error,
@@ -20,7 +20,7 @@ pub(crate) fn unexpected_return_type(call: &AstFnCall, id: &FnId) -> SemanticErr
     SemanticError::new(
         format!(
             "function `{}` called as a statement while having a return type",
-            id.signature
+            id.signature()
         ),
         vec![LocatedMessage {
             level: ErrorLevel::Error,

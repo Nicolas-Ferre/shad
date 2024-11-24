@@ -1,4 +1,5 @@
-use crate::{errors, Analysis};
+use crate::registration::types;
+use crate::{errors, Analysis, TypeId};
 use itertools::Itertools;
 use shad_parser::{AstFnItem, AstFnQualifier, AstItem};
 use std::mem;
@@ -24,20 +25,38 @@ impl Function {
 pub struct FnId {
     /// The module in which the function is defined.
     pub module: String,
-    /// The function signature, including the function name and parameter types.
-    pub signature: String,
+    /// The function name.
+    pub name: String,
+    /// The function parameter types.
+    pub param_types: Vec<Option<TypeId>>,
 }
 
 impl FnId {
-    pub(crate) fn new(fn_: &AstFnItem) -> Self {
+    pub(crate) fn from_item(analysis: &Analysis, fn_: &AstFnItem) -> Self {
         Self {
             module: fn_.name.span.module.name.clone(),
-            signature: format!(
-                "{}({})",
-                fn_.name.label,
-                fn_.params.iter().map(|param| &param.type_.label).join(", ")
-            ),
+            name: fn_.name.label.clone(),
+            param_types: fn_
+                .params
+                .iter()
+                .map(|param| types::find(analysis, &fn_.name.span.module.name, &param.type_))
+                .collect(),
         }
+    }
+
+    pub(crate) fn signature(&self) -> String {
+        format!(
+            "{}({})",
+            self.name,
+            self.param_types
+                .iter()
+                .map(|type_| if let Some(type_) = type_ {
+                    &type_.name
+                } else {
+                    "<invalid>"
+                })
+                .join(", ")
+        )
     }
 }
 
@@ -46,7 +65,7 @@ pub(crate) fn register(analysis: &mut Analysis) {
     for ast in asts.values() {
         for items in &ast.items {
             if let AstItem::Fn(fn_) = items {
-                let id = FnId::new(fn_);
+                let id = FnId::from_item(analysis, fn_);
                 let existing_function = analysis.fns.insert(
                     id.clone(),
                     Function {

@@ -127,7 +127,7 @@ impl Visit for StatementCheck<'_> {
                     return;
                 };
                 if let Some(return_type_id) =
-                    types::find_type(self.analysis, self.module, &return_type.name)
+                    types::find(self.analysis, self.module, &return_type.name)
                 {
                     if type_id != return_type_id {
                         self.errors.push(errors::returns::invalid_type(

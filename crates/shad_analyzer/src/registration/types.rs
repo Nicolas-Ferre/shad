@@ -47,14 +47,6 @@ impl TypeId {
             name: fn_.name.label.clone(),
         }
     }
-
-    pub(crate) fn full_name(&self) -> String {
-        if let Some(module) = &self.module {
-            format!("{}.{}", module, self.name)
-        } else {
-            self.name.clone()
-        }
-    }
 }
 
 pub(crate) fn register(analysis: &mut Analysis) {
@@ -126,7 +118,7 @@ fn register_structs(analysis: &mut Analysis) {
     analysis.asts = asts;
 }
 
-pub(crate) fn find_type(analysis: &Analysis, module: &str, ident: &AstIdent) -> Option<TypeId> {
+pub(crate) fn find(analysis: &Analysis, module: &str, ident: &AstIdent) -> Option<TypeId> {
     let type_id = TypeId {
         module: Some(module.into()),
         name: ident.label.clone(),

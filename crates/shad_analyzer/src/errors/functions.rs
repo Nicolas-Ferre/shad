@@ -1,5 +1,5 @@
 use crate::checks::fn_recursion::UsedFn;
-use crate::FnId;
+use crate::{FnId, TypeId};
 use itertools::Itertools;
 use shad_error::{ErrorLevel, LocatedMessage, SemanticError};
 use shad_parser::{AstFnCall, AstFnItem, AstIdent};
@@ -11,7 +11,7 @@ pub(crate) fn duplicated(
     existing_fn: &AstFnItem,
 ) -> SemanticError {
     SemanticError::new(
-        format!("function `{}` is defined multiple times", id.signature),
+        format!("function `{}` is defined multiple times", id.signature()),
         vec![
             LocatedMessage {
                 level: ErrorLevel::Error,
@@ -27,9 +27,13 @@ pub(crate) fn duplicated(
     )
 }
 
-pub(crate) fn not_found(call: &AstFnCall, signature: &str) -> SemanticError {
+pub(crate) fn not_found(call: &AstFnCall, arg_types: &[TypeId]) -> SemanticError {
     SemanticError::new(
-        format!("could not find `{signature}` function"),
+        format!(
+            "could not find `{}({})` function",
+            call.name.label,
+            arg_types.iter().map(|type_| &type_.name).join(", ")
+        ),
         vec![LocatedMessage {
             level: ErrorLevel::Error,
             span: call.span.clone(),
@@ -40,13 +44,16 @@ pub(crate) fn not_found(call: &AstFnCall, signature: &str) -> SemanticError {
 
 pub(crate) fn recursion_found(current_fn_id: &FnId, fn_stack: &[UsedFn]) -> SemanticError {
     SemanticError::new(
-        format!("function `{}` defined recursively", current_fn_id.signature),
+        format!(
+            "function `{}` defined recursively",
+            current_fn_id.signature()
+        ),
         iter::once(LocatedMessage {
             level: ErrorLevel::Error,
             span: fn_stack[fn_stack.len() - 1].def_span.clone(),
             text: format!(
                 "recursive function `{}` defined here",
-                fn_stack[fn_stack.len() - 1].id.signature
+                fn_stack[fn_stack.len() - 1].id.signature()
             ),
         })
         .chain(
@@ -58,7 +65,8 @@ pub(crate) fn recursion_found(current_fn_id: &FnId, fn_stack: &[UsedFn]) -> Sema
                     span: next_usage.usage_span.clone(),
                     text: format!(
                         "`{}` function called in `{}` function",
-                        next_usage.id.signature, usage.id.signature,
+                        next_usage.id.signature(),
+                        usage.id.signature(),
                     ),
                 }),
         )
