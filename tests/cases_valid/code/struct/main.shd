@@ -1,8 +1,8 @@
 struct ValidFields {
     field1: f32,
-    field2: f32,
-    field3: f32,
-    field4: f32,
+    field2: i32,
+    field3: u32,
+    field4: bool,
 }
 
 struct FieldsWithoutLastComma {
