@@ -1,12 +1,9 @@
-struct A {}
-struct B {}
-struct A {}
+struct DuplicatedType { field1: u32 }
+struct OtherType { field2: u32 }
+struct DuplicatedType { field3: u32 }
 
-struct InvalidTypes {
-    a: f32,
-    b: i32,
-    c: u32,
-    d: bool,
-    e: B,
-    e: undef,
+struct InvalidFields {
+    valid_type: f32,
+    invalid_type: OtherType,
+    undefined_type: undef,
 }
