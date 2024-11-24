@@ -3,7 +3,7 @@ use crate::registration::idents::Ident;
 use crate::registration::shaders::ComputeShader;
 use crate::{
     checks, registration, transformation, Buffer, BufferId, BufferInitRunBlock, FnId, IdentSource,
-    RunBlock, Type, BOOL_TYPE, F32_TYPE, I32_TYPE, U32_TYPE,
+    RunBlock, Type, TypeId, BOOL_TYPE, F32_TYPE, I32_TYPE, U32_TYPE,
 };
 use fxhash::FxHashMap;
 use shad_error::SemanticError;
@@ -19,7 +19,7 @@ pub struct Analysis {
     /// The analyzed identifiers.
     pub idents: FxHashMap<u64, Ident>,
     /// The analyzed types.
-    pub types: FxHashMap<String, Type>,
+    pub types: FxHashMap<TypeId, Type>,
     /// The analyzed functions.
     pub fns: FxHashMap<FnId, Function>,
     /// The analyzed buffers.
@@ -63,6 +63,7 @@ impl Analysis {
         transformation::literals::transform(&mut analysis);
         transformation::fn_params::transform(&mut analysis);
         registration::idents::register(&mut analysis);
+        checks::structs::check(&mut analysis);
         checks::functions::check(&mut analysis);
         checks::literals::check(&mut analysis);
         checks::statements::check(&mut analysis);
@@ -83,18 +84,18 @@ impl Analysis {
         let id = &self.buffers[buffer_id].ast.name.id;
         let type_ = self.idents[id]
             .type_
-            .as_deref()
+            .as_ref()
             .expect("internal error: invalid buffer type");
         &self.types[type_]
     }
 
-    pub(crate) fn expr_type(&self, expr: &AstExpr) -> Option<String> {
+    pub(crate) fn expr_type(&self, expr: &AstExpr) -> Option<TypeId> {
         match expr {
             AstExpr::Literal(literal) => Some(match literal.type_ {
-                AstLiteralType::F32 => F32_TYPE.into(),
-                AstLiteralType::U32 => U32_TYPE.into(),
-                AstLiteralType::I32 => I32_TYPE.into(),
-                AstLiteralType::Bool => BOOL_TYPE.into(),
+                AstLiteralType::F32 => TypeId::from_builtin(F32_TYPE),
+                AstLiteralType::U32 => TypeId::from_builtin(U32_TYPE),
+                AstLiteralType::I32 => TypeId::from_builtin(I32_TYPE),
+                AstLiteralType::Bool => TypeId::from_builtin(BOOL_TYPE),
             }),
             AstExpr::Ident(ident) => self.idents.get(&ident.id)?.type_.clone(),
             AstExpr::FnCall(call) => self.idents.get(&call.name.id)?.type_.clone(),

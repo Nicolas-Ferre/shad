@@ -1,19 +1,23 @@
+use crate::registration::types;
 use crate::{errors, Analysis, Function};
 use shad_error::SemanticError;
 use shad_parser::{
-    AstAssignment, AstExpr, AstFnCall, AstFnItem, AstFnQualifier, AstIdentType, AstLeftValue,
-    AstReturn, AstStatement, AstVarDefinition, Visit,
+    AstAssignment, AstExpr, AstFnCall, AstFnItem, AstFnQualifier, AstLeftValue, AstReturn,
+    AstStatement, AstVarDefinition, Visit,
 };
 
 pub(crate) fn check(analysis: &mut Analysis) {
     let mut checker = StatementCheck::new(analysis);
     for block in &analysis.init_blocks {
+        checker.module = &block.buffer.module;
         checker.visit_run_item(&block.ast);
     }
     for block in &analysis.run_blocks {
+        checker.module = &block.module;
         checker.visit_run_item(&block.ast);
     }
     for fn_ in analysis.fns.values() {
+        checker.module = &fn_.ast.name.span.module.name;
         checker.fn_ = Some(fn_);
         checker.visit_fn_item(&fn_.ast);
     }
@@ -24,6 +28,7 @@ struct StatementCheck<'a> {
     analysis: &'a Analysis,
     errors: Vec<SemanticError>,
     fn_: Option<&'a Function>,
+    module: &'a str,
 }
 
 impl<'a> StatementCheck<'a> {
@@ -32,6 +37,7 @@ impl<'a> StatementCheck<'a> {
             analysis,
             errors: vec![],
             fn_: None,
+            module: "",
         }
     }
 
@@ -52,13 +58,6 @@ impl<'a> StatementCheck<'a> {
                 }),
         }
     }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum ExprSemantic {
-    None,
-    Ref,
-    Value,
 }
 
 impl Visit for StatementCheck<'_> {
@@ -93,10 +92,10 @@ impl Visit for StatementCheck<'_> {
             .analysis
             .idents
             .get(&value_id)
-            .and_then(|ident| ident.type_.as_deref());
+            .and_then(|ident| ident.type_.as_ref());
         let expr_type = self.analysis.expr_type(&node.expr);
         if let (Some(expected_type), Some(expr_type)) = (expected_type, expr_type) {
-            if expected_type != expr_type {
+            if expected_type != &expr_type {
                 self.errors.push(errors::assignments::invalid_type(
                     node,
                     expected_type,
@@ -114,9 +113,7 @@ impl Visit for StatementCheck<'_> {
     }
 
     fn enter_var_definition(&mut self, node: &AstVarDefinition) {
-        if node.name.type_ == AstIdentType::RefDef
-            && self.expr_semantic(&node.expr) == ExprSemantic::Value
-        {
+        if node.is_ref && self.expr_semantic(&node.expr) == ExprSemantic::Value {
             self.errors.push(errors::expressions::not_ref(&node.expr));
         }
     }
@@ -124,13 +121,18 @@ impl Visit for StatementCheck<'_> {
     fn enter_return(&mut self, node: &AstReturn) {
         if let Some(fn_) = self.fn_ {
             if let Some(return_type) = &fn_.ast.return_type {
-                if let Some(type_) = self.analysis.expr_type(&node.expr) {
-                    if type_ != return_type.name.label {
+                let Some(type_id) = self.analysis.expr_type(&node.expr) else {
+                    return;
+                };
+                if let Some(return_type_id) =
+                    types::find(self.analysis, self.module, &return_type.name)
+                {
+                    if type_id != return_type_id {
                         self.errors.push(errors::returns::invalid_type(
                             node,
                             &fn_.ast,
-                            &type_,
-                            &return_type.name.label,
+                            &type_id,
+                            &return_type_id,
                         ));
                         return;
                     }
@@ -159,4 +161,11 @@ impl Visit for StatementCheck<'_> {
             }
         }
     }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum ExprSemantic {
+    None,
+    Ref,
+    Value,
 }

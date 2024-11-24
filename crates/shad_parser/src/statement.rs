@@ -94,6 +94,8 @@ pub struct AstVarDefinition {
     pub span: Span,
     /// The variable name.
     pub name: AstIdent,
+    /// Whether the variable is a reference.
+    pub is_ref: bool,
     /// The initial value of the variable.
     pub expr: AstExpr,
 }
@@ -105,20 +107,14 @@ impl AstVarDefinition {
         } else {
             parse_token(lexer, TokenType::Ref)?
         };
-        let name = AstIdent::parse(
-            lexer,
-            if keyword.type_ == TokenType::Ref {
-                AstIdentType::RefDef
-            } else {
-                AstIdentType::VarDef
-            },
-        )?;
+        let name = AstIdent::parse(lexer, AstIdentType::Other)?;
         parse_token(lexer, TokenType::Assigment)?;
         let expr = AstExpr::parse(lexer)?;
         let semi_colon = parse_token(lexer, TokenType::SemiColon)?;
         Ok(Self {
             span: Span::join(&keyword.span, &semi_colon.span),
             name,
+            is_ref: keyword.type_ == TokenType::Ref,
             expr,
         })
     }

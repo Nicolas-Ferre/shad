@@ -22,7 +22,7 @@ impl AstBufferItem {
     #[allow(clippy::wildcard_enum_match_arm)]
     pub(crate) fn parse(lexer: &mut Lexer<'_>, is_pub: bool) -> Result<Self, SyntaxError> {
         parse_token(lexer, TokenType::Buf)?;
-        let name = AstIdent::parse(lexer, AstIdentType::BufDef)?;
+        let name = AstIdent::parse(lexer, AstIdentType::Other)?;
         parse_token(lexer, TokenType::Assigment)?;
         let value = AstExpr::parse(lexer)?;
         parse_token(lexer, TokenType::SemiColon)?;

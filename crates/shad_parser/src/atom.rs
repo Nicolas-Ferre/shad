@@ -37,24 +37,10 @@ impl AstIdent {
 /// The type of a parsed identifier.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum AstIdentType {
-    /// A function name usage.
-    FnUsage,
-    /// A type name usage.
-    TypeUsage,
     /// A variable name usage.
     VarUsage,
-    /// A function name definition.
-    FnDef,
-    /// A buffer name definition.
-    BufDef,
-    /// A variable name definition.
-    VarDef,
-    /// A reference name definition.
-    RefDef,
-    /// A function parameter name definition.
-    ParamDef,
-    /// A module path segment.
-    ModPathSegment,
+    /// Another type of identifier.
+    Other,
 }
 
 /// A parsed literal.

@@ -1,6 +1,6 @@
 use crate::atom::{parse_token, parse_token_option};
 use crate::token::{Lexer, Token, TokenType};
-use crate::AstStatement;
+use crate::{AstStatement, AstStructItem};
 use buffer::AstBufferItem;
 use function::AstFnItem;
 use import::AstImportItem;
@@ -11,10 +11,13 @@ pub(crate) mod buffer;
 pub(crate) mod function;
 pub(crate) mod import;
 pub(crate) mod run_block;
+pub(crate) mod struct_;
 
 /// A parsed item.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum AstItem {
+    /// A struct definition.
+    Struct(AstStructItem),
     /// A buffer definition.
     Buffer(AstBufferItem),
     /// A function definition.
@@ -28,12 +31,15 @@ pub enum AstItem {
 impl AstItem {
     #[allow(clippy::wildcard_enum_match_arm)]
     pub(crate) fn parse(lexer: &mut Lexer<'_>) -> Result<Self, SyntaxError> {
-        let mut tmp_lexer = lexer.clone();
-        let token = Token::next(&mut tmp_lexer)?;
-        if token.type_ == TokenType::Pub {
-            parse_token(lexer, TokenType::Pub)?;
+        let token = Token::next(&mut lexer.clone())?;
+        if token.type_ == TokenType::Struct {
+            Ok(Self::Struct(AstStructItem::parse(lexer)?))
+        } else {
+            if token.type_ == TokenType::Pub {
+                parse_token(lexer, TokenType::Pub)?;
+            }
+            Self::parse_without_visibility(lexer, token.type_ == TokenType::Pub)
         }
-        Self::parse_without_visibility(lexer, token.type_ == TokenType::Pub)
     }
 
     #[allow(clippy::wildcard_enum_match_arm)]

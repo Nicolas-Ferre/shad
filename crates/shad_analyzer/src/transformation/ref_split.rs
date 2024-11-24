@@ -1,3 +1,4 @@
+use crate::registration::types;
 use crate::{Analysis, Ident, IdentSource};
 use shad_parser::{
     AstExpr, AstFnCall, AstIdent, AstIdentType, AstStatement, AstVarDefinition, VisitMut,
@@ -13,7 +14,7 @@ pub(crate) fn transform(analysis: &mut Analysis) {
 fn transform_init_blocks(analysis: &mut Analysis) {
     let mut blocks = mem::take(&mut analysis.init_blocks);
     for block in &mut blocks {
-        visit_statements(analysis, &mut block.ast.statements);
+        visit_statements(analysis, &block.buffer.module, &mut block.ast.statements);
     }
     analysis.init_blocks = blocks;
 }
@@ -21,7 +22,7 @@ fn transform_init_blocks(analysis: &mut Analysis) {
 fn transform_run_blocks(analysis: &mut Analysis) {
     let mut blocks = mem::take(&mut analysis.run_blocks);
     for block in &mut blocks {
-        visit_statements(analysis, &mut block.ast.statements);
+        visit_statements(analysis, &block.module, &mut block.ast.statements);
     }
     analysis.run_blocks = blocks;
 }
@@ -29,16 +30,17 @@ fn transform_run_blocks(analysis: &mut Analysis) {
 fn transform_fns(analysis: &mut Analysis) {
     let mut fns = analysis.fns.clone();
     for fn_ in fns.values_mut() {
-        visit_statements(analysis, &mut fn_.ast.statements);
+        let module = &fn_.ast.name.span.module.name;
+        visit_statements(analysis, module, &mut fn_.ast.statements);
     }
     analysis.fns = fns;
 }
 
-fn visit_statements(analysis: &mut Analysis, statements: &mut Vec<AstStatement>) {
+fn visit_statements(analysis: &mut Analysis, module: &str, statements: &mut Vec<AstStatement>) {
     *statements = mem::take(statements)
         .into_iter()
         .flat_map(|mut statement| {
-            let mut transform = RefSplitTransform::new(analysis);
+            let mut transform = RefSplitTransform::new(analysis, module);
             transform.visit_statement(&mut statement);
             transform.statements.push(statement);
             transform.statements
@@ -49,13 +51,15 @@ fn visit_statements(analysis: &mut Analysis, statements: &mut Vec<AstStatement>)
 struct RefSplitTransform<'a> {
     analysis: &'a mut Analysis,
     statements: Vec<AstStatement>,
+    module: &'a str,
 }
 
 impl<'a> RefSplitTransform<'a> {
-    fn new(analysis: &'a mut Analysis) -> Self {
+    fn new(analysis: &'a mut Analysis, module: &'a str) -> Self {
         Self {
             analysis,
             statements: vec![],
+            module,
         }
     }
 }
@@ -92,23 +96,20 @@ impl VisitMut for RefSplitTransform<'_> {
                     span: arg.span().clone(),
                     label: var_label.into(),
                     id: var_def_id,
-                    type_: AstIdentType::VarDef,
+                    type_: AstIdentType::Other,
                 },
+                is_ref: false,
                 expr: arg,
             }));
+            let type_id = types::find(self.analysis, self.module, &param.type_)
+                .expect("internal error: invalid type");
             self.analysis.idents.insert(
                 var_def_id,
-                Ident::new(
-                    IdentSource::Var(var_def_id),
-                    Some(param.type_.label.clone()),
-                ),
+                Ident::new(IdentSource::Var(var_def_id), Some(type_id.clone())),
             );
             self.analysis.idents.insert(
                 var_usage_id,
-                Ident::new(
-                    IdentSource::Var(var_def_id),
-                    Some(param.type_.label.clone()),
-                ),
+                Ident::new(IdentSource::Var(var_def_id), Some(type_id)),
             );
         }
     }

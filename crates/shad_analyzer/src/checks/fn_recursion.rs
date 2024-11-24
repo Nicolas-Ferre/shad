@@ -10,7 +10,7 @@ pub(crate) fn check(analysis: &mut Analysis) {
     for fn_ in analysis.fns.values() {
         let mut checker = FnRecursionCheck::new(
             analysis,
-            FnId::new(&fn_.ast),
+            FnId::from_item(analysis, &fn_.ast),
             mem::take(&mut errored_fn_ids),
         );
         checker.visit_fn_item(&fn_.ast);

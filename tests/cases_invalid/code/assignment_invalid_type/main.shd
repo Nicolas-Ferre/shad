@@ -10,3 +10,12 @@ run {
 fn invalid_param_assignment(param: f32) {
     param = 0;
 }
+
+fn invalid_returned_type() -> undef {
+    return 0;
+}
+
+run {
+    var value = 0;
+    value = invalid_returned_type();
+}

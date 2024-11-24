@@ -1,8 +1,11 @@
 use crate::fn_call::AstFnCall;
+use crate::item::buffer::AstBufferItem;
+use crate::item::function::AstFnItem;
+use crate::item::import::AstImportItem;
+use crate::item::run_block::AstRunItem;
 use crate::{
-    Ast, AstAssignment, AstBufferItem, AstExpr, AstFnCallStatement, AstFnItem, AstIdent,
-    AstImportItem, AstItem, AstLeftValue, AstLiteral, AstReturn, AstRunItem, AstStatement,
-    AstVarDefinition,
+    Ast, AstAssignment, AstExpr, AstFnCallStatement, AstIdent, AstItem, AstLeftValue, AstLiteral,
+    AstReturn, AstStatement, AstStructItem, AstVarDefinition,
 };
 
 // coverage: off (not all functions are used by other crates)
@@ -16,6 +19,9 @@ macro_rules! visit_trait {
 
             /// Runs logic when entering in an item.
             fn enter_item(&mut self, node: &$($mut_keyword)? AstItem) {}
+
+            /// Runs logic when entering in a struct item.
+            fn enter_struct_item(&mut self, node: &$($mut_keyword)? AstStructItem) {}
 
             /// Runs logic when entering in a buffer item.
             fn enter_buffer_item(&mut self, node: &$($mut_keyword)? AstBufferItem) {}
@@ -64,6 +70,9 @@ macro_rules! visit_trait {
 
             /// Runs logic when exiting an item.
             fn exit_item(&mut self, node: &$($mut_keyword)? AstItem) {}
+
+            /// Runs logic when exiting a struct item.
+            fn exit_struct_item(&mut self, node: &$($mut_keyword)? AstStructItem) {}
 
             /// Runs logic when exiting a buffer item.
             fn exit_buffer_item(&mut self, node: &$($mut_keyword)? AstBufferItem) {}
@@ -120,12 +129,24 @@ macro_rules! visit_trait {
             fn visit_item(&mut self, node: &$($mut_keyword)? AstItem) {
                 self.enter_item(node);
                 match node {
+                    AstItem::Struct(node) => self.visit_struct_item(node),
                     AstItem::Buffer(node) => self.visit_buffer_item(node),
                     AstItem::Fn(node) => self.visit_fn_item(node),
                     AstItem::Run(node) => self.visit_run_item(node),
                     AstItem::Import(node) => self.visit_import_item(node),
                 }
                 self.exit_item(node);
+            }
+
+            /// Visit a buffer item.
+            fn visit_struct_item(&mut self, node: &$($mut_keyword)? AstStructItem) {
+                self.enter_struct_item(node);
+                self.visit_ident(&$($mut_keyword)? node.name);
+                for field in &$($mut_keyword)? node.fields {
+                    self.visit_ident(&$($mut_keyword)? field.name);
+                    self.visit_ident(&$($mut_keyword)? field.type_);
+                }
+                self.exit_struct_item(node);
             }
 
             /// Visit a buffer item.

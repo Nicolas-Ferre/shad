@@ -1,0 +1,15 @@
+struct Empty {}
+
+struct Fields {
+    field1: f32,
+    field2: f32,
+}
+
+struct FieldsWithoutLastComma {
+    field1: f32,
+    field2: f32
+}
+
+fn copy(value: Fields) -> Fields {
+    return value;
+}

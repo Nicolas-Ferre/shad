@@ -1,8 +1,9 @@
 use crate::registration::types;
-use crate::{errors, Analysis, Buffer, BufferId, FnId, Function};
+use crate::{errors, Analysis, Buffer, BufferId, FnId, Function, TypeId};
 use fxhash::FxHashMap;
 use shad_parser::{
-    AstBufferItem, AstFnCall, AstFnItem, AstIdent, AstIdentType, AstItem, AstVarDefinition, Visit,
+    AstBufferItem, AstFnCall, AstFnItem, AstFnParam, AstIdent, AstIdentType, AstItem,
+    AstVarDefinition, Visit,
 };
 use std::mem;
 
@@ -12,11 +13,11 @@ pub struct Ident {
     /// The source of the identifier.
     pub source: IdentSource,
     /// The type of the identifier.
-    pub type_: Option<String>,
+    pub type_: Option<TypeId>,
 }
 
 impl Ident {
-    pub(crate) fn new(source: IdentSource, type_: Option<String>) -> Self {
+    pub(crate) fn new(source: IdentSource, type_: Option<TypeId>) -> Self {
         Self { source, type_ }
     }
 }
@@ -128,7 +129,7 @@ impl<'a> IdentRegistration<'a> {
         self.variables.insert(ident.label.clone(), ident.id);
     }
 
-    fn find_fn(&self, signature: &str) -> Option<(FnId, &Function)> {
+    fn find_fn(&self, call: &AstFnCall, arg_types: &[TypeId]) -> Option<(FnId, &Function)> {
         self.analysis
             .visible_modules
             .get(self.module)
@@ -137,7 +138,8 @@ impl<'a> IdentRegistration<'a> {
             .filter_map(|module| {
                 let id = FnId {
                     module: module.clone(),
-                    signature: signature.into(),
+                    name: call.name.label.clone(),
+                    param_types: arg_types.iter().map(|type_| Some(type_.clone())).collect(),
                 };
                 self.analysis.fns.get(&id).map(|fn_| (id, fn_))
             })
@@ -159,21 +161,40 @@ impl<'a> IdentRegistration<'a> {
             })
             .find(|(buffer_id, buffer)| buffer.ast.is_pub || buffer_id.module == self.module)
     }
+
+    fn register_fn_item(&mut self, node: &AstFnItem) {
+        let return_type_id = if let Some(return_type) = &node.return_type {
+            let type_id = types::find(self.analysis, self.module, &return_type.name);
+            if type_id.is_none() {
+                let error = errors::types::not_found(&return_type.name);
+                self.analysis.errors.push(error);
+            }
+            type_id
+        } else {
+            None
+        };
+        let fn_ident_source = IdentSource::Fn(FnId::from_item(self.analysis, node));
+        let fn_ident = Ident::new(fn_ident_source, return_type_id);
+        self.analysis.idents.insert(node.name.id, fn_ident);
+    }
+
+    fn register_fn_param(&mut self, param: &AstFnParam) {
+        let type_id = types::find(self.analysis, self.module, &param.type_);
+        if type_id.is_none() {
+            let error = errors::types::not_found(&param.type_);
+            self.analysis.errors.push(error);
+        }
+        let ident = Ident::new(IdentSource::Var(param.name.id), type_id);
+        self.analysis.idents.insert(param.name.id, ident);
+        self.add_variable(&param.name);
+    }
 }
 
 impl Visit for IdentRegistration<'_> {
     fn enter_fn_item(&mut self, node: &AstFnItem) {
-        let return_type = node
-            .return_type
-            .as_ref()
-            .and_then(|type_| types::name(self.analysis, &type_.name));
-        let fn_ident = Ident::new(IdentSource::Fn(FnId::new(node)), return_type);
-        self.analysis.idents.insert(node.name.id, fn_ident);
+        self.register_fn_item(node);
         for param in &node.params {
-            let param_type = types::name(self.analysis, &param.type_);
-            let param_ident = Ident::new(IdentSource::Var(param.name.id), param_type);
-            self.analysis.idents.insert(param.name.id, param_ident);
-            self.add_variable(&param.name);
+            self.register_fn_param(param);
         }
     }
 
@@ -197,35 +218,32 @@ impl Visit for IdentRegistration<'_> {
     }
 
     fn exit_fn_call(&mut self, node: &AstFnCall) {
-        if let Some(arg_types) = node
+        if let Some(arg_type_ids) = node
             .args
             .iter()
             .map(|node| self.analysis.expr_type(node))
             .collect::<Option<Vec<_>>>()
         {
-            let signature = format!("{}({})", node.name.label, arg_types.join(", "));
-            if let Some((fn_id, fn_)) = self.find_fn(&signature) {
+            if let Some((fn_id, fn_)) = self.find_fn(node, &arg_type_ids) {
                 if let Some(return_type) = fn_.ast.return_type.clone() {
                     if node.is_statement && self.are_errors_enabled {
                         let error = errors::fn_calls::unexpected_return_type(node, &fn_id);
                         self.analysis.errors.push(error);
                     } else if !node.is_statement {
-                        let fn_type = types::name(self.analysis, &return_type.name);
-                        let fn_ident = Ident::new(IdentSource::Fn(fn_id), fn_type);
+                        let fn_type_id = types::find(self.analysis, self.module, &return_type.name);
+                        let fn_ident = Ident::new(IdentSource::Fn(fn_id), fn_type_id);
                         self.analysis.idents.insert(node.name.id, fn_ident);
                     }
                 } else if node.is_statement {
                     let fn_ident = Ident::new(IdentSource::Fn(fn_id), None);
                     self.analysis.idents.insert(node.name.id, fn_ident);
                 } else if self.are_errors_enabled {
-                    self.analysis
-                        .errors
-                        .push(errors::fn_calls::no_return_type(&fn_id, node));
+                    let error = errors::fn_calls::no_return_type(&fn_id, node);
+                    self.analysis.errors.push(error);
                 }
             } else if self.are_errors_enabled {
-                self.analysis
-                    .errors
-                    .push(errors::functions::not_found(node, &signature));
+                let error = errors::functions::not_found(node, &arg_type_ids);
+                self.analysis.errors.push(error);
             }
         }
     }
@@ -251,9 +269,8 @@ impl Visit for IdentRegistration<'_> {
             let buffer_ident = Ident::new(IdentSource::Buffer(buffer_id), buffer_type);
             self.analysis.idents.insert(node.id, buffer_ident);
         } else if self.are_errors_enabled {
-            self.analysis
-                .errors
-                .push(errors::variables::not_found(node));
+            let error = errors::variables::not_found(node);
+            self.analysis.errors.push(error);
         }
     }
 }

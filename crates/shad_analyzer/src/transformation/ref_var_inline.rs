@@ -1,6 +1,6 @@
 use crate::{Analysis, IdentSource};
 use fxhash::FxHashMap;
-use shad_parser::{AstExpr, AstIdentType, AstLeftValue, AstStatement, AstVarDefinition, VisitMut};
+use shad_parser::{AstExpr, AstLeftValue, AstStatement, AstVarDefinition, VisitMut};
 use std::mem;
 
 pub(crate) fn transform(analysis: &mut Analysis) {
@@ -43,7 +43,7 @@ fn visit_statements(analysis: &mut Analysis, statements: &mut Vec<AstStatement>)
         })
         .filter(|statement| {
             if let AstStatement::Var(var_def) = statement {
-                var_def.name.type_ != AstIdentType::RefDef
+                !var_def.is_ref
             } else {
                 true
             }
@@ -98,7 +98,7 @@ impl VisitMut for RefVarInlineTransform<'_> {
     }
 
     fn exit_var_definition(&mut self, node: &mut AstVarDefinition) {
-        if node.name.type_ == AstIdentType::RefDef {
+        if node.is_ref {
             self.ref_expressions.insert(node.name.id, node.expr.clone());
         }
     }

@@ -21,9 +21,9 @@ pub struct AstImportItem {
 impl AstImportItem {
     pub(crate) fn parse(lexer: &mut Lexer<'_>, is_pub: bool) -> Result<Self, SyntaxError> {
         let import = parse_token(lexer, TokenType::Import)?;
-        let mut segments = vec![AstIdent::parse(lexer, AstIdentType::ModPathSegment)?];
+        let mut segments = vec![AstIdent::parse(lexer, AstIdentType::Other)?];
         while parse_token_option(lexer, TokenType::Dot)?.is_some() {
-            segments.push(AstIdent::parse(lexer, AstIdentType::ModPathSegment)?);
+            segments.push(AstIdent::parse(lexer, AstIdentType::Other)?);
         }
         let semi_colon = parse_token(lexer, TokenType::SemiColon)?;
         Ok(Self {

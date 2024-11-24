@@ -1,0 +1,23 @@
+error: type `A` is defined multiple times
+ --> ./cases_invalid/code/struct/main.shd:3:8
+  |
+1 | struct A {}
+  |        - info: type with same name is defined here
+2 | struct B {}
+3 | struct A {}
+  |        ^ duplicated type
+  |
+
+error: not allowed type `B` in struct `InvalidTypes`
+  --> ./cases_invalid/code/struct/main.shd:10:8
+   |
+10 |     e: B,
+   |        ^ only `u32`, `i32`, `f32` and `bool` types are allowed here
+   |
+
+error: could not find `undef` type
+  --> ./cases_invalid/code/struct/main.shd:11:8
+   |
+11 |     e: undef,
+   |        ^^^^^ undefined type
+   |

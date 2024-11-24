@@ -1,13 +1,12 @@
-error: function `level1_recursive()` defined recursively
-  --> ./cases_invalid/code/fn_recursive/main.shd:1:4
+error: function `level3_recursive()` defined recursively
+  --> ./cases_invalid/code/fn_recursive/main.shd:5:4
    |
- 1 | fn level1_recursive() {
-   |    ^^^^^^^^^^^^^^^^ recursive function `level1_recursive()` defined here
  2 |     level2_recursive();
    |     ------------------ info: `level2_recursive()` function called in `level1_recursive()` function
  3 | }
  4 | 
  5 | fn level3_recursive() {
+   |    ^^^^^^^^^^^^^^^^ recursive function `level3_recursive()` defined here
  6 |     level4_recursive();
    |     ------------------ info: `level4_recursive()` function called in `level3_recursive()` function
  7 | }
