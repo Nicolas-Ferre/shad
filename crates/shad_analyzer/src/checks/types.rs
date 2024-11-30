@@ -1,11 +1,10 @@
-use crate::registration::types;
-use crate::{errors, Analysis};
+use crate::{errors, search, Analysis};
 use shad_parser::{AstStructField, AstStructItem};
 
 pub(crate) fn check(analysis: &mut Analysis) {
     let mut errors = vec![];
     for (struct_, field) in struct_fields(analysis) {
-        if let Ok(field_type) = types::find(analysis, &field.type_) {
+        if let Ok(field_type) = search::type_(analysis, &field.type_) {
             if field_type.module.is_some() {
                 errors.push(errors::types::invalid_field_type(struct_, &field.type_));
             }

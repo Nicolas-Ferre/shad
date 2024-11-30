@@ -1,5 +1,4 @@
-use crate::registration::types;
-use crate::{Analysis, Ident, IdentSource};
+use crate::{search, Analysis, Ident, IdentSource};
 use shad_parser::{
     AstExpr, AstFnCall, AstIdent, AstIdentType, AstStatement, AstVarDefinition, VisitMut,
 };
@@ -63,11 +62,9 @@ impl<'a> RefSplitTransform<'a> {
 
 impl VisitMut for RefSplitTransform<'_> {
     fn exit_fn_call(&mut self, node: &mut AstFnCall) {
-        let fn_id = self
-            .analysis
-            .fn_id(&node.name)
-            .expect("internal error: missing function");
-        let fn_ = self.analysis.fns[&fn_id].clone();
+        let fn_ = search::fn_(self.analysis, &node.name)
+            .expect("internal error: missing function")
+            .clone();
         if !fn_.is_inlined {
             return;
         }
@@ -99,7 +96,7 @@ impl VisitMut for RefSplitTransform<'_> {
                 expr: arg,
             }));
             let type_id =
-                types::find(self.analysis, &param.type_).expect("internal error: invalid type");
+                search::type_(self.analysis, &param.type_).expect("internal error: invalid type");
             self.analysis.idents.insert(
                 var_def_id,
                 Ident::new(IdentSource::Var(var_def_id), Some(type_id.clone())),

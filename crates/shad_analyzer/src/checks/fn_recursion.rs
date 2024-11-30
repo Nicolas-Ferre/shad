@@ -1,4 +1,4 @@
-use crate::{errors, Analysis, FnId};
+use crate::{errors, search, Analysis, FnId};
 use fxhash::FxHashSet;
 use shad_error::{SemanticError, Span};
 use shad_parser::{AstFnCall, Visit};
@@ -79,15 +79,14 @@ impl<'a> FnRecursionCheck<'a> {
 
 impl Visit for FnRecursionCheck<'_> {
     fn enter_fn_call(&mut self, node: &AstFnCall) {
-        if let Some(id) = self.analysis.fn_id(&node.name) {
-            let fn_ = &self.analysis.fns[&id].ast;
+        if let Some(fn_) = search::fn_(self.analysis, &node.name) {
             self.called_fn_ids.push(UsedFn {
                 usage_span: node.span.clone(),
-                def_span: fn_.name.span.clone(),
-                id: id.clone(),
+                def_span: fn_.ast.name.span.clone(),
+                id: fn_.id.clone(),
             });
             if !self.detect_error() {
-                self.visit_fn_item(fn_);
+                self.visit_fn_item(&fn_.ast);
             }
             self.called_fn_ids.pop();
         }

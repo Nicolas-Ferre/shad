@@ -1,4 +1,4 @@
-use crate::{errors, Analysis, Function};
+use crate::{errors, search, Analysis, Function};
 use shad_error::SemanticError;
 use shad_parser::{
     AstAssignment, AstExpr, AstFnCall, AstFnItem, AstFnQualifier, AstLeftValue, AstReturn,
@@ -44,10 +44,8 @@ impl<'a> StatementCheck<'a> {
         match expr {
             AstExpr::Literal(_) => ExprSemantic::Value,
             AstExpr::Ident(_) => ExprSemantic::Ref,
-            AstExpr::FnCall(call) => self
-                .analysis
-                .fn_id(&call.name)
-                .and_then(|id| self.analysis.fns[&id].ast.return_type.as_ref())
+            AstExpr::FnCall(call) => search::fn_(self.analysis, &call.name)
+                .and_then(|fn_| fn_.ast.return_type.as_ref())
                 .map_or(ExprSemantic::None, |type_| {
                     if type_.is_ref {
                         ExprSemantic::Ref
@@ -61,10 +59,7 @@ impl<'a> StatementCheck<'a> {
 
 impl Visit for StatementCheck<'_> {
     fn enter_fn_item(&mut self, node: &AstFnItem) {
-        let fn_id = self
-            .analysis
-            .fn_id(&node.name)
-            .expect("internal error: missing function");
+        let fn_ = search::fn_(self.analysis, &node.name).expect("internal error: missing function");
         if let Some(return_pos) = node
             .statements
             .iter()
@@ -77,8 +72,8 @@ impl Visit for StatementCheck<'_> {
                 ));
             }
         } else if node.return_type.is_some() && node.qualifier != AstFnQualifier::Gpu {
-            self.errors
-                .push(errors::returns::missing_return(node, &fn_id));
+            let error = errors::returns::missing_return(node, &fn_.id);
+            self.errors.push(error);
         }
     }
 
@@ -123,7 +118,7 @@ impl Visit for StatementCheck<'_> {
                 let Some(type_id) = self.analysis.expr_type(&node.expr) else {
                     return;
                 };
-                if let Some(Some(return_type_id)) = &fn_.return_type_id {
+                if let Some(return_type_id) = &fn_.return_type_id {
                     if &type_id != return_type_id {
                         self.errors.push(errors::returns::invalid_type(
                             node,
@@ -146,15 +141,21 @@ impl Visit for StatementCheck<'_> {
     }
 
     fn enter_fn_call(&mut self, node: &AstFnCall) {
-        if let Some(fn_id) = self.analysis.fn_id(&node.name) {
-            let fn_ = &self.analysis.fns[&fn_id];
+        if let Some(fn_) = search::fn_(self.analysis, &node.name) {
             for (arg, param) in node.args.iter().zip(&fn_.ast.params) {
                 if let (Some(ref_span), ExprSemantic::Value) =
                     (param.ref_span.clone(), self.expr_semantic(arg))
                 {
-                    self.errors
-                        .push(errors::fn_calls::invalid_ref(arg, ref_span));
+                    let error = errors::fn_calls::invalid_ref(arg, ref_span);
+                    self.errors.push(error);
                 }
+            }
+            if node.is_statement && fn_.ast.return_type.is_some() {
+                let error = errors::fn_calls::unexpected_return_type(node, &fn_.id);
+                self.errors.push(error);
+            } else if !node.is_statement && fn_.ast.return_type.is_none() {
+                let error = errors::fn_calls::no_return_type(&fn_.id, node);
+                self.errors.push(error);
             }
         }
     }

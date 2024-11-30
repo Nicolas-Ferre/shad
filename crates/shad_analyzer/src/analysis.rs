@@ -2,12 +2,12 @@ use crate::registration::functions::Function;
 use crate::registration::idents::Ident;
 use crate::registration::shaders::ComputeShader;
 use crate::{
-    checks, registration, transformation, Buffer, BufferId, BufferInitRunBlock, FnId, IdentSource,
-    RunBlock, Type, TypeId, BOOL_TYPE, F32_TYPE, I32_TYPE, U32_TYPE,
+    checks, registration, transformation, Buffer, BufferId, BufferInitRunBlock, FnId, RunBlock,
+    Type, TypeId, BOOL_TYPE, F32_TYPE, I32_TYPE, U32_TYPE,
 };
 use fxhash::FxHashMap;
 use shad_error::SemanticError;
-use shad_parser::{Ast, AstExpr, AstIdent, AstLiteralType};
+use shad_parser::{Ast, AstExpr, AstLiteralType};
 
 /// The semantic analysis of an AST.
 #[derive(Debug, Clone)]
@@ -100,17 +100,6 @@ impl Analysis {
             AstExpr::Ident(ident) => self.idents.get(&ident.id)?.type_.clone(),
             AstExpr::FnCall(call) => self.idents.get(&call.name.id)?.type_.clone(),
         }
-    }
-
-    pub(crate) fn fn_id(&self, fn_name: &AstIdent) -> Option<FnId> {
-        self.idents
-            .get(&fn_name.id)
-            .map(|ident| match &ident.source {
-                IdentSource::Fn(id) => id.clone(),
-                IdentSource::Buffer(_) | IdentSource::Var(_) => {
-                    unreachable!("internal error: retrieve non-function ID")
-                }
-            })
     }
 
     pub(crate) fn next_id(&mut self) -> u64 {

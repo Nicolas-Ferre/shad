@@ -15,6 +15,6 @@ pub(crate) fn list_in_block(analysis: &Analysis, block: &AstRunItem) -> Vec<Type
 
 fn fn_type_ids(fn_: &Function) -> impl Iterator<Item = TypeId> + '_ {
     let param_types = fn_.params.iter().filter_map(|param| param.type_id.clone());
-    let return_type = fn_.return_type_id.iter().filter_map(Clone::clone);
+    let return_type = fn_.return_type_id.iter().map(Clone::clone);
     param_types.chain(return_type)
 }

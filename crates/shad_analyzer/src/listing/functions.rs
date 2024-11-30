@@ -1,5 +1,5 @@
 use crate::registration::idents::IdentSource;
-use crate::{Analysis, FnId};
+use crate::{search, Analysis, FnId};
 use fxhash::FxHashSet;
 use shad_parser::{AstFnCall, AstIdent, AstRunItem, AstStatement, Visit};
 
@@ -31,8 +31,8 @@ impl<'a> FunctionListing<'a> {
 
 impl Visit for FunctionListing<'_> {
     fn enter_fn_call(&mut self, node: &AstFnCall) {
-        if let Some(id) = self.analysis.fn_id(&node.name) {
-            self.visit_fn_item(&self.analysis.fns[&id].ast);
+        if let Some(fn_) = search::fn_(self.analysis, &node.name) {
+            self.visit_fn_item(&fn_.ast);
         }
     }
 

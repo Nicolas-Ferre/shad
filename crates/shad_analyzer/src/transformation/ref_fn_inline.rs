@@ -1,4 +1,4 @@
-use crate::{listing, Analysis, FnId, Ident, IdentSource};
+use crate::{listing, search, Analysis, FnId, Ident, IdentSource};
 use fxhash::FxHashMap;
 use shad_parser::{
     AstExpr, AstFnCall, AstFnCallStatement, AstFnItem, AstFnQualifier, AstIdent, AstLeftValue,
@@ -79,10 +79,9 @@ fn visit_statements(analysis: &mut Analysis, statements: &mut Vec<AstStatement>)
 fn is_inline_fn_call_statement(analysis: &Analysis, statement: &AstStatement) -> bool {
     match statement {
         AstStatement::FnCall(call) => {
-            let id = analysis
-                .fn_id(&call.call.name)
-                .expect("internal error: missing function");
-            analysis.fns[&id].is_inlined
+            search::fn_(analysis, &call.call.name)
+                .expect("internal error: missing function")
+                .is_inlined
         }
         AstStatement::Assignment(_) | AstStatement::Var(_) | AstStatement::Return(_) => false,
     }
@@ -147,10 +146,9 @@ impl VisitMut for RefFnInlineTransform<'_> {
 }
 
 fn inlined_fn_statements(analysis: &mut Analysis, call: &AstFnCall) -> Vec<AstStatement> {
-    let fn_id = analysis
-        .fn_id(&call.name)
-        .expect("internal error: missing function");
-    let fn_ = analysis.fns[&fn_id].clone();
+    let fn_ = search::fn_(analysis, &call.name)
+        .expect("internal error: missing function")
+        .clone();
     if !fn_.is_inlined {
         return vec![];
     }

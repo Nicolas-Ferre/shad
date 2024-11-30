@@ -1,5 +1,4 @@
-use crate::registration::types;
-use crate::{errors, Analysis, Type, TypeId};
+use crate::{errors, search, Analysis, Type, TypeId};
 use itertools::Itertools;
 use shad_parser::{
     AstFnItem, AstFnParam, AstFnQualifier, AstIdent, AstIdentType, AstItem, AstReturnType,
@@ -12,10 +11,12 @@ use std::mem;
 pub struct Function {
     /// The function AST.
     pub ast: AstFnItem,
+    /// The unique ID of the function.
+    pub id: FnId,
     /// Whether the function will be inlined.
     pub is_inlined: bool,
     /// The return type ID.
-    pub return_type_id: Option<Option<TypeId>>,
+    pub return_type_id: Option<TypeId>,
     /// The analyzed function parameters.
     pub params: Vec<FnParam>,
     /// The type from which the function has been generated.
@@ -57,7 +58,7 @@ impl FnId {
             param_types: fn_
                 .params
                 .iter()
-                .map(|param| types::find(analysis, &param.type_).ok())
+                .map(|param| search::type_(analysis, &param.type_).ok())
                 .collect(),
         }
     }
@@ -98,8 +99,9 @@ fn register_initializers(analysis: &mut Analysis) {
             let fn_ = struct_initializer_fn(analysis, ast);
             let fn_ = Function {
                 ast: fn_.clone(),
+                id: id.clone(),
                 is_inlined: is_inlined(&fn_),
-                return_type_id: Some(Some(type_id.clone())),
+                return_type_id: Some(type_id.clone()),
                 params: type_
                     .fields
                     .iter()
@@ -123,17 +125,17 @@ fn register_ast(analysis: &mut Analysis) {
                 let id = FnId::from_item(analysis, fn_ast);
                 let fn_ = Function {
                     ast: fn_ast.clone(),
+                    id: id.clone(),
                     is_inlined: is_inlined(fn_ast),
-                    return_type_id: fn_ast
-                        .return_type
-                        .as_ref()
-                        .map(|return_type| types::find_or_add_error(analysis, &return_type.name)),
+                    return_type_id: fn_ast.return_type.as_ref().and_then(|return_type| {
+                        search::type_or_add_error(analysis, &return_type.name)
+                    }),
                     params: fn_ast
                         .params
                         .iter()
                         .map(|param| FnParam {
                             name: param.name.clone(),
-                            type_id: types::find_or_add_error(analysis, &param.type_),
+                            type_id: search::type_or_add_error(analysis, &param.type_),
                         })
                         .collect(),
                     source_type: None,

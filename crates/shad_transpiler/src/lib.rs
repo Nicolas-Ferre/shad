@@ -127,7 +127,7 @@ fn wgsl_fn_param(analysis: &Analysis, param: &FnParam) -> String {
 }
 
 fn wgsl_return_type(analysis: &Analysis, type_: &Function) -> String {
-    if let Some(Some(type_)) = &type_.return_type_id {
+    if let Some(type_) = &type_.return_type_id {
         format!(" -> {}", type_name(analysis, type_, false))
     } else {
         String::new()
