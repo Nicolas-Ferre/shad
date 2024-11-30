@@ -6,13 +6,13 @@ use std::mem;
 
 pub(crate) fn check(analysis: &mut Analysis) {
     let mut errors = vec![];
-    let mut errored_fn_ids = FxHashSet::default();
+    let mut all_errored_fn_ids = FxHashSet::default();
     for (fn_id, fn_) in &analysis.fns {
-        let mut checker =
-            FnRecursionCheck::new(analysis, fn_id.clone(), mem::take(&mut errored_fn_ids));
+        let errored_fn_ids = mem::take(&mut all_errored_fn_ids);
+        let mut checker = FnRecursionCheck::new(analysis, fn_id.clone(), errored_fn_ids);
         checker.visit_fn_item(&fn_.ast);
         errors.extend(checker.errors);
-        errored_fn_ids = checker.errored_fn_ids;
+        all_errored_fn_ids = checker.errored_fn_ids;
     }
     analysis.errors.extend(errors);
 }

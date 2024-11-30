@@ -79,18 +79,14 @@ impl Analysis {
         analysis
     }
 
-    /// Returns the type ID of a buffer.
-    pub fn buffer_type_id(&self, buffer_id: &BufferId) -> &TypeId {
-        let id = &self.buffers[buffer_id].ast.name.id;
-        self.idents[id]
-            .type_
-            .as_ref()
-            .expect("internal error: invalid buffer type")
-    }
-
     /// Returns the type of a buffer.
     pub fn buffer_type(&self, buffer_id: &BufferId) -> &Type {
-        &self.types[self.buffer_type_id(buffer_id)]
+        let id = &self.buffers[buffer_id].ast.name.id;
+        let type_id = self.idents[id]
+            .type_
+            .as_ref()
+            .expect("internal error: invalid buffer type");
+        &self.types[type_id]
     }
 
     pub(crate) fn expr_type(&self, expr: &AstExpr) -> Option<TypeId> {

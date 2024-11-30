@@ -15,6 +15,8 @@ pub const BOOL_TYPE: &str = "bool";
 /// An analyzed type.
 #[derive(Debug, Clone)]
 pub struct Type {
+    /// The unique ID of the type.
+    pub id: TypeId,
     /// The type name.
     pub name: String,
     /// The type name when used for a buffer.
@@ -27,7 +29,7 @@ pub struct Type {
     pub fields: Vec<StructField>,
 }
 
-/// The unique identifier of a function.
+/// The unique identifier of a type.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct TypeId {
     /// The module in which the type is defined.
@@ -36,7 +38,7 @@ pub struct TypeId {
     pub name: String,
 }
 
-/// The unique identifier of a function.
+/// An analyzed struct field.
 #[derive(Debug, Clone)]
 pub struct StructField {
     /// The field name.
@@ -71,6 +73,7 @@ fn register_builtin(analysis: &mut Analysis) {
     analysis.types.extend(
         [
             Type {
+                id: TypeId::from_builtin(F32_TYPE),
                 name: F32_TYPE.into(),
                 buffer_name: F32_TYPE.into(),
                 size: 4,
@@ -78,6 +81,7 @@ fn register_builtin(analysis: &mut Analysis) {
                 fields: vec![],
             },
             Type {
+                id: TypeId::from_builtin(U32_TYPE),
                 name: U32_TYPE.into(),
                 buffer_name: U32_TYPE.into(),
                 size: 4,
@@ -85,6 +89,7 @@ fn register_builtin(analysis: &mut Analysis) {
                 fields: vec![],
             },
             Type {
+                id: TypeId::from_builtin(I32_TYPE),
                 name: I32_TYPE.into(),
                 buffer_name: I32_TYPE.into(),
                 size: 4,
@@ -92,6 +97,7 @@ fn register_builtin(analysis: &mut Analysis) {
                 fields: vec![],
             },
             Type {
+                id: TypeId::from_builtin(BOOL_TYPE),
                 name: BOOL_TYPE.into(),
                 buffer_name: U32_TYPE.into(),
                 size: 4,
@@ -100,7 +106,7 @@ fn register_builtin(analysis: &mut Analysis) {
             },
         ]
         .into_iter()
-        .map(|type_| (TypeId::from_builtin(&type_.name), type_)),
+        .map(|type_| (type_.id.clone(), type_)),
     );
 }
 
@@ -111,6 +117,7 @@ fn register_structs(analysis: &mut Analysis) {
             if let AstItem::Struct(struct_) = items {
                 let id = TypeId::from_struct(struct_);
                 let type_ = Type {
+                    id: id.clone(),
                     name: struct_.name.label.clone(),
                     buffer_name: struct_.name.label.clone(),
                     size: 0, // defined once all structs have been detected

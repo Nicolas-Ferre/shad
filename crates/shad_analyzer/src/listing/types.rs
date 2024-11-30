@@ -8,7 +8,6 @@ pub(crate) fn list_in_block(analysis: &Analysis, block: &AstRunItem) -> Vec<Type
         .into_iter()
         .map(|fn_id| &analysis.fns[&fn_id])
         .flat_map(fn_type_ids)
-        .filter(|type_id| analysis.types[type_id].ast.is_some())
         .collect::<FxHashSet<_>>()
         .into_iter()
         .collect()

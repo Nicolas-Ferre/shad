@@ -1,8 +1,9 @@
 use crate::registration::types;
-use crate::{errors, Analysis, TypeId};
+use crate::{errors, Analysis, Type, TypeId};
 use itertools::Itertools;
 use shad_parser::{
     AstFnItem, AstFnParam, AstFnQualifier, AstIdent, AstIdentType, AstItem, AstReturnType,
+    AstStructItem,
 };
 use std::mem;
 
@@ -61,6 +62,18 @@ impl FnId {
         }
     }
 
+    pub(crate) fn initializer(type_: &Type, ast: &AstStructItem) -> Self {
+        Self {
+            module: ast.name.span.module.name.clone(),
+            name: ast.name.label.clone(),
+            param_types: type_
+                .fields
+                .iter()
+                .map(|field| field.type_id.clone())
+                .collect(),
+        }
+    }
+
     pub(crate) fn signature(&self) -> String {
         format!(
             "{}({})",
@@ -81,34 +94,8 @@ pub(crate) fn register(analysis: &mut Analysis) {
 fn register_initializers(analysis: &mut Analysis) {
     for (type_id, type_) in &analysis.types.clone() {
         if let Some(ast) = &type_.ast {
-            let id = FnId {
-                module: ast.name.span.module.name.clone(),
-                name: ast.name.label.clone(),
-                param_types: type_
-                    .fields
-                    .iter()
-                    .map(|field| field.type_id.clone())
-                    .collect(),
-            };
-            let fn_ = AstFnItem {
-                name: clone_ident(analysis, &ast.name),
-                params: ast
-                    .fields
-                    .iter()
-                    .map(|field| AstFnParam {
-                        name: clone_ident(analysis, &field.name),
-                        type_: clone_ident(analysis, &field.type_),
-                        ref_span: None,
-                    })
-                    .collect(),
-                return_type: Some(AstReturnType {
-                    name: clone_ident(analysis, &ast.name),
-                    is_ref: false,
-                }),
-                qualifier: AstFnQualifier::Gpu,
-                statements: vec![],
-                is_pub: false,
-            };
+            let id = FnId::initializer(type_, ast);
+            let fn_ = struct_initializer_fn(analysis, ast);
             let fn_ = Function {
                 ast: fn_.clone(),
                 is_inlined: is_inlined(&fn_),
@@ -162,6 +149,28 @@ fn register_ast(analysis: &mut Analysis) {
         }
     }
     analysis.asts = asts;
+}
+
+fn struct_initializer_fn(analysis: &mut Analysis, ast: &AstStructItem) -> AstFnItem {
+    AstFnItem {
+        name: clone_ident(analysis, &ast.name),
+        params: ast
+            .fields
+            .iter()
+            .map(|field| AstFnParam {
+                name: clone_ident(analysis, &field.name),
+                type_: clone_ident(analysis, &field.type_),
+                ref_span: None,
+            })
+            .collect(),
+        return_type: Some(AstReturnType {
+            name: clone_ident(analysis, &ast.name),
+            is_ref: false,
+        }),
+        qualifier: AstFnQualifier::Gpu,
+        statements: vec![],
+        is_pub: false,
+    }
 }
 
 fn clone_ident(analysis: &mut Analysis, ident: &AstIdent) -> AstIdent {

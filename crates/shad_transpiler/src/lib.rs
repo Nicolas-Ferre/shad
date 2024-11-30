@@ -2,7 +2,7 @@
 
 use itertools::Itertools;
 use shad_analyzer::{
-    Analysis, BufferId, ComputeShader, FnId, FnParam, Function, IdentSource, TypeId,
+    Analysis, BufferId, ComputeShader, FnId, FnParam, Function, IdentSource, StructField, TypeId,
 };
 use shad_parser::{
     AstExpr, AstFnCall, AstFnQualifier, AstIdent, AstLeftValue, AstStatement, ADD_FN, AND_FN,
@@ -21,14 +21,14 @@ const IDENT_UNIT: usize = 4;
 pub fn generate_wgsl_compute_shader(analysis: &Analysis, shader: &ComputeShader) -> String {
     format!(
         "{}\n\n@compute @workgroup_size(1, 1, 1)\nfn main() {{\n{}\n}}\n\n{}\n\n{}",
-        wgsl_buf_definitions(analysis, shader),
+        wgsl_buffer_items(analysis, shader),
         wgsl_statements(analysis, &shader.statements),
-        wgsl_type_definitions(analysis, shader),
-        wgsl_fn_definitions(analysis, shader),
+        wgsl_struct_items(analysis, shader),
+        wgsl_fn_items(analysis, shader),
     )
 }
 
-fn wgsl_buf_definitions(analysis: &Analysis, shader: &ComputeShader) -> String {
+fn wgsl_buffer_items(analysis: &Analysis, shader: &ComputeShader) -> String {
     shader
         .buffer_ids
         .iter()
@@ -42,11 +42,11 @@ fn wgsl_buf_definition(analysis: &Analysis, buffer: &BufferId, binding_index: us
         "@group(0) @binding({})\nvar<storage, read_write> {}: {};",
         binding_index,
         buf_name(analysis, buffer),
-        type_name(analysis, analysis.buffer_type_id(buffer), true),
+        type_name(analysis, &analysis.buffer_type(buffer).id, true),
     )
 }
 
-fn wgsl_type_definitions(analysis: &Analysis, shader: &ComputeShader) -> String {
+fn wgsl_struct_items(analysis: &Analysis, shader: &ComputeShader) -> String {
     shader
         .type_ids
         .iter()
@@ -60,17 +60,7 @@ fn wgsl_type_definition(analysis: &Analysis, type_id: &TypeId) -> String {
         let fields = type_
             .fields
             .iter()
-            .map(|field| {
-                let field_type = field
-                    .type_id
-                    .as_ref()
-                    .expect("internal error: invalid field type");
-                format!(
-                    "{}: {}",
-                    field_name(&field.name),
-                    type_name(analysis, field_type, false)
-                )
-            })
+            .map(|field| wgsl_type_field(analysis, field))
             .join(", ");
         format!(
             "struct {} {{ {} }}",
@@ -82,7 +72,19 @@ fn wgsl_type_definition(analysis: &Analysis, type_id: &TypeId) -> String {
     }
 }
 
-fn wgsl_fn_definitions(analysis: &Analysis, shader: &ComputeShader) -> String {
+fn wgsl_type_field(analysis: &Analysis, field: &StructField) -> String {
+    let field_type = field
+        .type_id
+        .as_ref()
+        .expect("internal error: invalid field type");
+    format!(
+        "{}: {}",
+        field_name(&field.name),
+        type_name(analysis, field_type, false)
+    )
+}
+
+fn wgsl_fn_items(analysis: &Analysis, shader: &ComputeShader) -> String {
     shader
         .fn_ids
         .iter()
