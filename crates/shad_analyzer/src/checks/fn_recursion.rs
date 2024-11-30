@@ -1,4 +1,4 @@
-use crate::{errors, Analysis, FnId};
+use crate::{errors, search, Analysis, FnId};
 use fxhash::FxHashSet;
 use shad_error::{SemanticError, Span};
 use shad_parser::{AstFnCall, Visit};
@@ -6,16 +6,13 @@ use std::mem;
 
 pub(crate) fn check(analysis: &mut Analysis) {
     let mut errors = vec![];
-    let mut errored_fn_ids = FxHashSet::default();
-    for fn_ in analysis.fns.values() {
-        let mut checker = FnRecursionCheck::new(
-            analysis,
-            FnId::from_item(analysis, &fn_.ast),
-            mem::take(&mut errored_fn_ids),
-        );
+    let mut all_errored_fn_ids = FxHashSet::default();
+    for (fn_id, fn_) in &analysis.fns {
+        let errored_fn_ids = mem::take(&mut all_errored_fn_ids);
+        let mut checker = FnRecursionCheck::new(analysis, fn_id.clone(), errored_fn_ids);
         checker.visit_fn_item(&fn_.ast);
         errors.extend(checker.errors);
-        errored_fn_ids = checker.errored_fn_ids;
+        all_errored_fn_ids = checker.errored_fn_ids;
     }
     analysis.errors.extend(errors);
 }
@@ -82,15 +79,14 @@ impl<'a> FnRecursionCheck<'a> {
 
 impl Visit for FnRecursionCheck<'_> {
     fn enter_fn_call(&mut self, node: &AstFnCall) {
-        if let Some(id) = self.analysis.fn_id(&node.name) {
-            let fn_ = &self.analysis.fns[&id].ast;
+        if let Some(fn_) = search::fn_(self.analysis, &node.name) {
             self.called_fn_ids.push(UsedFn {
                 usage_span: node.span.clone(),
-                def_span: fn_.name.span.clone(),
-                id: id.clone(),
+                def_span: fn_.ast.name.span.clone(),
+                id: fn_.id.clone(),
             });
             if !self.detect_error() {
-                self.visit_fn_item(fn_);
+                self.visit_fn_item(&fn_.ast);
             }
             self.called_fn_ids.pop();
         }

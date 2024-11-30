@@ -1,5 +1,5 @@
-use crate::{errors, Analysis};
-use shad_parser::{AstIdent, AstItem, AstStructItem};
+use crate::{errors, search, Analysis};
+use shad_parser::{AstIdent, AstItem, AstStructField, AstStructItem};
 use std::mem;
 
 /// The 32-bit floating point type name.
@@ -14,6 +14,8 @@ pub const BOOL_TYPE: &str = "bool";
 /// An analyzed type.
 #[derive(Debug, Clone)]
 pub struct Type {
+    /// The unique ID of the type.
+    pub id: TypeId,
     /// The type name.
     pub name: String,
     /// The type name when used for a buffer.
@@ -22,15 +24,26 @@ pub struct Type {
     pub size: usize,
     /// The type AST.
     pub ast: Option<AstStructItem>,
+    /// The fields of the type when this is a struct.
+    pub fields: Vec<StructField>,
 }
 
-/// The unique identifier of a function.
+/// The unique identifier of a type.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct TypeId {
     /// The module in which the type is defined.
     pub module: Option<String>,
     /// The type name.
     pub name: String,
+}
+
+/// An analyzed struct field.
+#[derive(Debug, Clone)]
+pub struct StructField {
+    /// The field name.
+    pub name: AstIdent,
+    /// The field type ID.
+    pub type_id: Option<TypeId>,
 }
 
 impl TypeId {
@@ -52,38 +65,47 @@ impl TypeId {
 pub(crate) fn register(analysis: &mut Analysis) {
     register_builtin(analysis);
     register_structs(analysis);
+    register_struct_details(analysis);
 }
 
 fn register_builtin(analysis: &mut Analysis) {
     analysis.types.extend(
         [
             Type {
+                id: TypeId::from_builtin(F32_TYPE),
                 name: F32_TYPE.into(),
                 buffer_name: F32_TYPE.into(),
                 size: 4,
                 ast: None,
+                fields: vec![],
             },
             Type {
+                id: TypeId::from_builtin(U32_TYPE),
                 name: U32_TYPE.into(),
                 buffer_name: U32_TYPE.into(),
                 size: 4,
                 ast: None,
+                fields: vec![],
             },
             Type {
+                id: TypeId::from_builtin(I32_TYPE),
                 name: I32_TYPE.into(),
                 buffer_name: I32_TYPE.into(),
                 size: 4,
                 ast: None,
+                fields: vec![],
             },
             Type {
+                id: TypeId::from_builtin(BOOL_TYPE),
                 name: BOOL_TYPE.into(),
                 buffer_name: U32_TYPE.into(),
                 size: 4,
                 ast: None,
+                fields: vec![],
             },
         ]
         .into_iter()
-        .map(|type_| (TypeId::from_builtin(&type_.name), type_)),
+        .map(|type_| (type_.id.clone(), type_)),
     );
 }
 
@@ -93,16 +115,15 @@ fn register_structs(analysis: &mut Analysis) {
         for items in &ast.items {
             if let AstItem::Struct(struct_) = items {
                 let id = TypeId::from_struct(struct_);
-                let existing_struct = analysis.types.insert(
-                    id.clone(),
-                    Type {
-                        name: struct_.name.label.clone(),
-                        buffer_name: struct_.name.label.clone(),
-                        size: 0,
-                        ast: Some(struct_.clone()),
-                    },
-                );
-                if let Some(existing_struct) = existing_struct {
+                let type_ = Type {
+                    id: id.clone(),
+                    name: struct_.name.label.clone(),
+                    buffer_name: struct_.name.label.clone(),
+                    size: 0, // defined once all structs have been detected
+                    ast: Some(struct_.clone()),
+                    fields: vec![], // defined once all structs have been detected
+                };
+                if let Some(existing_struct) = analysis.types.insert(id.clone(), type_) {
                     analysis.errors.push(errors::types::duplicated(
                         &id,
                         struct_,
@@ -118,18 +139,33 @@ fn register_structs(analysis: &mut Analysis) {
     analysis.asts = asts;
 }
 
-pub(crate) fn find(analysis: &Analysis, module: &str, ident: &AstIdent) -> Option<TypeId> {
-    let type_id = TypeId {
-        module: Some(module.into()),
-        name: ident.label.clone(),
-    };
-    if analysis.types.contains_key(&type_id) {
-        return Some(type_id);
-    }
-    let builtin_type_id = TypeId::from_builtin(&ident.label);
-    if analysis.types.contains_key(&builtin_type_id) {
-        Some(builtin_type_id)
-    } else {
-        None
+fn register_struct_details(analysis: &mut Analysis) {
+    analysis.types = analysis
+        .types
+        .clone()
+        .into_iter()
+        .map(|(type_id, mut type_)| {
+            if let Some(ast) = &type_.ast {
+                type_.fields = ast
+                    .fields
+                    .iter()
+                    .map(|field| analyze_field(analysis, field))
+                    .collect();
+                type_.size = type_
+                    .fields
+                    .iter()
+                    .flat_map(|field| &field.type_id)
+                    .map(|type_id| analysis.types[type_id].size)
+                    .sum();
+            }
+            (type_id, type_)
+        })
+        .collect();
+}
+
+fn analyze_field(analysis: &mut Analysis, field: &AstStructField) -> StructField {
+    StructField {
+        name: field.name.clone(),
+        type_id: search::type_or_add_error(analysis, &field.type_),
     }
 }

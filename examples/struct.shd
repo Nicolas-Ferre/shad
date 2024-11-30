@@ -1,0 +1,10 @@
+struct Vec2i {
+    x: i32,
+    y: i32,
+}
+
+buf coords = Vec2i(2, 1);
+
+run {
+    coords = Vec2i(5, 2);
+}

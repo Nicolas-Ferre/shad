@@ -244,7 +244,7 @@ impl RunComputeShader {
         device: &Device,
     ) -> Self {
         let pipeline = Self::create_pipeline(analysis, shader, device);
-        let bind_group = (!shader.buffers.is_empty())
+        let bind_group = (!shader.buffer_ids.is_empty())
             .then(|| Self::create_bind_group(&pipeline, shader, buffers, device));
         Self {
             pipeline,
@@ -283,7 +283,7 @@ impl RunComputeShader {
             label: None,
             layout: &pipeline.get_bind_group_layout(0),
             entries: &shader
-                .buffers
+                .buffer_ids
                 .iter()
                 .enumerate()
                 .map(|(index, buffer)| wgpu::BindGroupEntry {

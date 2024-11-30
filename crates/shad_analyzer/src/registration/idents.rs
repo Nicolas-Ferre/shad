@@ -1,5 +1,4 @@
-use crate::registration::types;
-use crate::{errors, Analysis, Buffer, BufferId, FnId, Function, TypeId};
+use crate::{errors, search, Analysis, Buffer, BufferId, FnId, Function, TypeId};
 use fxhash::FxHashMap;
 use shad_parser::{
     AstBufferItem, AstFnCall, AstFnItem, AstFnParam, AstIdent, AstIdentType, AstItem,
@@ -163,27 +162,17 @@ impl<'a> IdentRegistration<'a> {
     }
 
     fn register_fn_item(&mut self, node: &AstFnItem) {
-        let return_type_id = if let Some(return_type) = &node.return_type {
-            let type_id = types::find(self.analysis, self.module, &return_type.name);
-            if type_id.is_none() {
-                let error = errors::types::not_found(&return_type.name);
-                self.analysis.errors.push(error);
-            }
-            type_id
-        } else {
-            None
-        };
+        let return_type_id = node
+            .return_type
+            .as_ref()
+            .and_then(|type_| search::type_(self.analysis, &type_.name).ok());
         let fn_ident_source = IdentSource::Fn(FnId::from_item(self.analysis, node));
         let fn_ident = Ident::new(fn_ident_source, return_type_id);
         self.analysis.idents.insert(node.name.id, fn_ident);
     }
 
     fn register_fn_param(&mut self, param: &AstFnParam) {
-        let type_id = types::find(self.analysis, self.module, &param.type_);
-        if type_id.is_none() {
-            let error = errors::types::not_found(&param.type_);
-            self.analysis.errors.push(error);
-        }
+        let type_id = search::type_(self.analysis, &param.type_).ok();
         let ident = Ident::new(IdentSource::Var(param.name.id), type_id);
         self.analysis.idents.insert(param.name.id, ident);
         self.add_variable(&param.name);
@@ -225,22 +214,8 @@ impl Visit for IdentRegistration<'_> {
             .collect::<Option<Vec<_>>>()
         {
             if let Some((fn_id, fn_)) = self.find_fn(node, &arg_type_ids) {
-                if let Some(return_type) = fn_.ast.return_type.clone() {
-                    if node.is_statement && self.are_errors_enabled {
-                        let error = errors::fn_calls::unexpected_return_type(node, &fn_id);
-                        self.analysis.errors.push(error);
-                    } else if !node.is_statement {
-                        let fn_type_id = types::find(self.analysis, self.module, &return_type.name);
-                        let fn_ident = Ident::new(IdentSource::Fn(fn_id), fn_type_id);
-                        self.analysis.idents.insert(node.name.id, fn_ident);
-                    }
-                } else if node.is_statement {
-                    let fn_ident = Ident::new(IdentSource::Fn(fn_id), None);
-                    self.analysis.idents.insert(node.name.id, fn_ident);
-                } else if self.are_errors_enabled {
-                    let error = errors::fn_calls::no_return_type(&fn_id, node);
-                    self.analysis.errors.push(error);
-                }
+                let fn_ident = Ident::new(IdentSource::Fn(fn_id), fn_.return_type_id.clone());
+                self.analysis.idents.insert(node.name.id, fn_ident);
             } else if self.are_errors_enabled {
                 let error = errors::functions::not_found(node, &arg_type_ids);
                 self.analysis.errors.push(error);

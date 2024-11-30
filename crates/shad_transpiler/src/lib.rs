@@ -1,11 +1,13 @@
 //! Transpiler to convert Shad expressions to WGSL.
 
 use itertools::Itertools;
-use shad_analyzer::{Analysis, BufferId, ComputeShader, FnId, Function, IdentSource};
+use shad_analyzer::{
+    Analysis, BufferId, ComputeShader, FnId, FnParam, Function, IdentSource, StructField, TypeId,
+};
 use shad_parser::{
-    AstExpr, AstFnCall, AstFnParam, AstFnQualifier, AstIdent, AstLeftValue, AstStatement, ADD_FN,
-    AND_FN, DIV_FN, EQ_FN, GE_FN, GT_FN, LE_FN, LT_FN, MOD_FN, MUL_FN, NEG_FN, NE_FN, NOT_FN,
-    OR_FN, SUB_FN,
+    AstExpr, AstFnCall, AstFnQualifier, AstIdent, AstLeftValue, AstStatement, ADD_FN, AND_FN,
+    DIV_FN, EQ_FN, GE_FN, GT_FN, LE_FN, LT_FN, MOD_FN, MUL_FN, NEG_FN, NE_FN, NOT_FN, OR_FN,
+    SUB_FN,
 };
 
 const IDENT_UNIT: usize = 4;
@@ -18,16 +20,17 @@ const IDENT_UNIT: usize = 4;
 #[allow(clippy::result_unit_err)]
 pub fn generate_wgsl_compute_shader(analysis: &Analysis, shader: &ComputeShader) -> String {
     format!(
-        "{}\n\n@compute @workgroup_size(1, 1, 1)\nfn main() {{\n{}\n}}\n\n{}",
-        wgsl_buf_definitions(analysis, shader),
+        "{}\n\n@compute @workgroup_size(1, 1, 1)\nfn main() {{\n{}\n}}\n\n{}\n\n{}",
+        wgsl_buffer_items(analysis, shader),
         wgsl_statements(analysis, &shader.statements),
-        wgsl_fn_definitions(analysis, shader),
+        wgsl_struct_items(analysis, shader),
+        wgsl_fn_items(analysis, shader),
     )
 }
 
-fn wgsl_buf_definitions(analysis: &Analysis, shader: &ComputeShader) -> String {
+fn wgsl_buffer_items(analysis: &Analysis, shader: &ComputeShader) -> String {
     shader
-        .buffers
+        .buffer_ids
         .iter()
         .enumerate()
         .map(|(index, buffer)| wgsl_buf_definition(analysis, buffer, index))
@@ -39,11 +42,49 @@ fn wgsl_buf_definition(analysis: &Analysis, buffer: &BufferId, binding_index: us
         "@group(0) @binding({})\nvar<storage, read_write> {}: {};",
         binding_index,
         buf_name(analysis, buffer),
-        analysis.buffer_type(buffer).buffer_name,
+        type_name(analysis, &analysis.buffer_type(buffer).id, true),
     )
 }
 
-fn wgsl_fn_definitions(analysis: &Analysis, shader: &ComputeShader) -> String {
+fn wgsl_struct_items(analysis: &Analysis, shader: &ComputeShader) -> String {
+    shader
+        .type_ids
+        .iter()
+        .map(|type_| wgsl_type_definition(analysis, type_))
+        .join("\n")
+}
+
+fn wgsl_type_definition(analysis: &Analysis, type_id: &TypeId) -> String {
+    let type_ = &analysis.types[type_id];
+    if type_.ast.is_some() {
+        let fields = type_
+            .fields
+            .iter()
+            .map(|field| wgsl_type_field(analysis, field))
+            .join(", ");
+        format!(
+            "struct {} {{ {} }}",
+            type_name(analysis, type_id, false),
+            fields
+        )
+    } else {
+        String::new()
+    }
+}
+
+fn wgsl_type_field(analysis: &Analysis, field: &StructField) -> String {
+    let field_type = field
+        .type_id
+        .as_ref()
+        .expect("internal error: invalid field type");
+    format!(
+        "{}: {}",
+        field_name(&field.name),
+        type_name(analysis, field_type, false)
+    )
+}
+
+fn wgsl_fn_items(analysis: &Analysis, shader: &ComputeShader) -> String {
     shader
         .fn_ids
         .iter()
@@ -61,30 +102,33 @@ fn wgsl_fn_definition(analysis: &Analysis, fn_id: &FnId) -> String {
         "fn {}({}){} {{\n{}\n}}",
         fn_name(analysis, &fn_.ast.name),
         wgsl_fn_params(analysis, fn_),
-        wgsl_return_type(fn_),
+        wgsl_return_type(analysis, fn_),
         wgsl_statements(analysis, &fn_.ast.statements)
     )
 }
 
 fn wgsl_fn_params(analysis: &Analysis, fn_: &Function) -> String {
-    fn_.ast
-        .params
+    fn_.params
         .iter()
         .map(|param| wgsl_fn_param(analysis, param))
         .join(", ")
 }
 
-fn wgsl_fn_param(analysis: &Analysis, param: &AstFnParam) -> String {
+fn wgsl_fn_param(analysis: &Analysis, param: &FnParam) -> String {
+    let type_id = param
+        .type_id
+        .as_ref()
+        .expect("internal error: invalid param type");
     format!(
         "{}: {}",
         wgsl_ident(analysis, &param.name, false),
-        param.type_.label
+        type_name(analysis, type_id, false)
     )
 }
 
-fn wgsl_return_type(type_: &Function) -> String {
-    if let Some(type_) = &type_.ast.return_type {
-        format!(" -> {}", type_.name.label)
+fn wgsl_return_type(analysis: &Analysis, type_: &Function) -> String {
+    if let Some(type_) = &type_.return_type_id {
+        format!(" -> {}", type_name(analysis, type_, false))
     } else {
         String::new()
     }
@@ -133,10 +177,20 @@ fn wgsl_statement(analysis: &Analysis, statement: &AstStatement, indent: usize) 
             AstLeftValue::FnCall(_) => unreachable!("internal error: invalid inlining"),
         },
         AstStatement::Return(statement) => {
-            format!("return {};", wgsl_expr(analysis, &statement.expr))
+            format!(
+                "{empty: >width$}return {};",
+                wgsl_expr(analysis, &statement.expr),
+                empty = "",
+                width = indent * IDENT_UNIT,
+            )
         }
         AstStatement::FnCall(statement) => {
-            format!("{};", wgsl_fn_call(analysis, &statement.call))
+            format!(
+                "{empty: >width$}{};",
+                wgsl_fn_call(analysis, &statement.call),
+                empty = "",
+                width = indent * IDENT_UNIT,
+            )
         }
     }
 }
@@ -228,10 +282,28 @@ fn buf_name(analysis: &Analysis, buffer: &BufferId) -> String {
     format!("b{}_{}", name.id, name.label)
 }
 
+fn field_name(name: &AstIdent) -> String {
+    format!("f{}", name.label)
+}
+
+fn type_name(analysis: &Analysis, type_id: &TypeId, is_buffer: bool) -> String {
+    if let Some(type_) = &analysis.types[type_id].ast {
+        format!("t{}_{}", type_.name.id, type_.name.label)
+    } else if is_buffer {
+        analysis.types[type_id].buffer_name.clone()
+    } else {
+        analysis.types[type_id].name.clone()
+    }
+}
+
 fn fn_name(analysis: &Analysis, ident: &AstIdent) -> String {
     let fn_ = fn_(analysis, ident);
     if fn_.ast.qualifier == AstFnQualifier::Gpu {
-        fn_.ast.name.label.clone()
+        if let Some(source_type) = &fn_.source_type {
+            type_name(analysis, source_type, false)
+        } else {
+            fn_.ast.name.label.clone()
+        }
     } else {
         format!("f{}_{}", fn_.ast.name.id, fn_.ast.name.label)
     }
