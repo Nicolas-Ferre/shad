@@ -1,7 +1,9 @@
 use crate::registration::types;
 use crate::{errors, Analysis, TypeId};
 use itertools::Itertools;
-use shad_parser::{AstFnItem, AstFnQualifier, AstItem};
+use shad_parser::{
+    AstFnItem, AstFnParam, AstFnQualifier, AstIdent, AstIdentType, AstItem, AstReturnType,
+};
 use std::mem;
 
 /// An analyzed function.
@@ -11,6 +13,12 @@ pub struct Function {
     pub ast: AstFnItem,
     /// Whether the function will be inlined.
     pub is_inlined: bool,
+    /// The return type ID.
+    pub return_type_id: Option<Option<TypeId>>,
+    /// The analyzed function parameters.
+    pub params: Vec<FnParam>,
+    /// The type from which the function has been generated.
+    pub source_type: Option<TypeId>,
 }
 
 impl Function {
@@ -18,6 +26,15 @@ impl Function {
     pub fn is_inlined(&self) -> bool {
         is_inlined(&self.ast)
     }
+}
+
+/// An analyzed function parameter.
+#[derive(Debug, Clone)]
+pub struct FnParam {
+    /// The parameter name.
+    pub name: AstIdent,
+    /// The parameter type ID.
+    pub type_id: Option<TypeId>,
 }
 
 /// The unique identifier of a function.
@@ -39,7 +56,7 @@ impl FnId {
             param_types: fn_
                 .params
                 .iter()
-                .map(|param| types::find(analysis, &fn_.name.span.module.name, &param.type_))
+                .map(|param| types::find(analysis, &param.type_).ok())
                 .collect(),
         }
     }
@@ -57,27 +74,103 @@ impl FnId {
 }
 
 pub(crate) fn register(analysis: &mut Analysis) {
+    register_initializers(analysis);
+    register_ast(analysis);
+}
+
+fn register_initializers(analysis: &mut Analysis) {
+    for (type_id, type_) in &analysis.types.clone() {
+        if let Some(ast) = &type_.ast {
+            let id = FnId {
+                module: ast.name.span.module.name.clone(),
+                name: ast.name.label.clone(),
+                param_types: type_
+                    .fields
+                    .iter()
+                    .map(|field| field.type_id.clone())
+                    .collect(),
+            };
+            let fn_ = AstFnItem {
+                name: clone_ident(analysis, &ast.name),
+                params: ast
+                    .fields
+                    .iter()
+                    .map(|field| AstFnParam {
+                        name: clone_ident(analysis, &field.name),
+                        type_: clone_ident(analysis, &field.type_),
+                        ref_span: None,
+                    })
+                    .collect(),
+                return_type: Some(AstReturnType {
+                    name: clone_ident(analysis, &ast.name),
+                    is_ref: false,
+                }),
+                qualifier: AstFnQualifier::Gpu,
+                statements: vec![],
+                is_pub: false,
+            };
+            let fn_ = Function {
+                ast: fn_.clone(),
+                is_inlined: is_inlined(&fn_),
+                return_type_id: Some(Some(type_id.clone())),
+                params: type_
+                    .fields
+                    .iter()
+                    .map(|field| FnParam {
+                        name: field.name.clone(),
+                        type_id: field.type_id.clone(),
+                    })
+                    .collect(),
+                source_type: Some(type_id.clone()),
+            };
+            analysis.fns.insert(id, fn_);
+        }
+    }
+}
+
+fn register_ast(analysis: &mut Analysis) {
     let asts = mem::take(&mut analysis.asts);
     for ast in asts.values() {
         for items in &ast.items {
-            if let AstItem::Fn(fn_) = items {
-                let id = FnId::from_item(analysis, fn_);
-                let existing_function = analysis.fns.insert(
-                    id.clone(),
-                    Function {
-                        ast: fn_.clone(),
-                        is_inlined: is_inlined(fn_),
-                    },
-                );
-                if let Some(existing_fn) = existing_function {
-                    analysis
-                        .errors
-                        .push(errors::functions::duplicated(&id, fn_, &existing_fn.ast));
+            if let AstItem::Fn(fn_ast) = items {
+                let id = FnId::from_item(analysis, fn_ast);
+                let fn_ = Function {
+                    ast: fn_ast.clone(),
+                    is_inlined: is_inlined(fn_ast),
+                    return_type_id: fn_ast
+                        .return_type
+                        .as_ref()
+                        .map(|return_type| types::find_or_add_error(analysis, &return_type.name)),
+                    params: fn_ast
+                        .params
+                        .iter()
+                        .map(|param| FnParam {
+                            name: param.name.clone(),
+                            type_id: types::find_or_add_error(analysis, &param.type_),
+                        })
+                        .collect(),
+                    source_type: None,
+                };
+                if let Some(existing_fn) = analysis.fns.insert(id.clone(), fn_) {
+                    analysis.errors.push(errors::functions::duplicated(
+                        &id,
+                        fn_ast,
+                        &existing_fn.ast,
+                    ));
                 }
             }
         }
     }
     analysis.asts = asts;
+}
+
+fn clone_ident(analysis: &mut Analysis, ident: &AstIdent) -> AstIdent {
+    AstIdent {
+        span: ident.span.clone(),
+        label: ident.label.clone(),
+        id: analysis.next_id(),
+        type_: AstIdentType::Other,
+    }
 }
 
 fn is_inlined(fn_: &AstFnItem) -> bool {

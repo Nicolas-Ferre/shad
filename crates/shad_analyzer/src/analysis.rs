@@ -63,7 +63,7 @@ impl Analysis {
         transformation::literals::transform(&mut analysis);
         transformation::fn_params::transform(&mut analysis);
         registration::idents::register(&mut analysis);
-        checks::structs::check(&mut analysis);
+        checks::types::check(&mut analysis);
         checks::functions::check(&mut analysis);
         checks::literals::check(&mut analysis);
         checks::statements::check(&mut analysis);
@@ -79,14 +79,18 @@ impl Analysis {
         analysis
     }
 
-    /// Returns the type of a buffer.
-    pub fn buffer_type(&self, buffer_id: &BufferId) -> &Type {
+    /// Returns the type ID of a buffer.
+    pub fn buffer_type_id(&self, buffer_id: &BufferId) -> &TypeId {
         let id = &self.buffers[buffer_id].ast.name.id;
-        let type_ = self.idents[id]
+        self.idents[id]
             .type_
             .as_ref()
-            .expect("internal error: invalid buffer type");
-        &self.types[type_]
+            .expect("internal error: invalid buffer type")
+    }
+
+    /// Returns the type of a buffer.
+    pub fn buffer_type(&self, buffer_id: &BufferId) -> &Type {
+        &self.types[self.buffer_type_id(buffer_id)]
     }
 
     pub(crate) fn expr_type(&self, expr: &AstExpr) -> Option<TypeId> {

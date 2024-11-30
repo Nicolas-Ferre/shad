@@ -1,4 +1,4 @@
-use crate::{listing, Analysis, BufferId, FnId};
+use crate::{listing, Analysis, BufferId, FnId, TypeId};
 use fxhash::{FxHashMap, FxHashSet};
 use itertools::Itertools;
 use shad_parser::{AstRunItem, AstStatement};
@@ -7,10 +7,12 @@ use std::cmp::Ordering;
 /// An analyzed compute shader.
 #[derive(Debug, Clone)]
 pub struct ComputeShader {
-    /// The buffers used by the shader.
-    pub buffers: Vec<BufferId>,
-    /// The identifiers of the functions used by the shader.
+    /// The buffers IDs used by the shader.
+    pub buffer_ids: Vec<BufferId>,
+    /// The function IDs used by the shader.
     pub fn_ids: Vec<FnId>,
+    /// The type IDs used by the shader.
+    pub type_ids: Vec<TypeId>,
     /// The statements of the shader.
     pub statements: Vec<AstStatement>,
 }
@@ -18,8 +20,9 @@ pub struct ComputeShader {
 impl ComputeShader {
     fn new(analysis: &Analysis, block: &AstRunItem) -> Self {
         Self {
-            buffers: listing::buffers::list_in_block(analysis, block),
+            buffer_ids: listing::buffers::list_in_block(analysis, block),
             fn_ids: listing::functions::list_in_block(analysis, block),
+            type_ids: listing::types::list_in_block(analysis, block),
             statements: block.statements.clone(),
         }
     }

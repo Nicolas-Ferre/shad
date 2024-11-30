@@ -1,4 +1,3 @@
-use crate::registration::types;
 use crate::{errors, Analysis, Function};
 use shad_error::SemanticError;
 use shad_parser::{
@@ -124,15 +123,13 @@ impl Visit for StatementCheck<'_> {
                 let Some(type_id) = self.analysis.expr_type(&node.expr) else {
                     return;
                 };
-                if let Some(return_type_id) =
-                    types::find(self.analysis, self.module, &return_type.name)
-                {
-                    if type_id != return_type_id {
+                if let Some(Some(return_type_id)) = &fn_.return_type_id {
+                    if &type_id != return_type_id {
                         self.errors.push(errors::returns::invalid_type(
                             node,
                             &fn_.ast,
                             &type_id,
-                            &return_type_id,
+                            return_type_id,
                         ));
                         return;
                     }

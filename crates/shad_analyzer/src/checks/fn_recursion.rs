@@ -7,12 +7,9 @@ use std::mem;
 pub(crate) fn check(analysis: &mut Analysis) {
     let mut errors = vec![];
     let mut errored_fn_ids = FxHashSet::default();
-    for fn_ in analysis.fns.values() {
-        let mut checker = FnRecursionCheck::new(
-            analysis,
-            FnId::from_item(analysis, &fn_.ast),
-            mem::take(&mut errored_fn_ids),
-        );
+    for (fn_id, fn_) in &analysis.fns {
+        let mut checker =
+            FnRecursionCheck::new(analysis, fn_id.clone(), mem::take(&mut errored_fn_ids));
         checker.visit_fn_item(&fn_.ast);
         errors.extend(checker.errors);
         errored_fn_ids = checker.errored_fn_ids;
