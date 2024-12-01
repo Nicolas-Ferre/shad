@@ -65,7 +65,7 @@ pub struct AstFnCall {
     /// The function name.
     pub name: AstIdent,
     /// The arguments passed to the function.
-    pub args: Vec<AstExpr>,
+    pub args: Vec<AstFnCallArg>,
     /// Whether the function call is done using an operator.
     pub is_operator: bool,
     /// Whether the function call is a statement.
@@ -79,7 +79,7 @@ impl AstFnCall {
         parse_token(lexer, TokenType::OpenParenthesis)?;
         let mut args = vec![];
         while parse_token(&mut lexer.clone(), TokenType::CloseParenthesis).is_err() {
-            args.push(AstExpr::parse(lexer)?);
+            args.push(AstFnCallArg::parse(lexer)?);
             if parse_token_option(lexer, TokenType::Comma)?.is_none() {
                 break;
             }
@@ -138,7 +138,7 @@ impl AstFnCall {
                 id: lexer.next_id(),
                 type_: AstIdentType::Other,
             },
-            args: vec![left, right],
+            args: vec![left.into(), right.into()],
             is_operator: true,
             is_statement: false,
         })
@@ -155,7 +155,7 @@ impl AstFnCall {
                 id: lexer.next_id(),
                 type_: AstIdentType::Other,
             },
-            args: vec![expr],
+            args: vec![expr.into()],
             is_operator: true,
             is_statement: false,
         })
@@ -205,5 +205,34 @@ impl AstFnCall {
             vec![TokenType::And],
             vec![TokenType::Or],
         ]
+    }
+}
+
+/// A parsed argument passed to a function call.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct AstFnCallArg {
+    /// The parameter name when explicitly specified.
+    pub name: Option<AstIdent>,
+    /// The argument value.
+    pub value: AstExpr,
+}
+
+impl AstFnCallArg {
+    fn parse(lexer: &mut Lexer<'_>) -> Result<Self, SyntaxError> {
+        let name = Self::parse_name(&mut lexer.clone()).and_then(|_| Self::parse_name(lexer));
+        let value = AstExpr::parse(lexer)?;
+        Ok(Self { name, value })
+    }
+
+    fn parse_name(lexer: &mut Lexer<'_>) -> Option<AstIdent> {
+        let name = AstIdent::parse(lexer, AstIdentType::Other).ok()?;
+        parse_token(lexer, TokenType::Colon).ok()?;
+        Some(name)
+    }
+}
+
+impl From<AstExpr> for AstFnCallArg {
+    fn from(value: AstExpr) -> Self {
+        Self { name: None, value }
     }
 }

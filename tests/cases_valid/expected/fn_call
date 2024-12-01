@@ -1,3 +1,6 @@
 main.no_return_value_result=1
 main.result_from_fn=24
+main.sum1=3
+main.sum2=3
+main.sum3=3
 main.two=2

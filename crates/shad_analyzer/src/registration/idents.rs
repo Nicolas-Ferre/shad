@@ -220,7 +220,7 @@ impl Visit for IdentRegistration<'_> {
         if let Some(arg_type_ids) = node
             .args
             .iter()
-            .map(|node| resolver::expr_type(self.analysis, node))
+            .map(|node| resolver::expr_type(self.analysis, &node.value))
             .collect::<Option<Vec<_>>>()
         {
             if let Some((fn_id, fn_)) = self.find_fn(node, &arg_type_ids) {

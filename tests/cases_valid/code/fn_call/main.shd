@@ -31,3 +31,17 @@ run {
 fn update_buffer() {
     no_return_value_result = 1;
 }
+
+buf sum1 = 0.;
+buf sum2 = 0.;
+buf sum3 = 0.;
+
+fn add(left: f32, right: f32) -> f32 {
+    return left + right;
+}
+
+run {
+    sum1 = add(left: 1., right: 2.);
+    sum3 = add(left: 1., 2.);
+    sum2 = add(1., right: 2.);
+}

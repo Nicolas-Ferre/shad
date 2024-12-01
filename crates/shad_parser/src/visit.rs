@@ -253,7 +253,10 @@ macro_rules! visit_trait {
                 self.enter_fn_call(node);
                 self.visit_ident(&$($mut_keyword)? node.name);
                 for node in &$($mut_keyword)? node.args {
-                    self.visit_expr(node);
+                    if let Some(node) = &$($mut_keyword)? node.name {
+                        self.visit_ident(node);
+                    }
+                    self.visit_expr(&$($mut_keyword)? node.value);
                 }
                 self.exit_fn_call(node);
             }

@@ -75,10 +75,11 @@ impl VisitMut for RefSplitTransform<'_> {
             let var_label = "tmp";
             let var_def_id = self.analysis.next_id();
             let var_usage_id = self.analysis.next_id();
+            let arg_value_span = arg.value.span().clone();
             let arg = mem::replace(
-                arg,
+                &mut arg.value,
                 AstExpr::Ident(AstIdent {
-                    span: arg.span().clone(),
+                    span: arg_value_span,
                     label: var_label.into(),
                     id: var_usage_id,
                     type_: AstIdentType::VarUsage,

@@ -37,16 +37,13 @@ impl Visit for FunctionListing<'_> {
     }
 
     fn enter_ident(&mut self, node: &AstIdent) {
-        let ident = self
-            .analysis
-            .idents
-            .get(&node.id)
-            .expect("internal error: missing identifier ID");
-        match &ident.source {
-            IdentSource::Fn(id) => {
-                self.fn_ids.insert(id.clone());
+        if let Some(ident) = self.analysis.idents.get(&node.id) {
+            match &ident.source {
+                IdentSource::Fn(id) => {
+                    self.fn_ids.insert(id.clone());
+                }
+                IdentSource::Var(_) | IdentSource::Buffer(_) => (),
             }
-            IdentSource::Var(_) | IdentSource::Buffer(_) => (),
         }
     }
 }
