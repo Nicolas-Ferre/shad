@@ -76,7 +76,12 @@ impl Runner {
     /// Retrieves the bytes of the buffer with a specific Shad `name`.
     pub fn buffer(&self, buffer_id: &BufferId) -> Vec<u8> {
         if let Some(wgpu_buffer) = self.program.buffers.get(buffer_id) {
-            let size = self.program.analysis.buffer_type(buffer_id).size as u64;
+            let type_ = self
+                .program
+                .analysis
+                .buffer_type(buffer_id)
+                .expect("internal error: invalid buffer type");
+            let size = type_.size as u64;
             let tmp_buffer = self.device.create_buffer(&BufferDescriptor {
                 label: Some("modor_texture_buffer"),
                 size,
@@ -208,9 +213,12 @@ impl Program {
     }
 
     fn create_buffer(analysis: &Analysis, buffer: &BufferId, device: &Device) -> wgpu::Buffer {
+        let type_ = analysis
+            .buffer_type(buffer)
+            .expect("internal error: invalid buffer type");
         device.create_buffer(&BufferDescriptor {
             label: Some(&format!("shad:buffer:{}.{}", buffer.module, buffer.name)),
-            size: analysis.buffer_type(buffer).size as u64,
+            size: type_.size as u64,
             usage: BufferUsages::STORAGE | BufferUsages::COPY_SRC,
             mapped_at_creation: false,
         })

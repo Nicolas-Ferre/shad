@@ -2,12 +2,12 @@ use crate::registration::functions::Function;
 use crate::registration::idents::Ident;
 use crate::registration::shaders::ComputeShader;
 use crate::{
-    checks, registration, transformation, Buffer, BufferId, BufferInitRunBlock, FnId, RunBlock,
-    Type, TypeId, BOOL_TYPE, F32_TYPE, I32_TYPE, U32_TYPE,
+    checks, registration, resolver, transformation, Buffer, BufferId, BufferInitRunBlock, FnId,
+    RunBlock, Type, TypeId,
 };
 use fxhash::FxHashMap;
 use shad_error::SemanticError;
-use shad_parser::{Ast, AstExpr, AstLiteralType};
+use shad_parser::{Ast, AstIdent};
 
 /// The semantic analysis of an AST.
 #[derive(Debug, Clone)]
@@ -80,26 +80,13 @@ impl Analysis {
     }
 
     /// Returns the type of a buffer.
-    pub fn buffer_type(&self, buffer_id: &BufferId) -> &Type {
-        let id = &self.buffers[buffer_id].ast.name.id;
-        let type_id = self.idents[id]
-            .type_
-            .as_ref()
-            .expect("internal error: invalid buffer type");
-        &self.types[type_id]
+    pub fn buffer_type(&self, buffer_id: &BufferId) -> Option<&Type> {
+        resolver::buffer_type(self, buffer_id)
     }
 
-    pub(crate) fn expr_type(&self, expr: &AstExpr) -> Option<TypeId> {
-        match expr {
-            AstExpr::Literal(literal) => Some(match literal.type_ {
-                AstLiteralType::F32 => TypeId::from_builtin(F32_TYPE),
-                AstLiteralType::U32 => TypeId::from_builtin(U32_TYPE),
-                AstLiteralType::I32 => TypeId::from_builtin(I32_TYPE),
-                AstLiteralType::Bool => TypeId::from_builtin(BOOL_TYPE),
-            }),
-            AstExpr::Ident(ident) => self.idents.get(&ident.id)?.type_.clone(),
-            AstExpr::FnCall(call) => self.idents.get(&call.name.id)?.type_.clone(),
-        }
+    /// Returns the function from a function name identifier.
+    pub fn fn_(&self, ident: &AstIdent) -> Option<&Function> {
+        resolver::fn_(self, ident)
     }
 
     pub(crate) fn next_id(&mut self) -> u64 {

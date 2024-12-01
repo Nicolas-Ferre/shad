@@ -27,7 +27,7 @@ mod checks;
 mod errors;
 mod listing;
 mod registration;
-mod search;
+mod resolver;
 mod transformation;
 
 pub use analysis::*;

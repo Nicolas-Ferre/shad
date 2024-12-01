@@ -1,4 +1,4 @@
-use crate::{errors, search, Analysis, BufferId, IdentSource};
+use crate::{errors, resolver, Analysis, BufferId, IdentSource};
 use fxhash::FxHashSet;
 use shad_error::{SemanticError, Span};
 use shad_parser::{AstFnCall, AstIdent, Visit};
@@ -87,7 +87,7 @@ impl<'a> BufferRecursionCheck<'a> {
 
 impl Visit for BufferRecursionCheck<'_> {
     fn enter_fn_call(&mut self, node: &AstFnCall) {
-        if let Some(fn_) = search::fn_(self.analysis, &node.name) {
+        if let Some(fn_) = resolver::fn_(self.analysis, &node.name) {
             self.visit_fn_item(&fn_.ast);
         }
     }
