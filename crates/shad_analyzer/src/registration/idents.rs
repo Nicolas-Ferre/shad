@@ -1,4 +1,4 @@
-use crate::{errors, search, Analysis, Buffer, BufferId, FnId, Function, TypeId};
+use crate::{errors, resolver, Analysis, Buffer, BufferId, FnId, Function, TypeId};
 use fxhash::FxHashMap;
 use shad_parser::{
     AstBufferItem, AstFnCall, AstFnItem, AstFnParam, AstIdent, AstIdentType, AstItem,
@@ -33,10 +33,20 @@ pub enum IdentSource {
 }
 
 pub(crate) fn register(analysis: &mut Analysis) {
+    register_structs(analysis);
     register_buffer_init(analysis);
     register_buffer_types(analysis);
     register_run_blocks(analysis);
     register_fns(analysis);
+}
+
+fn register_structs(analysis: &mut Analysis) {
+    for type_ in analysis.types.values() {
+        for field in &type_.fields {
+            let ident = Ident::new(IdentSource::Var(field.name.id), field.type_id.clone());
+            analysis.idents.insert(field.name.id, ident);
+        }
+    }
 }
 
 fn register_buffer_init(analysis: &mut Analysis) {
@@ -165,14 +175,14 @@ impl<'a> IdentRegistration<'a> {
         let return_type_id = node
             .return_type
             .as_ref()
-            .and_then(|type_| search::type_(self.analysis, &type_.name).ok());
+            .and_then(|type_| resolver::type_(self.analysis, &type_.name).ok());
         let fn_ident_source = IdentSource::Fn(FnId::from_item(self.analysis, node));
         let fn_ident = Ident::new(fn_ident_source, return_type_id);
         self.analysis.idents.insert(node.name.id, fn_ident);
     }
 
     fn register_fn_param(&mut self, param: &AstFnParam) {
-        let type_id = search::type_(self.analysis, &param.type_).ok();
+        let type_id = resolver::type_(self.analysis, &param.type_).ok();
         let ident = Ident::new(IdentSource::Var(param.name.id), type_id);
         self.analysis.idents.insert(param.name.id, ident);
         self.add_variable(&param.name);
@@ -188,7 +198,7 @@ impl Visit for IdentRegistration<'_> {
     }
 
     fn exit_buffer_item(&mut self, node: &AstBufferItem) {
-        let buffer_type = self.analysis.expr_type(&node.value);
+        let buffer_type = resolver::expr_type(self.analysis, &node.value);
         let buffer_ident = Ident::new(
             IdentSource::Buffer(BufferId {
                 module: self.module.into(),
@@ -200,7 +210,7 @@ impl Visit for IdentRegistration<'_> {
     }
 
     fn exit_var_definition(&mut self, node: &AstVarDefinition) {
-        let var_type = self.analysis.expr_type(&node.expr);
+        let var_type = resolver::expr_type(self.analysis, &node.expr);
         let var_ident = Ident::new(IdentSource::Var(node.name.id), var_type);
         self.analysis.idents.insert(node.name.id, var_ident);
         self.add_variable(&node.name);
@@ -210,7 +220,7 @@ impl Visit for IdentRegistration<'_> {
         if let Some(arg_type_ids) = node
             .args
             .iter()
-            .map(|node| self.analysis.expr_type(node))
+            .map(|node| resolver::expr_type(self.analysis, node))
             .collect::<Option<Vec<_>>>()
         {
             if let Some((fn_id, fn_)) = self.find_fn(node, &arg_type_ids) {
@@ -235,12 +245,9 @@ impl Visit for IdentRegistration<'_> {
                 .and_then(|var| var.type_.clone());
             let var_ident = Ident::new(IdentSource::Var(id), var_type);
             self.analysis.idents.insert(node.id, var_ident);
-        } else if let Some((buffer_id, buffer)) = self.find_buffer(&node.label) {
-            let buffer_type = self
-                .analysis
-                .idents
-                .get(&buffer.ast.name.id)
-                .and_then(|ident| ident.type_.clone());
+        } else if let Some((buffer_id, _)) = self.find_buffer(&node.label) {
+            let buffer_type =
+                resolver::buffer_type(self.analysis, &buffer_id).map(|type_| type_.id.clone());
             let buffer_ident = Ident::new(IdentSource::Buffer(buffer_id), buffer_type);
             self.analysis.idents.insert(node.id, buffer_ident);
         } else if self.are_errors_enabled {

@@ -1,6 +1,9 @@
-use crate::{errors, Analysis, Function, IdentSource, TypeId};
+use crate::{
+    errors, Analysis, BufferId, Function, IdentSource, Type, TypeId, BOOL_TYPE, F32_TYPE, I32_TYPE,
+    U32_TYPE,
+};
 use shad_error::SemanticError;
-use shad_parser::AstIdent;
+use shad_parser::{AstExpr, AstIdent, AstLiteralType};
 
 pub(crate) fn type_or_add_error(analysis: &mut Analysis, type_: &AstIdent) -> Option<TypeId> {
     match self::type_(analysis, type_) {
@@ -26,6 +29,29 @@ pub(crate) fn type_(analysis: &Analysis, type_: &AstIdent) -> Result<TypeId, Sem
     } else {
         Err(errors::types::not_found(type_))
     }
+}
+
+pub(crate) fn expr_type(analysis: &Analysis, expr: &AstExpr) -> Option<TypeId> {
+    match expr {
+        AstExpr::Literal(literal) => Some(match literal.type_ {
+            AstLiteralType::F32 => TypeId::from_builtin(F32_TYPE),
+            AstLiteralType::U32 => TypeId::from_builtin(U32_TYPE),
+            AstLiteralType::I32 => TypeId::from_builtin(I32_TYPE),
+            AstLiteralType::Bool => TypeId::from_builtin(BOOL_TYPE),
+        }),
+        AstExpr::Ident(ident) => analysis.idents.get(&ident.id)?.type_.clone(),
+        AstExpr::FnCall(call) => analysis.idents.get(&call.name.id)?.type_.clone(),
+    }
+}
+
+pub(crate) fn buffer_type<'a>(analysis: &'a Analysis, buffer_id: &BufferId) -> Option<&'a Type> {
+    analysis
+        .buffers
+        .get(buffer_id)
+        .map(|buffer| buffer.ast.name.id)
+        .and_then(|id| analysis.idents.get(&id))
+        .and_then(|ident| ident.type_.as_ref())
+        .and_then(|type_| analysis.types.get(type_))
 }
 
 pub(crate) fn fn_<'a>(analysis: &'a Analysis, name: &AstIdent) -> Option<&'a Function> {

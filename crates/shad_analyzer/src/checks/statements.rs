@@ -1,4 +1,4 @@
-use crate::{errors, search, Analysis, Function};
+use crate::{errors, resolver, Analysis, Function};
 use shad_error::SemanticError;
 use shad_parser::{
     AstAssignment, AstExpr, AstFnCall, AstFnItem, AstFnQualifier, AstLeftValue, AstReturn,
@@ -44,7 +44,7 @@ impl<'a> StatementCheck<'a> {
         match expr {
             AstExpr::Literal(_) => ExprSemantic::Value,
             AstExpr::Ident(_) => ExprSemantic::Ref,
-            AstExpr::FnCall(call) => search::fn_(self.analysis, &call.name)
+            AstExpr::FnCall(call) => resolver::fn_(self.analysis, &call.name)
                 .and_then(|fn_| fn_.ast.return_type.as_ref())
                 .map_or(ExprSemantic::None, |type_| {
                     if type_.is_ref {
@@ -59,7 +59,8 @@ impl<'a> StatementCheck<'a> {
 
 impl Visit for StatementCheck<'_> {
     fn enter_fn_item(&mut self, node: &AstFnItem) {
-        let fn_ = search::fn_(self.analysis, &node.name).expect("internal error: missing function");
+        let fn_ =
+            resolver::fn_(self.analysis, &node.name).expect("internal error: missing function");
         if let Some(return_pos) = node
             .statements
             .iter()
@@ -87,7 +88,7 @@ impl Visit for StatementCheck<'_> {
             .idents
             .get(&value_id)
             .and_then(|ident| ident.type_.as_ref());
-        let expr_type = self.analysis.expr_type(&node.expr);
+        let expr_type = resolver::expr_type(self.analysis, &node.expr);
         if let (Some(expected_type), Some(expr_type)) = (expected_type, expr_type) {
             if expected_type != &expr_type {
                 self.errors.push(errors::assignments::invalid_type(
@@ -115,7 +116,7 @@ impl Visit for StatementCheck<'_> {
     fn enter_return(&mut self, node: &AstReturn) {
         if let Some(fn_) = self.fn_ {
             if let Some(return_type) = &fn_.ast.return_type {
-                let Some(type_id) = self.analysis.expr_type(&node.expr) else {
+                let Some(type_id) = resolver::expr_type(self.analysis, &node.expr) else {
                     return;
                 };
                 if let Some(return_type_id) = &fn_.return_type_id {
@@ -141,7 +142,7 @@ impl Visit for StatementCheck<'_> {
     }
 
     fn enter_fn_call(&mut self, node: &AstFnCall) {
-        if let Some(fn_) = search::fn_(self.analysis, &node.name) {
+        if let Some(fn_) = resolver::fn_(self.analysis, &node.name) {
             for (arg, param) in node.args.iter().zip(&fn_.ast.params) {
                 if let (Some(ref_span), ExprSemantic::Value) =
                     (param.ref_span.clone(), self.expr_semantic(arg))

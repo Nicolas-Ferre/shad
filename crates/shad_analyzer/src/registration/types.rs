@@ -1,4 +1,4 @@
-use crate::{errors, search, Analysis};
+use crate::{errors, resolver, Analysis};
 use shad_parser::{AstIdent, AstItem, AstStructField, AstStructItem};
 use std::mem;
 
@@ -160,6 +160,6 @@ fn register_struct_details(analysis: &mut Analysis) {
 fn analyze_field(analysis: &mut Analysis, field: &AstStructField) -> StructField {
     StructField {
         name: field.name.clone(),
-        type_id: search::type_or_add_error(analysis, &field.type_),
+        type_id: resolver::type_or_add_error(analysis, &field.type_),
     }
 }

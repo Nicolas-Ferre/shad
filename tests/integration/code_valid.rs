@@ -15,7 +15,7 @@ fn run_valid_code(#[files("./cases_valid/code/*")] path: PathBuf) {
                 "{}.{}={}",
                 buffer.module,
                 buffer.name,
-                match runner.analysis().buffer_type(buffer).name.as_str() {
+                match runner.analysis().buffer_type(buffer).unwrap().name.as_str() {
                     "i32" => format!("{}", to_i32(&runner.buffer(buffer))),
                     "u32" | "bool" => format!("{}", to_u32(&runner.buffer(buffer))),
                     "f32" => format!("{}", to_f32(&runner.buffer(buffer))),

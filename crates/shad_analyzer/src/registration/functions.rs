@@ -1,4 +1,4 @@
-use crate::{errors, search, Analysis, Type, TypeId};
+use crate::{errors, resolver, Analysis, Type, TypeId};
 use itertools::Itertools;
 use shad_parser::{
     AstFnItem, AstFnParam, AstFnQualifier, AstIdent, AstIdentType, AstItem, AstReturnType,
@@ -58,7 +58,7 @@ impl FnId {
             param_types: fn_
                 .params
                 .iter()
-                .map(|param| search::type_(analysis, &param.type_).ok())
+                .map(|param| resolver::type_(analysis, &param.type_).ok())
                 .collect(),
         }
     }
@@ -128,14 +128,14 @@ fn register_ast(analysis: &mut Analysis) {
                     id: id.clone(),
                     is_inlined: is_inlined(fn_ast),
                     return_type_id: fn_ast.return_type.as_ref().and_then(|return_type| {
-                        search::type_or_add_error(analysis, &return_type.name)
+                        resolver::type_or_add_error(analysis, &return_type.name)
                     }),
                     params: fn_ast
                         .params
                         .iter()
                         .map(|param| FnParam {
                             name: param.name.clone(),
-                            type_id: search::type_or_add_error(analysis, &param.type_),
+                            type_id: resolver::type_or_add_error(analysis, &param.type_),
                         })
                         .collect(),
                     source_type: None,
