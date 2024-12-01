@@ -36,12 +36,13 @@ buf sum1 = 0.;
 buf sum2 = 0.;
 buf sum3 = 0.;
 
-fn add(left: f32, right: f32) -> f32 {
-    return left + right;
+run {
+    var param = 0;
+    inlined(param);
 }
 
-run {
-    sum1 = add(left: 1., right: 2.);
-    sum3 = add(left: 1., 2.);
-    sum2 = add(1., right: 2.);
+fn inlined(ref param: i32) {
+    sum1 = __add__(left: 1., right: 2.);
+    sum3 = __add__(left: 1., 2.);
+    sum2 = __add__(1., right: 2.);
 }
