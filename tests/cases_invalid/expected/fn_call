@@ -84,3 +84,27 @@ error: expression is not a reference
 45 |     return 0;
    |            ^ a valid reference is expected here
    |
+
+error: invalid parameter name
+  --> ./cases_invalid/code/fn_call/main.shd:52:20
+   |
+48 | fn fn_with_params(param1: u32, param2: f32) {
+   |                   ------ info: expected name
+49 | }
+50 | 
+51 | run {
+52 |     fn_with_params(param2: 0u, param1: 0.);
+   |                    ^^^^^^ invalid name
+   |
+
+error: invalid parameter name
+  --> ./cases_invalid/code/fn_call/main.shd:52:32
+   |
+48 | fn fn_with_params(param1: u32, param2: f32) {
+   |                                ------ info: expected name
+49 | }
+50 | 
+51 | run {
+52 |     fn_with_params(param2: 0u, param1: 0.);
+   |                                ^^^^^^ invalid name
+   |

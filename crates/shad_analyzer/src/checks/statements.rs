@@ -145,10 +145,16 @@ impl Visit for StatementCheck<'_> {
         if let Some(fn_) = resolver::fn_(self.analysis, &node.name) {
             for (arg, param) in node.args.iter().zip(&fn_.ast.params) {
                 if let (Some(ref_span), ExprSemantic::Value) =
-                    (param.ref_span.clone(), self.expr_semantic(arg))
+                    (param.ref_span.clone(), self.expr_semantic(&arg.value))
                 {
-                    let error = errors::fn_calls::invalid_ref(arg, ref_span);
+                    let error = errors::fn_calls::invalid_ref(&arg.value, ref_span);
                     self.errors.push(error);
+                }
+                if let Some(name) = &arg.name {
+                    if param.name.label != name.label {
+                        let error = errors::fn_calls::invalid_param_name(name, &param.name);
+                        self.errors.push(error);
+                    }
                 }
             }
             if node.is_statement && fn_.ast.return_type.is_some() {

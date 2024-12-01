@@ -177,7 +177,7 @@ impl<'a> RefFnStatementsTransform<'a> {
                 .params
                 .iter()
                 .zip(&call.args)
-                .map(|(param, arg)| (param.name.id, arg.clone()))
+                .map(|(param, arg)| (param.name.id, arg.value.clone()))
                 .collect(),
             old_new_id: FxHashMap::default(),
         }
@@ -211,25 +211,22 @@ impl VisitMut for RefFnStatementsTransform<'_> {
     }
 
     fn exit_ident(&mut self, node: &mut AstIdent) {
-        let ident = self
-            .analysis
-            .idents
-            .get(&node.id)
-            .expect("internal error: missing identifier ID");
-        match ident.source {
-            IdentSource::Buffer(_) | IdentSource::Fn(_) => {}
-            IdentSource::Var(id) => {
-                let ident = ident.clone();
-                let old_id = node.id;
-                node.id = self.analysis.next_id();
-                self.old_new_id.insert(old_id, node.id);
-                self.analysis.idents.insert(
-                    node.id,
-                    Ident::new(
-                        IdentSource::Var(self.old_new_id.get(&id).copied().unwrap_or(id)),
-                        ident.type_,
-                    ),
-                );
+        if let Some(ident) = self.analysis.idents.get(&node.id) {
+            match ident.source {
+                IdentSource::Buffer(_) | IdentSource::Fn(_) => {}
+                IdentSource::Var(id) => {
+                    let ident = ident.clone();
+                    let old_id = node.id;
+                    node.id = self.analysis.next_id();
+                    self.old_new_id.insert(old_id, node.id);
+                    self.analysis.idents.insert(
+                        node.id,
+                        Ident::new(
+                            IdentSource::Var(self.old_new_id.get(&id).copied().unwrap_or(id)),
+                            ident.type_,
+                        ),
+                    );
+                }
             }
         }
     }

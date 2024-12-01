@@ -93,17 +93,19 @@ impl Visit for BufferRecursionCheck<'_> {
     }
 
     fn enter_ident(&mut self, node: &AstIdent) {
-        if let IdentSource::Buffer(id) = &self.analysis.idents[&node.id].source {
-            let buffer = &self.analysis.buffers[id].ast;
-            self.used_buffer_ids.push(UsedBuffer {
-                usage_span: node.span.clone(),
-                def_span: buffer.name.span.clone(),
-                id: id.clone(),
-            });
-            if !self.detect_error() {
-                self.visit_expr(&buffer.value);
+        if let Some(ident) = self.analysis.idents.get(&node.id) {
+            if let IdentSource::Buffer(id) = &ident.source {
+                let buffer = &self.analysis.buffers[id].ast;
+                self.used_buffer_ids.push(UsedBuffer {
+                    usage_span: node.span.clone(),
+                    def_span: buffer.name.span.clone(),
+                    id: id.clone(),
+                });
+                if !self.detect_error() {
+                    self.visit_expr(&buffer.value);
+                }
+                self.used_buffer_ids.pop();
             }
-            self.used_buffer_ids.pop();
         }
     }
 }

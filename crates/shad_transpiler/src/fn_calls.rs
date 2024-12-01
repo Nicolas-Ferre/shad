@@ -16,14 +16,14 @@ pub(crate) fn to_wgsl(analysis: &Analysis, call: &AstFnCall) -> String {
             format!(
                 "({}{})",
                 operator,
-                cast_fn_arg(analysis, fn_, &fn_.params[0], &call.args[0])
+                cast_fn_arg(analysis, fn_, &fn_.params[0], &call.args[0].value)
             )
         } else if let Some(operator) = binary_operator(fn_) {
             format!(
                 "({} {} {})",
-                cast_fn_arg(analysis, fn_, &fn_.params[0], &call.args[0]),
+                cast_fn_arg(analysis, fn_, &fn_.params[0], &call.args[0].value),
                 operator,
-                cast_fn_arg(analysis, fn_, &fn_.params[1], &call.args[1])
+                cast_fn_arg(analysis, fn_, &fn_.params[1], &call.args[1].value)
             )
         } else {
             format!(
@@ -32,7 +32,7 @@ pub(crate) fn to_wgsl(analysis: &Analysis, call: &AstFnCall) -> String {
                 call.args
                     .iter()
                     .zip(&fn_.params)
-                    .map(|(arg, param)| cast_fn_arg(analysis, fn_, param, arg))
+                    .map(|(arg, param)| cast_fn_arg(analysis, fn_, param, &arg.value))
                     .join(", ")
             )
         },
