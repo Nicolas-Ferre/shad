@@ -10,7 +10,12 @@ struct FieldsWithoutLastComma {
     field2: f32
 }
 
-buf value = ValidFields(0., 0, 0u, false);
+buf value = ValidFields(
+    field1: 0.,
+    field2: 0,
+    field3: 0u,
+    field4: false,
+);
 
 run {
     value = new_value();
