@@ -42,7 +42,7 @@ fn wgsl_buf_definition(analysis: &Analysis, buffer: &BufferId, binding_index: us
         "@group(0) @binding({})\nvar<storage, read_write> {}: {};",
         binding_index,
         buf_name(analysis, buffer),
-        type_name(analysis, &analysis.buffer_type(buffer).id, true),
+        type_name(analysis, &analysis.buffer_type(buffer).id),
     )
 }
 
@@ -62,11 +62,7 @@ fn wgsl_type_definition(analysis: &Analysis, type_id: &TypeId) -> String {
             .iter()
             .map(|field| wgsl_type_field(analysis, field))
             .join(", ");
-        format!(
-            "struct {} {{ {} }}",
-            type_name(analysis, type_id, false),
-            fields
-        )
+        format!("struct {} {{ {} }}", type_name(analysis, type_id), fields)
     } else {
         String::new()
     }
@@ -80,7 +76,7 @@ fn wgsl_type_field(analysis: &Analysis, field: &StructField) -> String {
     format!(
         "{}: {}",
         field_name(&field.name),
-        type_name(analysis, field_type, false)
+        type_name(analysis, field_type)
     )
 }
 
@@ -121,14 +117,14 @@ fn wgsl_fn_param(analysis: &Analysis, param: &FnParam) -> String {
         .expect("internal error: invalid param type");
     format!(
         "{}: {}",
-        wgsl_ident(analysis, &param.name, false),
-        type_name(analysis, type_id, false)
+        wgsl_ident(analysis, &param.name),
+        type_name(analysis, type_id)
     )
 }
 
 fn wgsl_return_type(analysis: &Analysis, type_: &Function) -> String {
     if let Some(type_) = &type_.return_type_id {
-        format!(" -> {}", type_name(analysis, type_, false))
+        format!(" -> {}", type_name(analysis, type_))
     } else {
         String::new()
     }
@@ -146,7 +142,7 @@ fn wgsl_statement(analysis: &Analysis, statement: &AstStatement, indent: usize) 
         AstStatement::Var(statement) => {
             format!(
                 "{empty: >width$}var {} = {};",
-                wgsl_ident(analysis, &statement.name, false),
+                wgsl_ident(analysis, &statement.name),
                 wgsl_expr(analysis, &statement.expr),
                 empty = "",
                 width = indent * IDENT_UNIT,
@@ -154,21 +150,9 @@ fn wgsl_statement(analysis: &Analysis, statement: &AstStatement, indent: usize) 
         }
         AstStatement::Assignment(statement) => match &statement.value {
             AstLeftValue::Ident(assigned) => {
-                let value_ident = &analysis.idents[&assigned.id];
-                let is_buffer = matches!(value_ident.source, IdentSource::Buffer(_));
-                let type_name = value_ident
-                    .type_
-                    .as_ref()
-                    .expect("internal error: missing type");
-                let type_ = &analysis.types[type_name];
-                let cast = if is_buffer && type_.buffer_name != type_.name {
-                    &type_.buffer_name
-                } else {
-                    ""
-                };
                 format!(
-                    "{empty: >width$}{} = {cast}({});",
-                    wgsl_ident(analysis, assigned, false),
+                    "{empty: >width$}{} = {};",
+                    wgsl_ident(analysis, assigned),
                     wgsl_expr(analysis, &statement.expr),
                     empty = "",
                     width = indent * IDENT_UNIT,
@@ -197,46 +181,80 @@ fn wgsl_statement(analysis: &Analysis, statement: &AstStatement, indent: usize) 
 
 fn wgsl_expr(analysis: &Analysis, expr: &AstExpr) -> String {
     match expr {
-        AstExpr::Literal(expr) => expr.value.clone(),
-        AstExpr::Ident(expr) => wgsl_ident(analysis, expr, true),
+        AstExpr::Literal(expr) => match expr.value.as_str() {
+            "false" => "0u".into(),
+            "true" => "1u".into(),
+            _ => expr.value.clone(),
+        },
+        AstExpr::Ident(expr) => wgsl_ident(analysis, expr),
         AstExpr::FnCall(expr) => wgsl_fn_call(analysis, expr),
     }
 }
 
-fn wgsl_ident(analysis: &Analysis, name: &AstIdent, is_expr: bool) -> String {
+fn wgsl_ident(analysis: &Analysis, name: &AstIdent) -> String {
     match &analysis.idents[&name.id].source {
-        IdentSource::Buffer(name) => {
-            let type_ = analysis.buffer_type(name);
-            if is_expr && type_.buffer_name != type_.name {
-                format!("{}({})", type_.name, buf_name(analysis, name))
-            } else {
-                buf_name(analysis, name)
-            }
-        }
+        IdentSource::Buffer(name) => buf_name(analysis, name),
         IdentSource::Var(id) => format!("v{}_{}", id, name.label),
         IdentSource::Fn(_) => unreachable!("internal error: variable as function"),
     }
 }
 
 fn wgsl_fn_call(analysis: &Analysis, call: &AstFnCall) -> String {
-    if let Some(operator) = wgsl_unary_operator(analysis, call) {
-        format!("({}{})", operator, wgsl_expr(analysis, &call.args[0]))
-    } else if let Some(operator) = wgsl_binary_operator(analysis, call) {
-        format!(
-            "({} {} {})",
-            wgsl_expr(analysis, &call.args[0]),
-            operator,
-            wgsl_expr(analysis, &call.args[1])
-        )
+    let fn_ = fn_(analysis, &call.name);
+    wgsl_cast_fn_call(
+        fn_,
+        if let Some(operator) = wgsl_unary_operator(analysis, call) {
+            format!(
+                "({}{})",
+                operator,
+                wgsl_cast_fn_arg(analysis, fn_, &fn_.params[0], &call.args[0])
+            )
+        } else if let Some(operator) = wgsl_binary_operator(analysis, call) {
+            format!(
+                "({} {} {})",
+                wgsl_cast_fn_arg(analysis, fn_, &fn_.params[0], &call.args[0]),
+                operator,
+                wgsl_cast_fn_arg(analysis, fn_, &fn_.params[1], &call.args[1])
+            )
+        } else {
+            format!(
+                "{}({})",
+                fn_name(analysis, &call.name),
+                call.args
+                    .iter()
+                    .zip(&fn_.params)
+                    .map(|(arg, param)| wgsl_cast_fn_arg(analysis, fn_, param, arg))
+                    .join(", ")
+            )
+        },
+    )
+}
+
+fn wgsl_cast_fn_call(fn_: &Function, call: String) -> String {
+    if let Some(return_type_id) = &fn_.return_type_id {
+        if return_type_id == &TypeId::from_builtin("bool") {
+            format!("u32({call})")
+        } else {
+            call
+        }
     } else {
-        format!(
-            "{}({})",
-            fn_name(analysis, &call.name),
-            call.args
-                .iter()
-                .map(|arg| wgsl_expr(analysis, arg))
-                .join(", ")
-        )
+        call
+    }
+}
+
+fn wgsl_cast_fn_arg(analysis: &Analysis, fn_: &Function, param: &FnParam, arg: &AstExpr) -> String {
+    let expr = wgsl_expr(analysis, arg);
+    let type_ = &analysis.types[param
+        .type_id
+        .as_ref()
+        .expect("internal error: invalid param type")];
+    if fn_.ast.qualifier == AstFnQualifier::Gpu
+        && fn_.source_type.is_none()
+        && type_.id == TypeId::from_builtin("bool")
+    {
+        format!("bool({expr})")
+    } else {
+        expr
     }
 }
 
@@ -286,13 +304,14 @@ fn field_name(name: &AstIdent) -> String {
     format!("f{}", name.label)
 }
 
-fn type_name(analysis: &Analysis, type_id: &TypeId, is_buffer: bool) -> String {
-    if let Some(type_) = &analysis.types[type_id].ast {
+fn type_name(analysis: &Analysis, type_id: &TypeId) -> String {
+    let type_ = &analysis.types[type_id];
+    if let Some(type_) = &type_.ast {
         format!("t{}_{}", type_.name.id, type_.name.label)
-    } else if is_buffer {
-        analysis.types[type_id].buffer_name.clone()
+    } else if type_.id == TypeId::from_builtin("bool") {
+        "u32".into()
     } else {
-        analysis.types[type_id].name.clone()
+        type_.name.clone()
     }
 }
 
@@ -300,7 +319,7 @@ fn fn_name(analysis: &Analysis, ident: &AstIdent) -> String {
     let fn_ = fn_(analysis, ident);
     if fn_.ast.qualifier == AstFnQualifier::Gpu {
         if let Some(source_type) = &fn_.source_type {
-            type_name(analysis, source_type, false)
+            type_name(analysis, source_type)
         } else {
             fn_.ast.name.label.clone()
         }

@@ -18,8 +18,6 @@ pub struct Type {
     pub id: TypeId,
     /// The type name.
     pub name: String,
-    /// The type name when used for a buffer.
-    pub buffer_name: String,
     /// The type size in bytes.
     pub size: usize,
     /// The type AST.
@@ -47,7 +45,8 @@ pub struct StructField {
 }
 
 impl TypeId {
-    pub(crate) fn from_builtin(name: &str) -> Self {
+    /// Creates the type ID of a builtin type.
+    pub fn from_builtin(name: &str) -> Self {
         Self {
             module: None,
             name: name.into(),
@@ -74,7 +73,6 @@ fn register_builtin(analysis: &mut Analysis) {
             Type {
                 id: TypeId::from_builtin(F32_TYPE),
                 name: F32_TYPE.into(),
-                buffer_name: F32_TYPE.into(),
                 size: 4,
                 ast: None,
                 fields: vec![],
@@ -82,7 +80,6 @@ fn register_builtin(analysis: &mut Analysis) {
             Type {
                 id: TypeId::from_builtin(U32_TYPE),
                 name: U32_TYPE.into(),
-                buffer_name: U32_TYPE.into(),
                 size: 4,
                 ast: None,
                 fields: vec![],
@@ -90,7 +87,6 @@ fn register_builtin(analysis: &mut Analysis) {
             Type {
                 id: TypeId::from_builtin(I32_TYPE),
                 name: I32_TYPE.into(),
-                buffer_name: I32_TYPE.into(),
                 size: 4,
                 ast: None,
                 fields: vec![],
@@ -98,7 +94,6 @@ fn register_builtin(analysis: &mut Analysis) {
             Type {
                 id: TypeId::from_builtin(BOOL_TYPE),
                 name: BOOL_TYPE.into(),
-                buffer_name: U32_TYPE.into(),
                 size: 4,
                 ast: None,
                 fields: vec![],
@@ -118,7 +113,6 @@ fn register_structs(analysis: &mut Analysis) {
                 let type_ = Type {
                     id: id.clone(),
                     name: struct_.name.label.clone(),
-                    buffer_name: struct_.name.label.clone(),
                     size: 0, // defined once all structs have been detected
                     ast: Some(struct_.clone()),
                     fields: vec![], // defined once all structs have been detected

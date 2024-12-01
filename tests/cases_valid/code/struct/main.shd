@@ -2,6 +2,7 @@ struct ValidFields {
     field1: f32,
     field2: i32,
     field3: u32,
+    field4: bool,
 }
 
 struct FieldsWithoutLastComma {
@@ -9,14 +10,14 @@ struct FieldsWithoutLastComma {
     field2: f32
 }
 
-buf value = ValidFields(0., 0, 0u);
+buf value = ValidFields(0., 0, 0u, false);
 
 run {
     value = new_value();
 }
 
 fn new_value() -> ValidFields {
-    var value = ValidFields(4., 3, 2u);
+    var value = ValidFields(4., 3, 2u, true);
     return copy(value);
 }
 
