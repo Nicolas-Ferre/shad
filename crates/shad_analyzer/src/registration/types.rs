@@ -187,8 +187,8 @@ fn calculate_type_details(analysis: &mut Analysis, type_: &mut Type) -> Option<(
                 .map(|type_id| analysis.types[type_id].alignment)
                 .max()
                 .unwrap_or(0);
-            let last_field_size =
-                analysis.types[type_.fields[type_.fields.len() - 1].type_id.as_ref()?].size;
+            let last_field_type_id = type_.fields[type_.fields.len() - 1].type_id.as_ref()?;
+            let last_field_size = analysis.types[last_field_type_id].size;
             type_.size = round_up(
                 type_.alignment,
                 struct_offset(analysis, &type_.fields)? + last_field_size,
@@ -209,10 +209,10 @@ fn struct_offset(analysis: &Analysis, fields: &[StructField]) -> Option<usize> {
     Some(if fields.len() == 1 {
         0
     } else {
-        let last_field_alignment =
-            analysis.types[fields[fields.len() - 1].type_id.as_ref()?].alignment;
-        let before_last_field_size =
-            analysis.types[fields[fields.len() - 2].type_id.as_ref()?].size;
+        let last_field_type_id = fields[fields.len() - 1].type_id.as_ref()?;
+        let before_last_field_type_id = fields[fields.len() - 2].type_id.as_ref()?;
+        let last_field_alignment = analysis.types[last_field_type_id].alignment;
+        let before_last_field_size = analysis.types[before_last_field_type_id].size;
         round_up(
             last_field_alignment,
             struct_offset(analysis, &fields[..fields.len() - 1])? + before_last_field_size,
