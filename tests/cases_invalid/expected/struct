@@ -8,16 +8,9 @@ error: type `DuplicatedType` is defined multiple times
   |        ^^^^^^^^^^^^^^ duplicated type
   |
 
-error: not allowed type `OtherType` in struct `InvalidFields`
- --> ./cases_invalid/code/struct/main.shd:7:19
-  |
-7 |     invalid_type: OtherType,
-  |                   ^^^^^^^^^ only `u32`, `i32`, `f32` and `bool` types are allowed here
-  |
-
 error: could not find `undef` type
- --> ./cases_invalid/code/struct/main.shd:8:21
+ --> ./cases_invalid/code/struct/main.shd:6:21
   |
-8 |     undefined_type: undef,
+6 |     undefined_type: undef,
   |                     ^^^^^ undefined type
   |

@@ -1,10 +1,17 @@
-struct Vec2i {
-    x: i32,
-    y: i32,
+struct Object {
+    position: Vec,
+    value: i32,
+    size: Vec,
 }
 
-buf coords = Vec2i(2, 1);
+struct Vec {
+    x: i32,
+    y: i32,
+    z: i32,
+}
+
+buf obj = Object(Vec(0, 0, 0), 10, Vec(1, 1, 1));
 
 run {
-    coords = Vec2i(5, 2);
+    obj = Object(Vec(5, 2, 7), 11, Vec(3, 4, 8));
 }

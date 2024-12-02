@@ -10,15 +10,31 @@ struct FieldsWithoutLastComma {
     field2: f32
 }
 
+struct ComplexStruct {
+    position: ValidFields,
+    value: i32,
+    size: ValidFields,
+}
+
 buf value = ValidFields(
     field1: 0.,
     field2: 0,
     field3: 0u,
     field4: false,
 );
+buf complex = ComplexStruct(
+    ValidFields(0., 0, 0u, true),
+    10,
+    ValidFields(1., 1, 1u, false)
+);
 
 run {
     value = new_value();
+    complex = ComplexStruct(
+        ValidFields(5., 2, 7u, false),
+        11,
+        ValidFields(3., 4, 8u, true)
+    );
 }
 
 fn new_value() -> ValidFields {
