@@ -3,7 +3,5 @@ struct OtherType { field2: u32 }
 struct DuplicatedType { field3: u32 }
 
 struct InvalidFields {
-    valid_type: f32,
-    invalid_type: OtherType,
     undefined_type: undef,
 }

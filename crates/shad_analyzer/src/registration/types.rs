@@ -20,6 +20,8 @@ pub struct Type {
     pub name: String,
     /// The type size in bytes.
     pub size: usize,
+    /// The type alignment in bytes.
+    pub alignment: usize,
     /// The type AST.
     pub ast: Option<AstStructItem>,
     /// The fields of the type when this is a struct.
@@ -74,6 +76,7 @@ fn register_builtin(analysis: &mut Analysis) {
                 id: TypeId::from_builtin(F32_TYPE),
                 name: F32_TYPE.into(),
                 size: 4,
+                alignment: 4,
                 ast: None,
                 fields: vec![],
             },
@@ -81,6 +84,7 @@ fn register_builtin(analysis: &mut Analysis) {
                 id: TypeId::from_builtin(U32_TYPE),
                 name: U32_TYPE.into(),
                 size: 4,
+                alignment: 4,
                 ast: None,
                 fields: vec![],
             },
@@ -88,6 +92,7 @@ fn register_builtin(analysis: &mut Analysis) {
                 id: TypeId::from_builtin(I32_TYPE),
                 name: I32_TYPE.into(),
                 size: 4,
+                alignment: 4,
                 ast: None,
                 fields: vec![],
             },
@@ -95,6 +100,7 @@ fn register_builtin(analysis: &mut Analysis) {
                 id: TypeId::from_builtin(BOOL_TYPE),
                 name: BOOL_TYPE.into(),
                 size: 4,
+                alignment: 4,
                 ast: None,
                 fields: vec![],
             },
@@ -113,7 +119,8 @@ fn register_structs(analysis: &mut Analysis) {
                 let type_ = Type {
                     id: id.clone(),
                     name: struct_.name.label.clone(),
-                    size: 0, // defined once all structs have been detected
+                    size: 0,      // defined once all structs have been detected
+                    alignment: 0, // defined once all structs have been detected
                     ast: Some(struct_.clone()),
                     fields: vec![], // defined once all structs have been detected
                 };
@@ -134,27 +141,61 @@ fn register_structs(analysis: &mut Analysis) {
 }
 
 fn register_struct_details(analysis: &mut Analysis) {
-    analysis.types = analysis
-        .types
-        .clone()
-        .into_iter()
-        .map(|(type_id, mut type_)| {
-            if let Some(ast) = &type_.ast {
-                type_.fields = ast
-                    .fields
-                    .iter()
-                    .map(|field| analyze_field(analysis, field))
-                    .collect();
-                type_.size = type_
-                    .fields
-                    .iter()
-                    .flat_map(|field| &field.type_id)
-                    .map(|type_id| analysis.types[type_id].size)
-                    .sum();
-            }
-            (type_id, type_)
-        })
-        .collect();
+    let mut sized_count = 0;
+    let mut last_sized_count = 0;
+    while sized_count < analysis.types.len() {
+        analysis.types = analysis
+            .types
+            .clone()
+            .into_iter()
+            .map(|(type_id, mut type_)| {
+                calculate_type_details(analysis, &mut type_);
+                (type_id, type_)
+            })
+            .collect();
+        sized_count = analysis
+            .types
+            .values()
+            .filter(|type_| type_.size > 0)
+            .count();
+        if sized_count == last_sized_count {
+            break; // recursive struct definition
+        }
+        last_sized_count = sized_count;
+    }
+}
+
+fn calculate_type_details(analysis: &mut Analysis, type_: &mut Type) -> Option<()> {
+    if let Some(ast) = &type_.ast {
+        if type_.fields.is_empty() {
+            type_.fields = ast
+                .fields
+                .iter()
+                .map(|field| analyze_field(analysis, field))
+                .collect();
+        }
+        let are_fields_registered = type_
+            .fields
+            .iter()
+            .flat_map(|field| &field.type_id)
+            .all(|type_id| analysis.types[type_id].size > 0);
+        if are_fields_registered {
+            type_.alignment = type_
+                .fields
+                .iter()
+                .flat_map(|field| &field.type_id)
+                .map(|type_id| analysis.types[type_id].alignment)
+                .max()
+                .unwrap_or(0);
+            let last_field_type_id = type_.fields[type_.fields.len() - 1].type_id.as_ref()?;
+            let last_field_size = analysis.types[last_field_type_id].size;
+            type_.size = round_up(
+                type_.alignment,
+                struct_offset(analysis, &type_.fields)? + last_field_size,
+            );
+        }
+    }
+    Some(())
 }
 
 fn analyze_field(analysis: &mut Analysis, field: &AstStructField) -> StructField {
@@ -162,4 +203,23 @@ fn analyze_field(analysis: &mut Analysis, field: &AstStructField) -> StructField
         name: field.name.clone(),
         type_id: resolver::type_or_add_error(analysis, &field.type_),
     }
+}
+
+fn struct_offset(analysis: &Analysis, fields: &[StructField]) -> Option<usize> {
+    Some(if fields.len() == 1 {
+        0
+    } else {
+        let last_field_type_id = fields[fields.len() - 1].type_id.as_ref()?;
+        let before_last_field_type_id = fields[fields.len() - 2].type_id.as_ref()?;
+        let last_field_alignment = analysis.types[last_field_type_id].alignment;
+        let before_last_field_size = analysis.types[before_last_field_type_id].size;
+        round_up(
+            last_field_alignment,
+            struct_offset(analysis, &fields[..fields.len() - 1])? + before_last_field_size,
+        )
+    })
+}
+
+fn round_up(n: usize, k: usize) -> usize {
+    n.div_ceil(k) * k
 }
