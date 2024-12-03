@@ -1,4 +1,4 @@
-use crate::checks::buffer_recursion::UsedBuffer;
+use crate::checks::recursion::UsedItem;
 use crate::{Buffer, BufferId};
 use itertools::Itertools;
 use shad_error::{ErrorLevel, LocatedMessage, SemanticError};
@@ -31,7 +31,7 @@ pub(crate) fn duplicated(
 
 pub(crate) fn recursion_found(
     current_buffer_id: &BufferId,
-    buffer_stack: &[UsedBuffer],
+    buffer_stack: &[UsedItem<BufferId>],
 ) -> SemanticError {
     SemanticError::new(
         format!("buffer `{}` defined recursively", current_buffer_id.name),

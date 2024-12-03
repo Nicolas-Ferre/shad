@@ -1,4 +1,4 @@
-use crate::checks::type_recursion::UsedType;
+use crate::checks::recursion::UsedItem;
 use crate::TypeId;
 use itertools::Itertools;
 use shad_error::{ErrorLevel, LocatedMessage, SemanticError};
@@ -38,7 +38,10 @@ pub(crate) fn not_found(ident: &AstIdent) -> SemanticError {
     )
 }
 
-pub(crate) fn recursion_found(current_type_id: &TypeId, type_stack: &[UsedType]) -> SemanticError {
+pub(crate) fn recursion_found(
+    current_type_id: &TypeId,
+    type_stack: &[UsedItem<TypeId>],
+) -> SemanticError {
     SemanticError::new(
         format!("type `{}` defined recursively", current_type_id.name),
         iter::once(LocatedMessage {

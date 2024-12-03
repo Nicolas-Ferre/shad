@@ -66,12 +66,12 @@ impl Analysis {
         checks::functions::check(&mut analysis);
         checks::literals::check(&mut analysis);
         checks::statements::check(&mut analysis);
-        checks::fn_recursion::check(&mut analysis);
+        checks::recursion::fns::check(&mut analysis);
         if !analysis.errors.is_empty() {
             return analysis;
         }
-        checks::buffer_recursion::check(&mut analysis);
-        checks::type_recursion::check(&mut analysis);
+        checks::recursion::buffers::check(&mut analysis);
+        checks::recursion::types::check(&mut analysis);
         transformation::ref_split::transform(&mut analysis);
         transformation::ref_fn_inline::transform(&mut analysis);
         transformation::ref_var_inline::transform(&mut analysis);

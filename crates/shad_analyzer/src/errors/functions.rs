@@ -1,4 +1,4 @@
-use crate::checks::fn_recursion::UsedFn;
+use crate::checks::recursion::UsedItem;
 use crate::{FnId, TypeId};
 use itertools::Itertools;
 use shad_error::{ErrorLevel, LocatedMessage, SemanticError};
@@ -42,7 +42,7 @@ pub(crate) fn not_found(call: &AstFnCall, arg_types: &[TypeId]) -> SemanticError
     )
 }
 
-pub(crate) fn recursion_found(current_fn_id: &FnId, fn_stack: &[UsedFn]) -> SemanticError {
+pub(crate) fn recursion_found(current_fn_id: &FnId, fn_stack: &[UsedItem<FnId>]) -> SemanticError {
     SemanticError::new(
         format!(
             "function `{}` defined recursively",
