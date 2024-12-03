@@ -1,6 +1,9 @@
+use crate::checks::recursion::UsedItem;
 use crate::TypeId;
+use itertools::Itertools;
 use shad_error::{ErrorLevel, LocatedMessage, SemanticError};
 use shad_parser::{AstIdent, AstStructItem};
+use std::iter;
 
 pub(crate) fn duplicated(
     id: &TypeId,
@@ -32,5 +35,36 @@ pub(crate) fn not_found(ident: &AstIdent) -> SemanticError {
             span: ident.span.clone(),
             text: "undefined type".into(),
         }],
+    )
+}
+
+pub(crate) fn recursion_found(
+    current_type_id: &TypeId,
+    type_stack: &[UsedItem<TypeId>],
+) -> SemanticError {
+    SemanticError::new(
+        format!("type `{}` defined recursively", current_type_id.name),
+        iter::once(LocatedMessage {
+            level: ErrorLevel::Error,
+            span: type_stack[type_stack.len() - 1].def_span.clone(),
+            text: format!(
+                "recursive type `{}` defined here",
+                type_stack[type_stack.len() - 1].id.name
+            ),
+        })
+        .chain(
+            type_stack
+                .iter()
+                .circular_tuple_windows()
+                .map(|(usage, next_usage)| LocatedMessage {
+                    level: ErrorLevel::Info,
+                    span: next_usage.usage_span.clone(),
+                    text: format!(
+                        "`{}` type used in `{}` type",
+                        next_usage.id.name, usage.id.name,
+                    ),
+                }),
+        )
+        .collect(),
     )
 }
