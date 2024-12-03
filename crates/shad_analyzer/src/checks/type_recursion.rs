@@ -1,7 +1,7 @@
-use crate::{errors, resolver, Analysis, IdentSource, Type, TypeId};
+use crate::{errors, Analysis, Type, TypeId};
 use fxhash::FxHashSet;
 use shad_error::{SemanticError, Span};
-use shad_parser::{AstFnCall, AstIdent, AstStructItem, Visit};
+use shad_parser::AstStructItem;
 use std::mem;
 
 pub(crate) fn check(analysis: &mut Analysis) {
