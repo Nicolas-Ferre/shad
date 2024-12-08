@@ -38,7 +38,7 @@ fn register_init(analysis: &mut Analysis) {
                     ast: AstRunItem {
                         statements: vec![AstStatement::Assignment(AstAssignment {
                             span: buffer.value.span().clone(),
-                            value: AstLeftValue::Ident(buffer.name.clone()),
+                            value: AstLeftValue::IdentPath(buffer.name.clone().into()),
                             expr: buffer.value.clone(),
                         })],
                         priority: None,

@@ -1,8 +1,7 @@
 use crate::{errors, resolver, Analysis, Type, TypeId};
 use itertools::Itertools;
 use shad_parser::{
-    AstFnItem, AstFnParam, AstFnQualifier, AstIdent, AstIdentType, AstItem, AstReturnType,
-    AstStructItem,
+    AstFnItem, AstFnParam, AstFnQualifier, AstIdent, AstItem, AstReturnType, AstStructItem,
 };
 use std::mem;
 
@@ -180,7 +179,6 @@ fn clone_ident(analysis: &mut Analysis, ident: &AstIdent) -> AstIdent {
         span: ident.span.clone(),
         label: ident.label.clone(),
         id: analysis.next_id(),
-        type_: AstIdentType::Other,
     }
 }
 

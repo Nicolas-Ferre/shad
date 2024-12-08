@@ -1,7 +1,6 @@
 use crate::Analysis;
 use shad_parser::{
-    AstExpr, AstFnItem, AstFnQualifier, AstIdent, AstIdentType, AstStatement, AstVarDefinition,
-    VisitMut,
+    AstExpr, AstFnItem, AstFnQualifier, AstIdent, AstStatement, AstVarDefinition, VisitMut,
 };
 use std::mem;
 
@@ -37,15 +36,16 @@ impl VisitMut for FnParamTransform<'_> {
                         span: param.name.span.clone(),
                         label: param.name.label.clone(),
                         id: self.analysis.next_id(),
-                        type_: AstIdentType::Other,
                     },
                     is_ref: false,
-                    expr: AstExpr::Ident(AstIdent {
-                        span: param.name.span.clone(),
-                        label: param.name.label.clone(),
-                        id: param.name.id,
-                        type_: AstIdentType::VarUsage,
-                    }),
+                    expr: AstExpr::IdentPath(
+                        AstIdent {
+                            span: param.name.span.clone(),
+                            label: param.name.label.clone(),
+                            id: param.name.id,
+                        }
+                        .into(),
+                    ),
                 }),
             );
         }

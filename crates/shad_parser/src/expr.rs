@@ -1,7 +1,8 @@
 use crate::atom::parse_token;
 use crate::fn_call::AstFnCall;
+use crate::ident_path::AstIdentPath;
 use crate::token::{Lexer, Token, TokenType};
-use crate::{AstIdent, AstIdentType, AstLiteral};
+use crate::AstLiteral;
 use shad_error::{Span, SyntaxError};
 
 /// A parsed expression.
@@ -10,7 +11,7 @@ pub enum AstExpr {
     /// A literal.
     Literal(AstLiteral),
     /// An identifier.
-    Ident(AstIdent),
+    IdentPath(AstIdentPath),
     /// A function call.
     FnCall(AstFnCall),
 }
@@ -20,7 +21,7 @@ impl AstExpr {
     pub fn span(&self) -> &Span {
         match self {
             Self::Literal(expr) => &expr.span,
-            Self::Ident(expr) => &expr.span,
+            Self::IdentPath(expr) => &expr.span,
             Self::FnCall(expr) => &expr.span,
         }
     }
@@ -83,7 +84,7 @@ impl AstExpr {
                 if next_token.type_ == TokenType::OpenParenthesis {
                     Ok(Self::FnCall(AstFnCall::parse(lexer, false)?))
                 } else {
-                    Ok(Self::Ident(AstIdent::parse(lexer, AstIdentType::VarUsage)?))
+                    Ok(Self::IdentPath(AstIdentPath::parse(lexer)?))
                 }
             }
             TokenType::Minus => Ok(Self::FnCall(AstFnCall::parse_unary_operation(lexer)?)),

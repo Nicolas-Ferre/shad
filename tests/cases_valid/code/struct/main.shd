@@ -45,3 +45,14 @@ fn new_value() -> ValidFields {
 fn copy(value: ValidFields) -> ValidFields {
     return value;
 }
+
+buf updated_fields = ComplexStruct(
+    ValidFields(0., 0, 0u, false),
+    0,
+    ValidFields(0., 0, 0u, false)
+);
+
+run {
+    updated_fields.value = 2;
+    updated_fields.size.field3 = 3u;
+}

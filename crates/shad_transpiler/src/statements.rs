@@ -22,10 +22,10 @@ fn to_statement_wgsl(analysis: &Analysis, statement: &AstStatement, indent: usiz
             )
         }
         AstStatement::Assignment(statement) => match &statement.value {
-            AstLeftValue::Ident(assigned) => {
+            AstLeftValue::IdentPath(assigned) => {
                 format!(
                     "{empty: >width$}{} = {};",
-                    atoms::to_ident_wgsl(analysis, assigned),
+                    atoms::to_ident_path_wgsl(analysis, assigned),
                     atoms::to_expr_wgsl(analysis, &statement.expr),
                     empty = "",
                     width = indent * IDENT_UNIT,

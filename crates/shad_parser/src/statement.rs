@@ -1,7 +1,7 @@
 use crate::atom::{parse_token, parse_token_option};
 use crate::fn_call::AstFnCall;
 use crate::token::{Lexer, Token, TokenType};
-use crate::{AstExpr, AstIdent, AstIdentType, AstLeftValue};
+use crate::{AstExpr, AstIdent, AstLeftValue};
 use shad_error::{Span, SyntaxError};
 
 /// A statement.
@@ -107,7 +107,7 @@ impl AstVarDefinition {
         } else {
             parse_token(lexer, TokenType::Ref)?
         };
-        let name = AstIdent::parse(lexer, AstIdentType::Other)?;
+        let name = AstIdent::parse(lexer)?;
         parse_token(lexer, TokenType::Assigment)?;
         let expr = AstExpr::parse(lexer)?;
         let semi_colon = parse_token(lexer, TokenType::SemiColon)?;

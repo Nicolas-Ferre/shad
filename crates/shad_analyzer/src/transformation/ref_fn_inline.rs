@@ -1,8 +1,8 @@
 use crate::{listing, resolver, Analysis, FnId, Ident, IdentSource};
 use fxhash::FxHashMap;
 use shad_parser::{
-    AstExpr, AstFnCall, AstFnCallStatement, AstFnItem, AstFnQualifier, AstIdent, AstLeftValue,
-    AstStatement, VisitMut,
+    AstExpr, AstFnCall, AstFnCallStatement, AstFnItem, AstFnQualifier, AstIdent, AstIdentPath,
+    AstLeftValue, AstStatement, VisitMut,
 };
 use std::mem;
 
@@ -185,27 +185,11 @@ impl<'a> RefFnStatementsTransform<'a> {
 }
 
 impl VisitMut for RefFnStatementsTransform<'_> {
-    fn enter_left_value(&mut self, node: &mut AstLeftValue) {
-        if let AstLeftValue::Ident(ident) = node {
-            if let IdentSource::Var(id) = self.analysis.idents[&ident.id].source {
-                if let Some(expr) = self.param_args.get(&id) {
-                    *node = expr
-                        .clone()
-                        .try_into()
-                        .expect("internal error: invalid literal left value");
-                }
-            }
-        } else {
-            unreachable!("internal error: not inlined left value call");
-        }
-    }
-
-    fn enter_expr(&mut self, node: &mut AstExpr) {
-        if let AstExpr::Ident(ident) = node {
-            if let IdentSource::Var(id) = self.analysis.idents[&ident.id].source {
-                if let Some(expr) = self.param_args.get(&id) {
-                    *node = expr.clone();
-                }
+    fn enter_ident_path(&mut self, node: &mut AstIdentPath) {
+        let first_ident_id = node.segments[0].id;
+        if let IdentSource::Var(id) = self.analysis.idents[&first_ident_id].source {
+            if let Some(AstExpr::IdentPath(new_path)) = self.param_args.get(&id) {
+                node.replace_first_segment(new_path);
             }
         }
     }
@@ -213,7 +197,7 @@ impl VisitMut for RefFnStatementsTransform<'_> {
     fn exit_ident(&mut self, node: &mut AstIdent) {
         if let Some(ident) = self.analysis.idents.get(&node.id) {
             match ident.source {
-                IdentSource::Buffer(_) | IdentSource::Fn(_) => {}
+                IdentSource::Buffer(_) | IdentSource::Fn(_) | IdentSource::Field => {}
                 IdentSource::Var(id) => {
                     let ident = ident.clone();
                     let old_id = node.id;

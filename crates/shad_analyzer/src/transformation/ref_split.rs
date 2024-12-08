@@ -1,7 +1,5 @@
 use crate::{resolver, Analysis, Ident, IdentSource};
-use shad_parser::{
-    AstExpr, AstFnCall, AstIdent, AstIdentType, AstStatement, AstVarDefinition, VisitMut,
-};
+use shad_parser::{AstExpr, AstFnCall, AstIdent, AstStatement, AstVarDefinition, VisitMut};
 use std::mem;
 
 pub(crate) fn transform(analysis: &mut Analysis) {
@@ -78,12 +76,14 @@ impl VisitMut for RefSplitTransform<'_> {
             let arg_value_span = arg.value.span().clone();
             let arg = mem::replace(
                 &mut arg.value,
-                AstExpr::Ident(AstIdent {
-                    span: arg_value_span,
-                    label: var_label.into(),
-                    id: var_usage_id,
-                    type_: AstIdentType::VarUsage,
-                }),
+                AstExpr::IdentPath(
+                    AstIdent {
+                        span: arg_value_span,
+                        label: var_label.into(),
+                        id: var_usage_id,
+                    }
+                    .into(),
+                ),
             );
             self.statements.push(AstStatement::Var(AstVarDefinition {
                 span: arg.span().clone(),
@@ -91,7 +91,6 @@ impl VisitMut for RefSplitTransform<'_> {
                     span: arg.span().clone(),
                     label: var_label.into(),
                     id: var_def_id,
-                    type_: AstIdentType::Other,
                 },
                 is_ref: false,
                 expr: arg,

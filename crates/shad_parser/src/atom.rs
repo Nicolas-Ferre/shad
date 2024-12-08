@@ -18,29 +18,17 @@ pub struct AstIdent {
     pub label: String,
     /// The unique ID of the identifier.
     pub id: u64,
-    /// The identifier type.
-    pub type_: AstIdentType,
 }
 
 impl AstIdent {
-    pub(crate) fn parse(lexer: &mut Lexer<'_>, type_: AstIdentType) -> Result<Self, SyntaxError> {
+    pub(crate) fn parse(lexer: &mut Lexer<'_>) -> Result<Self, SyntaxError> {
         let token = parse_token(lexer, TokenType::Ident)?;
         Ok(Self {
             span: token.span,
             label: token.slice.to_string(),
             id: lexer.next_id(),
-            type_,
         })
     }
-}
-
-/// The type of a parsed identifier.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum AstIdentType {
-    /// A variable name usage.
-    VarUsage,
-    /// Another type of identifier.
-    Other,
 }
 
 /// A parsed literal.

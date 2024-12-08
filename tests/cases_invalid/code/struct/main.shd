@@ -5,3 +5,7 @@ struct DuplicatedType { field3: u32 }
 struct InvalidFields {
     undefined_type: undef,
 }
+
+fn function(value: InvalidFields) {
+    var result = value.undefined_type.subfield;
+}

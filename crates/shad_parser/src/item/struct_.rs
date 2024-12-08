@@ -1,6 +1,6 @@
 use crate::atom::{parse_token, parse_token_option};
 use crate::token::{Lexer, TokenType};
-use crate::{AstIdent, AstIdentType};
+use crate::AstIdent;
 use shad_error::SyntaxError;
 
 /// A parsed structure.
@@ -26,7 +26,7 @@ pub struct AstStructItem {
 impl AstStructItem {
     pub(crate) fn parse(lexer: &mut Lexer<'_>) -> Result<Self, SyntaxError> {
         parse_token(lexer, TokenType::Struct)?;
-        let name = AstIdent::parse(lexer, AstIdentType::Other)?;
+        let name = AstIdent::parse(lexer)?;
         parse_token(lexer, TokenType::OpenBrace)?;
         let mut fields = vec![];
         let mut is_first_field = true;
@@ -64,9 +64,9 @@ pub struct AstStructField {
 
 impl AstStructField {
     fn parse(lexer: &mut Lexer<'_>) -> Result<Self, SyntaxError> {
-        let name = AstIdent::parse(lexer, AstIdentType::Other)?;
+        let name = AstIdent::parse(lexer)?;
         parse_token(lexer, TokenType::Colon)?;
-        let type_ = AstIdent::parse(lexer, AstIdentType::Other)?;
+        let type_ = AstIdent::parse(lexer)?;
         Ok(Self { name, type_ })
     }
 }

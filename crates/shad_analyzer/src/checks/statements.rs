@@ -43,7 +43,7 @@ impl<'a> StatementCheck<'a> {
     fn expr_semantic(&self, expr: &AstExpr) -> ExprSemantic {
         match expr {
             AstExpr::Literal(_) => ExprSemantic::Value,
-            AstExpr::Ident(_) => ExprSemantic::Ref,
+            AstExpr::IdentPath(_) => ExprSemantic::Ref,
             AstExpr::FnCall(call) => resolver::fn_(self.analysis, &call.name)
                 .and_then(|fn_| fn_.ast.return_type.as_ref())
                 .map_or(ExprSemantic::None, |type_| {
@@ -80,7 +80,7 @@ impl Visit for StatementCheck<'_> {
 
     fn enter_assignment(&mut self, node: &AstAssignment) {
         let value_id = match &node.value {
-            AstLeftValue::Ident(ident) => ident.id,
+            AstLeftValue::IdentPath(path) => path.segments[path.segments.len() - 1].id,
             AstLeftValue::FnCall(call) => call.name.id,
         };
         let expected_type = self

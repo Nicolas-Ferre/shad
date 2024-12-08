@@ -1,6 +1,7 @@
 use crate::fn_calls;
+use itertools::Itertools;
 use shad_analyzer::{Analysis, BufferId, IdentSource, TypeId};
-use shad_parser::{AstExpr, AstFnQualifier, AstIdent};
+use shad_parser::{AstExpr, AstFnQualifier, AstIdent, AstIdentPath};
 
 pub(crate) fn to_expr_wgsl(analysis: &Analysis, expr: &AstExpr) -> String {
     match expr {
@@ -9,9 +10,16 @@ pub(crate) fn to_expr_wgsl(analysis: &Analysis, expr: &AstExpr) -> String {
             "true" => "1u".into(),
             _ => expr.value.clone(),
         },
-        AstExpr::Ident(expr) => to_ident_wgsl(analysis, expr),
+        AstExpr::IdentPath(expr) => to_ident_path_wgsl(analysis, expr),
         AstExpr::FnCall(expr) => fn_calls::to_wgsl(analysis, expr),
     }
+}
+
+pub(crate) fn to_ident_path_wgsl(analysis: &Analysis, path: &AstIdentPath) -> String {
+    path.segments
+        .iter()
+        .map(|ident| to_ident_wgsl(analysis, ident))
+        .join(".")
 }
 
 pub(crate) fn to_ident_wgsl(analysis: &Analysis, name: &AstIdent) -> String {
@@ -30,6 +38,7 @@ pub(crate) fn to_ident_wgsl(analysis: &Analysis, name: &AstIdent) -> String {
                 format!("f{}_{}", fn_.ast.name.id, fn_.ast.name.label)
             }
         }
+        IdentSource::Field => format!("s{}", name.label),
     }
 }
 

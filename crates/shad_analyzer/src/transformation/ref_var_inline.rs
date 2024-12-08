@@ -1,6 +1,6 @@
 use crate::{Analysis, IdentSource};
 use fxhash::FxHashMap;
-use shad_parser::{AstExpr, AstLeftValue, AstStatement, AstVarDefinition, VisitMut};
+use shad_parser::{AstExpr, AstIdentPath, AstStatement, AstVarDefinition, VisitMut};
 use std::mem;
 
 pub(crate) fn transform(analysis: &mut Analysis) {
@@ -66,34 +66,14 @@ impl<'a> RefVarInlineTransform<'a> {
 }
 
 impl VisitMut for RefVarInlineTransform<'_> {
-    fn enter_left_value(&mut self, node: &mut AstLeftValue) {
-        if let AstLeftValue::Ident(ident) = node {
-            match self.analysis.idents[&ident.id].source {
-                IdentSource::Var(id) => {
-                    if let Some(ref_expr) = self.ref_expressions.get(&id) {
-                        *node = ref_expr
-                            .clone()
-                            .try_into()
-                            .expect("internal error: found literal ref");
-                    }
+    fn enter_ident_path(&mut self, node: &mut AstIdentPath) {
+        match self.analysis.idents[&node.segments[0].id].source {
+            IdentSource::Var(id) => {
+                if let Some(AstExpr::IdentPath(ref_path)) = self.ref_expressions.get(&id) {
+                    node.replace_first_segment(ref_path);
                 }
-                IdentSource::Buffer(_) | IdentSource::Fn(_) => {}
             }
-        } else {
-            unreachable!("internal error: not inlined left value call");
-        }
-    }
-
-    fn enter_expr(&mut self, node: &mut AstExpr) {
-        if let AstExpr::Ident(ident) = node {
-            match self.analysis.idents[&ident.id].source {
-                IdentSource::Var(id) => {
-                    if let Some(ref_expr) = self.ref_expressions.get(&id) {
-                        *node = ref_expr.clone();
-                    }
-                }
-                IdentSource::Buffer(_) | IdentSource::Fn(_) => {}
-            }
+            IdentSource::Buffer(_) | IdentSource::Fn(_) | IdentSource::Field => {}
         }
     }
 
