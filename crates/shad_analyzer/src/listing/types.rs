@@ -30,7 +30,7 @@ fn fn_type_ids(fn_: &Function) -> impl Iterator<Item = TypeId> + '_ {
 fn all_recursive_type_ids(analysis: &Analysis, type_id: TypeId) -> Vec<TypeId> {
     let type_ = &analysis.types[&type_id];
     if type_.fields.is_empty() {
-        vec![]
+        vec![type_id]
     } else {
         let child_type_ids = type_
             .fields

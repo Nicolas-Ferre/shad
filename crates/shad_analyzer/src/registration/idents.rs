@@ -189,6 +189,32 @@ impl<'a> IdentRegistration<'a> {
         self.analysis.idents.insert(param.name.id, ident);
         self.add_variable(&param.name);
     }
+
+    fn register_variable(&mut self, node: &AstIdentPath) -> Option<TypeId> {
+        let first_ident = &node.segments[0];
+        if let Some(&id) = self.variables.get(&first_ident.label) {
+            let var_type = self
+                .analysis
+                .idents
+                .get(&id)
+                .and_then(|var| var.type_.clone());
+            let var_ident = Ident::new(IdentSource::Var(id), var_type.clone());
+            self.analysis.idents.insert(first_ident.id, var_ident);
+            var_type
+        } else if let Some((buffer_id, _)) = self.find_buffer(&first_ident.label) {
+            let buffer_type =
+                resolver::buffer_type(self.analysis, &buffer_id).map(|type_| type_.id.clone());
+            let buffer_ident = Ident::new(IdentSource::Buffer(buffer_id), buffer_type.clone());
+            self.analysis.idents.insert(first_ident.id, buffer_ident);
+            buffer_type
+        } else if self.are_errors_enabled {
+            let error = errors::variables::not_found(first_ident);
+            self.analysis.errors.push(error);
+            None
+        } else {
+            None
+        }
+    }
 }
 
 impl Visit for IdentRegistration<'_> {
@@ -236,29 +262,7 @@ impl Visit for IdentRegistration<'_> {
     }
 
     fn exit_ident_path(&mut self, node: &AstIdentPath) {
-        let first_ident = &node.segments[0];
-        let mut last_type = if let Some(&id) = self.variables.get(&first_ident.label) {
-            let var_type = self
-                .analysis
-                .idents
-                .get(&id)
-                .and_then(|var| var.type_.clone());
-            let var_ident = Ident::new(IdentSource::Var(id), var_type.clone());
-            self.analysis.idents.insert(first_ident.id, var_ident);
-            var_type
-        } else if let Some((buffer_id, _)) = self.find_buffer(&first_ident.label) {
-            let buffer_type =
-                resolver::buffer_type(self.analysis, &buffer_id).map(|type_| type_.id.clone());
-            let buffer_ident = Ident::new(IdentSource::Buffer(buffer_id), buffer_type.clone());
-            self.analysis.idents.insert(first_ident.id, buffer_ident);
-            buffer_type
-        } else if self.are_errors_enabled {
-            let error = errors::variables::not_found(first_ident);
-            self.analysis.errors.push(error);
-            None
-        } else {
-            None
-        };
+        let mut last_type = self.register_variable(node);
         for field in &node.segments[1..] {
             let Some(current_type) = last_type.clone() else {
                 return;
