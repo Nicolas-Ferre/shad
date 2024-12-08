@@ -1,7 +1,7 @@
 use crate::{errors, resolver, Analysis, Buffer, BufferId, FnId, Function, TypeId};
 use fxhash::FxHashMap;
 use shad_parser::{
-    AstBufferItem, AstFnCall, AstFnItem, AstFnParam, AstIdent, AstIdentType, AstItem,
+    AstBufferItem, AstFnCall, AstFnItem, AstFnParam, AstIdent, AstIdentPath, AstItem,
     AstVarDefinition, Visit,
 };
 use std::mem;
@@ -30,6 +30,8 @@ pub enum IdentSource {
     Var(u64),
     /// A function.
     Fn(FnId),
+    /// A field
+    Field,
 }
 
 pub(crate) fn register(analysis: &mut Analysis) {
@@ -43,7 +45,7 @@ pub(crate) fn register(analysis: &mut Analysis) {
 fn register_structs(analysis: &mut Analysis) {
     for type_ in analysis.types.values() {
         for field in &type_.fields {
-            let ident = Ident::new(IdentSource::Var(field.name.id), field.type_id.clone());
+            let ident = Ident::new(IdentSource::Field, field.type_id.clone());
             analysis.idents.insert(field.name.id, ident);
         }
     }
@@ -233,26 +235,45 @@ impl Visit for IdentRegistration<'_> {
         }
     }
 
-    fn exit_ident(&mut self, node: &AstIdent) {
-        if node.type_ != AstIdentType::VarUsage {
-            return;
-        }
-        if let Some(&id) = self.variables.get(&node.label) {
+    fn exit_ident_path(&mut self, node: &AstIdentPath) {
+        let first_ident = &node.segments[0];
+        let mut last_type = if let Some(&id) = self.variables.get(&first_ident.label) {
             let var_type = self
                 .analysis
                 .idents
                 .get(&id)
                 .and_then(|var| var.type_.clone());
-            let var_ident = Ident::new(IdentSource::Var(id), var_type);
-            self.analysis.idents.insert(node.id, var_ident);
-        } else if let Some((buffer_id, _)) = self.find_buffer(&node.label) {
+            let var_ident = Ident::new(IdentSource::Var(id), var_type.clone());
+            self.analysis.idents.insert(first_ident.id, var_ident);
+            var_type
+        } else if let Some((buffer_id, _)) = self.find_buffer(&first_ident.label) {
             let buffer_type =
                 resolver::buffer_type(self.analysis, &buffer_id).map(|type_| type_.id.clone());
-            let buffer_ident = Ident::new(IdentSource::Buffer(buffer_id), buffer_type);
-            self.analysis.idents.insert(node.id, buffer_ident);
+            let buffer_ident = Ident::new(IdentSource::Buffer(buffer_id), buffer_type.clone());
+            self.analysis.idents.insert(first_ident.id, buffer_ident);
+            buffer_type
         } else if self.are_errors_enabled {
-            let error = errors::variables::not_found(node);
+            let error = errors::variables::not_found(first_ident);
             self.analysis.errors.push(error);
+            None
+        } else {
+            None
+        };
+        for field in &node.segments[1..] {
+            let Some(current_type) = last_type.clone() else {
+                return;
+            };
+            let type_field = self.analysis.types[&current_type]
+                .fields
+                .iter()
+                .find(|type_field| type_field.name.label == field.label);
+            if type_field.is_none() {
+                let error = errors::types::field_not_found(field, &current_type);
+                self.analysis.errors.push(error);
+            }
+            last_type = type_field.and_then(|field| field.type_id.clone());
+            let buffer_ident = Ident::new(IdentSource::Field, last_type.clone());
+            self.analysis.idents.insert(field.id, buffer_ident);
         }
     }
 }

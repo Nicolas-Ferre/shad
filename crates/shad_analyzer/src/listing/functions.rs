@@ -42,7 +42,7 @@ impl Visit for FunctionListing<'_> {
                 IdentSource::Fn(id) => {
                     self.fn_ids.insert(id.clone());
                 }
-                IdentSource::Var(_) | IdentSource::Buffer(_) => (),
+                IdentSource::Var(_) | IdentSource::Buffer(_) | IdentSource::Field => (),
             }
         }
     }

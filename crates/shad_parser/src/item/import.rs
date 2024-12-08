@@ -1,6 +1,6 @@
 use crate::atom::{parse_token, parse_token_option};
 use crate::token::{Lexer, TokenType};
-use crate::{AstIdent, AstIdentType};
+use crate::AstIdent;
 use shad_error::{Span, SyntaxError};
 
 /// A parsed import item.
@@ -21,9 +21,9 @@ pub struct AstImportItem {
 impl AstImportItem {
     pub(crate) fn parse(lexer: &mut Lexer<'_>, is_pub: bool) -> Result<Self, SyntaxError> {
         let import = parse_token(lexer, TokenType::Import)?;
-        let mut segments = vec![AstIdent::parse(lexer, AstIdentType::Other)?];
+        let mut segments = vec![AstIdent::parse(lexer)?];
         while parse_token_option(lexer, TokenType::Dot)?.is_some() {
-            segments.push(AstIdent::parse(lexer, AstIdentType::Other)?);
+            segments.push(AstIdent::parse(lexer)?);
         }
         let semi_colon = parse_token(lexer, TokenType::SemiColon)?;
         Ok(Self {

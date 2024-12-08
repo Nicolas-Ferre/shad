@@ -1,6 +1,6 @@
 use crate::atom::{parse_token, parse_token_option};
 use crate::token::{Lexer, TokenType};
-use crate::{AstIdent, AstIdentType, AstStatement};
+use crate::{AstIdent, AstStatement};
 use shad_error::{Span, SyntaxError};
 
 /// A parsed GPU function definition.
@@ -27,7 +27,7 @@ pub struct AstFnItem {
 impl AstFnItem {
     pub(crate) fn parse(lexer: &mut Lexer<'_>, is_pub: bool) -> Result<Self, SyntaxError> {
         parse_token(lexer, TokenType::Fn)?;
-        let name = AstIdent::parse(lexer, AstIdentType::Other)?;
+        let name = AstIdent::parse(lexer)?;
         let params = Self::parse_params(lexer)?;
         let return_type = AstReturnType::parse(lexer)?;
         let statements = super::parse_statement_block(lexer)?;
@@ -44,7 +44,7 @@ impl AstFnItem {
     pub(crate) fn parse_gpu(lexer: &mut Lexer<'_>, is_pub: bool) -> Result<Self, SyntaxError> {
         parse_token(lexer, TokenType::Gpu)?;
         parse_token(lexer, TokenType::Fn)?;
-        let name = AstIdent::parse(lexer, AstIdentType::Other)?;
+        let name = AstIdent::parse(lexer)?;
         let params = Self::parse_params(lexer)?;
         let return_type = AstReturnType::parse(lexer)?;
         parse_token(lexer, TokenType::SemiColon)?;
@@ -88,7 +88,7 @@ impl AstReturnType {
         if parse_token_option(lexer, TokenType::Arrow)?.is_some() {
             let ref_span = parse_token_option(lexer, TokenType::Ref)?.map(|ref_| ref_.span);
             Ok(Some(Self {
-                name: AstIdent::parse(lexer, AstIdentType::Other)?,
+                name: AstIdent::parse(lexer)?,
                 is_ref: ref_span.is_some(),
             }))
         } else {
@@ -126,9 +126,9 @@ pub struct AstFnParam {
 impl AstFnParam {
     fn parse(lexer: &mut Lexer<'_>) -> Result<Self, SyntaxError> {
         let ref_span = parse_token_option(lexer, TokenType::Ref)?.map(|ref_| ref_.span);
-        let name = AstIdent::parse(lexer, AstIdentType::Other)?;
+        let name = AstIdent::parse(lexer)?;
         parse_token(lexer, TokenType::Colon)?;
-        let type_ = AstIdent::parse(lexer, AstIdentType::Other)?;
+        let type_ = AstIdent::parse(lexer)?;
         Ok(Self {
             name,
             type_,

@@ -19,3 +19,12 @@ run {
     var value = 0;
     value = invalid_returned_type();
 }
+
+struct Struct {
+    field: u32,
+}
+
+run {
+    var value = Struct(0u);
+    value.field = 1;
+}

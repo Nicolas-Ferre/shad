@@ -39,7 +39,10 @@ pub(crate) fn expr_type(analysis: &Analysis, expr: &AstExpr) -> Option<TypeId> {
             AstLiteralType::I32 => TypeId::from_builtin(I32_TYPE),
             AstLiteralType::Bool => TypeId::from_builtin(BOOL_TYPE),
         }),
-        AstExpr::Ident(ident) => analysis.idents.get(&ident.id)?.type_.clone(),
+        AstExpr::IdentPath(path) => {
+            let last_segment = &path.segments[path.segments.len() - 1].id;
+            analysis.idents.get(last_segment)?.type_.clone()
+        }
         AstExpr::FnCall(call) => analysis.idents.get(&call.name.id)?.type_.clone(),
     }
 }
@@ -60,7 +63,7 @@ pub(crate) fn fn_<'a>(analysis: &'a Analysis, name: &AstIdent) -> Option<&'a Fun
         .get(&name.id)
         .map(|ident| match &ident.source {
             IdentSource::Fn(id) => id.clone(),
-            IdentSource::Buffer(_) | IdentSource::Var(_) => {
+            IdentSource::Buffer(_) | IdentSource::Var(_) | IdentSource::Field => {
                 unreachable!("internal error: retrieve non-function ID")
             }
         })

@@ -1,6 +1,6 @@
 use crate::atom::{parse_token, parse_token_option};
 use crate::token::{Lexer, Token, TokenType};
-use crate::{AstExpr, AstIdent, AstIdentType};
+use crate::{AstExpr, AstIdent};
 use shad_error::{Span, SyntaxError};
 
 /// The function name corresponding to unary `-` operator behavior.
@@ -75,7 +75,7 @@ pub struct AstFnCall {
 impl AstFnCall {
     #[allow(clippy::wildcard_enum_match_arm)]
     pub(crate) fn parse(lexer: &mut Lexer<'_>, is_statement: bool) -> Result<Self, SyntaxError> {
-        let name = AstIdent::parse(lexer, AstIdentType::Other)?;
+        let name = AstIdent::parse(lexer)?;
         parse_token(lexer, TokenType::OpenParenthesis)?;
         let mut args = vec![];
         while parse_token(&mut lexer.clone(), TokenType::CloseParenthesis).is_err() {
@@ -136,7 +136,6 @@ impl AstFnCall {
                 span: operators[operator_index].1.clone(),
                 label: Self::binary_operator_fn_name(operators[operator_index].0).into(),
                 id: lexer.next_id(),
-                type_: AstIdentType::Other,
             },
             args: vec![left.into(), right.into()],
             is_operator: true,
@@ -153,7 +152,6 @@ impl AstFnCall {
                 span: operator_token.span,
                 label: Self::unary_operator_fn_name(operator_token.type_).into(),
                 id: lexer.next_id(),
-                type_: AstIdentType::Other,
             },
             args: vec![expr.into()],
             is_operator: true,
@@ -225,7 +223,7 @@ impl AstFnCallArg {
     }
 
     fn parse_name(lexer: &mut Lexer<'_>) -> Option<AstIdent> {
-        let name = AstIdent::parse(lexer, AstIdentType::Other).ok()?;
+        let name = AstIdent::parse(lexer).ok()?;
         parse_token(lexer, TokenType::Colon).ok()?;
         Some(name)
     }

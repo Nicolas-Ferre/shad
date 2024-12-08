@@ -12,3 +12,21 @@ fn result() -> ref i32 {
     result = result + 1;
     return result;
 }
+
+struct Level1 {
+    field: i32,
+    child: Level2,
+}
+
+struct Level2 {
+    field1: i32,
+    field2: i32,
+}
+
+buf field_ref_result = 0;
+
+run {
+    var value = Level1(1, Level2(2, 3));
+    ref value_ref = value.child;
+    field_ref_result = value_ref.field2;
+}

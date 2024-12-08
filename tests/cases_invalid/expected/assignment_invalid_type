@@ -28,3 +28,11 @@ error: could not find `undef` type
 14 | fn invalid_returned_type() -> undef {
    |                               ^^^^^ undefined type
    |
+
+error: invalid type in assignment
+  --> ./cases_invalid/code/assignment_invalid_type/main.shd:29:19
+   |
+29 |     value.field = 1;
+   |                   ^ expression of type `i32`
+   |     ----------- info: expected type `u32`
+   |

@@ -68,3 +68,17 @@ pub(crate) fn recursion_found(
         .collect(),
     )
 }
+
+pub(crate) fn field_not_found(field: &AstIdent, type_id: &TypeId) -> SemanticError {
+    SemanticError::new(
+        format!(
+            "could not find `{}` field in `{}` type",
+            field.label, type_id.name
+        ),
+        vec![LocatedMessage {
+            level: ErrorLevel::Error,
+            span: field.span.clone(),
+            text: "undefined field".into(),
+        }],
+    )
+}
