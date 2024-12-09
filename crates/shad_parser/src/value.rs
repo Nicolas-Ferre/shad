@@ -12,19 +12,20 @@ use std::mem;
 /// - `my_var`
 /// - `my_var.field`
 /// - `my_var.field.subfield.subsubfield`
+/// - `my_func(42)`
 /// - `my_func(42).field`
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AstValue {
-    /// The span of the identifier path.
+    /// The span of the value.
     pub span: Span,
     /// The value root.
     pub root: AstValueRoot,
-    /// The path segments.
+    /// The fields referred after the root part.
     pub fields: Vec<AstIdent>,
 }
 
 impl AstValue {
-    /// Replaces the first path segment by another path.
+    /// Replaces the value root part by another value.
     pub fn replace_root(&mut self, new_root: Self) {
         self.root = new_root.root;
         self.fields = [new_root.fields, mem::take(&mut self.fields)].concat();
