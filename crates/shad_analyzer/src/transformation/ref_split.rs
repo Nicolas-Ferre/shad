@@ -76,7 +76,7 @@ impl VisitMut for RefSplitTransform<'_> {
             let arg_value_span = arg.value.span().clone();
             let arg = mem::replace(
                 &mut arg.value,
-                AstExpr::IdentPath(
+                AstExpr::Value(
                     AstIdent {
                         span: arg_value_span,
                         label: var_label.into(),

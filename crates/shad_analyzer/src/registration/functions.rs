@@ -22,13 +22,6 @@ pub struct Function {
     pub source_type: Option<TypeId>,
 }
 
-impl Function {
-    /// Whether the function has a `ref` parameter.
-    pub fn is_inlined(&self) -> bool {
-        is_inlined(&self.ast)
-    }
-}
-
 /// An analyzed function parameter.
 #[derive(Debug, Clone)]
 pub struct FnParam {

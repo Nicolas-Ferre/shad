@@ -17,7 +17,7 @@ pub(crate) fn invalid_type(
             },
             LocatedMessage {
                 level: ErrorLevel::Info,
-                span: assignment.value.span().clone(),
+                span: assignment.value.span.clone(),
                 text: format!("expected type `{}`", expected_type.name),
             },
         ],

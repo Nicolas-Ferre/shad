@@ -1,0 +1,34 @@
+struct Level1 {
+    field: i32,
+    child: Level2,
+}
+
+struct Level2 {
+    field1: i32,
+    field2: i32,
+}
+
+buf field_ref_result = 0;
+buf field_ref_fn_result = 0;
+buf field_fn_result = 0;
+buf updated_value = Level1(1, Level2(2, 3));
+
+run {
+    ref value_ref = updated_value.child;
+
+    field_ref_result = value_ref.field2;
+    field_ref_fn_result = child(updated_value).field2;
+    field_fn_result = child_ref(updated_value).field2;
+
+    value_ref.field1 = 4;
+    child_ref(updated_value).field2 = 5;
+    child(updated_value).field2 = 6;
+}
+
+fn child(value: Level1) -> Level2 {
+    return value.child;
+}
+
+fn child_ref(ref value: Level1) -> ref Level2 {
+    return value.child;
+}
