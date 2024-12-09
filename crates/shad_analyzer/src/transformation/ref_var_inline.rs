@@ -1,6 +1,6 @@
-use crate::{Analysis, IdentSource};
+use crate::{resolver, Analysis, IdentSource};
 use fxhash::FxHashMap;
-use shad_parser::{AstExpr, AstIdentPath, AstStatement, AstVarDefinition, VisitMut};
+use shad_parser::{AstExpr, AstStatement, AstValue, AstVarDefinition, VisitMut};
 use std::mem;
 
 pub(crate) fn transform(analysis: &mut Analysis) {
@@ -66,20 +66,20 @@ impl<'a> RefVarInlineTransform<'a> {
 }
 
 impl VisitMut for RefVarInlineTransform<'_> {
-    fn enter_ident_path(&mut self, node: &mut AstIdentPath) {
-        match self.analysis.idents[&node.segments[0].id].source {
-            IdentSource::Var(id) => {
-                if let Some(AstExpr::IdentPath(ref_path)) = self.ref_expressions.get(&id) {
-                    node.replace_first_segment(ref_path);
-                }
-            }
-            IdentSource::Buffer(_) | IdentSource::Fn(_) | IdentSource::Field => {}
-        }
-    }
-
     fn exit_var_definition(&mut self, node: &mut AstVarDefinition) {
         if node.is_ref {
             self.ref_expressions.insert(node.name.id, node.expr.clone());
+        }
+    }
+
+    fn exit_value(&mut self, node: &mut AstValue) {
+        match self.analysis.idents[&resolver::value_root_id(node)].source {
+            IdentSource::Var(id) => {
+                if let Some(AstExpr::Value(new_root)) = self.ref_expressions.get(&id) {
+                    node.replace_root(new_root.clone());
+                }
+            }
+            IdentSource::Buffer(_) | IdentSource::Fn(_) | IdentSource::Field => {}
         }
     }
 }

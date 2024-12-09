@@ -4,8 +4,8 @@ use crate::item::function::AstFnItem;
 use crate::item::import::AstImportItem;
 use crate::item::run_block::AstRunItem;
 use crate::{
-    Ast, AstAssignment, AstExpr, AstFnCallStatement, AstIdent, AstIdentPath, AstItem, AstLeftValue,
-    AstLiteral, AstReturn, AstStatement, AstStructItem, AstVarDefinition,
+    Ast, AstAssignment, AstExpr, AstFnCallStatement, AstIdent, AstItem, AstLiteral, AstReturn,
+    AstStatement, AstStructItem, AstValue, AstValueRoot, AstVarDefinition,
 };
 
 // coverage: off (not all functions are used by other crates)
@@ -41,9 +41,6 @@ macro_rules! visit_trait {
             /// Runs logic when entering in an assignment.
             fn enter_assignment(&mut self, node: &$($mut_keyword)? AstAssignment) {}
 
-            /// Runs logic when entering in a left value.
-            fn enter_left_value(&mut self, node: &$($mut_keyword)? AstLeftValue) {}
-
             /// Runs logic when entering in a variable definition.
             fn enter_var_definition(&mut self, node: &$($mut_keyword)? AstVarDefinition) {}
 
@@ -62,8 +59,8 @@ macro_rules! visit_trait {
             /// Runs logic when entering in a literal.
             fn enter_literal(&mut self, node: &$($mut_keyword)? AstLiteral) {}
 
-            /// Runs logic when entering in an identifier path.
-            fn enter_ident_path(&mut self, node: &$($mut_keyword)? AstIdentPath) {}
+            /// Runs logic when entering in a value.
+            fn enter_value(&mut self, node: &$($mut_keyword)? AstValue) {}
 
             /// Runs logic when entering in an identifier.
             fn enter_ident(&mut self, node: &$($mut_keyword)? AstIdent) {}
@@ -95,9 +92,6 @@ macro_rules! visit_trait {
             /// Runs logic when exiting an assignment.
             fn exit_assignment(&mut self, node: &$($mut_keyword)? AstAssignment) {}
 
-            /// Runs logic when exiting a left value.
-            fn exit_left_value(&mut self, node: &$($mut_keyword)? AstLeftValue) {}
-
             /// Runs logic when exiting a variable definition.
             fn exit_var_definition(&mut self, node: &$($mut_keyword)? AstVarDefinition) {}
 
@@ -116,8 +110,8 @@ macro_rules! visit_trait {
             /// Runs logic when exiting a literal.
             fn exit_literal(&mut self, node: &$($mut_keyword)? AstLiteral) {}
 
-            /// Runs logic when exiting an identifier path.
-            fn exit_ident_path(&mut self, node: &$($mut_keyword)? AstIdentPath) {}
+            /// Runs logic when exiting a value.
+            fn exit_value(&mut self, node: &$($mut_keyword)? AstValue) {}
 
             /// Runs logic when exiting an identifier.
             fn exit_ident(&mut self, node: &$($mut_keyword)? AstIdent) {}
@@ -206,19 +200,9 @@ macro_rules! visit_trait {
             /// Visit an assignment.
             fn visit_assignment(&mut self, node: &$($mut_keyword)? AstAssignment) {
                 self.enter_assignment(node);
-                self.visit_left_value(&$($mut_keyword)? node.value);
+                self.visit_value(&$($mut_keyword)? node.value);
                 self.visit_expr(&$($mut_keyword)? node.expr);
                 self.exit_assignment(node);
-            }
-
-            /// Visit a left value.
-            fn visit_left_value(&mut self, node: &$($mut_keyword)? AstLeftValue) {
-                self.enter_left_value(node);
-                match node {
-                    AstLeftValue::IdentPath(node) => self.visit_ident_path(node),
-                    AstLeftValue::FnCall(node) => self.visit_fn_call(node),
-                }
-                self.exit_left_value(node);
             }
 
             /// Visit a variable definition.
@@ -248,8 +232,7 @@ macro_rules! visit_trait {
                 self.enter_expr(node);
                 match node {
                     AstExpr::Literal(node) => self.visit_literal(node),
-                    AstExpr::IdentPath(node) => self.visit_ident_path(node),
-                    AstExpr::FnCall(node) => self.visit_fn_call(node),
+                    AstExpr::Value(node) => self.visit_value(node),
                 }
                 self.exit_expr(node);
             }
@@ -273,13 +256,17 @@ macro_rules! visit_trait {
                 self.exit_literal(node);
             }
 
-            /// Visit an identifier path.
-            fn visit_ident_path(&mut self, node: &$($mut_keyword)? AstIdentPath) {
-                self.enter_ident_path(node);
-                for node in &$($mut_keyword)? node.segments {
+            /// Visit a value.
+            fn visit_value(&mut self, node: &$($mut_keyword)? AstValue) {
+                self.enter_value(node);
+                match &$($mut_keyword)? node.root {
+                    AstValueRoot::Ident(node) => self.visit_ident(node),
+                    AstValueRoot::FnCall(node) => self.visit_fn_call(node),
+                }
+                for node in &$($mut_keyword)? node.fields {
                     self.visit_ident(node);
                 }
-                self.exit_ident_path(node);
+                self.exit_value(node);
             }
 
             /// Visit an identifier.

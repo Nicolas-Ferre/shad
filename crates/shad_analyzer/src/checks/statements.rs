@@ -1,8 +1,8 @@
 use crate::{errors, resolver, Analysis, Function};
 use shad_error::SemanticError;
 use shad_parser::{
-    AstAssignment, AstExpr, AstFnCall, AstFnItem, AstFnQualifier, AstLeftValue, AstReturn,
-    AstStatement, AstVarDefinition, Visit,
+    AstAssignment, AstExpr, AstFnCall, AstFnItem, AstFnQualifier, AstReturn, AstStatement,
+    AstValueRoot, AstVarDefinition, Visit,
 };
 
 pub(crate) fn check(analysis: &mut Analysis) {
@@ -43,16 +43,24 @@ impl<'a> StatementCheck<'a> {
     fn expr_semantic(&self, expr: &AstExpr) -> ExprSemantic {
         match expr {
             AstExpr::Literal(_) => ExprSemantic::Value,
-            AstExpr::IdentPath(_) => ExprSemantic::Ref,
-            AstExpr::FnCall(call) => resolver::fn_(self.analysis, &call.name)
-                .and_then(|fn_| fn_.ast.return_type.as_ref())
-                .map_or(ExprSemantic::None, |type_| {
-                    if type_.is_ref {
-                        ExprSemantic::Ref
+            AstExpr::Value(value) => match &value.root {
+                AstValueRoot::Ident(_) => ExprSemantic::Ref,
+                AstValueRoot::FnCall(call) => {
+                    if value.fields.is_empty() {
+                        resolver::fn_(self.analysis, &call.name)
+                            .and_then(|fn_| fn_.ast.return_type.as_ref())
+                            .map_or(ExprSemantic::None, |type_| {
+                                if type_.is_ref {
+                                    ExprSemantic::Ref
+                                } else {
+                                    ExprSemantic::Value
+                                }
+                            })
                     } else {
-                        ExprSemantic::Value
+                        ExprSemantic::Ref
                     }
-                }),
+                }
+            },
         }
     }
 }
@@ -79,15 +87,7 @@ impl Visit for StatementCheck<'_> {
     }
 
     fn enter_assignment(&mut self, node: &AstAssignment) {
-        let value_id = match &node.value {
-            AstLeftValue::IdentPath(path) => path.segments[path.segments.len() - 1].id,
-            AstLeftValue::FnCall(call) => call.name.id,
-        };
-        let expected_type = self
-            .analysis
-            .idents
-            .get(&value_id)
-            .and_then(|ident| ident.type_.as_ref());
+        let expected_type = resolver::value_type(self.analysis, &node.value);
         let expr_type = resolver::expr_type(self.analysis, &node.expr);
         if let (Some(expected_type), Some(expr_type)) = (expected_type, expr_type) {
             if expected_type != &expr_type {
@@ -98,10 +98,7 @@ impl Visit for StatementCheck<'_> {
                 ));
             }
         }
-    }
-
-    fn enter_left_value(&mut self, node: &AstLeftValue) {
-        let expr = node.clone().into();
+        let expr = AstExpr::Value(node.value.clone());
         if self.expr_semantic(&expr) == ExprSemantic::Value {
             self.errors.push(errors::expressions::not_ref(&expr));
         }

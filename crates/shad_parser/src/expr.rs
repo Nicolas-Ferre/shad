@@ -1,7 +1,7 @@
 use crate::atom::parse_token;
 use crate::fn_call::AstFnCall;
-use crate::ident_path::AstIdentPath;
 use crate::token::{Lexer, Token, TokenType};
+use crate::value::AstValue;
 use crate::AstLiteral;
 use shad_error::{Span, SyntaxError};
 
@@ -10,10 +10,8 @@ use shad_error::{Span, SyntaxError};
 pub enum AstExpr {
     /// A literal.
     Literal(AstLiteral),
-    /// An identifier.
-    IdentPath(AstIdentPath),
-    /// A function call.
-    FnCall(AstFnCall),
+    /// A value.
+    Value(AstValue),
 }
 
 impl AstExpr {
@@ -21,8 +19,7 @@ impl AstExpr {
     pub fn span(&self) -> &Span {
         match self {
             Self::Literal(expr) => &expr.span,
-            Self::IdentPath(expr) => &expr.span,
-            Self::FnCall(expr) => &expr.span,
+            Self::Value(expr) => &expr.span,
         }
     }
 
@@ -59,16 +56,14 @@ impl AstExpr {
         if expressions.len() == 1 {
             Ok(expressions.remove(0))
         } else {
-            AstFnCall::parse_binary_operation(lexer, &expressions, &operators).map(AstExpr::FnCall)
+            AstFnCall::parse_binary_operation(lexer, &expressions, &operators)
+                .map(|call| Self::Value(call.into()))
         }
     }
 
     #[allow(clippy::wildcard_enum_match_arm)]
     pub(crate) fn parse_part(lexer: &mut Lexer<'_>) -> Result<Self, SyntaxError> {
-        let mut tmp_lexer = lexer.clone();
-        let token = Token::next(&mut tmp_lexer)?;
-        let next_token = Token::next(&mut tmp_lexer)?;
-        match token.type_ {
+        match Token::next(&mut lexer.clone())?.type_ {
             TokenType::OpenParenthesis => {
                 parse_token(lexer, TokenType::OpenParenthesis)?;
                 let expr = Self::parse(lexer)?;
@@ -80,17 +75,11 @@ impl AstExpr {
             | TokenType::I32Literal
             | TokenType::True
             | TokenType::False) => Ok(Self::Literal(AstLiteral::parse(lexer, type_)?)),
-            TokenType::Ident => {
-                if next_token.type_ == TokenType::OpenParenthesis {
-                    Ok(Self::FnCall(AstFnCall::parse(lexer, false)?))
-                } else {
-                    Ok(Self::IdentPath(AstIdentPath::parse(lexer)?))
-                }
-            }
-            TokenType::Minus => Ok(Self::FnCall(AstFnCall::parse_unary_operation(lexer)?)),
-            TokenType::Not => Ok(Self::FnCall(AstFnCall::parse_unary_operation(lexer)?)),
+            TokenType::Ident => Ok(Self::Value(AstValue::parse(lexer)?)),
+            TokenType::Minus => Ok(Self::Value(AstFnCall::parse_unary_operation(lexer)?.into())),
+            TokenType::Not => Ok(Self::Value(AstFnCall::parse_unary_operation(lexer)?.into())),
             _ => Err(SyntaxError::new(
-                token.span.start,
+                Token::next(&mut lexer.clone())?.span.start,
                 lexer.module.clone(),
                 "expected expression",
             )),

@@ -115,20 +115,26 @@ impl AstFnCall {
         let left = if operator_index == 0 {
             expressions[0].clone()
         } else {
-            AstExpr::FnCall(Self::parse_binary_operation(
-                lexer,
-                &expressions[..=operator_index],
-                &operators[..operator_index],
-            )?)
+            AstExpr::Value(
+                Self::parse_binary_operation(
+                    lexer,
+                    &expressions[..=operator_index],
+                    &operators[..operator_index],
+                )?
+                .into(),
+            )
         };
         let right = if operator_index == operators.len() - 1 {
             expressions[expressions.len() - 1].clone()
         } else {
-            AstExpr::FnCall(Self::parse_binary_operation(
-                lexer,
-                &expressions[operator_index + 1..],
-                &operators[operator_index + 1..],
-            )?)
+            AstExpr::Value(
+                Self::parse_binary_operation(
+                    lexer,
+                    &expressions[operator_index + 1..],
+                    &operators[operator_index + 1..],
+                )?
+                .into(),
+            )
         };
         Ok(Self {
             span: Span::join(left.span(), right.span()),
