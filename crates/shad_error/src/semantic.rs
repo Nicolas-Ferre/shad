@@ -33,7 +33,7 @@ impl SemanticError {
             .iter()
             .into_group_map_by(|message| &message.span.module)
             .into_iter()
-            .sorted_unstable_by_key(|(_, messages)| messages[0].level)
+            .sorted_by_key(|(_, messages)| messages[0].level)
             .map(|(module, messages)| {
                 let mut snippet = Snippet::source(&module.code)
                     .fold(true)
