@@ -3,7 +3,7 @@ use crate::{
     U32_TYPE,
 };
 use shad_error::SemanticError;
-use shad_parser::{AstExpr, AstIdent, AstLiteralType};
+use shad_parser::{AstExpr, AstIdent, AstLiteralType, AstValue, AstValueRoot};
 
 pub(crate) fn type_or_add_error(analysis: &mut Analysis, type_: &AstIdent) -> Option<TypeId> {
     match self::type_(analysis, type_) {
@@ -39,11 +39,21 @@ pub(crate) fn expr_type(analysis: &Analysis, expr: &AstExpr) -> Option<TypeId> {
             AstLiteralType::I32 => TypeId::from_builtin(I32_TYPE),
             AstLiteralType::Bool => TypeId::from_builtin(BOOL_TYPE),
         }),
-        AstExpr::IdentPath(path) => {
-            let last_segment = &path.segments[path.segments.len() - 1].id;
-            analysis.idents.get(last_segment)?.type_.clone()
-        }
-        AstExpr::FnCall(call) => analysis.idents.get(&call.name.id)?.type_.clone(),
+        AstExpr::Value(value) => value_type(analysis, value).cloned(),
+    }
+}
+
+pub(crate) fn value_type<'a>(analysis: &'a Analysis, value: &AstValue) -> Option<&'a TypeId> {
+    analysis
+        .idents
+        .get(&value_id(value))
+        .and_then(|ident| ident.type_.as_ref())
+}
+
+pub(crate) fn value_root_id(value: &AstValue) -> u64 {
+    match &value.root {
+        AstValueRoot::Ident(ident) => ident.id,
+        AstValueRoot::FnCall(call) => call.name.id,
     }
 }
 
@@ -68,4 +78,12 @@ pub(crate) fn fn_<'a>(analysis: &'a Analysis, name: &AstIdent) -> Option<&'a Fun
             }
         })
         .map(|fn_id| &analysis.fns[&fn_id])
+}
+
+fn value_id(value: &AstValue) -> u64 {
+    if value.fields.is_empty() {
+        value_root_id(value)
+    } else {
+        value.fields[value.fields.len() - 1].id
+    }
 }

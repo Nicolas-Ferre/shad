@@ -1,8 +1,8 @@
 use crate::{listing, resolver, Analysis, FnId, Ident, IdentSource};
 use fxhash::FxHashMap;
 use shad_parser::{
-    AstExpr, AstFnCall, AstFnCallStatement, AstFnItem, AstFnQualifier, AstIdent, AstIdentPath,
-    AstLeftValue, AstStatement, VisitMut,
+    AstExpr, AstFnCall, AstFnCallStatement, AstFnItem, AstFnQualifier, AstIdent, AstStatement,
+    AstValue, AstValueRoot, VisitMut,
 };
 use std::mem;
 
@@ -102,32 +102,13 @@ impl<'a> RefFnInlineTransform<'a> {
 }
 
 impl VisitMut for RefFnInlineTransform<'_> {
-    fn exit_left_value(&mut self, node: &mut AstLeftValue) {
-        if let AstLeftValue::FnCall(call) = node {
-            self.statements
-                .extend(inlined_fn_statements(self.analysis, call));
-            let last_statement = self
-                .statements
-                .pop()
-                .expect("internal error: missing return");
-            if let AstStatement::Return(return_) = last_statement {
-                *node = return_
-                    .expr
-                    .try_into()
-                    .expect("internal error: found literal ref");
-            } else {
-                unreachable!("internal error: invalid last function statement")
-            }
-        }
-    }
-
     fn exit_fn_call_statement(&mut self, node: &mut AstFnCallStatement) {
         self.statements
             .extend(inlined_fn_statements(self.analysis, &node.call));
     }
 
-    fn exit_expr(&mut self, node: &mut AstExpr) {
-        if let AstExpr::FnCall(call) = node {
+    fn exit_value(&mut self, node: &mut AstValue) {
+        if let AstValueRoot::FnCall(call) = &node.root {
             let statements = inlined_fn_statements(self.analysis, call);
             if !statements.is_empty() {
                 self.statements.extend(statements);
@@ -136,7 +117,9 @@ impl VisitMut for RefFnInlineTransform<'_> {
                     .pop()
                     .expect("internal error: missing return");
                 if let AstStatement::Return(return_) = last_statement {
-                    *node = return_.expr;
+                    if let AstExpr::Value(value) = return_.expr {
+                        node.replace_root(value);
+                    }
                 } else {
                     unreachable!("internal error: invalid last function statement")
                 }
@@ -185,11 +168,10 @@ impl<'a> RefFnStatementsTransform<'a> {
 }
 
 impl VisitMut for RefFnStatementsTransform<'_> {
-    fn enter_ident_path(&mut self, node: &mut AstIdentPath) {
-        let first_ident_id = node.segments[0].id;
-        if let IdentSource::Var(id) = self.analysis.idents[&first_ident_id].source {
-            if let Some(AstExpr::IdentPath(new_path)) = self.param_args.get(&id) {
-                node.replace_first_segment(new_path);
+    fn enter_value(&mut self, node: &mut AstValue) {
+        if let IdentSource::Var(id) = self.analysis.idents[&resolver::value_root_id(node)].source {
+            if let Some(AstExpr::Value(new_root)) = self.param_args.get(&id) {
+                node.replace_root(new_root.clone());
             }
         }
     }

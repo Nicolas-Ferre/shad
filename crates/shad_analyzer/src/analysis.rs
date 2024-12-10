@@ -72,6 +72,7 @@ impl Analysis {
         }
         checks::recursion::buffers::check(&mut analysis);
         checks::recursion::types::check(&mut analysis);
+        transformation::values::transform(&mut analysis);
         transformation::ref_split::transform(&mut analysis);
         transformation::ref_fn_inline::transform(&mut analysis);
         transformation::ref_var_inline::transform(&mut analysis);

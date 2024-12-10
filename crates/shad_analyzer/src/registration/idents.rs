@@ -1,7 +1,7 @@
 use crate::{errors, resolver, Analysis, Buffer, BufferId, FnId, Function, TypeId};
 use fxhash::FxHashMap;
 use shad_parser::{
-    AstBufferItem, AstFnCall, AstFnItem, AstFnParam, AstIdent, AstIdentPath, AstItem,
+    AstBufferItem, AstFnCall, AstFnItem, AstFnParam, AstIdent, AstItem, AstValue, AstValueRoot,
     AstVarDefinition, Visit,
 };
 use std::mem;
@@ -190,25 +190,24 @@ impl<'a> IdentRegistration<'a> {
         self.add_variable(&param.name);
     }
 
-    fn register_variable(&mut self, node: &AstIdentPath) -> Option<TypeId> {
-        let first_ident = &node.segments[0];
-        if let Some(&id) = self.variables.get(&first_ident.label) {
+    fn register_variable(&mut self, variable: &AstIdent) -> Option<TypeId> {
+        if let Some(&id) = self.variables.get(&variable.label) {
             let var_type = self
                 .analysis
                 .idents
                 .get(&id)
                 .and_then(|var| var.type_.clone());
             let var_ident = Ident::new(IdentSource::Var(id), var_type.clone());
-            self.analysis.idents.insert(first_ident.id, var_ident);
+            self.analysis.idents.insert(variable.id, var_ident);
             var_type
-        } else if let Some((buffer_id, _)) = self.find_buffer(&first_ident.label) {
+        } else if let Some((buffer_id, _)) = self.find_buffer(&variable.label) {
             let buffer_type =
                 resolver::buffer_type(self.analysis, &buffer_id).map(|type_| type_.id.clone());
             let buffer_ident = Ident::new(IdentSource::Buffer(buffer_id), buffer_type.clone());
-            self.analysis.idents.insert(first_ident.id, buffer_ident);
+            self.analysis.idents.insert(variable.id, buffer_ident);
             buffer_type
         } else if self.are_errors_enabled {
-            let error = errors::variables::not_found(first_ident);
+            let error = errors::variables::not_found(variable);
             self.analysis.errors.push(error);
             None
         } else {
@@ -261,9 +260,16 @@ impl Visit for IdentRegistration<'_> {
         }
     }
 
-    fn exit_ident_path(&mut self, node: &AstIdentPath) {
-        let mut last_type = self.register_variable(node);
-        for field in &node.segments[1..] {
+    fn exit_value(&mut self, node: &AstValue) {
+        let mut last_type = match &node.root {
+            AstValueRoot::Ident(value) => self.register_variable(value),
+            AstValueRoot::FnCall(value) => self
+                .analysis
+                .idents
+                .get(&value.name.id)
+                .and_then(|ident| ident.type_.clone()),
+        };
+        for field in &node.fields {
             let Some(current_type) = last_type.clone() else {
                 return;
             };
