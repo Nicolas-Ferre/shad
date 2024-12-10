@@ -33,8 +33,9 @@ impl SemanticError {
             .iter()
             .into_group_map_by(|message| &message.span.module)
             .into_iter()
-            .sorted_by_key(|(_, messages)| messages[0].level)
-            .map(|(module, messages)| {
+            .sorted_unstable_by_key(|(_, messages)| messages[0].level)
+            .map(|(module, mut messages)| {
+                messages.sort_unstable_by_key(|message| message.level);
                 let mut snippet = Snippet::source(&module.code)
                     .fold(true)
                     .origin(&module.path);
