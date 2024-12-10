@@ -2,8 +2,9 @@ error: buffer `recursive_direct` defined recursively
  --> ./cases_invalid/code/buffers_recursive/main.shd:3:9
   |
 3 | pub buf recursive_direct = recursive_direct;
-  |         ^^^^^^^^^^^^^^^^ recursive buffer `recursive_direct` defined here
-  |                            ---------------- info: `recursive_direct` buffer used during `recursive_direct` buffer init
+  |         ^^^^^^^^^^^^^^^^   ---------------- info: `recursive_direct` buffer used during `recursive_direct` buffer init
+  |         |
+  |         recursive buffer `recursive_direct` defined here
   |
 
 error: buffer `recursive4_indirect` defined recursively
@@ -12,14 +13,15 @@ error: buffer `recursive4_indirect` defined recursively
  4 | pub buf recursive1_indirect = recursive2_indirect;
    |                               ------------------- info: `recursive2_indirect` buffer used during `recursive1_indirect` buffer init
  5 | pub buf recursive4_indirect = recursive1_indirect;
-   |         ^^^^^^^^^^^^^^^^^^^ recursive buffer `recursive4_indirect` defined here
-   |                               ------------------- info: `recursive1_indirect` buffer used during `recursive4_indirect` buffer init
+   |         ^^^^^^^^^^^^^^^^^^^   ------------------- info: `recursive1_indirect` buffer used during `recursive4_indirect` buffer init
+   |         |
+   |         recursive buffer `recursive4_indirect` defined here
    |
   ::: ./cases_invalid/code/buffers_recursive/other.shd:11:12
    |
  4 | pub buf recursive3_indirect = recursive4_indirect;
    |                               ------------------- info: `recursive4_indirect` buffer used during `recursive3_indirect` buffer init
- 5 | 
+ 5 |
 ...
 10 | fn recursive3_indirect_value_inner() -> u32 {
 11 |     return recursive3_indirect;

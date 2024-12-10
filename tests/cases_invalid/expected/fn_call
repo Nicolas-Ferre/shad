@@ -46,7 +46,7 @@ error: invalid reference expression
 26 | fn fn_with_ref_param(ref param: i32) {
    |                      --- info: parameter is a reference
 27 | }
-28 | 
+28 |
 29 | run {
 30 |     fn_with_ref_param(42);
    |                       ^^ not a reference
@@ -91,7 +91,7 @@ error: invalid parameter name
 48 | fn fn_with_params(param1: u32, param2: f32) {
    |                   ------ info: expected name
 49 | }
-50 | 
+50 |
 51 | run {
 52 |     fn_with_params(param2: 0u, param1: 0.);
    |                    ^^^^^^ invalid name
@@ -103,7 +103,7 @@ error: invalid parameter name
 48 | fn fn_with_params(param1: u32, param2: f32) {
    |                                ------ info: expected name
 49 | }
-50 | 
+50 |
 51 | run {
 52 |     fn_with_params(param2: 0u, param1: 0.);
    |                                ^^^^^^ invalid name

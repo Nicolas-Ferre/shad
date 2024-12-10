@@ -2,8 +2,9 @@ error: parameter `param` is defined multiple times
  --> ./cases_invalid/code/fn_item/main.shd:1:37
   |
 1 | gpu fn duplicated_param(param: f32, param: f32) -> f32;
-  |                                     ^^^^^ duplicated parameter
-  |                         ----- info: parameter with same name is defined here
+  |                         -----       ^^^^^ duplicated parameter
+  |                         |
+  |                         info: parameter with same name is defined here
   |
 
 error: function `duplicated_fn(u32, u32)` is defined multiple times
