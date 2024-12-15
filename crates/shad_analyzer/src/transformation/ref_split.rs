@@ -1,3 +1,4 @@
+use crate::transformation::GENERATED_IDENT_LABEL;
 use crate::{resolver, Analysis, Ident, IdentSource};
 use shad_parser::{AstExpr, AstFnCall, AstIdent, AstStatement, AstVarDefinition, VisitMut};
 use std::mem;
@@ -70,7 +71,6 @@ impl VisitMut for RefSplitTransform<'_> {
             if param.ref_span.is_some() {
                 continue;
             }
-            let var_label = "tmp";
             let var_def_id = self.analysis.next_id();
             let var_usage_id = self.analysis.next_id();
             let arg_value_span = arg.value.span().clone();
@@ -79,7 +79,7 @@ impl VisitMut for RefSplitTransform<'_> {
                 AstExpr::Value(
                     AstIdent {
                         span: arg_value_span,
-                        label: var_label.into(),
+                        label: GENERATED_IDENT_LABEL.into(),
                         id: var_usage_id,
                     }
                     .into(),
@@ -89,7 +89,7 @@ impl VisitMut for RefSplitTransform<'_> {
                 span: arg.span().clone(),
                 name: AstIdent {
                     span: arg.span().clone(),
-                    label: var_label.into(),
+                    label: GENERATED_IDENT_LABEL.into(),
                     id: var_def_id,
                 },
                 is_ref: false,
