@@ -28,6 +28,7 @@ buf return_value_result = 0;
 run {
     update_buffer();
     update_buffer_and_return_value();
+    __add__(1., 2.);
 }
 
 fn update_buffer() {
