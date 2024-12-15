@@ -23,13 +23,20 @@ fn double(value: f32) -> f32 {
 }
 
 buf no_return_value_result = 0;
+buf return_value_result = 0;
 
 run {
     update_buffer();
+    update_buffer_and_return_value();
 }
 
 fn update_buffer() {
     no_return_value_result = 1;
+}
+
+fn update_buffer_and_return_value() -> i32 {
+    return_value_result = 1;
+    return return_value_result;
 }
 
 buf sum1 = 0.;

@@ -14,12 +14,7 @@ buf buffer = 0;
 fn without_return_type() {
 }
 
-fn with_return_type() -> i32 {
-    return 0;
-}
-
 run {
-    with_return_type();
     var x = without_return_type();
 }
 

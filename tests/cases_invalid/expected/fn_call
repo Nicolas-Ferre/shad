@@ -26,85 +26,78 @@ error: could not find `pow(f32, i32)` function
   |                                 ^^^^^^^^^^^ undefined function
   |
 
-error: function `with_return_type()` called as a statement while having a return type
-  --> ./cases_invalid/code/fn_call/main.shd:22:5
-   |
-22 |     with_return_type();
-   |     ^^^^^^^^^^^^^^^^^^ returned value needs to be stored in a variable
-   |
-
 error: expected function with a return type, got function `without_return_type()`
-  --> ./cases_invalid/code/fn_call/main.shd:23:13
+  --> ./cases_invalid/code/fn_call/main.shd:18:13
    |
-23 |     var x = without_return_type();
+18 |     var x = without_return_type();
    |             ^^^^^^^^^^^^^^^^^^^^^ this function cannot be called here
    |
 
 error: invalid reference expression
-  --> ./cases_invalid/code/fn_call/main.shd:30:23
+  --> ./cases_invalid/code/fn_call/main.shd:25:23
    |
-26 | fn fn_with_ref_param(ref param: i32) {
+21 | fn fn_with_ref_param(ref param: i32) {
    |                      --- info: parameter is a reference
-27 | }
-28 |
-29 | run {
-30 |     fn_with_ref_param(42);
+22 | }
+23 |
+24 | run {
+25 |     fn_with_ref_param(42);
    |                       ^^ not a reference
    |
 
 error: expected function with a return type, got function `without_return_type()`
-  --> ./cases_invalid/code/fn_call/main.shd:39:5
+  --> ./cases_invalid/code/fn_call/main.shd:34:5
    |
-39 |     without_return_type() = 2;
+34 |     without_return_type() = 2;
    |     ^^^^^^^^^^^^^^^^^^^^^ this function cannot be called here
    |
 
 error: expression is not a reference
-  --> ./cases_invalid/code/fn_call/main.shd:40:5
+  --> ./cases_invalid/code/fn_call/main.shd:35:5
    |
-40 |     returned_copy() = 2;
+35 |     returned_copy() = 2;
    |     ^^^^^^^^^^^^^^^ a valid reference is expected here
    |
 
 error: invalid reference expression
-  --> ./cases_invalid/code/fn_call/main.shd:41:23
+  --> ./cases_invalid/code/fn_call/main.shd:36:23
    |
-26 | fn fn_with_ref_param(ref param: i32) {
+21 | fn fn_with_ref_param(ref param: i32) {
    |                      --- info: parameter is a reference
-27 | }
+22 | }
 ...
-40 |     returned_copy() = 2;
-41 |     fn_with_ref_param(returned_copy());
+35 |     returned_copy() = 2;
+36 |     fn_with_ref_param(returned_copy());
    |                       ^^^^^^^^^^^^^^^ not a reference
    |
 
 error: expression is not a reference
-  --> ./cases_invalid/code/fn_call/main.shd:45:12
+  --> ./cases_invalid/code/fn_call/main.shd:40:12
    |
-45 |     return 0;
+40 |     return 0;
    |            ^ a valid reference is expected here
    |
 
 error: invalid parameter name
-  --> ./cases_invalid/code/fn_call/main.shd:52:20
+  --> ./cases_invalid/code/fn_call/main.shd:47:20
    |
-48 | fn fn_with_params(param1: u32, param2: f32) {
+43 | fn fn_with_params(param1: u32, param2: f32) {
    |                   ------ info: expected name
-49 | }
-50 |
-51 | run {
-52 |     fn_with_params(param2: 0u, param1: 0.);
+44 | }
+45 |
+46 | run {
+47 |     fn_with_params(param2: 0u, param1: 0.);
    |                    ^^^^^^ invalid name
    |
 
 error: invalid parameter name
-  --> ./cases_invalid/code/fn_call/main.shd:52:32
+  --> ./cases_invalid/code/fn_call/main.shd:47:32
    |
-48 | fn fn_with_params(param1: u32, param2: f32) {
+43 | fn fn_with_params(param1: u32, param2: f32) {
    |                                ------ info: expected name
-49 | }
-50 |
-51 | run {
-52 |     fn_with_params(param2: 0u, param1: 0.);
+44 | }
+45 |
+46 | run {
+47 |     fn_with_params(param2: 0u, param1: 0.);
    |                                ^^^^^^ invalid name
    |
