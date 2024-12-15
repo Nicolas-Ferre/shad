@@ -49,28 +49,28 @@ fn visit_statements(analysis: &mut Analysis, statements: &mut Vec<AstStatement>)
 }
 
 fn transform_call_statement(analysis: &mut Analysis, call: AstFnCallStatement) -> AstStatement {
-    if let Some(fn_) = resolver::fn_(analysis, &call.call.name) {
-        if fn_.ast.qualifier == AstFnQualifier::Gpu && fn_.return_type_id.is_some() {
-            let type_ = fn_.return_type_id.clone();
-            let id = analysis.next_id();
-            analysis.idents.insert(
-                id,
-                Ident {
-                    source: IdentSource::Var(id),
-                    type_,
-                },
-            );
-            return AstStatement::Var(AstVarDefinition {
+    let fn_ = resolver::fn_(analysis, &call.call.name).expect("internal error: missing function");
+    if fn_.ast.qualifier == AstFnQualifier::Gpu && fn_.return_type_id.is_some() {
+        let type_ = fn_.return_type_id.clone();
+        let id = analysis.next_id();
+        analysis.idents.insert(
+            id,
+            Ident {
+                source: IdentSource::Var(id),
+                type_,
+            },
+        );
+        AstStatement::Var(AstVarDefinition {
+            span: call.span.clone(),
+            name: AstIdent {
                 span: call.span.clone(),
-                name: AstIdent {
-                    span: call.span.clone(),
-                    label: GENERATED_IDENT_LABEL.into(),
-                    id,
-                },
-                is_ref: false,
-                expr: AstExpr::Value(call.call.into()),
-            });
-        }
+                label: GENERATED_IDENT_LABEL.into(),
+                id,
+            },
+            is_ref: false,
+            expr: AstExpr::Value(call.call.into()),
+        })
+    } else {
+        AstStatement::FnCall(call)
     }
-    AstStatement::FnCall(call)
 }

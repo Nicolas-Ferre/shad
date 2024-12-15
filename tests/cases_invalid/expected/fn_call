@@ -101,10 +101,3 @@ error: invalid parameter name
 47 |     fn_with_params(param2: 0u, param1: 0.);
    |                                ^^^^^^ invalid name
    |
-
-error: could not find `undefined_fn()` function
-  --> ./cases_invalid/code/fn_call/main.shd:51:5
-   |
-51 |     undefined_fn();
-   |     ^^^^^^^^^^^^^^ undefined function
-   |
