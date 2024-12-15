@@ -154,10 +154,7 @@ impl Visit for StatementCheck<'_> {
                     }
                 }
             }
-            if node.is_statement && fn_.ast.return_type.is_some() {
-                let error = errors::fn_calls::unexpected_return_type(node, &fn_.id);
-                self.errors.push(error);
-            } else if !node.is_statement && fn_.ast.return_type.is_none() {
+            if !node.is_statement && fn_.ast.return_type.is_none() {
                 let error = errors::fn_calls::no_return_type(&fn_.id, node);
                 self.errors.push(error);
             }

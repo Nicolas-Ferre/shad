@@ -16,20 +16,6 @@ pub(crate) fn no_return_type(fn_id: &FnId, fn_call: &AstFnCall) -> SemanticError
     )
 }
 
-pub(crate) fn unexpected_return_type(call: &AstFnCall, id: &FnId) -> SemanticError {
-    SemanticError::new(
-        format!(
-            "function `{}` called as a statement while having a return type",
-            id.signature()
-        ),
-        vec![LocatedMessage {
-            level: ErrorLevel::Error,
-            span: call.span.clone(),
-            text: "returned value needs to be stored in a variable".into(),
-        }],
-    )
-}
-
 pub(crate) fn invalid_ref(expr: &AstExpr, ref_span: Span) -> SemanticError {
     SemanticError::new(
         "invalid reference expression",
