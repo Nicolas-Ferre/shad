@@ -40,7 +40,7 @@ fn visit_statements(analysis: &mut Analysis, statements: &mut Vec<AstStatement>)
         .into_iter()
         .map(|statement| {
             if let AstStatement::FnCall(call) = statement {
-                move_fn_call_is_assignment(analysis, call)
+                transform_call_statement(analysis, call)
             } else {
                 statement
             }
@@ -48,9 +48,9 @@ fn visit_statements(analysis: &mut Analysis, statements: &mut Vec<AstStatement>)
         .collect();
 }
 
-fn move_fn_call_is_assignment(analysis: &mut Analysis, call: AstFnCallStatement) -> AstStatement {
+fn transform_call_statement(analysis: &mut Analysis, call: AstFnCallStatement) -> AstStatement {
     if let Some(fn_) = resolver::fn_(analysis, &call.call.name) {
-        if fn_.ast.qualifier == AstFnQualifier::Gpu {
+        if fn_.ast.qualifier == AstFnQualifier::Gpu && fn_.return_type_id.is_some() {
             let type_ = fn_.return_type_id.clone();
             let id = analysis.next_id();
             analysis.idents.insert(

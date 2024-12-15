@@ -46,3 +46,7 @@ fn fn_with_params(param1: u32, param2: f32) {
 run {
     fn_with_params(param2: 0u, param1: 0.);
 }
+
+run {
+    undefined_fn();
+}
