@@ -125,9 +125,9 @@ pub struct AstFnParam {
 
 impl AstFnParam {
     fn parse(lexer: &mut Lexer<'_>) -> Result<Self, SyntaxError> {
-        let ref_span = parse_token_option(lexer, TokenType::Ref)?.map(|ref_| ref_.span);
         let name = AstIdent::parse(lexer)?;
         parse_token(lexer, TokenType::Colon)?;
+        let ref_span = parse_token_option(lexer, TokenType::Ref)?.map(|ref_| ref_.span);
         let type_ = AstIdent::parse(lexer)?;
         Ok(Self {
             name,

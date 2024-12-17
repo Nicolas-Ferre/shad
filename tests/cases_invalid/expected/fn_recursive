@@ -33,7 +33,7 @@ error: function `inner_recursive()` defined recursively
 error: function `inner_returned_recursive(i32)` defined recursively
   --> ./cases_invalid/code/fn_recursive/main.shd:21:4
    |
-21 | fn inner_returned_recursive(ref a: i32) -> i32 {
+21 | fn inner_returned_recursive(a: ref i32) -> i32 {
    |    ^^^^^^^^^^^^^^^^^^^^^^^^ recursive function `inner_returned_recursive(i32)` defined here
 22 |     return inner_returned_recursive(a);
    |            --------------------------- info: `inner_returned_recursive(i32)` function called in `inner_returned_recursive(i32)` function

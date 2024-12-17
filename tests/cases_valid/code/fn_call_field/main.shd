@@ -29,6 +29,6 @@ fn child(value: Level1) -> Level2 {
     return value.child;
 }
 
-fn child_ref(ref value: Level1) -> ref Level2 {
+fn child_ref(value: ref Level1) -> ref Level2 {
     return value.child;
 }
