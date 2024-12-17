@@ -5,12 +5,12 @@ run {
     result_ref = add(add(result_ref, 5), 5);
 }
 
-fn add(ref value: i32, added: i32) -> ref i32 {
+fn add(value: ref i32, added: i32) -> ref i32 {
     value = value + added;
     return ident(value);
 }
 
-fn ident(ref value: i32) -> ref i32 {
+fn ident(value: ref i32) -> ref i32 {
     ref val = value;
     return val;
 }

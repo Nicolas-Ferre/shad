@@ -18,7 +18,7 @@ fn inner_recursive() {
     inner_recursive();
 }
 
-fn inner_returned_recursive(ref a: i32) -> i32 {
+fn inner_returned_recursive(a: ref i32) -> i32 {
     return inner_returned_recursive(a);
 }
 
