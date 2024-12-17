@@ -45,8 +45,7 @@ buf sum2 = 0.;
 buf sum3 = 0.;
 
 run {
-    var param = 0;
-    inlined(param);
+    inlined(0);
 }
 
 fn inlined(ref param: i32) {

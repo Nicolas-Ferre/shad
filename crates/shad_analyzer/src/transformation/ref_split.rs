@@ -1,3 +1,4 @@
+use crate::resolver::ExprSemantic;
 use crate::transformation::GENERATED_IDENT_LABEL;
 use crate::{resolver, Analysis, Ident, IdentSource};
 use shad_parser::{AstExpr, AstFnCall, AstIdent, AstStatement, AstVarDefinition, VisitMut};
@@ -68,7 +69,9 @@ impl VisitMut for RefSplitTransform<'_> {
             return;
         }
         for (param, arg) in fn_.ast.params.iter().zip(&mut node.args) {
-            if param.ref_span.is_some() {
+            if param.ref_span.is_some()
+                && resolver::expr_semantic(self.analysis, &arg.value) == ExprSemantic::Ref
+            {
                 continue;
             }
             let var_def_id = self.analysis.next_id();

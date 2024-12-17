@@ -80,10 +80,41 @@ pub(crate) fn fn_<'a>(analysis: &'a Analysis, name: &AstIdent) -> Option<&'a Fun
         .map(|fn_id| &analysis.fns[&fn_id])
 }
 
+pub(crate) fn expr_semantic(analysis: &Analysis, expr: &AstExpr) -> ExprSemantic {
+    match expr {
+        AstExpr::Literal(_) => ExprSemantic::Value,
+        AstExpr::Value(value) => match &value.root {
+            AstValueRoot::Ident(_) => ExprSemantic::Ref,
+            AstValueRoot::FnCall(call) => {
+                if value.fields.is_empty() {
+                    fn_(analysis, &call.name)
+                        .and_then(|fn_| fn_.ast.return_type.as_ref())
+                        .map_or(ExprSemantic::None, |type_| {
+                            if type_.is_ref {
+                                ExprSemantic::Ref
+                            } else {
+                                ExprSemantic::Value
+                            }
+                        })
+                } else {
+                    ExprSemantic::Ref
+                }
+            }
+        },
+    }
+}
+
 fn value_id(value: &AstValue) -> u64 {
     if value.fields.is_empty() {
         value_root_id(value)
     } else {
         value.fields[value.fields.len() - 1].id
     }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum ExprSemantic {
+    None,
+    Ref,
+    Value,
 }
