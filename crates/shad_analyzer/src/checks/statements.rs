@@ -1,8 +1,9 @@
+use crate::resolver::ExprSemantic;
 use crate::{errors, resolver, Analysis, Function};
 use shad_error::SemanticError;
 use shad_parser::{
     AstAssignment, AstExpr, AstFnCall, AstFnItem, AstFnQualifier, AstReturn, AstStatement,
-    AstValueRoot, AstVarDefinition, Visit,
+    AstVarDefinition, Visit,
 };
 
 pub(crate) fn check(analysis: &mut Analysis) {
@@ -37,30 +38,6 @@ impl<'a> StatementCheck<'a> {
             errors: vec![],
             fn_: None,
             module: "",
-        }
-    }
-
-    fn expr_semantic(&self, expr: &AstExpr) -> ExprSemantic {
-        match expr {
-            AstExpr::Literal(_) => ExprSemantic::Value,
-            AstExpr::Value(value) => match &value.root {
-                AstValueRoot::Ident(_) => ExprSemantic::Ref,
-                AstValueRoot::FnCall(call) => {
-                    if value.fields.is_empty() {
-                        resolver::fn_(self.analysis, &call.name)
-                            .and_then(|fn_| fn_.ast.return_type.as_ref())
-                            .map_or(ExprSemantic::None, |type_| {
-                                if type_.is_ref {
-                                    ExprSemantic::Ref
-                                } else {
-                                    ExprSemantic::Value
-                                }
-                            })
-                    } else {
-                        ExprSemantic::Ref
-                    }
-                }
-            },
         }
     }
 }
@@ -99,13 +76,14 @@ impl Visit for StatementCheck<'_> {
             }
         }
         let expr = AstExpr::Value(node.value.clone());
-        if self.expr_semantic(&expr) == ExprSemantic::Value {
+        if resolver::expr_semantic(self.analysis, &expr) == ExprSemantic::Value {
             self.errors.push(errors::expressions::not_ref(&expr));
         }
     }
 
     fn enter_var_definition(&mut self, node: &AstVarDefinition) {
-        if node.is_ref && self.expr_semantic(&node.expr) == ExprSemantic::Value {
+        let semantic = resolver::expr_semantic(self.analysis, &node.expr);
+        if node.is_ref && semantic == ExprSemantic::Value {
             self.errors.push(errors::expressions::not_ref(&node.expr));
         }
     }
@@ -127,7 +105,8 @@ impl Visit for StatementCheck<'_> {
                         return;
                     }
                 }
-                if return_type.is_ref && self.expr_semantic(&node.expr) == ExprSemantic::Value {
+                let semantic = resolver::expr_semantic(self.analysis, &node.expr);
+                if return_type.is_ref && semantic == ExprSemantic::Value {
                     self.errors.push(errors::expressions::not_ref(&node.expr));
                 }
             } else {
@@ -141,12 +120,6 @@ impl Visit for StatementCheck<'_> {
     fn enter_fn_call(&mut self, node: &AstFnCall) {
         if let Some(fn_) = resolver::fn_(self.analysis, &node.name) {
             for (arg, param) in node.args.iter().zip(&fn_.ast.params) {
-                if let (Some(ref_span), ExprSemantic::Value) =
-                    (param.ref_span.clone(), self.expr_semantic(&arg.value))
-                {
-                    let error = errors::fn_calls::invalid_ref(&arg.value, ref_span);
-                    self.errors.push(error);
-                }
                 if let Some(name) = &arg.name {
                     if param.name.label != name.label {
                         let error = errors::fn_calls::invalid_param_name(name, &param.name);
@@ -160,11 +133,4 @@ impl Visit for StatementCheck<'_> {
             }
         }
     }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum ExprSemantic {
-    None,
-    Ref,
-    Value,
 }
