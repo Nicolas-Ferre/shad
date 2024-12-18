@@ -36,7 +36,7 @@ impl AstValue {
         let is_fn_call = AstIdent::parse(&mut tmp_lexer).is_ok()
             && parse_token(&mut tmp_lexer, TokenType::OpenParenthesis).is_ok();
         let root = if is_fn_call {
-            AstValueRoot::FnCall(AstFnCall::parse(lexer, false)?)
+            AstValueRoot::FnCall(AstFnCall::parse(lexer)?)
         } else {
             AstValueRoot::Ident(AstIdent::parse(lexer)?)
         };

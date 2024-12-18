@@ -34,46 +34,53 @@ error: expected function with a return type, got function `without_return_type()
    |
 
 error: expected function with a return type, got function `without_return_type()`
-  --> ./cases_invalid/code/fn_call/main.shd:27:5
+  --> ./cases_invalid/code/fn_call/main.shd:19:5
    |
-27 |     without_return_type() = 2;
+19 |     without_return_type().field;
+   |     ^^^^^^^^^^^^^^^^^^^^^ this function cannot be called here
+   |
+
+error: expected function with a return type, got function `without_return_type()`
+  --> ./cases_invalid/code/fn_call/main.shd:28:5
+   |
+28 |     without_return_type() = 2;
    |     ^^^^^^^^^^^^^^^^^^^^^ this function cannot be called here
    |
 
 error: expression is not a reference
-  --> ./cases_invalid/code/fn_call/main.shd:28:5
+  --> ./cases_invalid/code/fn_call/main.shd:29:5
    |
-28 |     returned_copy() = 2;
+29 |     returned_copy() = 2;
    |     ^^^^^^^^^^^^^^^ a valid reference is expected here
    |
 
 error: expression is not a reference
-  --> ./cases_invalid/code/fn_call/main.shd:32:12
+  --> ./cases_invalid/code/fn_call/main.shd:33:12
    |
-32 |     return 0;
+33 |     return 0;
    |            ^ a valid reference is expected here
    |
 
 error: invalid parameter name
-  --> ./cases_invalid/code/fn_call/main.shd:39:20
+  --> ./cases_invalid/code/fn_call/main.shd:40:20
    |
-35 | fn fn_with_params(param1: u32, param2: f32) {
+36 | fn fn_with_params(param1: u32, param2: f32) {
    |                   ------ info: expected name
-36 | }
-37 |
-38 | run {
-39 |     fn_with_params(param2: 0u, param1: 0.);
+37 | }
+38 |
+39 | run {
+40 |     fn_with_params(param2: 0u, param1: 0.);
    |                    ^^^^^^ invalid name
    |
 
 error: invalid parameter name
-  --> ./cases_invalid/code/fn_call/main.shd:39:32
+  --> ./cases_invalid/code/fn_call/main.shd:40:32
    |
-35 | fn fn_with_params(param1: u32, param2: f32) {
+36 | fn fn_with_params(param1: u32, param2: f32) {
    |                                ------ info: expected name
-36 | }
-37 |
-38 | run {
-39 |     fn_with_params(param2: 0u, param1: 0.);
+37 | }
+38 |
+39 | run {
+40 |     fn_with_params(param2: 0u, param1: 0.);
    |                                ^^^^^^ invalid name
    |

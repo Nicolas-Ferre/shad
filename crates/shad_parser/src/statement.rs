@@ -1,7 +1,6 @@
 use crate::atom::{parse_token, parse_token_option};
-use crate::fn_call::AstFnCall;
 use crate::token::{Lexer, Token, TokenType};
-use crate::{AstExpr, AstIdent, AstValue};
+use crate::{AstExpr, AstIdent, AstValue, AstValueRoot};
 use shad_error::{Span, SyntaxError};
 
 /// A statement.
@@ -13,8 +12,8 @@ pub enum AstStatement {
     Var(AstVarDefinition),
     /// A return statement.
     Return(AstReturn),
-    /// A function call.
-    FnCall(AstFnCallStatement),
+    /// An expression.
+    Expr(AstExprStatement),
 }
 
 impl AstStatement {
@@ -25,7 +24,7 @@ impl AstStatement {
             Self::Assignment(statement) => &statement.span,
             Self::Var(statement) => &statement.span,
             Self::Return(statement) => &statement.span,
-            Self::FnCall(statement) => &statement.span,
+            Self::Expr(statement) => &statement.span,
         }
     }
     // coverage: on
@@ -34,9 +33,12 @@ impl AstStatement {
     pub(crate) fn parse(lexer: &mut Lexer<'_>) -> Result<Self, SyntaxError> {
         let token = Token::next(&mut lexer.clone())?;
         match token.type_ {
-            TokenType::Ident => {
-                if AstFnCallStatement::parse(&mut lexer.clone()).is_ok() {
-                    Ok(Self::FnCall(AstFnCallStatement::parse(lexer)?))
+            TokenType::Ident
+            | TokenType::F32Literal
+            | TokenType::U32Literal
+            | TokenType::I32Literal => {
+                if AstExprStatement::parse(&mut lexer.clone()).is_ok() {
+                    Ok(Self::Expr(AstExprStatement::parse(lexer)?))
                 } else {
                     Ok(Self::Assignment(AstAssignment::parse(lexer)?))
                 }
@@ -145,26 +147,33 @@ impl AstReturn {
     }
 }
 
-/// A function call statement.
+/// An expression statement.
 ///
 /// # Examples
 ///
-/// The Shad code `my_func(42);` will be parsed as a function call statement.
+/// The Shad code `my_func(42);` will be parsed as an expression statement.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct AstFnCallStatement {
+pub struct AstExprStatement {
     /// The span of the statement.
     pub span: Span,
-    /// The function call.
-    pub call: AstFnCall,
+    /// The expression.
+    pub expr: AstExpr,
 }
 
-impl AstFnCallStatement {
+impl AstExprStatement {
     fn parse(lexer: &mut Lexer<'_>) -> Result<Self, SyntaxError> {
-        let call = AstFnCall::parse(lexer, true)?;
+        let mut expr = AstExpr::parse(lexer)?;
+        if let AstExpr::Value(value) = &mut expr {
+            if value.fields.is_empty() {
+                if let AstValueRoot::FnCall(call) = &mut value.root {
+                    call.is_statement = true;
+                }
+            }
+        }
         let semi_colon = parse_token(lexer, TokenType::SemiColon)?;
         Ok(Self {
-            span: Span::join(&call.span, &semi_colon.span),
-            call,
+            span: Span::join(expr.span(), &semi_colon.span),
+            expr,
         })
     }
 }
