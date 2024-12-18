@@ -53,7 +53,7 @@ fn transform_expr(analysis: &mut Analysis, statement: AstExprStatement) -> AstSt
             id,
             Ident {
                 source: IdentSource::Var(id),
-                type_: Some(expr_type.clone()),
+                type_: Some(expr_type),
             },
         );
         AstStatement::Var(AstVarDefinition {
