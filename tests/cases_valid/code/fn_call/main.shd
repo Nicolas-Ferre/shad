@@ -53,3 +53,8 @@ fn inlined(param: ref i32) {
     sum3 = __add__(left: 1., 2.);
     sum2 = __add__(1., right: 2.);
 }
+
+run {
+    0;
+    sum1;
+}

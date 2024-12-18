@@ -1,4 +1,4 @@
-use crate::{atoms, fn_calls, IDENT_UNIT};
+use crate::{atoms, IDENT_UNIT};
 use itertools::Itertools;
 use shad_analyzer::Analysis;
 use shad_parser::AstStatement;
@@ -38,10 +38,10 @@ fn to_statement_wgsl(analysis: &Analysis, statement: &AstStatement, indent: usiz
                 width = indent * IDENT_UNIT,
             )
         }
-        AstStatement::FnCall(statement) => {
+        AstStatement::Expr(statement) => {
             format!(
                 "{empty: >width$}{};",
-                fn_calls::to_wgsl(analysis, &statement.call),
+                atoms::to_expr_wgsl(analysis, &statement.expr),
                 empty = "",
                 width = indent * IDENT_UNIT,
             )

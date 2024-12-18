@@ -55,4 +55,5 @@ buf updated_fields = ComplexStruct(
 run {
     updated_fields.value = 2;
     updated_fields.size.field3 = 3u;
+    updated_fields.size.field3;
 }

@@ -16,6 +16,7 @@ fn without_return_type() {
 
 run {
     var x = without_return_type();
+    without_return_type().field;
 }
 
 fn returned_copy() -> i32 {

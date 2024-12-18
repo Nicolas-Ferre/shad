@@ -1,8 +1,8 @@
 use crate::{listing, resolver, Analysis, FnId, Ident, IdentSource};
 use fxhash::FxHashMap;
 use shad_parser::{
-    AstExpr, AstFnCall, AstFnCallStatement, AstFnItem, AstFnQualifier, AstIdent, AstStatement,
-    AstValue, AstValueRoot, VisitMut,
+    AstExpr, AstExprStatement, AstFnCall, AstFnItem, AstFnQualifier, AstIdent, AstLiteral,
+    AstLiteralType, AstStatement, AstValue, AstValueRoot, VisitMut,
 };
 use std::mem;
 
@@ -70,21 +70,7 @@ fn visit_statements(analysis: &mut Analysis, statements: &mut Vec<AstStatement>)
             transform.statements.push(statement);
             transform.statements
         })
-        .collect::<Vec<_>>()
-        .into_iter()
-        .filter(|statement| !is_inline_fn_call_statement(analysis, statement))
         .collect();
-}
-
-fn is_inline_fn_call_statement(analysis: &Analysis, statement: &AstStatement) -> bool {
-    match statement {
-        AstStatement::FnCall(call) => {
-            resolver::fn_(analysis, &call.call.name)
-                .expect("internal error: missing function")
-                .is_inlined
-        }
-        AstStatement::Assignment(_) | AstStatement::Var(_) | AstStatement::Return(_) => false,
-    }
 }
 
 struct RefFnInlineTransform<'a> {
@@ -102,9 +88,21 @@ impl<'a> RefFnInlineTransform<'a> {
 }
 
 impl VisitMut for RefFnInlineTransform<'_> {
-    fn exit_fn_call_statement(&mut self, node: &mut AstFnCallStatement) {
-        self.statements
-            .extend(inlined_fn_statements(self.analysis, &node.call));
+    fn exit_expr_statement(&mut self, node: &mut AstExprStatement) {
+        if let AstExpr::Value(value) = &node.expr {
+            if let AstValueRoot::FnCall(call) = &value.root {
+                if resolver::fn_(self.analysis, &call.name)
+                    .expect("internal error: missing function")
+                    .is_inlined
+                {
+                    node.expr = AstExpr::Literal(AstLiteral {
+                        span: node.span.clone(),
+                        value: "0".to_string(),
+                        type_: AstLiteralType::I32,
+                    });
+                }
+            }
+        }
     }
 
     fn exit_value(&mut self, node: &mut AstValue) {
@@ -121,7 +119,7 @@ impl VisitMut for RefFnInlineTransform<'_> {
                         node.replace_root(value);
                     }
                 } else {
-                    unreachable!("internal error: invalid last function statement")
+                    self.statements.push(last_statement);
                 }
             }
         }

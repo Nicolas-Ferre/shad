@@ -4,7 +4,7 @@ use crate::item::function::AstFnItem;
 use crate::item::import::AstImportItem;
 use crate::item::run_block::AstRunItem;
 use crate::{
-    Ast, AstAssignment, AstExpr, AstFnCallStatement, AstIdent, AstItem, AstLiteral, AstReturn,
+    Ast, AstAssignment, AstExpr, AstExprStatement, AstIdent, AstItem, AstLiteral, AstReturn,
     AstStatement, AstStructItem, AstValue, AstValueRoot, AstVarDefinition,
 };
 
@@ -48,7 +48,7 @@ macro_rules! visit_trait {
             fn enter_return(&mut self, node: &$($mut_keyword)? AstReturn) {}
 
             /// Runs logic when entering in a function call statement.
-            fn enter_fn_call_statement(&mut self, node: &$($mut_keyword)? AstFnCallStatement) {}
+            fn enter_fn_call_statement(&mut self, node: &$($mut_keyword)? AstExprStatement) {}
 
             /// Runs logic when entering in an expression.
             fn enter_expr(&mut self, node: &$($mut_keyword)? AstExpr) {}
@@ -99,7 +99,7 @@ macro_rules! visit_trait {
             fn exit_return(&mut self, node: &$($mut_keyword)? AstReturn) {}
 
             /// Runs logic when exiting a function call statement.
-            fn exit_fn_call_statement(&mut self, node: &$($mut_keyword)? AstFnCallStatement) {}
+            fn exit_expr_statement(&mut self, node: &$($mut_keyword)? AstExprStatement) {}
 
             /// Runs logic when exiting an expression.
             fn exit_expr(&mut self, node: &$($mut_keyword)? AstExpr) {}
@@ -192,7 +192,7 @@ macro_rules! visit_trait {
                     AstStatement::Assignment(node) => self.visit_assignment(node),
                     AstStatement::Var(node) => self.visit_var_definition(node),
                     AstStatement::Return(node) => self.visit_return(node),
-                    AstStatement::FnCall(node) => self.visit_fn_call_statement(node),
+                    AstStatement::Expr(node) => self.visit_fn_call_statement(node),
                 }
                 self.exit_statement(node);
             }
@@ -221,10 +221,10 @@ macro_rules! visit_trait {
             }
 
             /// Visit a function call statement.
-            fn visit_fn_call_statement(&mut self, node: &$($mut_keyword)? AstFnCallStatement) {
+            fn visit_fn_call_statement(&mut self, node: &$($mut_keyword)? AstExprStatement) {
                 self.enter_fn_call_statement(node);
-                self.visit_fn_call(&$($mut_keyword)? node.call);
-                self.exit_fn_call_statement(node);
+                self.visit_expr(&$($mut_keyword)? node.expr);
+                self.exit_expr_statement(node);
             }
 
             /// Visit an expression.

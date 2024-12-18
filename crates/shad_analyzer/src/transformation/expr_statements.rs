@@ -1,8 +1,6 @@
 use crate::transformation::GENERATED_IDENT_LABEL;
 use crate::{resolver, Analysis, Ident, IdentSource};
-use shad_parser::{
-    AstExpr, AstFnCallStatement, AstFnQualifier, AstIdent, AstStatement, AstVarDefinition,
-};
+use shad_parser::{AstExprStatement, AstIdent, AstStatement, AstVarDefinition};
 use std::mem;
 
 pub(crate) fn transform(analysis: &mut Analysis) {
@@ -39,8 +37,8 @@ fn visit_statements(analysis: &mut Analysis, statements: &mut Vec<AstStatement>)
     *statements = mem::take(statements)
         .into_iter()
         .map(|statement| {
-            if let AstStatement::FnCall(call) = statement {
-                transform_call_statement(analysis, call)
+            if let AstStatement::Expr(call) = statement {
+                transform_expr(analysis, call)
             } else {
                 statement
             }
@@ -48,29 +46,27 @@ fn visit_statements(analysis: &mut Analysis, statements: &mut Vec<AstStatement>)
         .collect();
 }
 
-fn transform_call_statement(analysis: &mut Analysis, call: AstFnCallStatement) -> AstStatement {
-    let fn_ = resolver::fn_(analysis, &call.call.name).expect("internal error: missing function");
-    if fn_.ast.qualifier == AstFnQualifier::Gpu && fn_.return_type_id.is_some() {
-        let type_ = fn_.return_type_id.clone();
+fn transform_expr(analysis: &mut Analysis, statement: AstExprStatement) -> AstStatement {
+    if let Some(expr_type) = resolver::expr_type(analysis, &statement.expr) {
         let id = analysis.next_id();
         analysis.idents.insert(
             id,
             Ident {
                 source: IdentSource::Var(id),
-                type_,
+                type_: Some(expr_type),
             },
         );
         AstStatement::Var(AstVarDefinition {
-            span: call.span.clone(),
+            span: statement.span.clone(),
             name: AstIdent {
-                span: call.span.clone(),
+                span: statement.span.clone(),
                 label: GENERATED_IDENT_LABEL.into(),
                 id,
             },
             is_ref: false,
-            expr: AstExpr::Value(call.call.into()),
+            expr: statement.expr.clone(),
         })
     } else {
-        AstStatement::FnCall(call)
+        AstStatement::Expr(statement)
     }
 }
