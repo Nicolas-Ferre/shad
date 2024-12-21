@@ -1,7 +1,6 @@
 use crate::resolver::ExprSemantic;
-use crate::transformation::GENERATED_IDENT_LABEL;
-use crate::{resolver, Analysis, Ident, IdentSource};
-use shad_parser::{AstExpr, AstFnCall, AstIdent, AstStatement, AstVarDefinition, VisitMut};
+use crate::{resolver, Analysis};
+use shad_parser::{AstExpr, AstFnCall, AstStatement, VisitMut};
 use std::mem;
 
 pub(crate) fn transform(analysis: &mut Analysis) {
@@ -41,45 +40,14 @@ impl VisitMut for RefSplitTransform<'_> {
             return;
         }
         for (param, arg) in fn_.ast.params.iter().zip(&mut node.args) {
-            if param.ref_span.is_some()
-                && resolver::expr_semantic(self.analysis, &arg.value) == ExprSemantic::Ref
+            if param.ref_span.is_none()
+                || resolver::expr_semantic(self.analysis, &arg.value) != ExprSemantic::Ref
             {
-                continue;
+                let (var_def_statement, var_name) =
+                    super::extract_in_variable(self.analysis, &arg.value, false);
+                self.statements.push(var_def_statement);
+                arg.value = AstExpr::Value(var_name.into());
             }
-            let var_def_id = self.analysis.next_id();
-            let var_usage_id = self.analysis.next_id();
-            let arg_value_span = arg.value.span().clone();
-            let arg = mem::replace(
-                &mut arg.value,
-                AstExpr::Value(
-                    AstIdent {
-                        span: arg_value_span,
-                        label: GENERATED_IDENT_LABEL.into(),
-                        id: var_usage_id,
-                    }
-                    .into(),
-                ),
-            );
-            self.statements.push(AstStatement::Var(AstVarDefinition {
-                span: arg.span().clone(),
-                name: AstIdent {
-                    span: arg.span().clone(),
-                    label: GENERATED_IDENT_LABEL.into(),
-                    id: var_def_id,
-                },
-                is_ref: false,
-                expr: arg,
-            }));
-            let type_id =
-                resolver::type_(self.analysis, &param.type_).expect("internal error: invalid type");
-            self.analysis.idents.insert(
-                var_def_id,
-                Ident::new(IdentSource::Var(var_def_id), Some(type_id.clone())),
-            );
-            self.analysis.idents.insert(
-                var_usage_id,
-                Ident::new(IdentSource::Var(var_def_id), Some(type_id)),
-            );
         }
     }
 }

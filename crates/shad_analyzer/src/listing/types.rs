@@ -12,7 +12,7 @@ pub(crate) fn list_in_block(analysis: &Analysis, block: &AstRunItem) -> Vec<Type
     let buffer_types = listing::buffers::list_in_block(analysis, block)
         .into_iter()
         .map(|buffer_id| &analysis.buffers[&buffer_id])
-        .filter_map(|buffer| analysis.idents[&buffer.ast.name.id].type_.clone());
+        .filter_map(|buffer| analysis.idents[&buffer.ast.name.id].type_id.clone());
     fn_types
         .chain(buffer_types)
         .flat_map(|type_id| all_recursive_type_ids(analysis, type_id))
