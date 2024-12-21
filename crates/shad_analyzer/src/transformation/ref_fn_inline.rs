@@ -8,8 +8,8 @@ use std::mem;
 
 pub(crate) fn transform(analysis: &mut Analysis) {
     transform_fns(analysis);
-    transform_init_blocks(analysis);
-    transform_run_blocks(analysis);
+    super::transform_init_blocks(analysis, visit_statements);
+    super::transform_run_blocks(analysis, visit_statements);
 }
 
 fn transform_fns(analysis: &mut Analysis) {
@@ -30,22 +30,6 @@ fn transform_fns(analysis: &mut Analysis) {
             }
         }
     }
-}
-
-fn transform_init_blocks(analysis: &mut Analysis) {
-    let mut blocks = mem::take(&mut analysis.init_blocks);
-    for block in &mut blocks {
-        visit_statements(analysis, &mut block.ast.statements);
-    }
-    analysis.init_blocks = blocks;
-}
-
-fn transform_run_blocks(analysis: &mut Analysis) {
-    let mut blocks = mem::take(&mut analysis.run_blocks);
-    for block in &mut blocks {
-        visit_statements(analysis, &mut block.ast.statements);
-    }
-    analysis.run_blocks = blocks;
 }
 
 fn are_all_dependent_fns_inlined(
