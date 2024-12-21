@@ -16,6 +16,7 @@ fn without_return_type() {
 
 run {
     var x = without_return_type();
+    x = without_return_type();
     without_return_type().field;
 }
 
@@ -38,4 +39,8 @@ fn fn_with_params(param1: u32, param2: f32) {
 
 run {
     fn_with_params(param2: 0u, param1: 0.);
+}
+
+fn return_no_return_type() {
+    return without_return_type();
 }

@@ -2,6 +2,8 @@ use crate::{errors, resolver, Analysis};
 use shad_parser::{AstIdent, AstItem, AstStructField, AstStructItem};
 use std::mem;
 
+/// The no return type name.
+pub const NO_RETURN_TYPE: &str = "<no return>";
 /// The 32-bit floating point type name.
 pub const F32_TYPE: &str = "f32";
 /// The 32-bit unsigned integer type name.
@@ -72,6 +74,14 @@ pub(crate) fn register(analysis: &mut Analysis) {
 fn register_builtin(analysis: &mut Analysis) {
     analysis.types.extend(
         [
+            Type {
+                id: TypeId::from_builtin(NO_RETURN_TYPE),
+                name: NO_RETURN_TYPE.into(),
+                size: 0,
+                alignment: 0,
+                ast: None,
+                fields: vec![],
+            },
             Type {
                 id: TypeId::from_builtin(F32_TYPE),
                 name: F32_TYPE.into(),

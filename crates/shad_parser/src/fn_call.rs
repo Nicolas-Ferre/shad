@@ -68,8 +68,6 @@ pub struct AstFnCall {
     pub args: Vec<AstFnCallArg>,
     /// Whether the function call is done using an operator.
     pub is_operator: bool,
-    /// Whether the function call is a statement.
-    pub is_statement: bool,
 }
 
 impl AstFnCall {
@@ -90,7 +88,6 @@ impl AstFnCall {
             name,
             args,
             is_operator: false,
-            is_statement: false,
         })
     }
 
@@ -145,7 +142,6 @@ impl AstFnCall {
             },
             args: vec![left.into(), right.into()],
             is_operator: true,
-            is_statement: false,
         })
     }
 
@@ -161,7 +157,6 @@ impl AstFnCall {
             },
             args: vec![expr.into()],
             is_operator: true,
-            is_statement: false,
         })
     }
 

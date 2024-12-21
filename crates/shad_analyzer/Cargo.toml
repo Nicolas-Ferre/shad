@@ -18,6 +18,7 @@ shad_parser.workspace = true
 annotate-snippets.workspace = true
 fxhash.workspace = true
 itertools.workspace = true
+log = "0.4.22"
 
 [lints]
 workspace = true

@@ -174,11 +174,13 @@ impl<'a> IdentRegistration<'a> {
     }
 
     fn register_fn_item(&mut self, node: &AstFnItem) {
-        let return_type_id = node
-            .return_type
-            .as_ref()
-            .and_then(|type_| resolver::type_(self.analysis, &type_.name).ok());
-        let fn_ident_source = IdentSource::Fn(FnId::from_item(self.analysis, node));
+        let fn_id = FnId::from_item(self.analysis, node);
+        let return_type_id = self
+            .analysis
+            .fns
+            .get(&fn_id)
+            .and_then(|fn_| fn_.return_type_id.clone());
+        let fn_ident_source = IdentSource::Fn(fn_id);
         let fn_ident = Ident::new(fn_ident_source, return_type_id);
         self.analysis.idents.insert(node.name.id, fn_ident);
     }
