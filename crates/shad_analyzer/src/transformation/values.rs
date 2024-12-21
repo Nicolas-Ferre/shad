@@ -5,45 +5,17 @@ use shad_parser::{
 use std::mem;
 
 pub(crate) fn transform(analysis: &mut Analysis) {
-    transform_init_blocks(analysis);
-    transform_run_blocks(analysis);
-    transform_fns(analysis);
-}
-
-fn transform_init_blocks(analysis: &mut Analysis) {
-    let mut blocks = mem::take(&mut analysis.init_blocks);
-    for block in &mut blocks {
-        visit_statements(analysis, &mut block.ast.statements);
-    }
-    analysis.init_blocks = blocks;
-}
-
-fn transform_run_blocks(analysis: &mut Analysis) {
-    let mut blocks = mem::take(&mut analysis.run_blocks);
-    for block in &mut blocks {
-        visit_statements(analysis, &mut block.ast.statements);
-    }
-    analysis.run_blocks = blocks;
-}
-
-fn transform_fns(analysis: &mut Analysis) {
-    let mut fns = analysis.fns.clone();
-    for fn_ in fns.values_mut() {
-        visit_statements(analysis, &mut fn_.ast.statements);
-    }
-    analysis.fns = fns;
-}
-
-fn visit_statements(analysis: &mut Analysis, statements: &mut Vec<AstStatement>) {
-    *statements = mem::take(statements)
-        .into_iter()
-        .flat_map(|mut statement| {
-            let mut transform = ValueTransform::new(analysis);
-            transform.visit_statement(&mut statement);
-            transform.statements.push(statement);
-            transform.statements
-        })
-        .collect();
+    super::transform_statements(analysis, |analysis, statements| {
+        *statements = mem::take(statements)
+            .into_iter()
+            .flat_map(|mut statement| {
+                let mut transform = ValueTransform::new(analysis);
+                transform.visit_statement(&mut statement);
+                transform.statements.push(statement);
+                transform.statements
+            })
+            .collect();
+    });
 }
 
 struct ValueTransform<'a> {

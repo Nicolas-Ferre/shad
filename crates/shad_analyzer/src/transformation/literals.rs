@@ -2,15 +2,11 @@ use crate::Analysis;
 use shad_parser::{AstLiteral, VisitMut};
 
 pub(crate) fn transform(analysis: &mut Analysis) {
-    for block in &mut analysis.init_blocks {
-        LiteralTransform.visit_run_item(&mut block.ast);
-    }
-    for block in &mut analysis.run_blocks {
-        LiteralTransform.visit_run_item(&mut block.ast);
-    }
-    for fn_ in analysis.fns.values_mut() {
-        LiteralTransform.visit_fn_item(&mut fn_.ast);
-    }
+    super::transform_statements(analysis, |_, statements| {
+        for statement in statements {
+            LiteralTransform.visit_statement(statement);
+        }
+    });
 }
 
 struct LiteralTransform;

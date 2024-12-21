@@ -4,51 +4,24 @@ use shad_parser::{AstExpr, AstStatement, AstValue, AstVarDefinition, VisitMut};
 use std::mem;
 
 pub(crate) fn transform(analysis: &mut Analysis) {
-    transform_fns(analysis);
-    transform_init_blocks(analysis);
-    transform_run_blocks(analysis);
+    super::transform_statements(analysis, |analysis, statements| {
+        let mut transform = RefVarInlineTransform::new(analysis);
+        for statement in statements.iter_mut() {
+            transform.visit_statement(statement);
+        }
+        *statements = mem::take(statements)
+            .into_iter()
+            .filter(is_not_ref_variable_definition)
+            .collect();
+    });
 }
 
-fn transform_fns(analysis: &mut Analysis) {
-    let mut fns = mem::take(&mut analysis.fns);
-    for fn_ in fns.values_mut() {
-        visit_statements(analysis, &mut fn_.ast.statements);
+fn is_not_ref_variable_definition(statement: &AstStatement) -> bool {
+    if let AstStatement::Var(var_def) = statement {
+        !var_def.is_ref
+    } else {
+        true
     }
-    analysis.fns = fns;
-}
-
-fn transform_init_blocks(analysis: &mut Analysis) {
-    let mut blocks = mem::take(&mut analysis.init_blocks);
-    for block in &mut blocks {
-        visit_statements(analysis, &mut block.ast.statements);
-    }
-    analysis.init_blocks = blocks;
-}
-
-fn transform_run_blocks(analysis: &mut Analysis) {
-    let mut blocks = mem::take(&mut analysis.run_blocks);
-    for block in &mut blocks {
-        visit_statements(analysis, &mut block.ast.statements);
-    }
-    analysis.run_blocks = blocks;
-}
-
-fn visit_statements(analysis: &mut Analysis, statements: &mut Vec<AstStatement>) {
-    let mut transform = RefVarInlineTransform::new(analysis);
-    *statements = mem::take(statements)
-        .into_iter()
-        .map(|mut statement| {
-            transform.visit_statement(&mut statement);
-            statement
-        })
-        .filter(|statement| {
-            if let AstStatement::Var(var_def) = statement {
-                !var_def.is_ref
-            } else {
-                true
-            }
-        })
-        .collect();
 }
 
 struct RefVarInlineTransform<'a> {
