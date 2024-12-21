@@ -1,6 +1,5 @@
-use crate::transformation::GENERATED_IDENT_LABEL;
-use crate::{resolver, Analysis, Ident, IdentSource};
-use shad_parser::{AstExprStatement, AstIdent, AstStatement, AstVarDefinition};
+use crate::{resolver, Analysis};
+use shad_parser::{AstExprStatement, AstStatement};
 use std::mem;
 
 pub(crate) fn transform(analysis: &mut Analysis) {
@@ -19,25 +18,10 @@ pub(crate) fn transform(analysis: &mut Analysis) {
 }
 
 fn transform_expr(analysis: &mut Analysis, statement: AstExprStatement) -> AstStatement {
-    if let Some(expr_type) = resolver::expr_type(analysis, &statement.expr) {
-        let id = analysis.next_id();
-        analysis.idents.insert(
-            id,
-            Ident {
-                source: IdentSource::Var(id),
-                type_: Some(expr_type),
-            },
-        );
-        AstStatement::Var(AstVarDefinition {
-            span: statement.span.clone(),
-            name: AstIdent {
-                span: statement.span.clone(),
-                label: GENERATED_IDENT_LABEL.into(),
-                id,
-            },
-            is_ref: false,
-            expr: statement.expr.clone(),
-        })
+    if resolver::expr_type(analysis, &statement.expr).is_some() {
+        let (var_def_statement, _var_name) =
+            super::extract_in_variable(analysis, &statement.expr, false);
+        var_def_statement
     } else {
         AstStatement::Expr(statement)
     }

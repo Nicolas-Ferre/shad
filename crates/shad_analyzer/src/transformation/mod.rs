@@ -1,5 +1,5 @@
-use crate::Analysis;
-use shad_parser::AstStatement;
+use crate::{resolver, Analysis, Ident, IdentSource};
+use shad_parser::{AstExpr, AstIdent, AstStatement, AstVarDefinition};
 use std::mem;
 
 pub(crate) mod expr_statements;
@@ -10,7 +10,47 @@ pub(crate) mod ref_split;
 pub(crate) mod ref_var_inline;
 pub(crate) mod values;
 
-const GENERATED_IDENT_LABEL: &str = "generated";
+fn extract_in_variable(
+    analysis: &mut Analysis,
+    expr: &AstExpr,
+    is_ref: bool,
+) -> (AstStatement, AstIdent) {
+    let type_id = resolver::expr_type(analysis, expr);
+    let var_name = "generated";
+    let var_def_id = analysis.next_id();
+    let var_id = analysis.next_id();
+    analysis.idents.insert(
+        var_def_id,
+        Ident {
+            source: IdentSource::Var(var_def_id),
+            type_id: type_id.clone(),
+        },
+    );
+    analysis.idents.insert(
+        var_id,
+        Ident {
+            source: IdentSource::Var(var_def_id),
+            type_id,
+        },
+    );
+    (
+        AstStatement::Var(AstVarDefinition {
+            span: expr.span().clone(),
+            name: AstIdent {
+                span: expr.span().clone(),
+                label: var_name.to_string(),
+                id: var_def_id,
+            },
+            is_ref,
+            expr: expr.clone(),
+        }),
+        AstIdent {
+            span: expr.span().clone(),
+            label: var_name.to_string(),
+            id: var_id,
+        },
+    )
+}
 
 fn transform_statements(
     analysis: &mut Analysis,

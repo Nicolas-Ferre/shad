@@ -60,10 +60,10 @@ impl Analysis {
         registration::functions::register(&mut analysis);
         registration::buffers::register(&mut analysis);
         registration::run_blocks::register(&mut analysis);
-        transformation::literals::transform(&mut analysis);
         transformation::fn_params::transform(&mut analysis);
         registration::idents::register(&mut analysis);
         checks::functions::check(&mut analysis);
+        transformation::literals::transform(&mut analysis);
         checks::literals::check(&mut analysis);
         checks::statements::check(&mut analysis);
         checks::recursion::fns::check(&mut analysis);

@@ -11,13 +11,13 @@ use std::mem;
 pub struct Ident {
     /// The source of the identifier.
     pub source: IdentSource,
-    /// The type of the identifier.
-    pub type_: Option<TypeId>,
+    /// The type ID of the identifier.
+    pub type_id: Option<TypeId>,
 }
 
 impl Ident {
-    pub(crate) fn new(source: IdentSource, type_: Option<TypeId>) -> Self {
-        Self { source, type_ }
+    pub(crate) fn new(source: IdentSource, type_id: Option<TypeId>) -> Self {
+        Self { source, type_id }
     }
 }
 
@@ -70,7 +70,7 @@ fn register_buffer_types(analysis: &mut Analysis) {
     let buffers = analysis.buffers.clone();
     while typed_buffer_count < buffer_count {
         for buffer in buffers.values() {
-            if analysis.idents[&buffer.ast.name.id].type_.is_none() {
+            if analysis.idents[&buffer.ast.name.id].type_id.is_none() {
                 let module = &buffer.ast.name.span.module.name;
                 IdentRegistration::new(analysis, module, false).visit_buffer_item(&buffer.ast);
             }
@@ -111,7 +111,7 @@ fn count_typed_buffers(analysis: &Analysis) -> usize {
         .idents
         .values()
         .filter(|e| matches!(e.source, IdentSource::Buffer(_)))
-        .filter(|e| e.type_.is_some())
+        .filter(|e| e.type_id.is_some())
         .count()
 }
 
@@ -196,7 +196,7 @@ impl<'a> IdentRegistration<'a> {
                 .analysis
                 .idents
                 .get(&id)
-                .and_then(|var| var.type_.clone());
+                .and_then(|var| var.type_id.clone());
             let var_ident = Ident::new(IdentSource::Var(id), var_type.clone());
             self.analysis.idents.insert(variable.id, var_ident);
             var_type
@@ -267,7 +267,7 @@ impl Visit for IdentRegistration<'_> {
                 .analysis
                 .idents
                 .get(&value.name.id)
-                .and_then(|ident| ident.type_.clone()),
+                .and_then(|ident| ident.type_id.clone()),
         };
         for field in &node.fields {
             let Some(current_type) = last_type.clone() else {

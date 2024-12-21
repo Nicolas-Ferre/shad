@@ -171,7 +171,7 @@ impl VisitMut for RefFnStatementsTransform<'_> {
                         node.id,
                         Ident::new(
                             IdentSource::Var(self.old_new_id.get(&id).copied().unwrap_or(id)),
-                            ident.type_,
+                            ident.type_id,
                         ),
                     );
                 }

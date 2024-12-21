@@ -47,7 +47,7 @@ pub(crate) fn value_type<'a>(analysis: &'a Analysis, value: &AstValue) -> Option
     analysis
         .idents
         .get(&value_id(value))
-        .and_then(|ident| ident.type_.as_ref())
+        .and_then(|ident| ident.type_id.as_ref())
 }
 
 pub(crate) fn value_root_id(value: &AstValue) -> u64 {
@@ -63,7 +63,7 @@ pub(crate) fn buffer_type<'a>(analysis: &'a Analysis, buffer_id: &BufferId) -> O
         .get(buffer_id)
         .map(|buffer| buffer.ast.name.id)
         .and_then(|id| analysis.idents.get(&id))
-        .and_then(|ident| ident.type_.as_ref())
+        .and_then(|ident| ident.type_id.as_ref())
         .and_then(|type_| analysis.types.get(type_))
 }
 
