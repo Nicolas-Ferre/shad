@@ -1,6 +1,6 @@
 use crate::atom::{parse_token, parse_token_option};
 use crate::token::{Lexer, Token, TokenType};
-use crate::{AstExpr, AstIdent, AstValue, AstValueRoot};
+use crate::{AstExpr, AstIdent, AstValue};
 use shad_error::{Span, SyntaxError};
 
 /// A statement.
@@ -162,14 +162,7 @@ pub struct AstExprStatement {
 
 impl AstExprStatement {
     fn parse(lexer: &mut Lexer<'_>) -> Result<Self, SyntaxError> {
-        let mut expr = AstExpr::parse(lexer)?;
-        if let AstExpr::Value(value) = &mut expr {
-            if value.fields.is_empty() {
-                if let AstValueRoot::FnCall(call) = &mut value.root {
-                    call.is_statement = true;
-                }
-            }
-        }
+        let expr = AstExpr::parse(lexer)?;
         let semi_colon = parse_token(lexer, TokenType::SemiColon)?;
         Ok(Self {
             span: Span::join(expr.span(), &semi_colon.span),

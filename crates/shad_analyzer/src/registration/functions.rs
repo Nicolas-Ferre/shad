@@ -1,4 +1,4 @@
-use crate::{errors, resolver, Analysis, Type, TypeId};
+use crate::{errors, resolver, Analysis, Type, TypeId, NO_RETURN_TYPE};
 use itertools::Itertools;
 use shad_parser::{
     AstFnItem, AstFnParam, AstFnQualifier, AstIdent, AstItem, AstReturnType, AstStructItem,
@@ -119,9 +119,11 @@ fn register_ast(analysis: &mut Analysis) {
                     ast: fn_ast.clone(),
                     id: id.clone(),
                     is_inlined: is_inlined(fn_ast),
-                    return_type_id: fn_ast.return_type.as_ref().and_then(|return_type| {
+                    return_type_id: if let Some(return_type) = &fn_ast.return_type {
                         resolver::type_or_add_error(analysis, &return_type.name)
-                    }),
+                    } else {
+                        Some(TypeId::from_builtin(NO_RETURN_TYPE))
+                    },
                     params: fn_ast
                         .params
                         .iter()

@@ -26,61 +26,77 @@ error: could not find `pow(f32, i32)` function
   |                                 ^^^^^^^^^^^ undefined function
   |
 
-error: expected function with a return type, got function `without_return_type()`
+error: expression of type `<no return>` is not allowed here
   --> ./cases_invalid/code/fn_call/main.shd:18:13
    |
 18 |     var x = without_return_type();
-   |             ^^^^^^^^^^^^^^^^^^^^^ this function cannot be called here
+   |             ^^^^^^^^^^^^^^^^^^^^^ expression with invalid type
    |
 
-error: expected function with a return type, got function `without_return_type()`
-  --> ./cases_invalid/code/fn_call/main.shd:19:5
+error: expression of type `<no return>` is not allowed here
+  --> ./cases_invalid/code/fn_call/main.shd:19:9
    |
-19 |     without_return_type().field;
-   |     ^^^^^^^^^^^^^^^^^^^^^ this function cannot be called here
+19 |     x = without_return_type();
+   |         ^^^^^^^^^^^^^^^^^^^^^ expression with invalid type
    |
 
-error: expected function with a return type, got function `without_return_type()`
-  --> ./cases_invalid/code/fn_call/main.shd:28:5
+error: could not find `field` field in `<no return>` type
+  --> ./cases_invalid/code/fn_call/main.shd:20:27
    |
-28 |     without_return_type() = 2;
-   |     ^^^^^^^^^^^^^^^^^^^^^ this function cannot be called here
+20 |     without_return_type().field;
+   |                           ^^^^^ undefined field
+   |
+
+error: invalid type in assignment
+  --> ./cases_invalid/code/fn_call/main.shd:29:29
+   |
+29 |     without_return_type() = 2;
+   |     ---------------------   ^ expression of type `i32`
+   |     |
+   |     info: expected type `<no return>`
    |
 
 error: expression is not a reference
-  --> ./cases_invalid/code/fn_call/main.shd:29:5
+  --> ./cases_invalid/code/fn_call/main.shd:30:5
    |
-29 |     returned_copy() = 2;
+30 |     returned_copy() = 2;
    |     ^^^^^^^^^^^^^^^ a valid reference is expected here
    |
 
 error: expression is not a reference
-  --> ./cases_invalid/code/fn_call/main.shd:33:12
+  --> ./cases_invalid/code/fn_call/main.shd:34:12
    |
-33 |     return 0;
+34 |     return 0;
    |            ^ a valid reference is expected here
    |
 
 error: invalid parameter name
-  --> ./cases_invalid/code/fn_call/main.shd:40:20
+  --> ./cases_invalid/code/fn_call/main.shd:41:20
    |
-36 | fn fn_with_params(param1: u32, param2: f32) {
+37 | fn fn_with_params(param1: u32, param2: f32) {
    |                   ------ info: expected name
-37 | }
-38 |
-39 | run {
-40 |     fn_with_params(param2: 0u, param1: 0.);
+38 | }
+39 |
+40 | run {
+41 |     fn_with_params(param2: 0u, param1: 0.);
    |                    ^^^^^^ invalid name
    |
 
 error: invalid parameter name
-  --> ./cases_invalid/code/fn_call/main.shd:40:32
+  --> ./cases_invalid/code/fn_call/main.shd:41:32
    |
-36 | fn fn_with_params(param1: u32, param2: f32) {
+37 | fn fn_with_params(param1: u32, param2: f32) {
    |                                ------ info: expected name
-37 | }
-38 |
-39 | run {
-40 |     fn_with_params(param2: 0u, param1: 0.);
+38 | }
+39 |
+40 | run {
+41 |     fn_with_params(param2: 0u, param1: 0.);
    |                                ^^^^^^ invalid name
+   |
+
+error: use of `return` in a function with no return type
+  --> ./cases_invalid/code/fn_call/main.shd:45:5
+   |
+45 |     return without_return_type();
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ invalid statement
    |

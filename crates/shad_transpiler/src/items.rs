@@ -107,7 +107,11 @@ fn fn_param(analysis: &Analysis, param: &FnParam) -> String {
 }
 
 fn fn_return_type(analysis: &Analysis, type_: &Function) -> String {
-    if let Some(type_) = &type_.return_type_id {
+    if let Some(type_) = type_
+        .return_type_id
+        .as_ref()
+        .filter(|type_id| analysis.types[type_id].size > 0)
+    {
         format!(" -> {}", atoms::to_type_wgsl(analysis, type_))
     } else {
         String::new()

@@ -40,12 +40,8 @@ pub(crate) fn to_wgsl(analysis: &Analysis, call: &AstFnCall) -> String {
 }
 
 fn cast_fn_call(fn_: &Function, call: String) -> String {
-    if let Some(return_type_id) = &fn_.return_type_id {
-        if return_type_id == &TypeId::from_builtin("bool") {
-            format!("u32({call})")
-        } else {
-            call
-        }
+    if fn_.return_type_id == Some(TypeId::from_builtin("bool")) {
+        format!("u32({call})")
     } else {
         call
     }

@@ -5,11 +5,11 @@ error: expression is not a reference
   |                ^ a valid reference is expected here
   |
 
-error: expected function with a return type, got function `no_return()`
+error: expression of type `<no return>` is not allowed here
  --> ./cases_invalid/code/ref/main.shd:3:16
   |
 3 |     ref ref2 = no_return();
-  |                ^^^^^^^^^^^ this function cannot be called here
+  |                ^^^^^^^^^^^ expression with invalid type
   |
 
 error: expression is not a reference

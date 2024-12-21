@@ -1,5 +1,5 @@
 use crate::resolver::ExprSemantic;
-use crate::{errors, resolver, Analysis, Function};
+use crate::{errors, resolver, Analysis, Function, NO_RETURN_TYPE};
 use shad_error::SemanticError;
 use shad_parser::{
     AstAssignment, AstExpr, AstFnCall, AstFnItem, AstFnQualifier, AstReturn, AstStatement,
@@ -40,6 +40,15 @@ impl<'a> StatementCheck<'a> {
             module: "",
         }
     }
+
+    fn check_invalid_expr_type(&mut self, expr: &AstExpr) {
+        if let Some(type_id) = resolver::expr_type(self.analysis, expr) {
+            if type_id.name == NO_RETURN_TYPE {
+                let error = errors::expressions::invalid_type(expr, &type_id);
+                self.errors.push(error);
+            }
+        }
+    }
 }
 
 impl Visit for StatementCheck<'_> {
@@ -64,6 +73,7 @@ impl Visit for StatementCheck<'_> {
     }
 
     fn enter_assignment(&mut self, node: &AstAssignment) {
+        self.check_invalid_expr_type(&node.expr);
         let expected_type = resolver::value_type(self.analysis, &node.value);
         let expr_type = resolver::expr_type(self.analysis, &node.expr);
         if let (Some(expected_type), Some(expr_type)) = (expected_type, expr_type) {
@@ -82,6 +92,7 @@ impl Visit for StatementCheck<'_> {
     }
 
     fn enter_var_definition(&mut self, node: &AstVarDefinition) {
+        self.check_invalid_expr_type(&node.expr);
         let semantic = resolver::expr_semantic(self.analysis, &node.expr);
         if node.is_ref && semantic == ExprSemantic::Value {
             self.errors.push(errors::expressions::not_ref(&node.expr));
@@ -126,10 +137,6 @@ impl Visit for StatementCheck<'_> {
                         self.errors.push(error);
                     }
                 }
-            }
-            if !node.is_statement && fn_.ast.return_type.is_none() {
-                let error = errors::fn_calls::no_return_type(&fn_.id, node);
-                self.errors.push(error);
             }
         }
     }
