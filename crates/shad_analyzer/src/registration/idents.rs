@@ -1,7 +1,7 @@
 use crate::{errors, resolver, Analysis, Buffer, BufferId, FnId, Function, TypeId};
 use fxhash::FxHashMap;
 use shad_parser::{
-    AstBufferItem, AstFnCall, AstFnItem, AstFnParam, AstIdent, AstItem, AstValue, AstValueRoot,
+    AstBufferItem, AstFnCall, AstFnItem, AstFnParam, AstIdent, AstItem, AstExpr, AstExprRoot,
     AstVarDefinition, Visit,
 };
 use std::mem;
@@ -262,15 +262,15 @@ impl Visit for IdentRegistration<'_> {
         }
     }
 
-    fn exit_value(&mut self, node: &AstValue) {
+    fn exit_expr(&mut self, node: &AstExpr) {
         let mut last_type = match &node.root {
-            AstValueRoot::Ident(value) => self.register_variable(value),
-            AstValueRoot::FnCall(value) => self
+            AstExprRoot::Ident(value) => self.register_variable(value),
+            AstExprRoot::FnCall(value) => self
                 .analysis
                 .idents
                 .get(&value.name.id)
                 .and_then(|ident| ident.type_id.clone()),
-            AstValueRoot::Literal(literal) => Some(resolver::literal_type(literal)),
+            AstExprRoot::Literal(literal) => Some(resolver::literal_type(literal)),
         };
         for field in &node.fields {
             let Some(current_type) = last_type.clone() else {

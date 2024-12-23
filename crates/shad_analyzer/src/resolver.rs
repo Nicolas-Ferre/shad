@@ -3,7 +3,7 @@ use crate::{
     U32_TYPE,
 };
 use shad_error::SemanticError;
-use shad_parser::{AstExpr, AstIdent, AstLiteral, AstLiteralType, AstValue, AstValueRoot};
+use shad_parser::{AstExpr, AstExprRoot, AstIdent, AstLiteral, AstLiteralType};
 
 pub(crate) fn type_or_add_error(analysis: &mut Analysis, type_: &AstIdent) -> Option<TypeId> {
     match self::type_(analysis, type_) {
@@ -32,20 +32,14 @@ pub(crate) fn type_(analysis: &Analysis, type_: &AstIdent) -> Result<TypeId, Sem
 }
 
 pub(crate) fn expr_type(analysis: &Analysis, expr: &AstExpr) -> Option<TypeId> {
-    match expr {
-        AstExpr::Value(value) => value_type(analysis, value),
-    }
-}
-
-pub(crate) fn value_type(analysis: &Analysis, value: &AstValue) -> Option<TypeId> {
-    if value.fields.is_empty() {
-        match &value.root {
-            AstValueRoot::Ident(ident) => ident_type(analysis, ident.id),
-            AstValueRoot::FnCall(call) => ident_type(analysis, call.name.id),
-            AstValueRoot::Literal(literal) => Some(literal_type(literal)),
+    if expr.fields.is_empty() {
+        match &expr.root {
+            AstExprRoot::Ident(ident) => ident_type(analysis, ident.id),
+            AstExprRoot::FnCall(call) => ident_type(analysis, call.name.id),
+            AstExprRoot::Literal(literal) => Some(literal_type(literal)),
         }
     } else {
-        ident_type(analysis, value.fields[value.fields.len() - 1].id)
+        ident_type(analysis, expr.fields[expr.fields.len() - 1].id)
     }
 }
 
@@ -58,11 +52,11 @@ pub(crate) fn literal_type(literal: &AstLiteral) -> TypeId {
     }
 }
 
-pub(crate) fn value_root_id(value: &AstValue) -> Option<u64> {
-    match &value.root {
-        AstValueRoot::Ident(ident) => Some(ident.id),
-        AstValueRoot::FnCall(call) => Some(call.name.id),
-        AstValueRoot::Literal(_) => None,
+pub(crate) fn expr_root_id(expr: &AstExpr) -> Option<u64> {
+    match &expr.root {
+        AstExprRoot::Ident(ident) => Some(ident.id),
+        AstExprRoot::FnCall(call) => Some(call.name.id),
+        AstExprRoot::Literal(_) => None,
     }
 }
 
@@ -90,26 +84,24 @@ pub(crate) fn fn_<'a>(analysis: &'a Analysis, name: &AstIdent) -> Option<&'a Fun
 }
 
 pub(crate) fn expr_semantic(analysis: &Analysis, expr: &AstExpr) -> ExprSemantic {
-    match expr {
-        AstExpr::Value(value) => match &value.root {
-            AstValueRoot::Ident(_) => ExprSemantic::Ref,
-            AstValueRoot::FnCall(call) => {
-                if value.fields.is_empty() {
-                    fn_(analysis, &call.name)
-                        .and_then(|fn_| fn_.ast.return_type.as_ref())
-                        .map_or(ExprSemantic::None, |type_| {
-                            if type_.is_ref {
-                                ExprSemantic::Ref
-                            } else {
-                                ExprSemantic::Value
-                            }
-                        })
-                } else {
-                    ExprSemantic::Ref
-                }
+    match &expr.root {
+        AstExprRoot::Ident(_) => ExprSemantic::Ref,
+        AstExprRoot::FnCall(call) => {
+            if expr.fields.is_empty() {
+                fn_(analysis, &call.name)
+                    .and_then(|fn_| fn_.ast.return_type.as_ref())
+                    .map_or(ExprSemantic::None, |type_| {
+                        if type_.is_ref {
+                            ExprSemantic::Ref
+                        } else {
+                            ExprSemantic::Value
+                        }
+                    })
+            } else {
+                ExprSemantic::Ref
             }
-            AstValueRoot::Literal(_) => ExprSemantic::Value,
-        },
+        }
+        AstExprRoot::Literal(_) => ExprSemantic::Value,
     }
 }
 

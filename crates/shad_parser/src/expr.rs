@@ -1,22 +1,42 @@
-use crate::atom::parse_token;
-use crate::fn_call::AstFnCall;
+use crate::atom::{parse_token, parse_token_option};
 use crate::token::{Lexer, Token, TokenType};
-use crate::value::AstValue;
+use crate::{AstFnCall, AstIdent, AstLiteral};
 use shad_error::{Span, SyntaxError};
+use std::mem;
 
 /// A parsed expression.
+///
+/// # Examples
+///
+/// The following Shad expressions will be parsed as a value:
+/// - `my_var`
+/// - `my_var.field`
+/// - `my_var.field.subfield.subsubfield`
+/// - `my_func(42)`
+/// - `my_func(42).field`
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub enum AstExpr {
-    /// A value.
-    Value(AstValue),
+pub struct AstExpr {
+    /// The span of the value.
+    pub span: Span,
+    /// The value root.
+    pub root: AstExprRoot,
+    /// The fields referred after the root part.
+    pub fields: Vec<AstIdent>,
 }
 
+const LITERALS: [TokenType; 5] = [
+    TokenType::F32Literal,
+    TokenType::U32Literal,
+    TokenType::I32Literal,
+    TokenType::True,
+    TokenType::False,
+];
+
 impl AstExpr {
-    /// Returns the span of the expression.
-    pub fn span(&self) -> &Span {
-        match self {
-            Self::Value(expr) => &expr.span,
-        }
+    /// Replaces the value root part by another value.
+    pub fn replace_root(&mut self, new_root: Self) {
+        self.root = new_root.root;
+        self.fields = [new_root.fields, mem::take(&mut self.fields)].concat();
     }
 
     #[allow(clippy::wildcard_enum_match_arm)]
@@ -52,8 +72,7 @@ impl AstExpr {
         if expressions.len() == 1 {
             Ok(expressions.remove(0))
         } else {
-            AstFnCall::parse_binary_operation(lexer, &expressions, &operators)
-                .map(|call| Self::Value(call.into()))
+            AstFnCall::parse_binary_operation(lexer, &expressions, &operators).map(AstFnCall::into)
         }
     }
 
@@ -66,19 +85,95 @@ impl AstExpr {
                 parse_token(lexer, TokenType::CloseParenthesis)?;
                 Ok(expr)
             }
+            TokenType::Minus | TokenType::Not => {
+                Ok(AstFnCall::parse_unary_operation(lexer)?.into())
+            }
             TokenType::F32Literal
             | TokenType::U32Literal
             | TokenType::I32Literal
             | TokenType::True
             | TokenType::False
-            | TokenType::Ident => Ok(Self::Value(AstValue::parse(lexer)?)),
-            TokenType::Minus => Ok(Self::Value(AstFnCall::parse_unary_operation(lexer)?.into())),
-            TokenType::Not => Ok(Self::Value(AstFnCall::parse_unary_operation(lexer)?.into())),
+            | TokenType::Ident => {
+                let mut tmp_lexer = lexer.clone();
+                let root = if LITERALS.contains(&Token::next(&mut lexer.clone())?.type_) {
+                    AstExprRoot::Literal(AstLiteral::parse(lexer)?)
+                } else if AstIdent::parse(&mut tmp_lexer).is_ok()
+                    && parse_token(&mut tmp_lexer, TokenType::OpenParenthesis).is_ok()
+                {
+                    AstExprRoot::FnCall(AstFnCall::parse(lexer)?)
+                } else {
+                    AstExprRoot::Ident(AstIdent::parse(lexer)?)
+                };
+                let mut fields = vec![];
+                while parse_token_option(lexer, TokenType::Dot)?.is_some() {
+                    fields.push(AstIdent::parse(lexer)?);
+                }
+                Ok(Self {
+                    span: Span::join(
+                        root.span(),
+                        fields.last().map_or(root.span(), |field| &field.span),
+                    ),
+                    root,
+                    fields,
+                })
+            }
             _ => Err(SyntaxError::new(
                 Token::next(&mut lexer.clone())?.span.start,
                 lexer.module.clone(),
                 "expected expression",
             )),
+        }
+    }
+}
+
+impl From<AstIdent> for AstExpr {
+    fn from(ident: AstIdent) -> Self {
+        Self {
+            span: ident.span.clone(),
+            root: AstExprRoot::Ident(ident),
+            fields: vec![],
+        }
+    }
+}
+
+impl From<AstFnCall> for AstExpr {
+    fn from(call: AstFnCall) -> Self {
+        Self {
+            span: call.span.clone(),
+            root: AstExprRoot::FnCall(call),
+            fields: vec![],
+        }
+    }
+}
+
+impl From<AstLiteral> for AstExpr {
+    fn from(literal: AstLiteral) -> Self {
+        Self {
+            span: literal.span.clone(),
+            root: AstExprRoot::Literal(literal),
+            fields: vec![],
+        }
+    }
+}
+
+/// A parsed value root.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum AstExprRoot {
+    /// An identifier.
+    Ident(AstIdent),
+    /// A function call.
+    FnCall(AstFnCall),
+    /// A literal.
+    Literal(AstLiteral),
+}
+
+impl AstExprRoot {
+    /// Returns the span of the value.
+    pub fn span(&self) -> &Span {
+        match self {
+            Self::Ident(value) => &value.span,
+            Self::FnCall(value) => &value.span,
+            Self::Literal(value) => &value.span,
         }
     }
 }

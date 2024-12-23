@@ -1,8 +1,8 @@
 use crate::{listing, resolver, Analysis, FnId, Ident, IdentSource};
 use fxhash::FxHashMap;
 use shad_parser::{
-    AstExpr, AstExprStatement, AstFnCall, AstFnItem, AstFnQualifier, AstIdent, AstLiteral,
-    AstLiteralType, AstStatement, AstValue, AstValueRoot, VisitMut,
+    AstExpr, AstExprRoot, AstExprStatement, AstFnCall, AstFnItem, AstFnQualifier, AstIdent,
+    AstLiteral, AstLiteralType, AstStatement, VisitMut,
 };
 use std::mem;
 
@@ -73,27 +73,23 @@ impl<'a> RefFnInlineTransform<'a> {
 
 impl VisitMut for RefFnInlineTransform<'_> {
     fn exit_expr_statement(&mut self, node: &mut AstExprStatement) {
-        if let AstExpr::Value(value) = &node.expr {
-            if let AstValueRoot::FnCall(call) = &value.root {
-                if resolver::fn_(self.analysis, &call.name)
-                    .expect("internal error: missing function")
-                    .is_inlined
-                {
-                    node.expr = AstExpr::Value(
-                        AstLiteral {
-                            span: node.span.clone(),
-                            value: "0".to_string(),
-                            type_: AstLiteralType::I32,
-                        }
-                        .into(),
-                    );
+        if let AstExprRoot::FnCall(call) = &node.expr.root {
+            if resolver::fn_(self.analysis, &call.name)
+                .expect("internal error: missing function")
+                .is_inlined
+            {
+                node.expr = AstLiteral {
+                    span: node.span.clone(),
+                    value: "0".to_string(),
+                    type_: AstLiteralType::I32,
                 }
+                .into();
             }
         }
     }
 
-    fn exit_value(&mut self, node: &mut AstValue) {
-        if let AstValueRoot::FnCall(call) = &node.root {
+    fn exit_expr(&mut self, node: &mut AstExpr) {
+        if let AstExprRoot::FnCall(call) = &node.root {
             let statements = inlined_fn_statements(self.analysis, call);
             if !statements.is_empty() {
                 self.statements.extend(statements);
@@ -102,9 +98,7 @@ impl VisitMut for RefFnInlineTransform<'_> {
                     .pop()
                     .expect("internal error: missing return");
                 if let AstStatement::Return(return_) = last_statement {
-                    if let AstExpr::Value(value) = return_.expr {
-                        node.replace_root(value);
-                    }
+                    node.replace_root(return_.expr);
                 } else {
                     self.statements.push(last_statement);
                 }
@@ -153,11 +147,11 @@ impl<'a> RefFnStatementsTransform<'a> {
 }
 
 impl VisitMut for RefFnStatementsTransform<'_> {
-    fn enter_value(&mut self, node: &mut AstValue) {
+    fn enter_expr(&mut self, node: &mut AstExpr) {
         if let Some(IdentSource::Var(id)) =
-            resolver::value_root_id(node).map(|id| &self.analysis.idents[&id].source)
+            resolver::expr_root_id(node).map(|id| &self.analysis.idents[&id].source)
         {
-            if let Some(AstExpr::Value(new_root)) = self.param_args.get(&id) {
+            if let Some(new_root) = self.param_args.get(id) {
                 node.replace_root(new_root.clone());
             }
         }

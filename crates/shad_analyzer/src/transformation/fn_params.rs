@@ -1,7 +1,5 @@
 use crate::Analysis;
-use shad_parser::{
-    AstExpr, AstFnItem, AstFnQualifier, AstIdent, AstStatement, AstVarDefinition, VisitMut,
-};
+use shad_parser::{AstFnItem, AstFnQualifier, AstIdent, AstStatement, AstVarDefinition, VisitMut};
 use std::mem;
 
 // Defines a variable for each function parameter, so that parameters can be mutated in WGSL.
@@ -38,14 +36,12 @@ impl VisitMut for FnParamTransform<'_> {
                         id: self.analysis.next_id(),
                     },
                     is_ref: false,
-                    expr: AstExpr::Value(
-                        AstIdent {
-                            span: param.name.span.clone(),
-                            label: param.name.label.clone(),
-                            id: param.name.id,
-                        }
-                        .into(),
-                    ),
+                    expr: AstIdent {
+                        span: param.name.span.clone(),
+                        label: param.name.label.clone(),
+                        id: param.name.id,
+                    }
+                    .into(),
                 }),
             );
         }

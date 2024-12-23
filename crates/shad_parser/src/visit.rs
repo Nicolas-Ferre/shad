@@ -5,7 +5,7 @@ use crate::item::import::AstImportItem;
 use crate::item::run_block::AstRunItem;
 use crate::{
     Ast, AstAssignment, AstExpr, AstExprStatement, AstIdent, AstItem, AstLiteral, AstReturn,
-    AstStatement, AstStructItem, AstValue, AstValueRoot, AstVarDefinition,
+    AstStatement, AstStructItem, AstExprRoot, AstVarDefinition,
 };
 
 // coverage: off (not all functions are used by other crates)
@@ -50,17 +50,14 @@ macro_rules! visit_trait {
             /// Runs logic when entering in a function call statement.
             fn enter_fn_call_statement(&mut self, node: &$($mut_keyword)? AstExprStatement) {}
 
-            /// Runs logic when entering in an expression.
-            fn enter_expr(&mut self, node: &$($mut_keyword)? AstExpr) {}
-
             /// Runs logic when entering in a function call.
             fn enter_fn_call(&mut self, node: &$($mut_keyword)? AstFnCall) {}
 
             /// Runs logic when entering in a literal.
             fn enter_literal(&mut self, node: &$($mut_keyword)? AstLiteral) {}
 
-            /// Runs logic when entering in a value.
-            fn enter_value(&mut self, node: &$($mut_keyword)? AstValue) {}
+            /// Runs logic when entering in an expression.
+            fn enter_expr(&mut self, node: &$($mut_keyword)? AstExpr) {}
 
             /// Runs logic when entering in an identifier.
             fn enter_ident(&mut self, node: &$($mut_keyword)? AstIdent) {}
@@ -101,17 +98,14 @@ macro_rules! visit_trait {
             /// Runs logic when exiting a function call statement.
             fn exit_expr_statement(&mut self, node: &$($mut_keyword)? AstExprStatement) {}
 
-            /// Runs logic when exiting an expression.
-            fn exit_expr(&mut self, node: &$($mut_keyword)? AstExpr) {}
-
             /// Runs logic when exiting a function call.
             fn exit_fn_call(&mut self, node: &$($mut_keyword)? AstFnCall) {}
 
             /// Runs logic when exiting a literal.
             fn exit_literal(&mut self, node: &$($mut_keyword)? AstLiteral) {}
 
-            /// Runs logic when exiting a value.
-            fn exit_value(&mut self, node: &$($mut_keyword)? AstValue) {}
+            /// Runs logic when exiting an expression.
+            fn exit_expr(&mut self, node: &$($mut_keyword)? AstExpr) {}
 
             /// Runs logic when exiting an identifier.
             fn exit_ident(&mut self, node: &$($mut_keyword)? AstIdent) {}
@@ -227,15 +221,6 @@ macro_rules! visit_trait {
                 self.exit_expr_statement(node);
             }
 
-            /// Visit an expression.
-            fn visit_expr(&mut self, node: &$($mut_keyword)? AstExpr) {
-                self.enter_expr(node);
-                match node {
-                    AstExpr::Value(node) => self.visit_value(node),
-                }
-                self.exit_expr(node);
-            }
-
             /// Visit a function call.
             fn visit_fn_call(&mut self, node: &$($mut_keyword)? AstFnCall) {
                 self.enter_fn_call(node);
@@ -256,17 +241,17 @@ macro_rules! visit_trait {
             }
 
             /// Visit a value.
-            fn visit_value(&mut self, node: &$($mut_keyword)? AstValue) {
-                self.enter_value(node);
+            fn visit_expr(&mut self, node: &$($mut_keyword)? AstExpr) {
+                self.enter_expr(node);
                 match &$($mut_keyword)? node.root {
-                    AstValueRoot::Ident(node) => self.visit_ident(node),
-                    AstValueRoot::FnCall(node) => self.visit_fn_call(node),
-                    AstValueRoot::Literal(node) => self.visit_literal(node),
+                    AstExprRoot::Ident(node) => self.visit_ident(node),
+                    AstExprRoot::FnCall(node) => self.visit_fn_call(node),
+                    AstExprRoot::Literal(node) => self.visit_literal(node),
                 }
                 for node in &$($mut_keyword)? node.fields {
                     self.visit_ident(node);
                 }
-                self.exit_value(node);
+                self.exit_expr(node);
             }
 
             /// Visit an identifier.

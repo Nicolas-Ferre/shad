@@ -76,7 +76,7 @@ impl AstAssignment {
         let right = AstExpr::parse(lexer)?;
         let semi_colon = parse_token(lexer, TokenType::SemiColon)?;
         Ok(Self {
-            span: Span::join(left.span(), &semi_colon.span),
+            span: Span::join(&left.span, &semi_colon.span),
             left,
             right,
         })
@@ -165,7 +165,7 @@ impl AstExprStatement {
         let expr = AstExpr::parse(lexer)?;
         let semi_colon = parse_token(lexer, TokenType::SemiColon)?;
         Ok(Self {
-            span: Span::join(expr.span(), &semi_colon.span),
+            span: Span::join(&expr.span, &semi_colon.span),
             expr,
         })
     }

@@ -12,12 +12,12 @@ pub(crate) fn invalid_type(
         vec![
             LocatedMessage {
                 level: ErrorLevel::Error,
-                span: assignment.right.span().clone(),
+                span: assignment.right.span.clone(),
                 text: format!("expression of type `{}`", expr_type.name),
             },
             LocatedMessage {
                 level: ErrorLevel::Info,
-                span: assignment.left.span().clone(),
+                span: assignment.left.span.clone(),
                 text: format!("expected type `{}`", expected_type.name),
             },
         ],
