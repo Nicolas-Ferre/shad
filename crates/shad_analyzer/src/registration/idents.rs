@@ -1,7 +1,7 @@
 use crate::{errors, resolver, Analysis, Buffer, BufferId, FnId, Function, TypeId};
 use fxhash::FxHashMap;
 use shad_parser::{
-    AstBufferItem, AstFnCall, AstFnItem, AstFnParam, AstIdent, AstItem, AstExpr, AstExprRoot,
+    AstBufferItem, AstExpr, AstExprRoot, AstFnCall, AstFnItem, AstFnParam, AstIdent, AstItem,
     AstVarDefinition, Visit,
 };
 use std::mem;

@@ -4,8 +4,8 @@ use crate::item::function::AstFnItem;
 use crate::item::import::AstImportItem;
 use crate::item::run_block::AstRunItem;
 use crate::{
-    Ast, AstAssignment, AstExpr, AstExprStatement, AstIdent, AstItem, AstLiteral, AstReturn,
-    AstStatement, AstStructItem, AstExprRoot, AstVarDefinition,
+    Ast, AstAssignment, AstExpr, AstExprRoot, AstExprStatement, AstIdent, AstItem, AstLiteral,
+    AstReturn, AstStatement, AstStructItem, AstVarDefinition,
 };
 
 // coverage: off (not all functions are used by other crates)
