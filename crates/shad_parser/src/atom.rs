@@ -57,12 +57,12 @@ pub struct AstLiteral {
 
 impl AstLiteral {
     #[allow(clippy::wildcard_enum_match_arm)]
-    pub(crate) fn parse(lexer: &mut Lexer<'_>, type_: TokenType) -> Result<Self, SyntaxError> {
-        let token = parse_token(lexer, type_)?;
+    pub(crate) fn parse(lexer: &mut Lexer<'_>) -> Result<Self, SyntaxError> {
+        let token = Token::next(lexer)?;
         Ok(Self {
             span: token.span,
             value: token.slice.to_string(),
-            type_: match type_ {
+            type_: match token.type_ {
                 TokenType::F32Literal => AstLiteralType::F32,
                 TokenType::U32Literal => AstLiteralType::U32,
                 TokenType::I32Literal => AstLiteralType::I32,

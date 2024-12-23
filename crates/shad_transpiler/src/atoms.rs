@@ -1,26 +1,20 @@
 use crate::fn_calls;
 use itertools::Itertools;
 use shad_analyzer::{Analysis, BufferId, IdentSource, TypeId};
-use shad_parser::{AstExpr, AstFnQualifier, AstIdent, AstValue, AstValueRoot};
+use shad_parser::{AstExpr, AstExprRoot, AstFnQualifier, AstIdent};
 use std::iter;
 
 pub(crate) fn to_expr_wgsl(analysis: &Analysis, expr: &AstExpr) -> String {
-    match expr {
-        AstExpr::Literal(expr) => match expr.value.as_str() {
+    let root = match &expr.root {
+        AstExprRoot::Ident(ident) => to_ident_wgsl(analysis, ident),
+        AstExprRoot::FnCall(call) => fn_calls::to_wgsl(analysis, call),
+        AstExprRoot::Literal(expr) => match expr.value.as_str() {
             "false" => "0u".into(),
             "true" => "1u".into(),
             _ => expr.value.clone(),
         },
-        AstExpr::Value(expr) => to_value_wgsl(analysis, expr),
-    }
-}
-
-pub(crate) fn to_value_wgsl(analysis: &Analysis, value: &AstValue) -> String {
-    let root = match &value.root {
-        AstValueRoot::Ident(ident) => to_ident_wgsl(analysis, ident),
-        AstValueRoot::FnCall(call) => fn_calls::to_wgsl(analysis, call),
     };
-    let fields = value
+    let fields = expr
         .fields
         .iter()
         .map(|ident| to_ident_wgsl(analysis, ident));

@@ -1,5 +1,5 @@
 use crate::{resolver, Analysis};
-use shad_parser::{AstAssignment, AstExpr, AstStatement, AstValueRoot, VisitMut};
+use shad_parser::{AstAssignment, AstExprRoot, AstStatement, VisitMut};
 use std::mem;
 
 pub(crate) fn transform(analysis: &mut Analysis) {
@@ -32,25 +32,18 @@ impl<'a> ValueTransform<'a> {
 
 impl VisitMut for ValueTransform<'_> {
     fn enter_assignment(&mut self, node: &mut AstAssignment) {
-        if let AstExpr::Value(value) = &mut node.left {
-            if let AstValueRoot::FnCall(call) = &mut value.root {
-                if let Some(fn_) = resolver::fn_(self.analysis, &call.name) {
-                    let is_ref = fn_
-                        .ast
-                        .return_type
-                        .as_ref()
-                        .map_or(false, |type_| type_.is_ref);
-                    let (var_def_statement, var_name) = super::extract_in_variable(
-                        self.analysis,
-                        &AstExpr::Value(call.clone().into()),
-                        is_ref,
-                    );
-                    self.statements.push(var_def_statement);
-                    value.root = AstValueRoot::Ident(var_name);
-                }
+        if let AstExprRoot::FnCall(call) = &mut node.left.root {
+            if let Some(fn_) = resolver::fn_(self.analysis, &call.name) {
+                let is_ref = fn_
+                    .ast
+                    .return_type
+                    .as_ref()
+                    .map_or(false, |type_| type_.is_ref);
+                let (var_def_statement, var_name) =
+                    super::extract_in_variable(self.analysis, &call.clone().into(), is_ref);
+                self.statements.push(var_def_statement);
+                node.left.root = AstExprRoot::Ident(var_name);
             }
-        } else {
-            unreachable!("internal error: unexpected left value")
         }
     }
 }

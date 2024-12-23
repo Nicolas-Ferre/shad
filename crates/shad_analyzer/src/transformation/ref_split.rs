@@ -1,6 +1,6 @@
 use crate::resolver::ExprSemantic;
 use crate::{resolver, Analysis};
-use shad_parser::{AstExpr, AstFnCall, AstStatement, VisitMut};
+use shad_parser::{AstFnCall, AstStatement, VisitMut};
 use std::mem;
 
 pub(crate) fn transform(analysis: &mut Analysis) {
@@ -46,7 +46,7 @@ impl VisitMut for RefSplitTransform<'_> {
                 let (var_def_statement, var_name) =
                     super::extract_in_variable(self.analysis, &arg.value, false);
                 self.statements.push(var_def_statement);
-                arg.value = AstExpr::Value(var_name.into());
+                arg.value = var_name.into();
             }
         }
     }

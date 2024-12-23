@@ -51,7 +51,7 @@ pub const OR_FN: &str = "__or__";
 ///
 /// # Examples
 ///
-/// The following Shad expressions will be parsed as a function call:
+/// The following Shad examples will be parsed as a function call:
 /// - `myfunc()`
 /// - `myfunc(expr)`
 /// - `myfunc(expr1, expr2)`
@@ -112,29 +112,25 @@ impl AstFnCall {
         let left = if operator_index == 0 {
             expressions[0].clone()
         } else {
-            AstExpr::Value(
-                Self::parse_binary_operation(
-                    lexer,
-                    &expressions[..=operator_index],
-                    &operators[..operator_index],
-                )?
-                .into(),
-            )
+            Self::parse_binary_operation(
+                lexer,
+                &expressions[..=operator_index],
+                &operators[..operator_index],
+            )?
+            .into()
         };
         let right = if operator_index == operators.len() - 1 {
             expressions[expressions.len() - 1].clone()
         } else {
-            AstExpr::Value(
-                Self::parse_binary_operation(
-                    lexer,
-                    &expressions[operator_index + 1..],
-                    &operators[operator_index + 1..],
-                )?
-                .into(),
-            )
+            Self::parse_binary_operation(
+                lexer,
+                &expressions[operator_index + 1..],
+                &operators[operator_index + 1..],
+            )?
+            .into()
         };
         Ok(Self {
-            span: Span::join(left.span(), right.span()),
+            span: Span::join(&left.span, &right.span),
             name: AstIdent {
                 span: operators[operator_index].1.clone(),
                 label: Self::binary_operator_fn_name(operators[operator_index].0).into(),
@@ -149,7 +145,7 @@ impl AstFnCall {
         let operator_token = Token::next(lexer)?;
         let expr = AstExpr::parse_part(lexer)?;
         Ok(Self {
-            span: Span::join(&operator_token.span, expr.span()),
+            span: Span::join(&operator_token.span, &expr.span),
             name: AstIdent {
                 span: operator_token.span,
                 label: Self::unary_operator_fn_name(operator_token.type_).into(),

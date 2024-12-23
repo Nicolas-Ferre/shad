@@ -1,5 +1,5 @@
 use crate::{Analysis, BufferId};
-use shad_parser::{AstAssignment, AstExpr, AstItem, AstRunItem, AstStatement};
+use shad_parser::{AstAssignment, AstItem, AstRunItem, AstStatement};
 
 /// An analyzed block of statements.
 #[derive(Debug, Clone)]
@@ -37,8 +37,8 @@ fn register_init(analysis: &mut Analysis) {
                 analysis.init_blocks.push(BufferInitRunBlock {
                     ast: AstRunItem {
                         statements: vec![AstStatement::Assignment(AstAssignment {
-                            span: buffer.value.span().clone(),
-                            left: AstExpr::Value(buffer.name.clone().into()),
+                            span: buffer.value.span.clone(),
+                            left: buffer.name.clone().into(),
                             right: buffer.value.clone(),
                         })],
                         priority: None,

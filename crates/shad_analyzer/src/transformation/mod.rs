@@ -35,9 +35,9 @@ fn extract_in_variable(
     );
     (
         AstStatement::Var(AstVarDefinition {
-            span: expr.span().clone(),
+            span: expr.span.clone(),
             name: AstIdent {
-                span: expr.span().clone(),
+                span: expr.span.clone(),
                 label: var_name.to_string(),
                 id: var_def_id,
             },
@@ -45,7 +45,7 @@ fn extract_in_variable(
             expr: expr.clone(),
         }),
         AstIdent {
-            span: expr.span().clone(),
+            span: expr.span.clone(),
             label: var_name.to_string(),
             id: var_id,
         },

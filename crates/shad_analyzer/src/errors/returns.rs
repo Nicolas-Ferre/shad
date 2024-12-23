@@ -24,7 +24,7 @@ pub(crate) fn invalid_type(
         vec![
             LocatedMessage {
                 level: ErrorLevel::Error,
-                span: return_.expr.span().clone(),
+                span: return_.expr.span.clone(),
                 text: format!("expression of type `{}`", actual.name),
             },
             LocatedMessage {
