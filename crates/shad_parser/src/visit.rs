@@ -200,8 +200,8 @@ macro_rules! visit_trait {
             /// Visit an assignment.
             fn visit_assignment(&mut self, node: &$($mut_keyword)? AstAssignment) {
                 self.enter_assignment(node);
-                self.visit_value(&$($mut_keyword)? node.value);
-                self.visit_expr(&$($mut_keyword)? node.expr);
+                self.visit_expr(&$($mut_keyword)? node.left);
+                self.visit_expr(&$($mut_keyword)? node.right);
                 self.exit_assignment(node);
             }
 

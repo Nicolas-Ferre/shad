@@ -73,21 +73,20 @@ impl Visit for StatementCheck<'_> {
     }
 
     fn enter_assignment(&mut self, node: &AstAssignment) {
-        self.check_invalid_expr_type(&node.expr);
-        let expected_type = resolver::value_type(self.analysis, &node.value);
-        let expr_type = resolver::expr_type(self.analysis, &node.expr);
+        self.check_invalid_expr_type(&node.right);
+        let expected_type = resolver::expr_type(self.analysis, &node.left);
+        let expr_type = resolver::expr_type(self.analysis, &node.right);
         if let (Some(expected_type), Some(expr_type)) = (expected_type, expr_type) {
-            if expected_type != &expr_type {
+            if expected_type != expr_type {
                 self.errors.push(errors::assignments::invalid_type(
                     node,
-                    expected_type,
+                    &expected_type,
                     &expr_type,
                 ));
             }
         }
-        let expr = AstExpr::Value(node.value.clone());
-        if resolver::expr_semantic(self.analysis, &expr) == ExprSemantic::Value {
-            self.errors.push(errors::expressions::not_ref(&expr));
+        if resolver::expr_semantic(self.analysis, &node.left) == ExprSemantic::Value {
+            self.errors.push(errors::expressions::not_ref(&node.left));
         }
     }
 
