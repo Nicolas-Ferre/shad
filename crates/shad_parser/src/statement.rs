@@ -1,6 +1,6 @@
 use crate::atom::{parse_token, parse_token_option};
 use crate::token::{Lexer, Token, TokenType};
-use crate::{AstExpr, AstIdent, AstValue};
+use crate::{AstExpr, AstIdent};
 use shad_error::{Span, SyntaxError};
 
 /// A statement.
@@ -64,21 +64,21 @@ pub struct AstAssignment {
     /// The span of the assignment.
     pub span: Span,
     /// The updated value.
-    pub value: AstValue,
+    pub left: AstExpr,
     /// The assigned expression.
-    pub expr: AstExpr,
+    pub right: AstExpr,
 }
 
 impl AstAssignment {
     fn parse(lexer: &mut Lexer<'_>) -> Result<Self, SyntaxError> {
-        let value = AstValue::parse(lexer)?;
+        let left = AstExpr::parse(lexer)?;
         parse_token(lexer, TokenType::Assigment)?;
-        let expr = AstExpr::parse(lexer)?;
+        let right = AstExpr::parse(lexer)?;
         let semi_colon = parse_token(lexer, TokenType::SemiColon)?;
         Ok(Self {
-            span: Span::join(&value.span, &semi_colon.span),
-            value,
-            expr,
+            span: Span::join(left.span(), &semi_colon.span),
+            left,
+            right,
         })
     }
 }

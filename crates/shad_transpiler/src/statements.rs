@@ -24,8 +24,8 @@ fn to_statement_wgsl(analysis: &Analysis, statement: &AstStatement, indent: usiz
         AstStatement::Assignment(statement) => {
             format!(
                 "{empty: >width$}{} = {};",
-                atoms::to_value_wgsl(analysis, &statement.value),
-                atoms::to_expr_wgsl(analysis, &statement.expr),
+                atoms::to_expr_wgsl(analysis, &statement.left),
+                atoms::to_expr_wgsl(analysis, &statement.right),
                 empty = "",
                 width = indent * IDENT_UNIT,
             )
