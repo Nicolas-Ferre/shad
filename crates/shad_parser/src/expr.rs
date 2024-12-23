@@ -31,6 +31,21 @@ const LITERALS: [TokenType; 5] = [
     TokenType::True,
     TokenType::False,
 ];
+const BINARY_OPERATORS: [TokenType; 13] = [
+    TokenType::Plus,
+    TokenType::Minus,
+    TokenType::Star,
+    TokenType::Slash,
+    TokenType::Percent,
+    TokenType::Eq,
+    TokenType::NotEq,
+    TokenType::GreaterThanOrEq,
+    TokenType::LessThanOrEq,
+    TokenType::OpenAngleBracket,
+    TokenType::CloseAngleBracket,
+    TokenType::And,
+    TokenType::Or,
+];
 
 impl AstExpr {
     /// Replaces the value root part by another value.
@@ -41,48 +56,34 @@ impl AstExpr {
 
     #[allow(clippy::wildcard_enum_match_arm)]
     pub(crate) fn parse(lexer: &mut Lexer<'_>) -> Result<Self, SyntaxError> {
-        let mut expressions = vec![Self::parse_part(lexer)?];
+        let mut expressions = vec![Self::parse_operand(lexer)?];
         let mut operators = vec![];
         loop {
             let token = Token::next(&mut lexer.clone())?;
-            if [
-                TokenType::Plus,
-                TokenType::Minus,
-                TokenType::Star,
-                TokenType::Slash,
-                TokenType::Percent,
-                TokenType::Eq,
-                TokenType::NotEq,
-                TokenType::GreaterThanOrEq,
-                TokenType::LessThanOrEq,
-                TokenType::OpenAngleBracket,
-                TokenType::CloseAngleBracket,
-                TokenType::And,
-                TokenType::Or,
-            ]
-            .contains(&token.type_)
-            {
+            if BINARY_OPERATORS.contains(&token.type_) {
                 operators.push((token.type_, token.span));
             } else {
                 break;
             }
             let _operator = Token::next(lexer)?;
-            expressions.push(Self::parse_part(lexer)?);
+            expressions.push(Self::parse_operand(lexer)?);
         }
         if expressions.len() == 1 {
             Ok(expressions.remove(0))
         } else {
-            AstFnCall::parse_binary_operation(lexer, &expressions, &operators).map(AstFnCall::into)
+            Ok(AstFnCall::parse_binary_operation(lexer, &expressions, &operators)?.into())
         }
     }
 
     #[allow(clippy::wildcard_enum_match_arm)]
-    pub(crate) fn parse_part(lexer: &mut Lexer<'_>) -> Result<Self, SyntaxError> {
+    fn parse_operand(lexer: &mut Lexer<'_>) -> Result<Self, SyntaxError> {
         match Token::next(&mut lexer.clone())?.type_ {
             TokenType::OpenParenthesis => {
                 parse_token(lexer, TokenType::OpenParenthesis)?;
-                let expr = Self::parse(lexer)?;
+                let mut expr = Self::parse(lexer)?;
                 parse_token(lexer, TokenType::CloseParenthesis)?;
+                expr.fields.extend(Self::parse_fields(lexer)?);
+                expr.span = Self::span(&expr.root, &expr.fields);
                 Ok(expr)
             }
             TokenType::Minus | TokenType::Not => {
@@ -104,15 +105,9 @@ impl AstExpr {
                 } else {
                     AstExprRoot::Ident(AstIdent::parse(lexer)?)
                 };
-                let mut fields = vec![];
-                while parse_token_option(lexer, TokenType::Dot)?.is_some() {
-                    fields.push(AstIdent::parse(lexer)?);
-                }
+                let fields = Self::parse_fields(lexer)?;
                 Ok(Self {
-                    span: Span::join(
-                        root.span(),
-                        fields.last().map_or(root.span(), |field| &field.span),
-                    ),
+                    span: Self::span(&root, &fields),
                     root,
                     fields,
                 })
@@ -123,6 +118,21 @@ impl AstExpr {
                 "expected expression",
             )),
         }
+    }
+
+    fn span(root: &AstExprRoot, fields: &[AstIdent]) -> Span {
+        Span::join(
+            root.span(),
+            fields.last().map_or(root.span(), |field| &field.span),
+        )
+    }
+
+    fn parse_fields(lexer: &mut Lexer<'_>) -> Result<Vec<AstIdent>, SyntaxError> {
+        let mut fields = vec![];
+        while parse_token_option(lexer, TokenType::Dot)?.is_some() {
+            fields.push(AstIdent::parse(lexer)?);
+        }
+        Ok(fields)
     }
 }
 

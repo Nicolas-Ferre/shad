@@ -33,7 +33,8 @@ impl AstStatement {
     pub(crate) fn parse(lexer: &mut Lexer<'_>) -> Result<Self, SyntaxError> {
         let token = Token::next(&mut lexer.clone())?;
         match token.type_ {
-            TokenType::Ident
+            TokenType::OpenParenthesis
+            | TokenType::Ident
             | TokenType::F32Literal
             | TokenType::U32Literal
             | TokenType::I32Literal => {
