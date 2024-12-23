@@ -51,7 +51,7 @@ pub const OR_FN: &str = "__or__";
 ///
 /// # Examples
 ///
-/// The following Shad expressions will be parsed as a function call:
+/// The following Shad examples will be parsed as a function call:
 /// - `myfunc()`
 /// - `myfunc(expr)`
 /// - `myfunc(expr1, expr2)`

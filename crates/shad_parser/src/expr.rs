@@ -8,7 +8,7 @@ use std::mem;
 ///
 /// # Examples
 ///
-/// The following Shad expressions will be parsed as a value:
+/// The following Shad examples will be parsed as an expression:
 /// - `my_var`
 /// - `my_var.field`
 /// - `my_var.field.subfield.subsubfield`
