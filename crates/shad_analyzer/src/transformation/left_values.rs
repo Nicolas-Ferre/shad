@@ -49,6 +49,8 @@ impl VisitMut for ValueTransform<'_> {
                     value.root = AstValueRoot::Ident(var_name);
                 }
             }
+        } else {
+            unreachable!("internal error: unexpected left value")
         }
     }
 }
