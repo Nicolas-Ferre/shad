@@ -143,7 +143,7 @@ impl AstFnCall {
 
     pub(crate) fn parse_unary_operation(lexer: &mut Lexer<'_>) -> Result<Self, SyntaxError> {
         let operator_token = Token::next(lexer)?;
-        let expr = AstExpr::parse_part(lexer)?;
+        let expr = AstExpr::parse(lexer)?;
         Ok(Self {
             span: Span::join(&operator_token.span, &expr.span),
             name: AstIdent {

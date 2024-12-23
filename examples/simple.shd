@@ -23,3 +23,11 @@ fn double(value: f32) -> f32 {
 fn update_buffer() {
     buffer_f32 = pow(3., 2.);
 }
+
+fn __add__(l: i32, r: i32) -> ref u32 {
+    var value = u32(l) + u32(r);
+    return value;
+}
+
+gpu fn u32(v: i32) -> u32;
+gpu fn __add__(l: u32, r: u32) -> u32;
