@@ -99,7 +99,7 @@ impl AstExpr {
                 let root = if LITERALS.contains(&Token::next(&mut lexer.clone())?.type_) {
                     AstExprRoot::Literal(AstLiteral::parse(lexer)?)
                 } else if AstIdent::parse(&mut tmp_lexer).is_ok()
-                    & &parse_token(&mut tmp_lexer, TokenType::OpenParenthesis).is_ok()
+                    && parse_token(&mut tmp_lexer, TokenType::OpenParenthesis).is_ok()
                 {
                     AstExprRoot::FnCall(AstFnCall::parse(lexer)?)
                 } else {
