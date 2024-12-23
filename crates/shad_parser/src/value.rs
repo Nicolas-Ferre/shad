@@ -1,6 +1,6 @@
 use crate::atom::{parse_token, parse_token_option};
-use crate::token::{Lexer, TokenType};
-use crate::{AstFnCall, AstIdent};
+use crate::token::{Lexer, Token, TokenType};
+use crate::{AstFnCall, AstIdent, AstLiteral};
 use shad_error::{Span, SyntaxError};
 use std::mem;
 
@@ -24,6 +24,14 @@ pub struct AstValue {
     pub fields: Vec<AstIdent>,
 }
 
+const LITERALS: [TokenType; 5] = [
+    TokenType::F32Literal,
+    TokenType::U32Literal,
+    TokenType::I32Literal,
+    TokenType::True,
+    TokenType::False,
+];
+
 impl AstValue {
     /// Replaces the value root part by another value.
     pub fn replace_root(&mut self, new_root: Self) {
@@ -33,9 +41,11 @@ impl AstValue {
 
     pub(crate) fn parse(lexer: &mut Lexer<'_>) -> Result<Self, SyntaxError> {
         let mut tmp_lexer = lexer.clone();
-        let is_fn_call = AstIdent::parse(&mut tmp_lexer).is_ok()
-            && parse_token(&mut tmp_lexer, TokenType::OpenParenthesis).is_ok();
-        let root = if is_fn_call {
+        let root = if LITERALS.contains(&Token::next(&mut lexer.clone())?.type_) {
+            AstValueRoot::Literal(AstLiteral::parse(lexer)?)
+        } else if AstIdent::parse(&mut tmp_lexer).is_ok()
+            && parse_token(&mut tmp_lexer, TokenType::OpenParenthesis).is_ok()
+        {
             AstValueRoot::FnCall(AstFnCall::parse(lexer)?)
         } else {
             AstValueRoot::Ident(AstIdent::parse(lexer)?)
@@ -75,6 +85,16 @@ impl From<AstFnCall> for AstValue {
     }
 }
 
+impl From<AstLiteral> for AstValue {
+    fn from(literal: AstLiteral) -> Self {
+        Self {
+            span: literal.span.clone(),
+            root: AstValueRoot::Literal(literal),
+            fields: vec![],
+        }
+    }
+}
+
 /// A parsed value root.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum AstValueRoot {
@@ -82,6 +102,8 @@ pub enum AstValueRoot {
     Ident(AstIdent),
     /// A function call.
     FnCall(AstFnCall),
+    /// A literal.
+    Literal(AstLiteral),
 }
 
 impl AstValueRoot {
@@ -90,6 +112,7 @@ impl AstValueRoot {
         match self {
             Self::Ident(value) => &value.span,
             Self::FnCall(value) => &value.span,
+            Self::Literal(value) => &value.span,
         }
     }
 }

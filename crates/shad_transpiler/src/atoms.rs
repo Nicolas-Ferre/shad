@@ -6,11 +6,6 @@ use std::iter;
 
 pub(crate) fn to_expr_wgsl(analysis: &Analysis, expr: &AstExpr) -> String {
     match expr {
-        AstExpr::Literal(expr) => match expr.value.as_str() {
-            "false" => "0u".into(),
-            "true" => "1u".into(),
-            _ => expr.value.clone(),
-        },
         AstExpr::Value(expr) => to_value_wgsl(analysis, expr),
     }
 }
@@ -19,6 +14,11 @@ pub(crate) fn to_value_wgsl(analysis: &Analysis, value: &AstValue) -> String {
     let root = match &value.root {
         AstValueRoot::Ident(ident) => to_ident_wgsl(analysis, ident),
         AstValueRoot::FnCall(call) => fn_calls::to_wgsl(analysis, call),
+        AstValueRoot::Literal(expr) => match expr.value.as_str() {
+            "false" => "0u".into(),
+            "true" => "1u".into(),
+            _ => expr.value.clone(),
+        },
     };
     let fields = value
         .fields

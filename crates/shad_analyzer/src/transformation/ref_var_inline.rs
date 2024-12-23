@@ -46,13 +46,13 @@ impl VisitMut for RefVarInlineTransform<'_> {
     }
 
     fn exit_value(&mut self, node: &mut AstValue) {
-        match self.analysis.idents[&resolver::value_root_id(node)].source {
-            IdentSource::Var(id) => {
+        match resolver::value_root_id(node).map(|id| &self.analysis.idents[&id].source) {
+            Some(IdentSource::Var(id)) => {
                 if let Some(AstExpr::Value(new_root)) = self.ref_expressions.get(&id) {
                     node.replace_root(new_root.clone());
                 }
             }
-            IdentSource::Buffer(_) | IdentSource::Fn(_) | IdentSource::Field => {}
+            Some(IdentSource::Buffer(_) | IdentSource::Fn(_) | IdentSource::Field) | None => {}
         }
     }
 }

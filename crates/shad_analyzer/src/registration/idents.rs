@@ -270,6 +270,7 @@ impl Visit for IdentRegistration<'_> {
                 .idents
                 .get(&value.name.id)
                 .and_then(|ident| ident.type_id.clone()),
+            AstValueRoot::Literal(literal) => Some(resolver::literal_type(literal)),
         };
         for field in &node.fields {
             let Some(current_type) = last_type.clone() else {

@@ -79,11 +79,14 @@ impl VisitMut for RefFnInlineTransform<'_> {
                     .expect("internal error: missing function")
                     .is_inlined
                 {
-                    node.expr = AstExpr::Literal(AstLiteral {
-                        span: node.span.clone(),
-                        value: "0".to_string(),
-                        type_: AstLiteralType::I32,
-                    });
+                    node.expr = AstExpr::Value(
+                        AstLiteral {
+                            span: node.span.clone(),
+                            value: "0".to_string(),
+                            type_: AstLiteralType::I32,
+                        }
+                        .into(),
+                    );
                 }
             }
         }
@@ -151,7 +154,9 @@ impl<'a> RefFnStatementsTransform<'a> {
 
 impl VisitMut for RefFnStatementsTransform<'_> {
     fn enter_value(&mut self, node: &mut AstValue) {
-        if let IdentSource::Var(id) = self.analysis.idents[&resolver::value_root_id(node)].source {
+        if let Some(IdentSource::Var(id)) =
+            resolver::value_root_id(node).map(|id| &self.analysis.idents[&id].source)
+        {
             if let Some(AstExpr::Value(new_root)) = self.param_args.get(&id) {
                 node.replace_root(new_root.clone());
             }

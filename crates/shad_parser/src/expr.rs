@@ -2,14 +2,11 @@ use crate::atom::parse_token;
 use crate::fn_call::AstFnCall;
 use crate::token::{Lexer, Token, TokenType};
 use crate::value::AstValue;
-use crate::AstLiteral;
 use shad_error::{Span, SyntaxError};
 
 /// A parsed expression.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum AstExpr {
-    /// A literal.
-    Literal(AstLiteral),
     /// A value.
     Value(AstValue),
 }
@@ -18,7 +15,6 @@ impl AstExpr {
     /// Returns the span of the expression.
     pub fn span(&self) -> &Span {
         match self {
-            Self::Literal(expr) => &expr.span,
             Self::Value(expr) => &expr.span,
         }
     }
@@ -70,12 +66,12 @@ impl AstExpr {
                 parse_token(lexer, TokenType::CloseParenthesis)?;
                 Ok(expr)
             }
-            type_ @ (TokenType::F32Literal
+            TokenType::F32Literal
             | TokenType::U32Literal
             | TokenType::I32Literal
             | TokenType::True
-            | TokenType::False) => Ok(Self::Literal(AstLiteral::parse(lexer, type_)?)),
-            TokenType::Ident => Ok(Self::Value(AstValue::parse(lexer)?)),
+            | TokenType::False
+            | TokenType::Ident => Ok(Self::Value(AstValue::parse(lexer)?)),
             TokenType::Minus => Ok(Self::Value(AstFnCall::parse_unary_operation(lexer)?.into())),
             TokenType::Not => Ok(Self::Value(AstFnCall::parse_unary_operation(lexer)?.into())),
             _ => Err(SyntaxError::new(

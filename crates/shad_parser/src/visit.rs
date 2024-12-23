@@ -231,7 +231,6 @@ macro_rules! visit_trait {
             fn visit_expr(&mut self, node: &$($mut_keyword)? AstExpr) {
                 self.enter_expr(node);
                 match node {
-                    AstExpr::Literal(node) => self.visit_literal(node),
                     AstExpr::Value(node) => self.visit_value(node),
                 }
                 self.exit_expr(node);
@@ -262,6 +261,7 @@ macro_rules! visit_trait {
                 match &$($mut_keyword)? node.root {
                     AstValueRoot::Ident(node) => self.visit_ident(node),
                     AstValueRoot::FnCall(node) => self.visit_fn_call(node),
+                    AstValueRoot::Literal(node) => self.visit_literal(node),
                 }
                 for node in &$($mut_keyword)? node.fields {
                     self.visit_ident(node);
