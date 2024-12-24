@@ -59,8 +59,7 @@ impl AstExpr {
         let mut expressions = vec![Self::parse_operand(lexer)?];
         let mut operators = vec![];
         loop {
-            let lexer1 = &mut lexer.clone();
-            let token = lexer1.next_token()?;
+            let token = lexer.clone().next_token()?;
             if BINARY_OPERATORS.contains(&token.type_) {
                 operators.push((token.type_, token.span));
             } else {
@@ -78,8 +77,7 @@ impl AstExpr {
 
     #[allow(clippy::wildcard_enum_match_arm)]
     fn parse_operand(lexer: &mut Lexer<'_>) -> Result<Self, SyntaxError> {
-        let lexer1 = &mut lexer.clone();
-        match lexer1.next_token()?.type_ {
+        match lexer.clone().next_token()?.type_ {
             TokenType::OpenParenthesis => {
                 parse_token(lexer, TokenType::OpenParenthesis)?;
                 let mut expr = Self::parse(lexer)?;
@@ -98,8 +96,7 @@ impl AstExpr {
             | TokenType::False
             | TokenType::Ident => {
                 let mut tmp_lexer = lexer.clone();
-                let lexer1 = &mut lexer.clone();
-                let root = if LITERALS.contains(&lexer1.next_token()?.type_) {
+                let root = if LITERALS.contains(&lexer.clone().next_token()?.type_) {
                     AstExprRoot::Literal(AstLiteral::parse(lexer)?)
                 } else if AstIdent::parse(&mut tmp_lexer).is_ok()
                     && parse_token(&mut tmp_lexer, TokenType::OpenParenthesis).is_ok()

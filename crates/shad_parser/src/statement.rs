@@ -31,8 +31,7 @@ impl AstStatement {
 
     #[allow(clippy::wildcard_enum_match_arm)]
     pub(crate) fn parse(lexer: &mut Lexer<'_>) -> Result<Self, SyntaxError> {
-        let lexer1 = &mut lexer.clone();
-        let token = lexer1.next_token()?;
+        let token = lexer.clone().next_token()?;
         match token.type_ {
             TokenType::OpenParenthesis
             | TokenType::Ident
