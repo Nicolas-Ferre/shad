@@ -2,7 +2,6 @@ use crate::{listing, Analysis, BufferId, FnId, TypeId};
 use fxhash::{FxHashMap, FxHashSet};
 use itertools::Itertools;
 use shad_parser::{AstRunItem, AstStatement};
-use std::cmp::Ordering;
 
 /// An analyzed compute shader.
 #[derive(Debug, Clone)]
@@ -34,23 +33,25 @@ pub(crate) fn register(analysis: &mut Analysis) {
 }
 
 fn register_init(analysis: &mut Analysis) {
-    let dependent_buffers: FxHashMap<_, _> = find_dependent_buffers(analysis);
-    for (block, _) in analysis
+    let dependent_buffers = find_dependent_buffers(analysis);
+    let buffer_blocks: FxHashMap<_, _> = analysis
         .init_blocks
         .iter()
-        .map(|block| (block, &block.buffer))
-        .sorted_unstable_by(|(_, id1), (_, id2)| {
-            if dependent_buffers[id1].contains(id2) {
-                Ordering::Greater
-            } else if dependent_buffers[id2].contains(id1) {
-                Ordering::Less
-            } else {
-                id1.cmp(id2)
+        .map(|block| (&block.buffer, block))
+        .collect();
+    let mut initialized_buffers = FxHashSet::default();
+    while initialized_buffers.len() < dependent_buffers.len() {
+        for (buffer, dependencies) in &dependent_buffers {
+            if dependencies
+                .iter()
+                .all(|buffer| initialized_buffers.contains(buffer))
+            {
+                let block = &buffer_blocks[buffer];
+                let shader = ComputeShader::new(analysis, &block.ast);
+                analysis.init_shaders.push(shader);
+                initialized_buffers.insert(buffer.clone());
             }
-        })
-    {
-        let shader = ComputeShader::new(analysis, &block.ast);
-        analysis.init_shaders.push(shader);
+        }
     }
 }
 
@@ -65,15 +66,16 @@ fn register_steps(analysis: &mut Analysis) {
     }
 }
 
-fn find_dependent_buffers(analysis: &Analysis) -> FxHashMap<&BufferId, FxHashSet<BufferId>> {
+fn find_dependent_buffers(analysis: &Analysis) -> FxHashMap<BufferId, FxHashSet<BufferId>> {
     analysis
         .init_blocks
         .iter()
         .map(|block| {
             (
-                &block.buffer,
+                block.buffer.clone(),
                 listing::buffers::list_in_block(analysis, &block.ast)
                     .into_iter()
+                    .filter(|buffer| &block.buffer != buffer)
                     .collect::<FxHashSet<_>>(),
             )
         })

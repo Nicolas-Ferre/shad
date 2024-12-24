@@ -1,4 +1,5 @@
 main.called_main_fn=1
+main.field_value=2
 main.main_buffer=1
 nested.child.called_child_fn=1
 nested.child.called_main_fn=0
@@ -10,4 +11,5 @@ root.called_root_fn=1
 root.child_buffer=0
 root.main_buffer=0
 root.root_buffer=3
+root.struct_value=[2, 0, 0, 0]
 state.state=5

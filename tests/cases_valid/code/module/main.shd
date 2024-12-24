@@ -25,3 +25,5 @@ run {
 }
 
 fn f(value: PubStruct) {}
+
+buf field_value = struct_value.field;

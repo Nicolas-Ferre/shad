@@ -46,6 +46,8 @@ pub struct StructField {
     pub name: AstIdent,
     /// The field type ID.
     pub type_id: Option<TypeId>,
+    /// Whether the item is public.
+    pub is_pub: bool,
 }
 
 impl TypeId {
@@ -212,6 +214,7 @@ fn analyze_field(analysis: &mut Analysis, module: &str, field: &AstStructField) 
     StructField {
         name: field.name.clone(),
         type_id: resolver::type_or_add_error(analysis, module, &field.type_),
+        is_pub: field.is_pub,
     }
 }
 

@@ -66,13 +66,20 @@ pub struct AstStructField {
     pub name: AstIdent,
     /// The field type.
     pub type_: AstIdent,
+    /// Whether the item is public.
+    pub is_pub: bool,
 }
 
 impl AstStructField {
     fn parse(lexer: &mut Lexer<'_>) -> Result<Self, SyntaxError> {
+        let is_pub = parse_token_option(lexer, TokenType::Pub)?.is_some();
         let name = AstIdent::parse(lexer)?;
         parse_token(lexer, TokenType::Colon)?;
         let type_ = AstIdent::parse(lexer)?;
-        Ok(Self { name, type_ })
+        Ok(Self {
+            name,
+            type_,
+            is_pub,
+        })
     }
 }

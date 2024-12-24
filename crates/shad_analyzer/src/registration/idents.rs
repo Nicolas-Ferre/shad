@@ -279,6 +279,9 @@ impl Visit for IdentRegistration<'_> {
             let type_field = self.analysis.types[&current_type]
                 .fields
                 .iter()
+                .filter(|type_field| {
+                    type_field.is_pub || current_type.module.as_deref() == Some(self.module)
+                })
                 .find(|type_field| type_field.name.label == field.label);
             if type_field.is_none() && self.are_errors_enabled {
                 let error = errors::types::field_not_found(field, &current_type);
