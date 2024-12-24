@@ -112,14 +112,11 @@ impl AstExpr {
                     fields,
                 })
             }
-            _ => {
-                let lexer1 = &mut lexer.clone();
-                Err(SyntaxError::new(
-                    lexer1.next_token()?.span.start,
-                    lexer.module(),
-                    "expected expression",
-                ))
-            }
+            _ => Err(SyntaxError::new(
+                lexer.clone().next_token()?.span.start,
+                lexer.module(),
+                "expected expression",
+            )),
         }
     }
 
