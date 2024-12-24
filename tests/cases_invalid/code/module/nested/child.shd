@@ -6,3 +6,5 @@ fn private_function() {
 struct PrivateStruct {
     field: i32,
 }
+
+pub buf struct_value = PrivateStruct(0);

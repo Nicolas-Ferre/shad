@@ -26,9 +26,16 @@ error: could not find `private_function()` function
   |     ^^^^^^^^^^^^^^^^^^ undefined function
   |
 
+error: could not find `field` field in `PrivateStruct` type
+ --> ./cases_invalid/code/module/main.shd:8:26
+  |
+8 |     var a = struct_value.field;
+  |                          ^^^^^ undefined field
+  |
+
 error: could not find `PrivateStruct` type
-  --> ./cases_invalid/code/module/main.shd:10:13
+  --> ./cases_invalid/code/module/main.shd:11:13
    |
-10 | fn f(value: PrivateStruct) {}
+11 | fn f(value: PrivateStruct) {}
    |             ^^^^^^^^^^^^^ undefined type
    |
