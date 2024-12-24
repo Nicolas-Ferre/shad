@@ -1,5 +1,5 @@
 use crate::atom::{parse_token, parse_token_option};
-use crate::token::{Lexer, Token, TokenType};
+use crate::token::{Lexer, TokenType};
 use crate::{AstFnCall, AstIdent, AstLiteral};
 use shad_error::{Span, SyntaxError};
 use std::mem;
@@ -59,13 +59,13 @@ impl AstExpr {
         let mut expressions = vec![Self::parse_operand(lexer)?];
         let mut operators = vec![];
         loop {
-            let token = Token::next(&mut lexer.clone())?;
+            let token = lexer.clone().next_token()?;
             if BINARY_OPERATORS.contains(&token.type_) {
                 operators.push((token.type_, token.span));
             } else {
                 break;
             }
-            let _operator = Token::next(lexer)?;
+            let _operator = lexer.next_token()?;
             expressions.push(Self::parse_operand(lexer)?);
         }
         if expressions.len() == 1 {
@@ -77,7 +77,7 @@ impl AstExpr {
 
     #[allow(clippy::wildcard_enum_match_arm)]
     fn parse_operand(lexer: &mut Lexer<'_>) -> Result<Self, SyntaxError> {
-        match Token::next(&mut lexer.clone())?.type_ {
+        match lexer.clone().next_token()?.type_ {
             TokenType::OpenParenthesis => {
                 parse_token(lexer, TokenType::OpenParenthesis)?;
                 let mut expr = Self::parse(lexer)?;
@@ -96,7 +96,7 @@ impl AstExpr {
             | TokenType::False
             | TokenType::Ident => {
                 let mut tmp_lexer = lexer.clone();
-                let root = if LITERALS.contains(&Token::next(&mut lexer.clone())?.type_) {
+                let root = if LITERALS.contains(&lexer.clone().next_token()?.type_) {
                     AstExprRoot::Literal(AstLiteral::parse(lexer)?)
                 } else if AstIdent::parse(&mut tmp_lexer).is_ok()
                     && parse_token(&mut tmp_lexer, TokenType::OpenParenthesis).is_ok()
@@ -113,8 +113,8 @@ impl AstExpr {
                 })
             }
             _ => Err(SyntaxError::new(
-                Token::next(&mut lexer.clone())?.span.start,
-                lexer.module.clone(),
+                lexer.clone().next_token()?.span.start,
+                lexer.module(),
                 "expected expression",
             )),
         }

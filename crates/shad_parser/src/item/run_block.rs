@@ -52,7 +52,7 @@ impl AstRunItem {
             .map_err(|_| {
                 SyntaxError::new(
                     value.span.start,
-                    lexer.module.clone(),
+                    lexer.module(),
                     "`i32` literal out of range".to_string(),
                 )
             })

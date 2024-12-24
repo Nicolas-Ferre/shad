@@ -1,5 +1,5 @@
 use crate::atom::{parse_token, parse_token_option};
-use crate::token::{Lexer, Token, TokenType};
+use crate::token::{Lexer, TokenType};
 use crate::{AstExpr, AstIdent};
 use shad_error::{Span, SyntaxError};
 
@@ -31,7 +31,7 @@ impl AstStatement {
 
     #[allow(clippy::wildcard_enum_match_arm)]
     pub(crate) fn parse(lexer: &mut Lexer<'_>) -> Result<Self, SyntaxError> {
-        let token = Token::next(&mut lexer.clone())?;
+        let token = lexer.clone().next_token()?;
         match token.type_ {
             TokenType::OpenParenthesis
             | TokenType::Ident
@@ -48,7 +48,7 @@ impl AstStatement {
             TokenType::Return => Ok(Self::Return(AstReturn::parse(lexer)?)),
             _ => Err(SyntaxError::new(
                 token.span.start,
-                lexer.module.clone(),
+                lexer.module(),
                 "expected statement",
             )),
         }

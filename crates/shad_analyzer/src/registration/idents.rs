@@ -280,7 +280,7 @@ impl Visit for IdentRegistration<'_> {
                 .fields
                 .iter()
                 .find(|type_field| type_field.name.label == field.label);
-            if type_field.is_none() {
+            if type_field.is_none() && self.are_errors_enabled {
                 let error = errors::types::field_not_found(field, &current_type);
                 self.analysis.errors.push(error);
             }

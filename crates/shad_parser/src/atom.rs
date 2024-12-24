@@ -58,7 +58,7 @@ pub struct AstLiteral {
 impl AstLiteral {
     #[allow(clippy::wildcard_enum_match_arm)]
     pub(crate) fn parse(lexer: &mut Lexer<'_>) -> Result<Self, SyntaxError> {
-        let token = Token::next(lexer)?;
+        let token = lexer.next_token()?;
         Ok(Self {
             span: token.span,
             value: token.slice.to_string(),
@@ -90,13 +90,13 @@ pub(crate) fn parse_token<'a>(
     lexer: &mut Lexer<'a>,
     expected_type: TokenType,
 ) -> Result<Token<'a>, SyntaxError> {
-    let token = Token::next(lexer)?;
+    let token = lexer.next_token()?;
     if token.type_ == expected_type {
         Ok(token)
     } else {
         Err(SyntaxError::new(
             token.span.start,
-            lexer.module.clone(),
+            lexer.module(),
             format!("expected {}", expected_type.label()),
         ))
     }
