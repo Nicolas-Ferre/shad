@@ -1,5 +1,5 @@
 use crate::atom::{parse_token, parse_token_option};
-use crate::token::{Lexer, Token, TokenType};
+use crate::token::{Lexer, TokenType};
 use crate::{AstExpr, AstIdent};
 use shad_error::{Span, SyntaxError};
 
@@ -142,7 +142,7 @@ impl AstFnCall {
     }
 
     pub(crate) fn parse_unary_operation(lexer: &mut Lexer<'_>) -> Result<Self, SyntaxError> {
-        let operator_token = Token::next(lexer)?;
+        let operator_token = lexer.next_token()?;
         let expr = AstExpr::parse(lexer)?;
         Ok(Self {
             span: Span::join(&operator_token.span, &expr.span),
