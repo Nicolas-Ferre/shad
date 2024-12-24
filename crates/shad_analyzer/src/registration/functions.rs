@@ -121,7 +121,7 @@ fn register_ast(analysis: &mut Analysis) {
                     id: id.clone(),
                     is_inlined: is_inlined(fn_ast),
                     return_type_id: if let Some(return_type) = &fn_ast.return_type {
-                        resolver::type_or_add_error(analysis, &module, &return_type.name)
+                        resolver::type_or_add_error(analysis, module, &return_type.name)
                     } else {
                         Some(TypeId::from_builtin(NO_RETURN_TYPE))
                     },
@@ -130,7 +130,7 @@ fn register_ast(analysis: &mut Analysis) {
                         .iter()
                         .map(|param| FnParam {
                             name: param.name.clone(),
-                            type_id: resolver::type_or_add_error(analysis, &module, &param.type_),
+                            type_id: resolver::type_or_add_error(analysis, module, &param.type_),
                         })
                         .collect(),
                     source_type: None,
