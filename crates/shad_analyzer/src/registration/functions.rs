@@ -166,7 +166,7 @@ fn struct_initializer_fn(analysis: &mut Analysis, ast: &AstStructItem) -> AstFnI
         }),
         qualifier: AstFnQualifier::Gpu,
         statements: vec![],
-        is_pub: false,
+        is_pub: ast.is_pub && ast.fields.iter().all(|field| field.is_pub),
     }
 }
 

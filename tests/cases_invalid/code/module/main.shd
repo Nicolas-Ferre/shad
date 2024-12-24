@@ -5,7 +5,10 @@ import nested.child;
 run {
     private_buffer = 1;
     private_function();
-    var a = struct_value.field;
+    var value = struct_value.field;
+    var value = PrivateStruct(0);
+    var value = PrivateStructPubField(0);
+    var value = PubStructPrivateField(0);
 }
 
 fn f(value: PrivateStruct) {}

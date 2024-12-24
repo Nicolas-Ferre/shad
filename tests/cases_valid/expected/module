@@ -1,6 +1,7 @@
 main.called_main_fn=1
 main.field_value=2
 main.main_buffer=1
+main.pub_struct_value=[3, 0, 0, 0]
 nested.child.called_child_fn=1
 nested.child.called_main_fn=0
 nested.child.child_buffer=2

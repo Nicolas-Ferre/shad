@@ -27,7 +27,7 @@ run {
 }
 
 pub struct PubStruct {
-    field: i32,
+    pub field: i32,
 }
 
 pub buf struct_value = PrivateStruct(2);

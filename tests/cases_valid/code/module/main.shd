@@ -27,3 +27,4 @@ run {
 fn f(value: PubStruct) {}
 
 buf field_value = struct_value.field;
+buf pub_struct_value = PubStruct(3);
