@@ -7,4 +7,12 @@ struct PrivateStruct {
     field: i32,
 }
 
+pub struct PubStructPrivateField {
+    field: i32,
+}
+
+struct PrivateStructPubField {
+    pub field: i32,
+}
+
 pub buf struct_value = PrivateStruct(0);
