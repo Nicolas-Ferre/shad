@@ -2,8 +2,7 @@ use crate::resolver::ExprSemantic;
 use crate::{errors, resolver, Analysis, Function, NO_RETURN_TYPE};
 use shad_error::SemanticError;
 use shad_parser::{
-    AstAssignment, AstExpr, AstFnCall, AstFnItem, AstFnQualifier, AstReturn, AstStatement,
-    AstVarDefinition, Visit,
+    AstAssignment, AstExpr, AstFnCall, AstFnItem, AstReturn, AstStatement, AstVarDefinition, Visit,
 };
 
 pub(crate) fn check(analysis: &mut Analysis) {
@@ -66,7 +65,7 @@ impl Visit for StatementCheck<'_> {
                     &node.statements[return_pos + 1],
                 ));
             }
-        } else if node.return_type.is_some() && node.qualifier != AstFnQualifier::Gpu {
+        } else if node.return_type.is_some() && !node.is_gpu {
             let error = errors::returns::missing_return(node, &fn_.id);
             self.errors.push(error);
         }

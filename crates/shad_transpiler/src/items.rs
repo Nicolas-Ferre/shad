@@ -3,7 +3,6 @@ use itertools::Itertools;
 use shad_analyzer::{
     Analysis, BufferId, ComputeShader, FnId, FnParam, Function, StructField, TypeId,
 };
-use shad_parser::AstFnQualifier;
 
 pub(crate) fn to_buffer_wgsl(analysis: &Analysis, shader: &ComputeShader) -> String {
     shader
@@ -28,7 +27,7 @@ pub(crate) fn to_fn_wgsl(analysis: &Analysis, shader: &ComputeShader) -> String 
         .iter()
         .filter(|id| {
             let fn_ = &analysis.fns[id];
-            !fn_.is_inlined && analysis.fns[id].ast.qualifier != AstFnQualifier::Gpu
+            !fn_.is_inlined && !fn_.ast.is_gpu
         })
         .map(|id| fn_item(analysis, id))
         .join("\n")

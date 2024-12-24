@@ -2,8 +2,8 @@ use crate::atoms;
 use itertools::Itertools;
 use shad_analyzer::{Analysis, FnParam, Function, TypeId};
 use shad_parser::{
-    AstExpr, AstFnCall, AstFnQualifier, ADD_FN, AND_FN, DIV_FN, EQ_FN, GE_FN, GT_FN, LE_FN, LT_FN,
-    MOD_FN, MUL_FN, NEG_FN, NE_FN, NOT_FN, OR_FN, SUB_FN,
+    AstExpr, AstFnCall, ADD_FN, AND_FN, DIV_FN, EQ_FN, GE_FN, GT_FN, LE_FN, LT_FN, MOD_FN, MUL_FN,
+    NEG_FN, NE_FN, NOT_FN, OR_FN, SUB_FN,
 };
 
 pub(crate) fn to_wgsl(analysis: &Analysis, call: &AstFnCall) -> String {
@@ -53,10 +53,7 @@ fn cast_fn_arg(analysis: &Analysis, fn_: &Function, param: &FnParam, arg: &AstEx
         .type_id
         .as_ref()
         .expect("internal error: invalid param type")];
-    if fn_.ast.qualifier == AstFnQualifier::Gpu
-        && fn_.source_type.is_none()
-        && type_.id == TypeId::from_builtin("bool")
-    {
+    if fn_.ast.is_gpu && fn_.source_type.is_none() && type_.id == TypeId::from_builtin("bool") {
         format!("bool({expr})")
     } else {
         expr
@@ -64,7 +61,7 @@ fn cast_fn_arg(analysis: &Analysis, fn_: &Function, param: &FnParam, arg: &AstEx
 }
 
 fn unary_operator(fn_: &Function) -> Option<&'static str> {
-    if fn_.ast.qualifier == AstFnQualifier::Gpu {
+    if fn_.ast.is_gpu {
         match fn_.ast.name.label.as_str() {
             n if n == NEG_FN => Some("-"),
             n if n == NOT_FN => Some("!"),
@@ -76,7 +73,7 @@ fn unary_operator(fn_: &Function) -> Option<&'static str> {
 }
 
 fn binary_operator(fn_: &Function) -> Option<&'static str> {
-    if fn_.ast.qualifier == AstFnQualifier::Gpu {
+    if fn_.ast.is_gpu {
         match fn_.ast.name.label.as_str() {
             n if n == ADD_FN => Some("+"),
             n if n == SUB_FN => Some("-"),

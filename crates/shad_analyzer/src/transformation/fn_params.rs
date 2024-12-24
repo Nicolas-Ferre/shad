@@ -1,12 +1,12 @@
 use crate::Analysis;
-use shad_parser::{AstFnItem, AstFnQualifier, AstIdent, AstStatement, AstVarDefinition, VisitMut};
+use shad_parser::{AstFnItem, AstIdent, AstStatement, AstVarDefinition, VisitMut};
 use std::mem;
 
 // Defines a variable for each function parameter, so that parameters can be mutated in WGSL.
 pub(crate) fn transform(analysis: &mut Analysis) {
     let mut fns = mem::take(&mut analysis.fns);
     for fn_ in fns.values_mut() {
-        if !fn_.is_inlined && fn_.ast.qualifier != AstFnQualifier::Gpu {
+        if !fn_.is_inlined && !fn_.ast.is_gpu {
             FnParamTransform::new(analysis).visit_fn_item(&mut fn_.ast);
         }
     }

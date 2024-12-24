@@ -16,12 +16,12 @@ pub struct AstFnItem {
     pub params: Vec<AstFnParam>,
     /// The return type of the function.
     pub return_type: Option<AstReturnType>,
-    /// The function qualifier.
-    pub qualifier: AstFnQualifier,
     /// The function body statements.
     pub statements: Vec<AstStatement>,
     /// Whether the item is public.
     pub is_pub: bool,
+    /// Whether the item is imported from WGSL.
+    pub is_gpu: bool,
 }
 
 impl AstFnItem {
@@ -35,9 +35,9 @@ impl AstFnItem {
             name,
             params,
             return_type,
-            qualifier: AstFnQualifier::None,
             statements,
             is_pub,
+            is_gpu: false,
         })
     }
 
@@ -52,9 +52,9 @@ impl AstFnItem {
             name,
             params,
             return_type,
-            qualifier: AstFnQualifier::Gpu,
             statements: vec![],
             is_pub,
+            is_gpu: true,
         })
     }
 
@@ -95,17 +95,6 @@ impl AstReturnType {
             Ok(None)
         }
     }
-}
-
-/// A parsed function qualifier.
-///
-/// A qualifier is a keyword that is placed before the `fn` keyword.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum AstFnQualifier {
-    /// No qualifier.
-    None,
-    /// The `gpu` qualifier.
-    Gpu,
 }
 
 /// A parsed function parameter.
