@@ -1,8 +1,8 @@
 use crate::{listing, resolver, Analysis, FnId, Ident, IdentSource};
 use fxhash::FxHashMap;
 use shad_parser::{
-    AstExpr, AstExprRoot, AstExprStatement, AstFnCall, AstFnItem, AstFnQualifier, AstIdent,
-    AstLiteral, AstLiteralType, AstStatement, VisitMut,
+    AstExpr, AstExprRoot, AstExprStatement, AstFnCall, AstFnItem, AstIdent, AstLiteral,
+    AstLiteralType, AstStatement, VisitMut,
 };
 use std::mem;
 
@@ -16,7 +16,7 @@ fn transform_fns(analysis: &mut Analysis) {
     let mut are_fns_inlined: FxHashMap<_, _> = analysis
         .fns
         .iter()
-        .map(|(fn_id, fn_)| (fn_id.clone(), fn_.ast.qualifier == AstFnQualifier::Gpu))
+        .map(|(fn_id, fn_)| (fn_id.clone(), fn_.ast.is_gpu))
         .collect();
     let ids: Vec<_> = analysis.fns.keys().cloned().collect();
     while are_fns_inlined.values().any(|is_inlined| !is_inlined) {

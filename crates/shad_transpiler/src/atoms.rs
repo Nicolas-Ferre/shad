@@ -1,7 +1,7 @@
 use crate::fn_calls;
 use itertools::Itertools;
 use shad_analyzer::{Analysis, BufferId, IdentSource, TypeId};
-use shad_parser::{AstExpr, AstExprRoot, AstFnQualifier, AstIdent};
+use shad_parser::{AstExpr, AstExprRoot, AstIdent};
 use std::iter;
 
 pub(crate) fn to_expr_wgsl(analysis: &Analysis, expr: &AstExpr) -> String {
@@ -27,7 +27,7 @@ pub(crate) fn to_ident_wgsl(analysis: &Analysis, name: &AstIdent) -> String {
         IdentSource::Var(id) => format!("v{}_{}", id, name.label),
         IdentSource::Fn(_) => {
             let fn_ = analysis.fn_(name).expect("internal error: missing fn");
-            if fn_.ast.qualifier == AstFnQualifier::Gpu {
+            if fn_.ast.is_gpu {
                 if let Some(source_type) = &fn_.source_type {
                     to_type_wgsl(analysis, source_type)
                 } else {
