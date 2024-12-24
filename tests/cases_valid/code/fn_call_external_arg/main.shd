@@ -1,0 +1,35 @@
+buf result1 = 0;
+buf result2 = 0;
+buf result3 = 0;
+buf result4 = 0u;
+buf result5 = 0.;
+buf result6 = false;
+buf result7 = Data(0);
+
+run {
+    result1 = 2.__add__(3);
+    result2 = result1.__add__(1).__add__(2);
+    result3 = one().__add__(2);
+    result4 = 2u.__add__(3u);
+    result5 = 2.0.__add__(3.);
+    result6 = true.__and__(true);
+    1.result7().field = result7.field + 2;
+}
+
+fn one() -> i32 {
+    return 1;
+}
+
+fn result7(new_value: i32) -> ref Data {
+    result7.field = new_value;
+    return result7;
+}
+
+gpu fn __add__(left: i32, right: i32) -> i32;
+gpu fn __add__(left: f32, right: f32) -> f32;
+gpu fn __add__(left: u32, right: u32) -> u32;
+gpu fn __and__(left: bool, right: bool) -> bool;
+
+struct Data {
+    field: i32,
+}

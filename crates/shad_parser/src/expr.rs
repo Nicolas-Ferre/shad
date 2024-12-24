@@ -95,22 +95,21 @@ impl AstExpr {
             | TokenType::True
             | TokenType::False
             | TokenType::Ident => {
-                let mut tmp_lexer = lexer.clone();
-                let root = if LITERALS.contains(&lexer.clone().next_token()?.type_) {
-                    AstExprRoot::Literal(AstLiteral::parse(lexer)?)
-                } else if AstIdent::parse(&mut tmp_lexer).is_ok()
-                    && parse_token(&mut tmp_lexer, TokenType::OpenParenthesis).is_ok()
-                {
-                    AstExprRoot::FnCall(AstFnCall::parse(lexer)?)
-                } else {
-                    AstExprRoot::Ident(AstIdent::parse(lexer)?)
-                };
-                let fields = Self::parse_fields(lexer)?;
-                Ok(Self {
-                    span: Self::span(&root, &fields),
-                    root,
-                    fields,
-                })
+                let mut expr = Self::parse_operand_start(lexer)?;
+                let mut tails = vec![];
+                while parse_token_option(lexer, TokenType::Dot)?.is_some() {
+                    tails.push((AstFnCall::parse(lexer)?, Self::parse_fields(lexer)?));
+                }
+                for (mut call, fields) in tails {
+                    call.is_first_arg_external = true;
+                    call.args.insert(0, expr.clone().into());
+                    expr = Self {
+                        span: Span::join(&expr.span, &call.span),
+                        root: AstExprRoot::FnCall(call),
+                        fields,
+                    };
+                }
+                Ok(expr)
             }
             _ => Err(SyntaxError::new(
                 lexer.clone().next_token()?.span.start,
@@ -118,6 +117,25 @@ impl AstExpr {
                 "expected expression",
             )),
         }
+    }
+
+    fn parse_operand_start(lexer: &mut Lexer<'_>) -> Result<Self, SyntaxError> {
+        let mut tmp_lexer = lexer.clone();
+        let root = if LITERALS.contains(&lexer.clone().next_token()?.type_) {
+            AstExprRoot::Literal(AstLiteral::parse(lexer)?)
+        } else if AstIdent::parse(&mut tmp_lexer).is_ok()
+            && parse_token(&mut tmp_lexer, TokenType::OpenParenthesis).is_ok()
+        {
+            AstExprRoot::FnCall(AstFnCall::parse(lexer)?)
+        } else {
+            AstExprRoot::Ident(AstIdent::parse(lexer)?)
+        };
+        let fields = Self::parse_fields(lexer)?;
+        Ok(Self {
+            span: Self::span(&root, &fields),
+            root,
+            fields,
+        })
     }
 
     fn span(root: &AstExprRoot, fields: &[AstIdent]) -> Span {
@@ -129,7 +147,16 @@ impl AstExpr {
 
     fn parse_fields(lexer: &mut Lexer<'_>) -> Result<Vec<AstIdent>, SyntaxError> {
         let mut fields = vec![];
-        while parse_token_option(lexer, TokenType::Dot)?.is_some() {
+        loop {
+            let mut tmp_lexer = lexer.clone();
+            if parse_token(&mut tmp_lexer, TokenType::Dot).is_err() {
+                break;
+            }
+            AstIdent::parse(&mut tmp_lexer)?;
+            if tmp_lexer.next_token()?.type_ == TokenType::OpenParenthesis {
+                break;
+            }
+            parse_token(lexer, TokenType::Dot)?;
             fields.push(AstIdent::parse(lexer)?);
         }
         Ok(fields)
