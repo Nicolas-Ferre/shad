@@ -31,21 +31,15 @@ pub enum AstItem {
 impl AstItem {
     #[allow(clippy::wildcard_enum_match_arm)]
     pub(crate) fn parse(lexer: &mut Lexer<'_>) -> Result<Self, SyntaxError> {
-        let token = lexer.clone().next_token()?;
-        if token.type_ == TokenType::Struct {
-            Ok(Self::Struct(AstStructItem::parse(lexer)?))
-        } else {
-            if token.type_ == TokenType::Pub {
-                parse_token(lexer, TokenType::Pub)?;
-            }
-            Self::parse_without_visibility(lexer, token.type_ == TokenType::Pub)
-        }
+        let is_pub = parse_token_option(lexer, TokenType::Pub)?.is_some();
+        Self::parse_without_visibility(lexer, is_pub)
     }
 
     #[allow(clippy::wildcard_enum_match_arm)]
     fn parse_without_visibility(lexer: &mut Lexer<'_>, is_pub: bool) -> Result<Self, SyntaxError> {
         let token = lexer.clone().next_token()?;
         match token.type_ {
+            TokenType::Struct => Ok(Self::Struct(AstStructItem::parse(lexer, is_pub)?)),
             TokenType::Buf => Ok(Self::Buffer(AstBufferItem::parse(lexer, is_pub)?)),
             TokenType::Gpu => Ok(Self::Fn(AstFnItem::parse_gpu(lexer, is_pub)?)),
             TokenType::Fn => Ok(Self::Fn(AstFnItem::parse(lexer, is_pub)?)),

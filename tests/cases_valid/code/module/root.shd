@@ -25,3 +25,7 @@ pub fn root_fn() {
 run {
     state = select(0, 5, state == 4);
 }
+
+pub struct PubStruct {
+    field: i32,
+}

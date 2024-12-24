@@ -6,3 +6,5 @@ run {
     private_buffer = 1;
     private_function();
 }
+
+fn f(value: PrivateStruct) {}

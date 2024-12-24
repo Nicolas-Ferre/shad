@@ -25,3 +25,10 @@ error: could not find `private_function()` function
 7 |     private_function();
   |     ^^^^^^^^^^^^^^^^^^ undefined function
   |
+
+error: could not find `PrivateStruct` type
+  --> ./cases_invalid/code/module/main.shd:10:13
+   |
+10 | fn f(value: PrivateStruct) {}
+   |             ^^^^^^^^^^^^^ undefined type
+   |

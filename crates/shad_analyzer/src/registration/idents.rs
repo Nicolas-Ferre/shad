@@ -186,7 +186,7 @@ impl<'a> IdentRegistration<'a> {
     }
 
     fn register_fn_param(&mut self, param: &AstFnParam) {
-        let type_id = resolver::type_(self.analysis, &param.type_).ok();
+        let type_id = resolver::type_(self.analysis, self.module, &param.type_).ok();
         let ident = Ident::new(IdentSource::Var(param.name.id), type_id);
         self.analysis.idents.insert(param.name.id, ident);
         self.add_variable(&param.name);

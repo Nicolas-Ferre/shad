@@ -4,9 +4,14 @@ use crate::{
 };
 use shad_error::SemanticError;
 use shad_parser::{AstExpr, AstExprRoot, AstIdent, AstLiteral, AstLiteralType};
+use std::iter;
 
-pub(crate) fn type_or_add_error(analysis: &mut Analysis, type_: &AstIdent) -> Option<TypeId> {
-    match self::type_(analysis, type_) {
+pub(crate) fn type_or_add_error(
+    analysis: &mut Analysis,
+    module: &str,
+    type_: &AstIdent,
+) -> Option<TypeId> {
+    match self::type_(analysis, module, type_) {
         Ok(type_id) => Some(type_id),
         Err(error) => {
             analysis.errors.push(error);
@@ -15,20 +20,31 @@ pub(crate) fn type_or_add_error(analysis: &mut Analysis, type_: &AstIdent) -> Op
     }
 }
 
-pub(crate) fn type_(analysis: &Analysis, type_: &AstIdent) -> Result<TypeId, SemanticError> {
-    let type_id = TypeId {
-        module: Some(type_.span.module.name.clone()),
-        name: type_.label.clone(),
-    };
-    if analysis.types.contains_key(&type_id) {
-        return Ok(type_id);
-    }
-    let builtin_type_id = TypeId::from_builtin(&type_.label);
-    if analysis.types.contains_key(&builtin_type_id) {
-        Ok(builtin_type_id)
-    } else {
-        Err(errors::types::not_found(type_))
-    }
+pub(crate) fn type_(
+    analysis: &Analysis,
+    module: &str,
+    type_: &AstIdent,
+) -> Result<TypeId, SemanticError> {
+    analysis
+        .visible_modules
+        .get(module)
+        .into_iter()
+        .flatten()
+        .map(Some)
+        .chain(iter::once(None))
+        .filter_map(|module| {
+            let id = TypeId {
+                module: module.cloned(),
+                name: type_.label.clone(),
+            };
+            analysis.types.get(&id).map(|type_| (id, type_))
+        })
+        .find(|(type_id, type_)| {
+            type_.ast.as_ref().map_or(true, |ast| ast.is_pub)
+                || type_id.module.as_deref() == Some(module)
+        })
+        .map(|(type_id, _)| type_id)
+        .ok_or_else(|| errors::types::not_found(type_))
 }
 
 pub(crate) fn expr_type(analysis: &Analysis, expr: &AstExpr) -> Option<TypeId> {
