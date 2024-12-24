@@ -56,6 +56,7 @@ pub const OR_FN: &str = "__or__";
 /// - `myfunc(expr)`
 /// - `myfunc(expr1, expr2)`
 /// - `myfunc(expr1, expr2,)`
+/// - `expr1.myfunc(expr2)`
 /// - binary operations like `2 + 3` (call to `__add__` function)
 /// - unary operations like `-2` (call to `__neg__` function)
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -68,6 +69,8 @@ pub struct AstFnCall {
     pub args: Vec<AstFnCallArg>,
     /// Whether the function call is done using an operator.
     pub is_operator: bool,
+    /// Whether the first argument is outside (e.g. `first_arg.myfunc(second_arg)`).
+    pub is_first_arg_external: bool,
 }
 
 impl AstFnCall {
@@ -88,6 +91,7 @@ impl AstFnCall {
             name,
             args,
             is_operator: false,
+            is_first_arg_external: false,
         })
     }
 
@@ -138,6 +142,7 @@ impl AstFnCall {
             },
             args: vec![left.into(), right.into()],
             is_operator: true,
+            is_first_arg_external: false,
         })
     }
 
@@ -153,6 +158,7 @@ impl AstFnCall {
             },
             args: vec![expr.into()],
             is_operator: true,
+            is_first_arg_external: false,
         })
     }
 
