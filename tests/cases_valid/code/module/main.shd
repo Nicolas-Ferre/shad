@@ -23,3 +23,5 @@ run {
 run {
     state = select(0, 2, state == 1);
 }
+
+fn f(value: PubStruct) {}

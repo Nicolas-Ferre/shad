@@ -44,14 +44,15 @@ pub struct FnId {
 
 impl FnId {
     pub(crate) fn from_item(analysis: &Analysis, fn_: &AstFnItem) -> Self {
+        let module = fn_.name.span.module.name.clone();
         Self {
-            module: fn_.name.span.module.name.clone(),
             name: fn_.name.label.clone(),
             param_types: fn_
                 .params
                 .iter()
-                .map(|param| resolver::type_(analysis, &param.type_).ok())
+                .map(|param| resolver::type_(analysis, &module, &param.type_).ok())
                 .collect(),
+            module,
         }
     }
 
@@ -111,7 +112,7 @@ fn register_initializers(analysis: &mut Analysis) {
 
 fn register_ast(analysis: &mut Analysis) {
     let asts = mem::take(&mut analysis.asts);
-    for ast in asts.values() {
+    for (module, ast) in &asts {
         for items in &ast.items {
             if let AstItem::Fn(fn_ast) = items {
                 let id = FnId::from_item(analysis, fn_ast);
@@ -120,7 +121,7 @@ fn register_ast(analysis: &mut Analysis) {
                     id: id.clone(),
                     is_inlined: is_inlined(fn_ast),
                     return_type_id: if let Some(return_type) = &fn_ast.return_type {
-                        resolver::type_or_add_error(analysis, &return_type.name)
+                        resolver::type_or_add_error(analysis, &module, &return_type.name)
                     } else {
                         Some(TypeId::from_builtin(NO_RETURN_TYPE))
                     },
@@ -129,7 +130,7 @@ fn register_ast(analysis: &mut Analysis) {
                         .iter()
                         .map(|param| FnParam {
                             name: param.name.clone(),
-                            type_id: resolver::type_or_add_error(analysis, &param.type_),
+                            type_id: resolver::type_or_add_error(analysis, &module, &param.type_),
                         })
                         .collect(),
                     source_type: None,

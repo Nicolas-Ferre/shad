@@ -181,7 +181,7 @@ fn calculate_type_details(analysis: &mut Analysis, type_: &mut Type) -> Option<(
             type_.fields = ast
                 .fields
                 .iter()
-                .map(|field| analyze_field(analysis, field))
+                .map(|field| analyze_field(analysis, &ast.name.span.module.name, field))
                 .collect();
         }
         let are_fields_registered = type_
@@ -208,10 +208,10 @@ fn calculate_type_details(analysis: &mut Analysis, type_: &mut Type) -> Option<(
     Some(())
 }
 
-fn analyze_field(analysis: &mut Analysis, field: &AstStructField) -> StructField {
+fn analyze_field(analysis: &mut Analysis, module: &str, field: &AstStructField) -> StructField {
     StructField {
         name: field.name.clone(),
-        type_id: resolver::type_or_add_error(analysis, &field.type_),
+        type_id: resolver::type_or_add_error(analysis, module, &field.type_),
     }
 }
 

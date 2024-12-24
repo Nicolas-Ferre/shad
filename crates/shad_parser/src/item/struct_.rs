@@ -21,10 +21,12 @@ pub struct AstStructItem {
     pub name: AstIdent,
     /// The struct fields.
     pub fields: Vec<AstStructField>,
+    /// Whether the item is public.
+    pub is_pub: bool,
 }
 
 impl AstStructItem {
-    pub(crate) fn parse(lexer: &mut Lexer<'_>) -> Result<Self, SyntaxError> {
+    pub(crate) fn parse(lexer: &mut Lexer<'_>, is_pub: bool) -> Result<Self, SyntaxError> {
         parse_token(lexer, TokenType::Struct)?;
         let name = AstIdent::parse(lexer)?;
         parse_token(lexer, TokenType::OpenBrace)?;
@@ -38,7 +40,11 @@ impl AstStructItem {
                 break;
             }
         }
-        Ok(Self { name, fields })
+        Ok(Self {
+            name,
+            fields,
+            is_pub,
+        })
     }
 }
 
