@@ -22,7 +22,8 @@ pub(crate) fn to_expr_wgsl(analysis: &Analysis, expr: &AstExpr) -> String {
 }
 
 pub(crate) fn to_ident_wgsl(analysis: &Analysis, name: &AstIdent) -> String {
-    match &analysis.idents[&name.id].source {
+    let ident = &analysis.idents[&name.id];
+    match &ident.source {
         IdentSource::Buffer(name) => to_buffer_ident_wgsl(analysis, name),
         IdentSource::Var(id) => format!("v{}_{}", id, name.label),
         IdentSource::Fn(_) => {
@@ -37,7 +38,17 @@ pub(crate) fn to_ident_wgsl(analysis: &Analysis, name: &AstIdent) -> String {
                 format!("f{}_{}", fn_.ast.name.id, fn_.ast.name.label)
             }
         }
-        IdentSource::Field => format!("s_{}", name.label),
+        IdentSource::Field => {
+            let type_ = &analysis.types[ident
+                .type_id
+                .as_ref()
+                .expect("internal error: missing type")];
+            if type_.ast.as_ref().map_or(true, |ast| ast.is_gpu) {
+                name.label.clone()
+            } else {
+                format!("s_{}", name.label)
+            }
+        }
     }
 }
 
@@ -49,7 +60,11 @@ pub(crate) fn to_buffer_ident_wgsl(analysis: &Analysis, buffer: &BufferId) -> St
 pub(crate) fn to_type_wgsl(analysis: &Analysis, type_id: &TypeId) -> String {
     let type_ = &analysis.types[type_id];
     if let Some(type_) = &type_.ast {
-        format!("t{}_{}", type_.name.id, type_.name.label)
+        if type_.is_gpu {
+            type_.name.label.clone()
+        } else {
+            format!("t{}_{}", type_.name.id, type_.name.label)
+        }
     } else if type_.id == TypeId::from_builtin("bool") {
         "u32".into()
     } else {

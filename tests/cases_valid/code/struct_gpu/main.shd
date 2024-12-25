@@ -1,0 +1,25 @@
+buf data = Data(vec4i(3, 4, 5, 6), vec2i(1, 2));
+
+run {
+    data.v4.y = 7;
+}
+
+gpu struct vec2i {
+    x: i32,
+    y: i32,
+}
+
+gpu struct vec4i {
+    x: i32,
+    y: i32,
+    z: i32,
+    w: i32,
+}
+
+struct Data {
+    v4: vec4i,
+    v2: vec2i,
+}
+
+gpu fn vec2i(x: i32, y: i32) -> vec2i;
+gpu fn vec4i(x: i32, y: i32, z: i32, w: i32) -> vec4i;

@@ -1,0 +1,6 @@
+gpu struct vec2i {
+    x: i32,
+    y: i32,
+}
+
+buf vec = vec2i(1, 2);
