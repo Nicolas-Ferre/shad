@@ -1,0 +1,6 @@
+error: could not find `vec2i(i32, i32)` function
+ --> ./cases_invalid/code/struct_gpu/main.shd:6:11
+  |
+6 | buf vec = vec2i(1, 2);
+  |           ^^^^^^^^^^^ undefined function
+  |

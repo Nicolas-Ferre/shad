@@ -23,10 +23,13 @@ pub struct AstStructItem {
     pub fields: Vec<AstStructField>,
     /// Whether the item is public.
     pub is_pub: bool,
+    /// Whether the item is imported from WGSL.
+    pub is_gpu: bool,
 }
 
 impl AstStructItem {
     pub(crate) fn parse(lexer: &mut Lexer<'_>, is_pub: bool) -> Result<Self, SyntaxError> {
+        let is_gpu = parse_token_option(lexer, TokenType::Gpu)?.is_some();
         parse_token(lexer, TokenType::Struct)?;
         let name = AstIdent::parse(lexer)?;
         parse_token(lexer, TokenType::OpenBrace)?;
@@ -44,6 +47,7 @@ impl AstStructItem {
             name,
             fields,
             is_pub,
+            is_gpu,
         })
     }
 }

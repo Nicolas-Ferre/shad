@@ -17,7 +17,13 @@ pub(crate) fn to_struct_wgsl(analysis: &Analysis, shader: &ComputeShader) -> Str
     shader
         .type_ids
         .iter()
-        .map(|type_| struct_item(analysis, type_))
+        .filter(|id| {
+            analysis.types[id]
+                .ast
+                .as_ref()
+                .map_or(false, |ast| !ast.is_gpu)
+        })
+        .map(|id| struct_item(analysis, id))
         .join("\n")
 }
 
@@ -47,20 +53,16 @@ fn buf_item(analysis: &Analysis, buffer: &BufferId, binding_index: usize) -> Str
 
 fn struct_item(analysis: &Analysis, type_id: &TypeId) -> String {
     let type_ = &analysis.types[type_id];
-    if type_.ast.is_some() {
-        let fields = type_
-            .fields
-            .iter()
-            .map(|field| struct_field(analysis, field))
-            .join(", ");
-        format!(
-            "struct {} {{ {} }}",
-            atoms::to_type_wgsl(analysis, type_id),
-            fields
-        )
-    } else {
-        String::new()
-    }
+    let fields = type_
+        .fields
+        .iter()
+        .map(|field| struct_field(analysis, field))
+        .join(", ");
+    format!(
+        "struct {} {{ {} }}",
+        atoms::to_type_wgsl(analysis, type_id),
+        fields
+    )
 }
 
 fn struct_field(analysis: &Analysis, field: &StructField) -> String {

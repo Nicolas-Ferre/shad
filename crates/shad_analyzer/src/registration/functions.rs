@@ -86,6 +86,9 @@ pub(crate) fn register(analysis: &mut Analysis) {
 fn register_initializers(analysis: &mut Analysis) {
     for (type_id, type_) in &analysis.types.clone() {
         if let Some(ast) = &type_.ast {
+            if ast.is_gpu {
+                continue;
+            }
             let id = FnId::initializer(type_, ast);
             let fn_ = struct_initializer_fn(analysis, ast);
             let fn_ = Function {
