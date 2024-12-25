@@ -52,8 +52,7 @@ fn buf_item(analysis: &Analysis, buffer: &BufferId, binding_index: usize) -> Str
 }
 
 fn struct_item(analysis: &Analysis, type_id: &TypeId) -> String {
-    let type_ = &analysis.types[type_id];
-    let fields = type_
+    let fields = analysis.types[type_id]
         .fields
         .iter()
         .map(|field| struct_field(analysis, field))
