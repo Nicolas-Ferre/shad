@@ -24,7 +24,7 @@ pub struct AstExpr {
     pub fields: Vec<AstIdent>,
 }
 
-const LITERALS: [TokenType; 5] = [
+pub(crate) const LITERALS: [TokenType; 5] = [
     TokenType::F32Literal,
     TokenType::U32Literal,
     TokenType::I32Literal,

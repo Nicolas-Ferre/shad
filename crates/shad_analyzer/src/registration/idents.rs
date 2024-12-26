@@ -1,8 +1,8 @@
 use crate::{errors, resolver, Analysis, Buffer, BufferId, FnId, Function, TypeId};
 use fxhash::FxHashMap;
 use shad_parser::{
-    AstBufferItem, AstExpr, AstExprRoot, AstFnCall, AstFnItem, AstFnParam, AstIdent, AstItem,
-    AstVarDefinition, Visit,
+    AstBufferItem, AstExpr, AstExprRoot, AstFnCall, AstFnItem, AstFnParam, AstGpuGenericParam,
+    AstGpuName, AstIdent, AstItem, AstVarDefinition, Visit,
 };
 use std::mem;
 
@@ -30,8 +30,10 @@ pub enum IdentSource {
     Var(u64),
     /// A function.
     Fn(FnId),
-    /// A field
+    /// A field.
     Field,
+    /// A generic type.
+    GenericType,
 }
 
 pub(crate) fn register(analysis: &mut Analysis) {
@@ -43,10 +45,18 @@ pub(crate) fn register(analysis: &mut Analysis) {
 }
 
 fn register_structs(analysis: &mut Analysis) {
-    for type_ in analysis.types.values() {
+    for type_ in analysis.types.clone().values() {
         for field in &type_.fields {
             let ident = Ident::new(IdentSource::Field, field.type_id.clone());
             analysis.idents.insert(field.name.id, ident);
+        }
+        let ast_and_name = type_
+            .ast
+            .as_ref()
+            .and_then(|ast| ast.gpu_qualifier.as_ref().map(|gpu| (ast, gpu)))
+            .and_then(|(ast, gpu)| gpu.name.as_ref().map(|name| (ast, name)));
+        if let Some((ast, name)) = &ast_and_name {
+            register_gpu_name(analysis, &ast.name.span.module.name, name);
         }
     }
 }
@@ -95,6 +105,24 @@ fn register_fns(analysis: &mut Analysis) {
     for fn_ in analysis.fns.clone().into_values() {
         IdentRegistration::new(analysis, &fn_.ast.name.span.module.name, true)
             .visit_fn_item(&fn_.ast);
+        let name = fn_
+            .ast
+            .gpu_qualifier
+            .as_ref()
+            .and_then(|gpu| gpu.name.as_ref());
+        if let Some(name) = name {
+            register_gpu_name(analysis, &fn_.id.module, name);
+        }
+    }
+}
+
+fn register_gpu_name(analysis: &mut Analysis, module: &str, name: &AstGpuName) {
+    for param in &name.generics {
+        if let AstGpuGenericParam::Ident(param) = param {
+            let type_id = resolver::type_or_add_error(analysis, module, param);
+            let ident = Ident::new(IdentSource::GenericType, type_id);
+            analysis.idents.insert(param.id, ident);
+        }
     }
 }
 

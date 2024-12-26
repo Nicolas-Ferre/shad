@@ -1,0 +1,4 @@
+main.data=[3, 0, 0, 0, 42, 0, 0, 0, 5, 0, 0, 0, 6, 0, 0, 0, 1, 0, 0, 0, 2, 0, 0, 0, 7, 0, 0, 0, 8, 0, 0, 0, 9, 0, 0, 0, 10, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+main.result_add_operator=6
+main.result_add_renamed=6
+main.result_add_same_name=6

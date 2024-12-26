@@ -1,7 +1,7 @@
 use crate::fn_calls;
 use itertools::Itertools;
 use shad_analyzer::{Analysis, BufferId, IdentSource, TypeId};
-use shad_parser::{AstExpr, AstExprRoot, AstIdent};
+use shad_parser::{AstExpr, AstExprRoot, AstGpuGenericParam, AstGpuName, AstIdent};
 use std::iter;
 
 pub(crate) fn to_expr_wgsl(analysis: &Analysis, expr: &AstExpr) -> String {
@@ -32,7 +32,7 @@ pub(crate) fn to_ident_wgsl(analysis: &Analysis, name: &AstIdent) -> String {
                 if let Some(source_type) = &fn_.source_type {
                     to_type_wgsl(analysis, source_type)
                 } else if let Some(name) = &gpu.name {
-                    name.label.clone()
+                    to_gpu_name_wgsl(analysis, name)
                 } else {
                     fn_.ast.name.label.clone()
                 }
@@ -55,6 +55,13 @@ pub(crate) fn to_ident_wgsl(analysis: &Analysis, name: &AstIdent) -> String {
                 format!("s_{}", name.label)
             }
         }
+        IdentSource::GenericType => {
+            let type_id = ident
+                .type_id
+                .as_ref()
+                .expect("internal error: missing type");
+            to_type_wgsl(analysis, type_id)
+        }
     }
 }
 
@@ -68,7 +75,7 @@ pub(crate) fn to_type_wgsl(analysis: &Analysis, type_id: &TypeId) -> String {
     if let Some(type_) = &type_.ast {
         if let Some(gpu) = &type_.gpu_qualifier {
             if let Some(name) = &gpu.name {
-                name.label.clone()
+                to_gpu_name_wgsl(analysis, name)
             } else {
                 type_.name.label.clone()
             }
@@ -79,5 +86,23 @@ pub(crate) fn to_type_wgsl(analysis: &Analysis, type_id: &TypeId) -> String {
         "u32".into()
     } else {
         type_.name.clone()
+    }
+}
+
+fn to_gpu_name_wgsl(analysis: &Analysis, name: &AstGpuName) -> String {
+    if name.generics.is_empty() {
+        name.root.label.clone()
+    } else {
+        format!(
+            "{}<{}>",
+            name.root.label,
+            name.generics
+                .iter()
+                .map(|param| match param {
+                    AstGpuGenericParam::Ident(ident) => to_ident_wgsl(analysis, ident),
+                    AstGpuGenericParam::Literal(literal) => literal.value.clone(),
+                })
+                .join(", ")
+        )
     }
 }
