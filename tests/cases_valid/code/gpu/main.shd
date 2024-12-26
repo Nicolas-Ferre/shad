@@ -31,6 +31,11 @@ gpu(array<i32x2, 2>) struct i32x2x2 {
     second: i32x2,
 }
 
+gpu(array<i32x2, 2,>) struct i32x2x2_with_generic_leading_comma {
+    first: i32x2,
+    second: i32x2,
+}
+
 buf result_add_operator = 0;
 buf result_add_same_name = 0;
 buf result_add_renamed = 0;
