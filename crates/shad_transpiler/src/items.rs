@@ -21,7 +21,7 @@ pub(crate) fn to_struct_wgsl(analysis: &Analysis, shader: &ComputeShader) -> Str
             analysis.types[id]
                 .ast
                 .as_ref()
-                .map_or(false, |ast| !ast.is_gpu)
+                .map_or(false, |ast| ast.gpu_qualifier.is_none())
         })
         .map(|id| struct_item(analysis, id))
         .join("\n")
@@ -33,7 +33,7 @@ pub(crate) fn to_fn_wgsl(analysis: &Analysis, shader: &ComputeShader) -> String 
         .iter()
         .filter(|id| {
             let fn_ = &analysis.fns[id];
-            !fn_.is_inlined && !fn_.ast.is_gpu
+            !fn_.is_inlined && fn_.ast.gpu_qualifier.is_none()
         })
         .map(|id| fn_item(analysis, id))
         .join("\n")

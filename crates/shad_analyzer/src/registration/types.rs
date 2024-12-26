@@ -192,7 +192,7 @@ fn calculate_type_details(analysis: &mut Analysis, type_: &mut Type) -> Option<(
             .flat_map(|field| &field.type_id)
             .all(|type_id| analysis.types[type_id].size > 0);
         if are_fields_registered {
-            if ast.is_gpu {
+            if ast.gpu_qualifier.is_some() {
                 type_.size = type_
                     .fields
                     .iter()

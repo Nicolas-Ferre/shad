@@ -28,9 +28,11 @@ pub(crate) fn to_ident_wgsl(analysis: &Analysis, name: &AstIdent) -> String {
         IdentSource::Var(id) => format!("v{}_{}", id, name.label),
         IdentSource::Fn(_) => {
             let fn_ = analysis.fn_(name).expect("internal error: missing fn");
-            if fn_.ast.is_gpu {
+            if let Some(gpu) = &fn_.ast.gpu_qualifier {
                 if let Some(source_type) = &fn_.source_type {
                     to_type_wgsl(analysis, source_type)
+                } else if let Some(name) = &gpu.name {
+                    name.label.clone()
                 } else {
                     fn_.ast.name.label.clone()
                 }
@@ -43,7 +45,11 @@ pub(crate) fn to_ident_wgsl(analysis: &Analysis, name: &AstIdent) -> String {
                 .type_id
                 .as_ref()
                 .expect("internal error: missing type")];
-            if type_.ast.as_ref().map_or(true, |ast| ast.is_gpu) {
+            if type_
+                .ast
+                .as_ref()
+                .map_or(true, |ast| ast.gpu_qualifier.is_some())
+            {
                 name.label.clone()
             } else {
                 format!("s_{}", name.label)
@@ -60,8 +66,12 @@ pub(crate) fn to_buffer_ident_wgsl(analysis: &Analysis, buffer: &BufferId) -> St
 pub(crate) fn to_type_wgsl(analysis: &Analysis, type_id: &TypeId) -> String {
     let type_ = &analysis.types[type_id];
     if let Some(type_) = &type_.ast {
-        if type_.is_gpu {
-            type_.name.label.clone()
+        if let Some(gpu) = &type_.gpu_qualifier {
+            if let Some(name) = &gpu.name {
+                name.label.clone()
+            } else {
+                type_.name.label.clone()
+            }
         } else {
             format!("t{}_{}", type_.name.id, type_.name.label)
         }

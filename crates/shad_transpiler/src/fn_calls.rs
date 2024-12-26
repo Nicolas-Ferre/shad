@@ -12,13 +12,13 @@ pub(crate) fn to_wgsl(analysis: &Analysis, call: &AstFnCall) -> String {
         .expect("internal error: missing fn");
     cast_fn_call(
         fn_,
-        if let Some(operator) = unary_operator(fn_) {
+        if let Some(operator) = unary_operator(analysis, fn_) {
             format!(
                 "({}{})",
                 operator,
                 cast_fn_arg(analysis, fn_, &fn_.params[0], &call.args[0].value)
             )
-        } else if let Some(operator) = binary_operator(fn_) {
+        } else if let Some(operator) = binary_operator(analysis, fn_) {
             format!(
                 "({} {} {})",
                 cast_fn_arg(analysis, fn_, &fn_.params[0], &call.args[0].value),
@@ -53,16 +53,19 @@ fn cast_fn_arg(analysis: &Analysis, fn_: &Function, param: &FnParam, arg: &AstEx
         .type_id
         .as_ref()
         .expect("internal error: invalid param type")];
-    if fn_.ast.is_gpu && fn_.source_type.is_none() && type_.id == TypeId::from_builtin("bool") {
+    if fn_.ast.gpu_qualifier.is_some()
+        && fn_.source_type.is_none()
+        && type_.id == TypeId::from_builtin("bool")
+    {
         format!("bool({expr})")
     } else {
         expr
     }
 }
 
-fn unary_operator(fn_: &Function) -> Option<&'static str> {
-    if fn_.ast.is_gpu {
-        match fn_.ast.name.label.as_str() {
+fn unary_operator(analysis: &Analysis, fn_: &Function) -> Option<&'static str> {
+    if fn_.ast.gpu_qualifier.is_some() {
+        match atoms::to_ident_wgsl(analysis, &fn_.ast.name) {
             n if n == NEG_FN => Some("-"),
             n if n == NOT_FN => Some("!"),
             _ => None,
@@ -72,9 +75,9 @@ fn unary_operator(fn_: &Function) -> Option<&'static str> {
     }
 }
 
-fn binary_operator(fn_: &Function) -> Option<&'static str> {
-    if fn_.ast.is_gpu {
-        match fn_.ast.name.label.as_str() {
+fn binary_operator(analysis: &Analysis, fn_: &Function) -> Option<&'static str> {
+    if fn_.ast.gpu_qualifier.is_some() {
+        match atoms::to_ident_wgsl(analysis, &fn_.ast.name) {
             n if n == ADD_FN => Some("+"),
             n if n == SUB_FN => Some("-"),
             n if n == MUL_FN => Some("*"),

@@ -6,7 +6,7 @@ use std::mem;
 pub(crate) fn transform(analysis: &mut Analysis) {
     let mut fns = mem::take(&mut analysis.fns);
     for fn_ in fns.values_mut() {
-        if !fn_.is_inlined && !fn_.ast.is_gpu {
+        if !fn_.is_inlined && fn_.ast.gpu_qualifier.is_none() {
             FnParamTransform::new(analysis).visit_fn_item(&mut fn_.ast);
         }
     }

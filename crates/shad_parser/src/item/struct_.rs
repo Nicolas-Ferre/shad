@@ -1,6 +1,6 @@
 use crate::atom::{parse_token, parse_token_option};
 use crate::token::{Lexer, TokenType};
-use crate::AstIdent;
+use crate::{AstGpuQualifier, AstIdent};
 use shad_error::SyntaxError;
 
 /// A parsed structure.
@@ -23,13 +23,13 @@ pub struct AstStructItem {
     pub fields: Vec<AstStructField>,
     /// Whether the item is public.
     pub is_pub: bool,
-    /// Whether the item is imported from WGSL.
-    pub is_gpu: bool,
+    /// The `gpu` qualifier.
+    pub gpu_qualifier: Option<AstGpuQualifier>,
 }
 
 impl AstStructItem {
     pub(crate) fn parse(lexer: &mut Lexer<'_>, is_pub: bool) -> Result<Self, SyntaxError> {
-        let is_gpu = parse_token_option(lexer, TokenType::Gpu)?.is_some();
+        let gpu_qualifier = AstGpuQualifier::parse(lexer)?;
         parse_token(lexer, TokenType::Struct)?;
         let name = AstIdent::parse(lexer)?;
         parse_token(lexer, TokenType::OpenBrace)?;
@@ -47,7 +47,7 @@ impl AstStructItem {
             name,
             fields,
             is_pub,
-            is_gpu,
+            gpu_qualifier,
         })
     }
 }

@@ -1,12 +1,7 @@
-buf data = Data(vec4i(3, 4, 5, 6), vec2i(1, 2));
+buf data = Data(vec4i(3, 4, 5, 6), i32x2(1, 2));
 
 run {
     data.v4.y = 7;
-}
-
-gpu struct vec2i {
-    x: i32,
-    y: i32,
 }
 
 gpu struct vec4i {
@@ -16,10 +11,15 @@ gpu struct vec4i {
     w: i32,
 }
 
-struct Data {
-    v4: vec4i,
-    v2: vec2i,
+gpu(vec2i) struct i32x2 {
+    x: i32,
+    y: i32,
 }
 
-gpu fn vec2i(x: i32, y: i32) -> vec2i;
+struct Data {
+    v4: vec4i,
+    v2: i32x2,
+}
+
 gpu fn vec4i(x: i32, y: i32, z: i32, w: i32) -> vec4i;
+gpu(vec2i) fn i32x2(x: i32, y: i32) -> i32x2;

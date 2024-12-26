@@ -9,6 +9,7 @@ use shad_error::SyntaxError;
 
 pub(crate) mod buffer;
 pub(crate) mod function;
+pub(crate) mod gpu;
 pub(crate) mod import;
 pub(crate) mod run_block;
 pub(crate) mod struct_;
@@ -37,24 +38,21 @@ impl AstItem {
 
     #[allow(clippy::wildcard_enum_match_arm)]
     fn parse_without_visibility(lexer: &mut Lexer<'_>, is_pub: bool) -> Result<Self, SyntaxError> {
-        let mut tmp_lexer = lexer.clone();
-        let token = tmp_lexer.next_token()?;
-        let next_token = tmp_lexer.next_token()?;
-        match token.type_ {
+        match lexer.clone().next_token()?.type_ {
             TokenType::Struct => Ok(Self::Struct(AstStructItem::parse(lexer, is_pub)?)),
             TokenType::Buf => Ok(Self::Buffer(AstBufferItem::parse(lexer, is_pub)?)),
             TokenType::Fn => Ok(Self::Fn(AstFnItem::parse(lexer, is_pub)?)),
             TokenType::Run => Ok(Self::Run(AstRunItem::parse(lexer)?)),
             TokenType::Import => Ok(Self::Import(AstImportItem::parse(lexer, is_pub)?)),
             TokenType::Gpu => {
-                if next_token.type_ == TokenType::Fn {
-                    Ok(Self::Fn(AstFnItem::parse_gpu(lexer, is_pub)?))
-                } else {
+                if AstStructItem::parse(&mut lexer.clone(), is_pub).is_ok() {
                     Ok(Self::Struct(AstStructItem::parse(lexer, is_pub)?))
+                } else {
+                    Ok(Self::Fn(AstFnItem::parse_gpu(lexer, is_pub)?))
                 }
             }
             _ => Err(SyntaxError::new(
-                token.span.start,
+                lexer.clone().next_token()?.span.start,
                 lexer.module(),
                 "expected item",
             )),
