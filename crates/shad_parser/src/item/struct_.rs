@@ -131,7 +131,7 @@ impl AstStructLayout {
             SyntaxError::new(
                 value.span.start,
                 lexer.module(),
-                "`u32` literal out of range".to_string(),
+                "non-zero `u32` literal out of range".to_string(),
             )
         })
     }
