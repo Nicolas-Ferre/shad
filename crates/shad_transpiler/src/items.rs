@@ -21,7 +21,7 @@ pub(crate) fn to_struct_wgsl(analysis: &Analysis, shader: &ComputeShader) -> Str
             analysis.types[id]
                 .ast
                 .as_ref()
-                .map_or(false, |ast| ast.gpu_qualifier.is_none())
+                .map_or(false, |ast| ast.gpu_params.is_none())
         })
         .map(|id| struct_item(analysis, id))
         .join("\n")

@@ -48,7 +48,7 @@ pub(crate) fn to_ident_wgsl(analysis: &Analysis, name: &AstIdent) -> String {
             if type_
                 .ast
                 .as_ref()
-                .map_or(true, |ast| ast.gpu_qualifier.is_some())
+                .map_or(true, |ast| ast.gpu_params.is_some())
             {
                 name.label.clone()
             } else {
@@ -73,8 +73,8 @@ pub(crate) fn to_buffer_ident_wgsl(analysis: &Analysis, buffer: &BufferId) -> St
 pub(crate) fn to_type_wgsl(analysis: &Analysis, type_id: &TypeId) -> String {
     let type_ = &analysis.types[type_id];
     if let Some(type_) = &type_.ast {
-        if let Some(gpu) = &type_.gpu_qualifier {
-            if let Some(name) = &gpu.name {
+        if let Some(gpu) = &type_.gpu_params {
+            if let Some(name) = &gpu.0.name {
                 to_gpu_name_wgsl(analysis, name)
             } else {
                 type_.name.label.clone()

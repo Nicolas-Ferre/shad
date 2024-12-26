@@ -1,4 +1,9 @@
-gpu struct vec2i {
+gpu layout(8, 8) struct vec2i {
+    x: i32,
+    y: i32,
+}
+
+gpu(array<vec3i, 2>) layout(32, 16) struct vec3ix2 {
     x: i32,
     y: i32,
 }

@@ -28,6 +28,9 @@ pub(crate) enum TokenType {
     #[token("gpu")]
     Gpu,
 
+    #[token("layout")]
+    Layout,
+
     #[token("pub")]
     Pub,
 
@@ -142,6 +145,7 @@ impl TokenType {
             Self::Priority => "`priority`",
             Self::Fn => "`fn`",
             Self::Gpu => "`gpu`",
+            Self::Layout => "`layout`",
             Self::Pub => "`pub`",
             Self::Var => "`var`",
             Self::Ref => "`ref`",
