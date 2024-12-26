@@ -65,7 +65,7 @@ impl Visit for StatementCheck<'_> {
                     &node.statements[return_pos + 1],
                 ));
             }
-        } else if node.return_type.is_some() && !node.is_gpu {
+        } else if node.return_type.is_some() && node.gpu_qualifier.is_none() {
             let error = errors::returns::missing_return(node, &fn_.id);
             self.errors.push(error);
         }

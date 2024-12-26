@@ -1,6 +1,6 @@
 use crate::atom::{parse_token, parse_token_option};
 use crate::token::{Lexer, TokenType};
-use crate::{AstIdent, AstStatement};
+use crate::{AstGpuQualifier, AstIdent, AstStatement};
 use shad_error::{Span, SyntaxError};
 
 /// A parsed GPU function definition.
@@ -20,8 +20,8 @@ pub struct AstFnItem {
     pub statements: Vec<AstStatement>,
     /// Whether the item is public.
     pub is_pub: bool,
-    /// Whether the item is imported from WGSL.
-    pub is_gpu: bool,
+    /// The `gpu` qualifier.
+    pub gpu_qualifier: Option<AstGpuQualifier>,
 }
 
 impl AstFnItem {
@@ -37,12 +37,12 @@ impl AstFnItem {
             return_type,
             statements,
             is_pub,
-            is_gpu: false,
+            gpu_qualifier: None,
         })
     }
 
     pub(crate) fn parse_gpu(lexer: &mut Lexer<'_>, is_pub: bool) -> Result<Self, SyntaxError> {
-        parse_token(lexer, TokenType::Gpu)?;
+        let gpu_qualifier = AstGpuQualifier::parse(lexer)?;
         parse_token(lexer, TokenType::Fn)?;
         let name = AstIdent::parse(lexer)?;
         let params = Self::parse_params(lexer)?;
@@ -54,7 +54,7 @@ impl AstFnItem {
             return_type,
             statements: vec![],
             is_pub,
-            is_gpu: true,
+            gpu_qualifier,
         })
     }
 

@@ -1,6 +1,8 @@
 use crate::{errors, resolver, Analysis, Type, TypeId, NO_RETURN_TYPE};
 use itertools::Itertools;
-use shad_parser::{AstFnItem, AstFnParam, AstIdent, AstItem, AstReturnType, AstStructItem};
+use shad_parser::{
+    AstFnItem, AstFnParam, AstGpuQualifier, AstIdent, AstItem, AstReturnType, AstStructItem,
+};
 use std::mem;
 
 /// An analyzed function.
@@ -86,7 +88,7 @@ pub(crate) fn register(analysis: &mut Analysis) {
 fn register_initializers(analysis: &mut Analysis) {
     for (type_id, type_) in &analysis.types.clone() {
         if let Some(ast) = &type_.ast {
-            if ast.is_gpu {
+            if ast.gpu_qualifier.is_some() {
                 continue;
             }
             let id = FnId::initializer(type_, ast);
@@ -167,7 +169,7 @@ fn struct_initializer_fn(analysis: &mut Analysis, ast: &AstStructItem) -> AstFnI
         }),
         statements: vec![],
         is_pub: ast.is_pub && ast.fields.iter().all(|field| field.is_pub),
-        is_gpu: true,
+        gpu_qualifier: Some(AstGpuQualifier { name: None }),
     }
 }
 
@@ -180,7 +182,7 @@ fn clone_ident(analysis: &mut Analysis, ident: &AstIdent) -> AstIdent {
 }
 
 fn is_inlined(fn_: &AstFnItem) -> bool {
-    !fn_.is_gpu && (is_returning_ref(fn_) || has_ref_param(fn_))
+    fn_.gpu_qualifier.is_none() && (is_returning_ref(fn_) || has_ref_param(fn_))
 }
 
 fn is_returning_ref(fn_: &AstFnItem) -> bool {
