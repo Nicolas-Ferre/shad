@@ -52,7 +52,13 @@ impl VisitMut for RefVarInlineTransform<'_> {
                     node.replace_root(new_root.clone());
                 }
             }
-            Some(IdentSource::Buffer(_) | IdentSource::Fn(_) | IdentSource::Field) | None => {}
+            Some(
+                IdentSource::Buffer(_)
+                | IdentSource::Fn(_)
+                | IdentSource::Field
+                | IdentSource::GenericType,
+            )
+            | None => {}
         }
     }
 }

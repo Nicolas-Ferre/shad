@@ -92,7 +92,10 @@ pub(crate) fn fn_<'a>(analysis: &'a Analysis, name: &AstIdent) -> Option<&'a Fun
         .get(&name.id)
         .map(|ident| match &ident.source {
             IdentSource::Fn(id) => id.clone(),
-            IdentSource::Buffer(_) | IdentSource::Var(_) | IdentSource::Field => {
+            IdentSource::Buffer(_)
+            | IdentSource::Var(_)
+            | IdentSource::Field
+            | IdentSource::GenericType => {
                 unreachable!("internal error: retrieve non-function ID")
             }
         })

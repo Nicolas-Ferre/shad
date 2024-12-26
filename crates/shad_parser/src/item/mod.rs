@@ -1,6 +1,6 @@
 use crate::atom::{parse_token, parse_token_option};
 use crate::token::{Lexer, TokenType};
-use crate::{AstStatement, AstStructItem};
+use crate::{AstGpuQualifier, AstStatement, AstStructItem};
 use buffer::AstBufferItem;
 use function::AstFnItem;
 use import::AstImportItem;
@@ -45,7 +45,10 @@ impl AstItem {
             TokenType::Run => Ok(Self::Run(AstRunItem::parse(lexer)?)),
             TokenType::Import => Ok(Self::Import(AstImportItem::parse(lexer, is_pub)?)),
             TokenType::Gpu => {
-                if AstStructItem::parse(&mut lexer.clone(), is_pub).is_ok() {
+                let mut tmp_lexer = lexer.clone();
+                if AstGpuQualifier::parse(&mut tmp_lexer).is_ok()
+                    && tmp_lexer.next_token()?.type_ == TokenType::Struct
+                {
                     Ok(Self::Struct(AstStructItem::parse(lexer, is_pub)?))
                 } else {
                     Ok(Self::Fn(AstFnItem::parse_gpu(lexer, is_pub)?))
