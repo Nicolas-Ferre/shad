@@ -88,7 +88,7 @@ pub(crate) fn register(analysis: &mut Analysis) {
 fn register_initializers(analysis: &mut Analysis) {
     for (type_id, type_) in &analysis.types.clone() {
         if let Some(ast) = &type_.ast {
-            if ast.gpu_qualifier.is_some() {
+            if ast.gpu_params.is_some() {
                 continue;
             }
             let id = FnId::initializer(type_, ast);

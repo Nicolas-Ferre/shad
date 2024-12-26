@@ -47,11 +47,11 @@ impl AstItem {
             TokenType::Gpu => {
                 let mut tmp_lexer = lexer.clone();
                 if AstGpuQualifier::parse(&mut tmp_lexer).is_ok()
-                    && tmp_lexer.next_token()?.type_ == TokenType::Struct
+                    && tmp_lexer.next_token()?.type_ == TokenType::Fn
                 {
-                    Ok(Self::Struct(AstStructItem::parse(lexer, is_pub)?))
-                } else {
                     Ok(Self::Fn(AstFnItem::parse_gpu(lexer, is_pub)?))
+                } else {
+                    Ok(Self::Struct(AstStructItem::parse(lexer, is_pub)?))
                 }
             }
             _ => Err(SyntaxError::new(

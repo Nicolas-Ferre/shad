@@ -2,6 +2,8 @@ use crate::atom::{parse_token, parse_token_option};
 use crate::token::{Lexer, TokenType};
 use crate::{AstGpuQualifier, AstIdent};
 use shad_error::SyntaxError;
+use std::num::NonZeroU32;
+use std::str::FromStr;
 
 /// A parsed structure.
 ///
@@ -23,13 +25,17 @@ pub struct AstStructItem {
     pub fields: Vec<AstStructField>,
     /// Whether the item is public.
     pub is_pub: bool,
-    /// The `gpu` qualifier.
-    pub gpu_qualifier: Option<AstGpuQualifier>,
+    /// The `gpu` qualifier and associated parameters.
+    pub gpu_params: Option<(AstGpuQualifier, AstStructLayout)>,
 }
 
 impl AstStructItem {
     pub(crate) fn parse(lexer: &mut Lexer<'_>, is_pub: bool) -> Result<Self, SyntaxError> {
-        let gpu_qualifier = AstGpuQualifier::parse(lexer)?;
+        let gpu_params = if let Some(gpu_qualifier) = AstGpuQualifier::parse(lexer)? {
+            Some((gpu_qualifier, AstStructLayout::parse(lexer)?))
+        } else {
+            None
+        };
         parse_token(lexer, TokenType::Struct)?;
         let name = AstIdent::parse(lexer)?;
         parse_token(lexer, TokenType::OpenBrace)?;
@@ -47,7 +53,7 @@ impl AstStructItem {
             name,
             fields,
             is_pub,
-            gpu_qualifier,
+            gpu_params,
         })
     }
 }
@@ -84,6 +90,49 @@ impl AstStructField {
             name,
             type_,
             is_pub,
+        })
+    }
+}
+
+/// A parsed struct layout.
+///
+/// # Examples
+///
+/// `layout(12, 16)` is parsed with `size`=12 and `alignment`=16 in the following Shad example:
+/// ```shad
+/// gpu layout(12, 16) struct Character {
+///     life: f32,
+///     energy: f32,
+///     mana: f32,
+/// }
+/// ```
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct AstStructLayout {
+    /// The struct memory size.
+    pub size: NonZeroU32,
+    /// The struct memory alignment.
+    pub alignment: NonZeroU32,
+}
+
+impl AstStructLayout {
+    pub(crate) fn parse(lexer: &mut Lexer<'_>) -> Result<Self, SyntaxError> {
+        parse_token(lexer, TokenType::Layout)?;
+        parse_token(lexer, TokenType::OpenParenthesis)?;
+        let size = Self::parse_value(lexer)?;
+        parse_token(lexer, TokenType::Comma)?;
+        let alignment = Self::parse_value(lexer)?;
+        parse_token(lexer, TokenType::CloseParenthesis)?;
+        Ok(Self { size, alignment })
+    }
+
+    fn parse_value(lexer: &mut Lexer<'_>) -> Result<NonZeroU32, SyntaxError> {
+        let value = parse_token(lexer, TokenType::I32Literal)?;
+        NonZeroU32::from_str(&value.slice.replace('_', "")).map_err(|_| {
+            SyntaxError::new(
+                value.span.start,
+                lexer.module(),
+                "non-zero `u32` literal out of range".to_string(),
+            )
         })
     }
 }

@@ -81,7 +81,7 @@ impl Runner {
                 .analysis
                 .buffer_type(buffer_id)
                 .expect("internal error: invalid buffer type");
-            let size = type_.size as u64;
+            let size = type_.size.into();
             let tmp_buffer = self.device.create_buffer(&BufferDescriptor {
                 label: Some("modor_texture_buffer"),
                 size,
@@ -218,7 +218,7 @@ impl Program {
             .expect("internal error: invalid buffer type");
         device.create_buffer(&BufferDescriptor {
             label: Some(&format!("shad:buffer:{}.{}", buffer.module, buffer.name)),
-            size: type_.size as u64,
+            size: type_.size.into(),
             usage: BufferUsages::STORAGE | BufferUsages::COPY_SRC,
             mapped_at_creation: false,
         })

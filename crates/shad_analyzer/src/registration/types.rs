@@ -21,9 +21,9 @@ pub struct Type {
     /// The type name.
     pub name: String,
     /// The type size in bytes.
-    pub size: usize,
+    pub size: u32,
     /// The type alignment in bytes.
-    pub alignment: usize,
+    pub alignment: u32,
     /// The type AST.
     pub ast: Option<AstStructItem>,
     /// The fields of the type when this is a struct.
@@ -192,14 +192,9 @@ fn calculate_type_details(analysis: &mut Analysis, type_: &mut Type) -> Option<(
             .flat_map(|field| &field.type_id)
             .all(|type_id| analysis.types[type_id].size > 0);
         if are_fields_registered {
-            if ast.gpu_qualifier.is_some() {
-                type_.size = type_
-                    .fields
-                    .iter()
-                    .flat_map(|field| &field.type_id)
-                    .map(|type_id| analysis.types[type_id].size)
-                    .sum();
-                type_.alignment = type_.size;
+            if let Some((_, layout)) = &ast.gpu_params {
+                type_.size = layout.size.into();
+                type_.alignment = layout.alignment.into();
             } else {
                 type_.alignment = type_
                     .fields
@@ -228,7 +223,7 @@ fn analyze_field(analysis: &mut Analysis, module: &str, field: &AstStructField) 
     }
 }
 
-fn struct_offset(analysis: &Analysis, fields: &[StructField]) -> Option<usize> {
+fn struct_offset(analysis: &Analysis, fields: &[StructField]) -> Option<u32> {
     Some(if fields.len() == 1 {
         0
     } else {
@@ -243,6 +238,6 @@ fn struct_offset(analysis: &Analysis, fields: &[StructField]) -> Option<usize> {
     })
 }
 
-fn round_up(k: usize, n: usize) -> usize {
+fn round_up(k: u32, n: u32) -> u32 {
     n.div_ceil(k) * k
 }
