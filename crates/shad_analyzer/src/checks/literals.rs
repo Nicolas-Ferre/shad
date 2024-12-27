@@ -40,7 +40,12 @@ impl LiteralCheck {
         } else {
             &literal.value
         };
-        T::from_str(value)
+        let value_with_operator = if literal.is_neg {
+            format!("-{value}")
+        } else {
+            value.into()
+        };
+        T::from_str(&value_with_operator)
             .is_err()
             .then(|| errors::literals::invalid_integer(literal, type_name))
     }

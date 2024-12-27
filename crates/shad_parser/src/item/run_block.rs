@@ -47,14 +47,17 @@ impl AstRunItem {
     fn parse_priority_value(lexer: &mut Lexer<'_>) -> Result<i32, SyntaxError> {
         let is_neg = parse_token_option(lexer, TokenType::Minus)?.is_some();
         let value = parse_token(lexer, TokenType::I32Literal)?;
-        i32::from_str(&value.slice.replace('_', ""))
-            .map(|value| if is_neg { -value } else { value })
-            .map_err(|_| {
-                SyntaxError::new(
-                    value.span.start,
-                    lexer.module(),
-                    "`i32` literal out of range".to_string(),
-                )
-            })
+        let value_with_operator = if is_neg {
+            format!("-{}", value.slice)
+        } else {
+            value.slice.into()
+        };
+        i32::from_str(&value_with_operator.replace('_', "")).map_err(|_| {
+            SyntaxError::new(
+                value.span.start,
+                lexer.module(),
+                "`i32` literal out of range".to_string(),
+            )
+        })
     }
 }
