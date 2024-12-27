@@ -26,12 +26,11 @@ gpu(vec2i) layout(8, 8) struct i32x2 {
     y: i32,
 }
 
-gpu(array<i32x2, 2>) layout(16, 8) struct i32x2x2 {
-    first: i32x2,
-    second: i32x2,
+gpu(array<i32x2, 2>) struct i32x2x2 {
+    _: i32,
 }
 
-gpu(array<i32x2, 2,>) layout(16, 8) struct i32x2x2_with_generic_leading_comma {
+gpu(array<i32x2, 2,>) struct i32x2x2_with_generic_leading_comma {
     first: i32x2,
     second: i32x2,
 }

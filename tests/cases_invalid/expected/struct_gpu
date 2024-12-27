@@ -1,22 +1,52 @@
-error: could not find `vec3i` type
- --> ./cases_invalid/code/struct_gpu/main.shd:6:11
+error: missing layout definition for the `gpu` struct `nolayout`
+ --> ./cases_invalid/code/struct_gpu/main.shd:6:19
   |
-6 | gpu(array<vec3i, 2>) layout(32, 16) struct vec3ix2 {
-  |           ^^^^^ undefined type
+6 | gpu(vec3i) struct nolayout {
+  | ----------        ^^^^^^^^ invalid struct definition
+  | |
+  | info: `gpu` structs should have a `layout`
   |
 
-error: missing layout definition for the `gpu` struct `nolayout`
-  --> ./cases_invalid/code/struct_gpu/main.shd:11:19
+error: missing layout definition for the `gpu` struct `vec3i`
+  --> ./cases_invalid/code/struct_gpu/main.shd:12:12
    |
-11 | gpu(vec2i) struct nolayout {
-   | ----------        ^^^^^^^^ invalid struct definition
+12 | gpu struct vec3i {
+   | ---        ^^^^^ invalid struct definition
    | |
    | info: `gpu` structs should have a `layout`
    |
 
-error: could not find `vec2i(i32, i32)` function
-  --> ./cases_invalid/code/struct_gpu/main.shd:16:11
+error: could not find `mat4f` type
+  --> ./cases_invalid/code/struct_gpu/main.shd:18:11
    |
-16 | buf vec = vec2i(1, 2);
+18 | gpu(array<mat4f, 2>) struct unknown_gpu_generic_type {
+   |           ^^^^^ undefined type
+   |
+
+error: invalid `gpu` array generic params
+  --> ./cases_invalid/code/struct_gpu/main.shd:22:1
+   |
+22 | gpu(array<2, 2>) struct invalid_gpu_array_item_type {
+   | ^^^^^^^^^^^^^^^^ `gpu` array should have two generic arguments (a type and a non-zero positive 32-bit integer)
+   |
+
+error: invalid `gpu` array generic params
+  --> ./cases_invalid/code/struct_gpu/main.shd:26:1
+   |
+26 | gpu(array<i32, i32>) struct invalid_gpu_array_length {
+   | ^^^^^^^^^^^^^^^^^^^^ `gpu` array should have two generic arguments (a type and a non-zero positive 32-bit integer)
+   |
+
+error: invalid `gpu` array generic params
+  --> ./cases_invalid/code/struct_gpu/main.shd:30:1
+   |
+30 | gpu(array<i32, true>) struct invalid_gpu_array_length2 {
+   | ^^^^^^^^^^^^^^^^^^^^^ `gpu` array should have two generic arguments (a type and a non-zero positive 32-bit integer)
+   |
+
+error: could not find `vec2i(i32, i32)` function
+  --> ./cases_invalid/code/struct_gpu/main.shd:34:11
+   |
+34 | buf vec = vec2i(1, 2);
    |           ^^^^^^^^^^^ undefined function
    |

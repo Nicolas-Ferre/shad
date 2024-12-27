@@ -1,6 +1,11 @@
 use crate::{errors, resolver, Analysis};
-use shad_parser::{AstIdent, AstItem, AstStructField, AstStructItem};
+use shad_error::SemanticError;
+use shad_parser::{
+    AstGpuGenericParam, AstGpuQualifier, AstIdent, AstItem, AstStructField, AstStructItem,
+};
 use std::mem;
+use std::num::NonZeroU32;
+use std::str::FromStr;
 
 /// The no return type name.
 pub const NO_RETURN_TYPE: &str = "<no return>";
@@ -12,6 +17,7 @@ pub const U32_TYPE: &str = "u32";
 pub const I32_TYPE: &str = "i32";
 /// The boolean type name.
 pub const BOOL_TYPE: &str = "bool";
+pub(crate) const WGSL_ARRAY_TYPE: &str = "array";
 
 /// An analyzed type.
 #[derive(Debug, Clone)]
@@ -28,6 +34,8 @@ pub struct Type {
     pub ast: Option<AstStructItem>,
     /// The fields of the type when this is a struct.
     pub fields: Vec<StructField>,
+    /// The parsed generic arguments when the `gpu` type is an array.
+    pub array_params: Option<(TypeId, u32)>,
 }
 
 /// The unique identifier of a type.
@@ -70,6 +78,7 @@ impl TypeId {
 pub(crate) fn register(analysis: &mut Analysis) {
     register_builtin(analysis);
     register_structs(analysis);
+    register_array_params(analysis);
     register_struct_details(analysis);
 }
 
@@ -83,6 +92,7 @@ fn register_builtin(analysis: &mut Analysis) {
                 alignment: 0,
                 ast: None,
                 fields: vec![],
+                array_params: None,
             },
             Type {
                 id: TypeId::from_builtin(F32_TYPE),
@@ -91,6 +101,7 @@ fn register_builtin(analysis: &mut Analysis) {
                 alignment: 4,
                 ast: None,
                 fields: vec![],
+                array_params: None,
             },
             Type {
                 id: TypeId::from_builtin(U32_TYPE),
@@ -99,6 +110,7 @@ fn register_builtin(analysis: &mut Analysis) {
                 alignment: 4,
                 ast: None,
                 fields: vec![],
+                array_params: None,
             },
             Type {
                 id: TypeId::from_builtin(I32_TYPE),
@@ -107,6 +119,7 @@ fn register_builtin(analysis: &mut Analysis) {
                 alignment: 4,
                 ast: None,
                 fields: vec![],
+                array_params: None,
             },
             Type {
                 id: TypeId::from_builtin(BOOL_TYPE),
@@ -115,6 +128,7 @@ fn register_builtin(analysis: &mut Analysis) {
                 alignment: 4,
                 ast: None,
                 fields: vec![],
+                array_params: None,
             },
         ]
         .into_iter()
@@ -134,7 +148,8 @@ fn register_structs(analysis: &mut Analysis) {
                     size: 0,      // defined once all structs have been detected
                     alignment: 0, // defined once all structs have been detected
                     ast: Some(struct_.clone()),
-                    fields: vec![], // defined once all structs have been detected
+                    fields: vec![],     // defined once all structs have been detected
+                    array_params: None, // defined once all structs have been detected
                 };
                 if let Some(existing_struct) = analysis.types.insert(id.clone(), type_) {
                     analysis.errors.push(errors::types::duplicated(
@@ -150,6 +165,18 @@ fn register_structs(analysis: &mut Analysis) {
         }
     }
     analysis.asts = asts;
+}
+
+fn register_array_params(analysis: &mut Analysis) {
+    analysis.types = analysis
+        .types
+        .clone()
+        .into_iter()
+        .map(|(type_id, mut type_)| {
+            parse_array_params(analysis, &mut type_);
+            (type_id, type_)
+        })
+        .collect();
 }
 
 fn register_struct_details(analysis: &mut Analysis) {
@@ -177,6 +204,40 @@ fn register_struct_details(analysis: &mut Analysis) {
     }
 }
 
+fn parse_array_params(analysis: &mut Analysis, type_: &mut Type) {
+    if let Some(ast) = &type_.ast {
+        if let (Some(gpu), None) = (&ast.gpu_qualifier, &ast.layout) {
+            if let Some(name) = &gpu.name {
+                if name.root.label == WGSL_ARRAY_TYPE {
+                    match parse_array_generic_args(analysis, gpu, &name.generics) {
+                        Ok(params) => type_.array_params = Some(params),
+                        Err(Some(err)) => analysis.errors.push(err),
+                        Err(None) => (),
+                    }
+                }
+            }
+        }
+    }
+}
+
+fn parse_array_generic_args(
+    analysis: &Analysis,
+    gpu: &AstGpuQualifier,
+    generics: &[AstGpuGenericParam],
+) -> Result<(TypeId, u32), Option<SemanticError>> {
+    if let (Some(AstGpuGenericParam::Ident(item_type)), Some(AstGpuGenericParam::Literal(length))) =
+        (generics.first(), generics.get(1))
+    {
+        let module = &gpu.span.module.name;
+        let item_type = resolver::type_(analysis, module, item_type).map_err(|_| None)?;
+        let length = NonZeroU32::from_str(&length.value.replace('_', ""))
+            .map_err(|_| errors::types::invalid_gpu_array_args(gpu))?;
+        Ok((item_type, length.into()))
+    } else {
+        Err(Some(errors::types::invalid_gpu_array_args(gpu)))
+    }
+}
+
 fn calculate_type_details(analysis: &mut Analysis, type_: &mut Type) -> Option<()> {
     if let Some(ast) = &type_.ast {
         if type_.fields.is_empty() {
@@ -192,7 +253,14 @@ fn calculate_type_details(analysis: &mut Analysis, type_: &mut Type) -> Option<(
             .flat_map(|field| &field.type_id)
             .all(|type_id| analysis.types[type_id].size > 0);
         if are_fields_registered {
-            if let Some(layout) = &ast.layout {
+            if let Some((item_type_id, length)) = &type_.array_params {
+                let item_type = &analysis.types[item_type_id];
+                if item_type.size == 0 {
+                    return Some(()); // item type layout not yet calculated
+                }
+                type_.size = length * round_up(item_type.alignment, item_type.size);
+                type_.alignment = item_type.alignment;
+            } else if let Some(layout) = &ast.layout {
                 type_.size = layout.size.into();
                 type_.alignment = layout.alignment.into();
             } else {
