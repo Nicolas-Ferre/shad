@@ -83,6 +83,17 @@ pub(crate) fn field_not_found(field: &AstIdent, type_id: &TypeId) -> SemanticErr
     )
 }
 
+pub(crate) fn no_field(ast: &AstStructItem) -> SemanticError {
+    SemanticError::new(
+        format!("struct `{}` without field", ast.name.label),
+        vec![LocatedMessage {
+            level: ErrorLevel::Error,
+            span: ast.name.span.clone(),
+            text: "invalid struct".into(),
+        }],
+    )
+}
+
 pub(crate) fn missing_layout(ast: &AstStructItem, gpu: &AstGpuQualifier) -> SemanticError {
     SemanticError::new(
         format!(

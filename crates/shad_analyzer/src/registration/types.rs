@@ -263,7 +263,7 @@ fn calculate_type_details(analysis: &mut Analysis, type_: &mut Type) -> Option<(
             } else if let Some(layout) = &ast.layout {
                 type_.size = layout.size.into();
                 type_.alignment = layout.alignment.into();
-            } else {
+            } else if !type_.fields.is_empty() {
                 type_.alignment = type_
                     .fields
                     .iter()
