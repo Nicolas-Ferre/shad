@@ -39,10 +39,8 @@ impl AstStructItem {
         let name = AstIdent::parse(lexer)?;
         parse_token(lexer, TokenType::OpenBrace)?;
         let mut fields = vec![];
-        let mut is_first_field = true;
-        while is_first_field || parse_token_option(lexer, TokenType::CloseBrace)?.is_none() {
+        while parse_token_option(lexer, TokenType::CloseBrace)?.is_none() {
             fields.push(AstStructField::parse(lexer)?);
-            is_first_field = false;
             if parse_token_option(lexer, TokenType::Comma)?.is_none() {
                 parse_token(lexer, TokenType::CloseBrace)?;
                 break;

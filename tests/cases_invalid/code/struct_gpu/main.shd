@@ -16,19 +16,15 @@ gpu struct vec3i {
 }
 
 gpu(array<mat4f, 2>) struct unknown_gpu_generic_type {
-    _: i32,
 }
 
 gpu(array<2, 2>) struct invalid_gpu_array_item_type {
-    _: i32,
 }
 
 gpu(array<i32, i32>) struct invalid_gpu_array_length {
-    _: i32,
 }
 
 gpu(array<i32, true>) struct invalid_gpu_array_length2 {
-    _: i32,
 }
 
 buf vec = vec2i(1, 2);

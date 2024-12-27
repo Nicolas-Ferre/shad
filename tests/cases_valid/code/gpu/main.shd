@@ -15,10 +15,7 @@ struct Data {
 }
 
 gpu layout(16, 16) struct vec4i {
-    x: i32,
     y: i32,
-    z: i32,
-    w: i32,
 }
 
 gpu(vec2i) layout(8, 8) struct i32x2 {
@@ -27,7 +24,6 @@ gpu(vec2i) layout(8, 8) struct i32x2 {
 }
 
 gpu(array<i32x2, 2>) struct i32x2x2 {
-    _: i32,
 }
 
 gpu(array<i32x2, 2,>) struct i32x2x2_with_generic_leading_comma {

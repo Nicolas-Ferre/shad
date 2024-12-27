@@ -8,9 +8,16 @@ error: type `DuplicatedType` is defined multiple times
   |        ^^^^^^^^^^^^^^ duplicated type
   |
 
-error: could not find `undef` type
- --> ./cases_invalid/code/struct/main.shd:6:21
+error: struct `NoField` without field
+ --> ./cases_invalid/code/struct/main.shd:5:8
   |
-6 |     undefined_type: undef,
+5 | struct NoField {}
+  |        ^^^^^^^ invalid struct
+  |
+
+error: could not find `undef` type
+ --> ./cases_invalid/code/struct/main.shd:8:21
+  |
+8 |     undefined_type: undef,
   |                     ^^^^^ undefined type
   |

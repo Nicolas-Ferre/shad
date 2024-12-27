@@ -11,6 +11,10 @@ pub(crate) fn check(analysis: &mut Analysis) {
                     analysis.errors.push(error);
                 }
             }
+            if ast.gpu_qualifier.is_none() && ast.fields.is_empty() {
+                let error = errors::types::no_field(ast);
+                analysis.errors.push(error);
+            }
         }
     }
 }
