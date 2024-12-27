@@ -64,6 +64,7 @@ impl Analysis {
         registration::idents::register(&mut analysis);
         checks::functions::check(&mut analysis);
         transformation::literals::transform(&mut analysis);
+        checks::types::check(&mut analysis);
         checks::literals::check(&mut analysis);
         checks::statements::check(&mut analysis);
         checks::recursion::fns::check(&mut analysis);

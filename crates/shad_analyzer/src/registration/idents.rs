@@ -53,8 +53,8 @@ fn register_structs(analysis: &mut Analysis) {
         let ast_and_name = type_
             .ast
             .as_ref()
-            .and_then(|ast| ast.gpu_params.as_ref().map(|gpu| (ast, gpu)))
-            .and_then(|(ast, gpu)| gpu.0.name.as_ref().map(|name| (ast, name)));
+            .and_then(|ast| ast.gpu_qualifier.as_ref().map(|gpu| (ast, gpu)))
+            .and_then(|(ast, gpu)| gpu.name.as_ref().map(|name| (ast, name)));
         if let Some((ast, name)) = &ast_and_name {
             register_gpu_name(analysis, &ast.name.span.module.name, name);
         }
