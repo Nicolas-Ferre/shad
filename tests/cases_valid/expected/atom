@@ -6,6 +6,7 @@ main.f32_underscores=123456700
 main.f32_zero=0
 main.false_val=0
 main.i32_max_value=2147483647
+main.i32_min_value=-2147483648
 main.i32_underscores=123456789
 main.i32_zero=0
 main.not_yet_defined=2147483647
