@@ -34,7 +34,7 @@ pub struct Type {
     pub ast: Option<AstStructItem>,
     /// The fields of the type when this is a struct.
     pub fields: Vec<StructField>,
-    /// The fields of the type when this is a struct.
+    /// The parsed generic arguments when the `gpu` type is an array.
     pub array_params: Option<(TypeId, u32)>,
 }
 
