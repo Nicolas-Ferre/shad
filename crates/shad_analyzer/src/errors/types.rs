@@ -103,3 +103,14 @@ pub(crate) fn missing_layout(ast: &AstStructItem, gpu: &AstGpuQualifier) -> Sema
         ],
     )
 }
+
+pub(crate) fn invalid_gpu_array_args(gpu: &AstGpuQualifier) -> SemanticError {
+    SemanticError::new(
+        "invalid `gpu` array generic params",
+        vec![LocatedMessage {
+            level: ErrorLevel::Error,
+            span: gpu.span.clone(),
+            text: "`gpu` array should have two generic arguments (a type and a non-zero positive 32-bit integer)".into(),
+        }],
+    )
+}
