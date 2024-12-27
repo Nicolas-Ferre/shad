@@ -1,7 +1,7 @@
 use crate::atom::{parse_token, parse_token_option};
 use crate::token::{Lexer, TokenType};
 use crate::{AstGpuQualifier, AstIdent};
-use shad_error::SyntaxError;
+use shad_error::{Span, SyntaxError};
 use std::num::NonZeroU32;
 use std::str::FromStr;
 
@@ -26,16 +26,15 @@ pub struct AstStructItem {
     /// Whether the item is public.
     pub is_pub: bool,
     /// The `gpu` qualifier and associated parameters.
-    pub gpu_params: Option<(AstGpuQualifier, AstStructLayout)>,
+    pub gpu_qualifier: Option<AstGpuQualifier>,
+    /// The struct layout.
+    pub layout: Option<AstStructLayout>,
 }
 
 impl AstStructItem {
     pub(crate) fn parse(lexer: &mut Lexer<'_>, is_pub: bool) -> Result<Self, SyntaxError> {
-        let gpu_params = if let Some(gpu_qualifier) = AstGpuQualifier::parse(lexer)? {
-            Some((gpu_qualifier, AstStructLayout::parse(lexer)?))
-        } else {
-            None
-        };
+        let gpu_qualifier = AstGpuQualifier::parse(lexer)?;
+        let layout = AstStructLayout::parse(lexer)?;
         parse_token(lexer, TokenType::Struct)?;
         let name = AstIdent::parse(lexer)?;
         parse_token(lexer, TokenType::OpenBrace)?;
@@ -53,7 +52,8 @@ impl AstStructItem {
             name,
             fields,
             is_pub,
-            gpu_params,
+            gpu_qualifier,
+            layout,
         })
     }
 }
@@ -108,6 +108,8 @@ impl AstStructField {
 /// ```
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AstStructLayout {
+    /// The span of the layout.
+    pub span: Span,
     /// The struct memory size.
     pub size: NonZeroU32,
     /// The struct memory alignment.
@@ -115,14 +117,21 @@ pub struct AstStructLayout {
 }
 
 impl AstStructLayout {
-    pub(crate) fn parse(lexer: &mut Lexer<'_>) -> Result<Self, SyntaxError> {
-        parse_token(lexer, TokenType::Layout)?;
-        parse_token(lexer, TokenType::OpenParenthesis)?;
-        let size = Self::parse_value(lexer)?;
-        parse_token(lexer, TokenType::Comma)?;
-        let alignment = Self::parse_value(lexer)?;
-        parse_token(lexer, TokenType::CloseParenthesis)?;
-        Ok(Self { size, alignment })
+    pub(crate) fn parse(lexer: &mut Lexer<'_>) -> Result<Option<Self>, SyntaxError> {
+        if let Some(layout) = parse_token_option(lexer, TokenType::Layout)? {
+            parse_token(lexer, TokenType::OpenParenthesis)?;
+            let size = Self::parse_value(lexer)?;
+            parse_token(lexer, TokenType::Comma)?;
+            let alignment = Self::parse_value(lexer)?;
+            let close_parenthesis = parse_token(lexer, TokenType::CloseParenthesis)?;
+            Ok(Some(Self {
+                span: Span::join(&layout.span, &close_parenthesis.span),
+                size,
+                alignment,
+            }))
+        } else {
+            Ok(None)
+        }
     }
 
     fn parse_value(lexer: &mut Lexer<'_>) -> Result<NonZeroU32, SyntaxError> {

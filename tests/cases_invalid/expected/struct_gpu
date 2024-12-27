@@ -5,9 +5,18 @@ error: could not find `vec3i` type
   |           ^^^^^ undefined type
   |
 
-error: could not find `vec2i(i32, i32)` function
-  --> ./cases_invalid/code/struct_gpu/main.shd:11:11
+error: missing layout definition for the `gpu` struct `nolayout`
+  --> ./cases_invalid/code/struct_gpu/main.shd:11:19
    |
-11 | buf vec = vec2i(1, 2);
+11 | gpu(vec2i) struct nolayout {
+   | ----------        ^^^^^^^^ invalid struct definition
+   | |
+   | info: `gpu` structs should have a `layout`
+   |
+
+error: could not find `vec2i(i32, i32)` function
+  --> ./cases_invalid/code/struct_gpu/main.shd:16:11
+   |
+16 | buf vec = vec2i(1, 2);
    |           ^^^^^^^^^^^ undefined function
    |

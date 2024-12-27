@@ -192,7 +192,7 @@ fn calculate_type_details(analysis: &mut Analysis, type_: &mut Type) -> Option<(
             .flat_map(|field| &field.type_id)
             .all(|type_id| analysis.types[type_id].size > 0);
         if are_fields_registered {
-            if let Some((_, layout)) = &ast.gpu_params {
+            if let Some(layout) = &ast.layout {
                 type_.size = layout.size.into();
                 type_.alignment = layout.alignment.into();
             } else {

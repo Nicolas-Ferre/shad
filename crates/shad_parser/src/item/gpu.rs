@@ -2,24 +2,32 @@ use crate::atom::{parse_token, parse_token_option};
 use crate::expr::LITERALS;
 use crate::token::{Lexer, TokenType};
 use crate::{AstIdent, AstLiteral};
-use shad_error::SyntaxError;
+use shad_error::{Span, SyntaxError};
 
 /// A parsed `gpu` qualifier.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AstGpuQualifier {
+    /// The span of the qualifier.
+    pub span: Span,
     /// The name of the item in WGSL.
     pub name: Option<AstGpuName>,
 }
 
 impl AstGpuQualifier {
     pub(crate) fn parse(lexer: &mut Lexer<'_>) -> Result<Option<Self>, SyntaxError> {
-        if parse_token_option(lexer, TokenType::Gpu)?.is_some() {
+        if let Some(gpu) = parse_token_option(lexer, TokenType::Gpu)? {
             if parse_token_option(lexer, TokenType::OpenParenthesis)?.is_some() {
                 let name = AstGpuName::parse(lexer)?;
-                parse_token(lexer, TokenType::CloseParenthesis)?;
-                Ok(Some(Self { name: Some(name) }))
+                let close_parenthesis = parse_token(lexer, TokenType::CloseParenthesis)?;
+                Ok(Some(Self {
+                    span: Span::join(&gpu.span, &close_parenthesis.span),
+                    name: Some(name),
+                }))
             } else {
-                Ok(Some(Self { name: None }))
+                Ok(Some(Self {
+                    span: gpu.span,
+                    name: None,
+                }))
             }
         } else {
             Ok(None)

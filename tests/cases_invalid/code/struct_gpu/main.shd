@@ -8,4 +8,9 @@ gpu(array<vec3i, 2>) layout(32, 16) struct vec3ix2 {
     y: i32,
 }
 
+gpu(vec2i) struct nolayout {
+    x: i32,
+    y: i32,
+}
+
 buf vec = vec2i(1, 2);

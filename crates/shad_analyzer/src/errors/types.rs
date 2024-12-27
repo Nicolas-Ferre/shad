@@ -2,7 +2,7 @@ use crate::checks::recursion::UsedItem;
 use crate::TypeId;
 use itertools::Itertools;
 use shad_error::{ErrorLevel, LocatedMessage, SemanticError};
-use shad_parser::{AstIdent, AstStructItem};
+use shad_parser::{AstGpuQualifier, AstIdent, AstStructItem};
 use std::iter;
 
 pub(crate) fn duplicated(
@@ -80,5 +80,26 @@ pub(crate) fn field_not_found(field: &AstIdent, type_id: &TypeId) -> SemanticErr
             span: field.span.clone(),
             text: "undefined field".into(),
         }],
+    )
+}
+
+pub(crate) fn missing_layout(ast: &AstStructItem, gpu: &AstGpuQualifier) -> SemanticError {
+    SemanticError::new(
+        format!(
+            "missing layout definition for the `gpu` struct `{}`",
+            ast.name.label
+        ),
+        vec![
+            LocatedMessage {
+                level: ErrorLevel::Error,
+                span: ast.name.span.clone(),
+                text: "invalid struct definition".into(),
+            },
+            LocatedMessage {
+                level: ErrorLevel::Info,
+                span: gpu.span.clone(),
+                text: "`gpu` structs should have a `layout`".into(),
+            },
+        ],
     )
 }

@@ -88,7 +88,7 @@ pub(crate) fn register(analysis: &mut Analysis) {
 fn register_initializers(analysis: &mut Analysis) {
     for (type_id, type_) in &analysis.types.clone() {
         if let Some(ast) = &type_.ast {
-            if ast.gpu_params.is_some() {
+            if ast.gpu_qualifier.is_some() {
                 continue;
             }
             let id = FnId::initializer(type_, ast);
@@ -169,7 +169,10 @@ fn struct_initializer_fn(analysis: &mut Analysis, ast: &AstStructItem) -> AstFnI
         }),
         statements: vec![],
         is_pub: ast.is_pub && ast.fields.iter().all(|field| field.is_pub),
-        gpu_qualifier: Some(AstGpuQualifier { name: None }),
+        gpu_qualifier: Some(AstGpuQualifier {
+            span: ast.name.span.clone(),
+            name: None,
+        }),
     }
 }
 
