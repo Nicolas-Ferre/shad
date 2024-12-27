@@ -3,6 +3,12 @@ gpu layout(8, 8) struct vec2i {
     y: i32,
 }
 
+gpu(vec3i) struct nolayout {
+    x: i32,
+    y: i32,
+    z: i32,
+}
+
 gpu struct vec3i {
     x: i32,
     y: i32,
