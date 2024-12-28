@@ -119,7 +119,17 @@ pub(crate) fn fn_<'a>(analysis: &'a Analysis, name: &AstIdent) -> Option<&'a Fun
 
 pub(crate) fn expr_semantic(analysis: &Analysis, expr: &AstExpr) -> ExprSemantic {
     match &expr.root {
-        AstExprRoot::Ident(_) => ExprSemantic::Ref,
+        AstExprRoot::Ident(ident) => {
+            if let Some(ident) = analysis.idents.get(&ident.id) {
+                if matches!(ident.source, IdentSource::Constant(_)) {
+                    ExprSemantic::Value
+                } else {
+                    ExprSemantic::Ref
+                }
+            } else {
+                ExprSemantic::None
+            }
+        }
         AstExprRoot::FnCall(call) => {
             if expr.fields.is_empty() {
                 fn_(analysis, &call.name)
