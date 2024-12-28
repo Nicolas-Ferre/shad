@@ -5,6 +5,7 @@ import nested.child;
 run {
     private_buffer = 1;
     private_function();
+    var value = PRIVATE_CONST;
     var value = struct_value.field;
     var value = PrivateStruct(0);
     var value = PrivateStructPubField(0);

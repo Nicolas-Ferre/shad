@@ -13,6 +13,9 @@ pub(crate) enum TokenType {
     #[token("struct")]
     Struct,
 
+    #[token("const")]
+    Const,
+
     #[token("buf")]
     Buf,
 
@@ -140,6 +143,7 @@ impl TokenType {
         match self {
             Self::Import => "`import`",
             Self::Struct => "`struct`",
+            Self::Const => "`const`",
             Self::Buf => "`buf`",
             Self::Run => "`run`",
             Self::Priority => "`priority`",

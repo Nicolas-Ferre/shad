@@ -1,3 +1,5 @@
+buf PRIVATE_CONST = 0;
+
 buf private_buffer = 0;
 
 fn private_function() {

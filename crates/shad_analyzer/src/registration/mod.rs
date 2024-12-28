@@ -1,4 +1,5 @@
 pub(crate) mod buffers;
+pub(crate) mod constants;
 pub(crate) mod functions;
 pub(crate) mod idents;
 pub(crate) mod modules;

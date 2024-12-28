@@ -9,6 +9,24 @@ pub struct Buffer {
     pub ast: AstBufferItem,
 }
 
+/// The unique identifier of a buffer.
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct BufferId {
+    /// The module in which the buffer is defined.
+    pub module: String,
+    /// The buffer name.
+    pub name: String,
+}
+
+impl BufferId {
+    pub(crate) fn new(buffer: &AstBufferItem) -> Self {
+        Self {
+            module: buffer.name.span.module.name.clone(),
+            name: buffer.name.label.clone(),
+        }
+    }
+}
+
 pub(crate) fn register(analysis: &mut Analysis) {
     let asts = mem::take(&mut analysis.asts);
     for ast in asts.values() {
@@ -29,22 +47,4 @@ pub(crate) fn register(analysis: &mut Analysis) {
         }
     }
     analysis.asts = asts;
-}
-
-/// The unique identifier of a buffer.
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct BufferId {
-    /// The module in which the buffer is defined.
-    pub module: String,
-    /// The buffer name.
-    pub name: String,
-}
-
-impl BufferId {
-    pub(crate) fn new(buffer: &AstBufferItem) -> Self {
-        Self {
-            module: buffer.name.span.module.name.clone(),
-            name: buffer.name.label.clone(),
-        }
-    }
 }

@@ -1,0 +1,13 @@
+const I32 = 123;
+const U32 = 123u;
+const F32_WITHOUT_DECIMAL = 123.;
+const F32_WITH_DECIMAL = 123.4;
+const TRUE = true;
+const FALSE = false;
+
+buf i32_result = I32;
+buf u32_result = U32;
+buf f32_without_decimal_result = F32_WITHOUT_DECIMAL;
+buf f32_with_decimal_result = F32_WITH_DECIMAL;
+buf true_result = TRUE;
+buf false_result = FALSE;

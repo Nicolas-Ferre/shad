@@ -1,3 +1,4 @@
+use crate::registration::constants::{Constant, ConstantId};
 use crate::registration::functions::Function;
 use crate::registration::idents::Ident;
 use crate::registration::shaders::ComputeShader;
@@ -22,6 +23,8 @@ pub struct Analysis {
     pub types: FxHashMap<TypeId, Type>,
     /// The analyzed functions.
     pub fns: FxHashMap<FnId, Function>,
+    /// The analyzed constants.
+    pub constants: FxHashMap<ConstantId, Constant>,
     /// The analyzed buffers.
     pub buffers: FxHashMap<BufferId, Buffer>,
     /// The analyzed init blocks.
@@ -47,6 +50,7 @@ impl Analysis {
             idents: FxHashMap::default(),
             types: FxHashMap::default(),
             fns: FxHashMap::default(),
+            constants: FxHashMap::default(),
             buffers: FxHashMap::default(),
             init_blocks: vec![],
             run_blocks: vec![],
@@ -58,12 +62,15 @@ impl Analysis {
         registration::modules::register(&mut analysis);
         registration::types::register(&mut analysis);
         registration::functions::register(&mut analysis);
+        registration::constants::register(&mut analysis);
         registration::buffers::register(&mut analysis);
         registration::run_blocks::register(&mut analysis);
         transformation::fn_params::transform(&mut analysis);
         registration::idents::register(&mut analysis);
-        checks::functions::check(&mut analysis);
         transformation::literals::transform(&mut analysis);
+        registration::constants::calculate(&mut analysis);
+        checks::constants::check(&mut analysis);
+        checks::functions::check(&mut analysis);
         checks::types::check(&mut analysis);
         checks::literals::check(&mut analysis);
         checks::statements::check(&mut analysis);
@@ -76,6 +83,7 @@ impl Analysis {
             return analysis;
         }
         checks::recursion::types::check(&mut analysis);
+        transformation::constants::transform(&mut analysis);
         transformation::left_values::transform(&mut analysis);
         transformation::ref_split::transform(&mut analysis);
         transformation::ref_fn_inline::transform(&mut analysis);

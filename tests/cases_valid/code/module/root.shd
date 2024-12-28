@@ -1,5 +1,9 @@
 import state;
 
+pub const MAIN_CONST = 3;
+pub const CHILD_CONST = 4;
+pub const ROOT_CONST = 5;
+
 pub buf main_buffer = 0;
 pub buf child_buffer = 0;
 pub buf root_buffer = 0;

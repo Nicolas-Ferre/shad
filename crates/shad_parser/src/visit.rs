@@ -1,5 +1,6 @@
 use crate::fn_call::AstFnCall;
 use crate::item::buffer::AstBufferItem;
+use crate::item::constant::AstConstItem;
 use crate::item::function::AstFnItem;
 use crate::item::import::AstImportItem;
 use crate::item::run_block::AstRunItem;
@@ -22,6 +23,9 @@ macro_rules! visit_trait {
 
             /// Runs logic when entering in a struct item.
             fn enter_struct_item(&mut self, node: &$($mut_keyword)? AstStructItem) {}
+
+            /// Runs logic when entering in a constant item.
+            fn enter_const_item(&mut self, node: &$($mut_keyword)? AstConstItem) {}
 
             /// Runs logic when entering in a buffer item.
             fn enter_buffer_item(&mut self, node: &$($mut_keyword)? AstBufferItem) {}
@@ -70,6 +74,9 @@ macro_rules! visit_trait {
 
             /// Runs logic when exiting a struct item.
             fn exit_struct_item(&mut self, node: &$($mut_keyword)? AstStructItem) {}
+
+            /// Runs logic when exiting a constant item.
+            fn exit_const_item(&mut self, node: &$($mut_keyword)? AstConstItem) {}
 
             /// Runs logic when exiting a buffer item.
             fn exit_buffer_item(&mut self, node: &$($mut_keyword)? AstBufferItem) {}
@@ -124,6 +131,7 @@ macro_rules! visit_trait {
                 self.enter_item(node);
                 match node {
                     AstItem::Struct(node) => self.visit_struct_item(node),
+                    AstItem::Const(node) => self.visit_const_item(node),
                     AstItem::Buffer(node) => self.visit_buffer_item(node),
                     AstItem::Fn(node) => self.visit_fn_item(node),
                     AstItem::Run(node) => self.visit_run_item(node),
@@ -149,6 +157,14 @@ macro_rules! visit_trait {
                 self.visit_ident(&$($mut_keyword)? node.name);
                 self.visit_expr(&$($mut_keyword)? node.value);
                 self.exit_buffer_item(node);
+            }
+
+            /// Visit a constant item.
+            fn visit_const_item(&mut self, node: &$($mut_keyword)? AstConstItem) {
+                self.enter_const_item(node);
+                self.visit_ident(&$($mut_keyword)? node.name);
+                self.visit_expr(&$($mut_keyword)? node.value);
+                self.exit_const_item(node);
             }
 
             /// Visit a function item.

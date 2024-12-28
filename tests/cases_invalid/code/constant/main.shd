@@ -1,0 +1,10 @@
+const DUPLICATED_CONST = 0;
+const FN_RESULT = f();
+const IDENT = FN_RESULT;
+const FIELD = 0.field;
+const INVALID_LITERAL = 123456789123456789;
+const DUPLICATED_CONST = 1;
+
+fn f() -> i32 {
+    return 0;
+}

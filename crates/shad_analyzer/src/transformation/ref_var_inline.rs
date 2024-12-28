@@ -53,7 +53,8 @@ impl VisitMut for RefVarInlineTransform<'_> {
                 }
             }
             Some(
-                IdentSource::Buffer(_)
+                IdentSource::Constant(_)
+                | IdentSource::Buffer(_)
                 | IdentSource::Fn(_)
                 | IdentSource::Field
                 | IdentSource::GenericType,

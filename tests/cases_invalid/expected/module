@@ -26,37 +26,44 @@ error: could not find `private_function()` function
   |     ^^^^^^^^^^^^^^^^^^ undefined function
   |
 
-error: could not find `field` field in `PrivateStruct` type
- --> ./cases_invalid/code/module/main.shd:8:30
+error: could not find `PRIVATE_CONST` value
+ --> ./cases_invalid/code/module/main.shd:8:17
   |
-8 |     var value = struct_value.field;
+8 |     var value = PRIVATE_CONST;
+  |                 ^^^^^^^^^^^^^ undefined identifier
+  |
+
+error: could not find `field` field in `PrivateStruct` type
+ --> ./cases_invalid/code/module/main.shd:9:30
+  |
+9 |     var value = struct_value.field;
   |                              ^^^^^ undefined field
   |
 
 error: could not find `PrivateStruct(i32)` function
- --> ./cases_invalid/code/module/main.shd:9:17
-  |
-9 |     var value = PrivateStruct(0);
-  |                 ^^^^^^^^^^^^^^^^ undefined function
-  |
-
-error: could not find `PrivateStructPubField(i32)` function
   --> ./cases_invalid/code/module/main.shd:10:17
    |
-10 |     var value = PrivateStructPubField(0);
+10 |     var value = PrivateStruct(0);
+   |                 ^^^^^^^^^^^^^^^^ undefined function
+   |
+
+error: could not find `PrivateStructPubField(i32)` function
+  --> ./cases_invalid/code/module/main.shd:11:17
+   |
+11 |     var value = PrivateStructPubField(0);
    |                 ^^^^^^^^^^^^^^^^^^^^^^^^ undefined function
    |
 
 error: could not find `PubStructPrivateField(i32)` function
-  --> ./cases_invalid/code/module/main.shd:11:17
+  --> ./cases_invalid/code/module/main.shd:12:17
    |
-11 |     var value = PubStructPrivateField(0);
+12 |     var value = PubStructPrivateField(0);
    |                 ^^^^^^^^^^^^^^^^^^^^^^^^ undefined function
    |
 
 error: could not find `PrivateStruct` type
-  --> ./cases_invalid/code/module/main.shd:14:13
+  --> ./cases_invalid/code/module/main.shd:15:13
    |
-14 | fn f(value: PrivateStruct) {}
+15 | fn f(value: PrivateStruct) {}
    |             ^^^^^^^^^^^^^ undefined type
    |

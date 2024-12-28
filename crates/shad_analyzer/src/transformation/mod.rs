@@ -2,6 +2,7 @@ use crate::{resolver, Analysis, Ident, IdentSource};
 use shad_parser::{AstExpr, AstIdent, AstStatement, AstVarDefinition};
 use std::mem;
 
+pub(crate) mod constants;
 pub(crate) mod expr_statements;
 pub(crate) mod fn_params;
 pub(crate) mod left_values;

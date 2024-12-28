@@ -5,6 +5,9 @@ use std::str::FromStr;
 
 pub(crate) fn check(analysis: &mut Analysis) {
     let mut checker = LiteralCheck::default();
+    for constant in analysis.constants.values() {
+        checker.visit_expr(&constant.ast.value);
+    }
     for block in &analysis.init_blocks {
         checker.visit_run_item(&block.ast);
     }

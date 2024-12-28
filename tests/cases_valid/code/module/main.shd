@@ -2,6 +2,12 @@ import main;
 import root;
 import nested.child;
 
+const MAIN_CONST = 6;
+
+buf main_const_value = MAIN_CONST;
+buf child_const_value = CHILD_CONST;
+buf root_const_value = ROOT_CONST;
+
 buf main_buffer = 0;
 
 pub buf called_main_fn = false;

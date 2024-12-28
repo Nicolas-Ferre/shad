@@ -1,8 +1,9 @@
+use crate::registration::constants::{Constant, ConstantId};
 use crate::{errors, resolver, Analysis, Buffer, BufferId, FnId, Function, TypeId};
 use fxhash::FxHashMap;
 use shad_parser::{
-    AstBufferItem, AstExpr, AstExprRoot, AstFnCall, AstFnItem, AstFnParam, AstGpuGenericParam,
-    AstGpuName, AstIdent, AstItem, AstVarDefinition, Visit,
+    AstBufferItem, AstConstItem, AstExpr, AstExprRoot, AstFnCall, AstFnItem, AstFnParam,
+    AstGpuGenericParam, AstGpuName, AstIdent, AstItem, AstVarDefinition, Visit,
 };
 use std::mem;
 
@@ -24,6 +25,8 @@ impl Ident {
 /// The source of an identifier.
 #[derive(Debug, Clone)]
 pub enum IdentSource {
+    /// A constant.
+    Constant(ConstantId),
     /// A buffer.
     Buffer(BufferId),
     /// A variable.
@@ -38,6 +41,7 @@ pub enum IdentSource {
 
 pub(crate) fn register(analysis: &mut Analysis) {
     register_structs(analysis);
+    register_constants(analysis);
     register_buffer_init(analysis);
     register_buffer_types(analysis);
     register_run_blocks(analysis);
@@ -58,6 +62,13 @@ fn register_structs(analysis: &mut Analysis) {
         if let Some((ast, name)) = &ast_and_name {
             register_gpu_name(analysis, &ast.name.span.module.name, name);
         }
+    }
+}
+
+fn register_constants(analysis: &mut Analysis) {
+    for constant in analysis.constants.clone().values() {
+        let module = &constant.ast.name.span.module.name;
+        IdentRegistration::new(analysis, module, true).visit_const_item(&constant.ast);
     }
 }
 
@@ -201,6 +212,22 @@ impl<'a> IdentRegistration<'a> {
             .find(|(buffer_id, buffer)| buffer.ast.is_pub || buffer_id.module == self.module)
     }
 
+    fn find_constant(&self, name: &str) -> Option<(ConstantId, &Constant)> {
+        self.analysis
+            .visible_modules
+            .get(self.module)
+            .into_iter()
+            .flatten()
+            .filter_map(|module| {
+                let id = ConstantId {
+                    module: module.clone(),
+                    name: name.into(),
+                };
+                self.analysis.constants.get(&id).map(|buffer| (id, buffer))
+            })
+            .find(|(buffer_id, buffer)| buffer.ast.is_pub || buffer_id.module == self.module)
+    }
+
     fn register_fn_item(&mut self, node: &AstFnItem) {
         let fn_id = FnId::from_item(self.analysis, node);
         let return_type_id = self
@@ -236,6 +263,13 @@ impl<'a> IdentRegistration<'a> {
             let buffer_ident = Ident::new(IdentSource::Buffer(buffer_id), buffer_type.clone());
             self.analysis.idents.insert(variable.id, buffer_ident);
             buffer_type
+        } else if let Some((constant_id, _)) = self.find_constant(&variable.label) {
+            let constant_type =
+                resolver::constant_type(self.analysis, &constant_id).map(|type_| type_.id.clone());
+            let constant_ident =
+                Ident::new(IdentSource::Constant(constant_id), constant_type.clone());
+            self.analysis.idents.insert(variable.id, constant_ident);
+            constant_type
         } else if self.are_errors_enabled {
             let error = errors::variables::not_found(variable);
             self.analysis.errors.push(error);
@@ -252,6 +286,18 @@ impl Visit for IdentRegistration<'_> {
         for param in &node.params {
             self.register_fn_param(param);
         }
+    }
+
+    fn exit_const_item(&mut self, node: &AstConstItem) {
+        let constant_type = resolver::expr_type(self.analysis, &node.value);
+        let constant_ident = Ident::new(
+            IdentSource::Constant(ConstantId {
+                module: self.module.into(),
+                name: node.name.label.clone(),
+            }),
+            constant_type,
+        );
+        self.analysis.idents.insert(node.name.id, constant_ident);
     }
 
     fn exit_buffer_item(&mut self, node: &AstBufferItem) {

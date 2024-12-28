@@ -1,5 +1,8 @@
 pub import state;
 
+pub const MAIN_CONST = 1;
+pub const CHILD_CONST = 2;
+
 pub buf main_buffer = 0;
 pub buf child_buffer = 0;
 
