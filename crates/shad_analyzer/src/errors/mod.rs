@@ -1,5 +1,6 @@
 pub(crate) mod assignments;
 pub(crate) mod buffers;
+pub(crate) mod constants;
 pub(crate) mod expressions;
 pub(crate) mod fn_calls;
 pub(crate) mod functions;

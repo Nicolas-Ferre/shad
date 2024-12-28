@@ -1,3 +1,4 @@
+use crate::registration::constants::ConstantId;
 use crate::{
     errors, Analysis, BufferId, Function, IdentSource, Type, TypeId, BOOL_TYPE, F32_TYPE, I32_TYPE,
     U32_TYPE,
@@ -76,6 +77,19 @@ pub(crate) fn expr_root_id(expr: &AstExpr) -> Option<u64> {
     }
 }
 
+pub(crate) fn constant_type<'a>(
+    analysis: &'a Analysis,
+    constant_id: &ConstantId,
+) -> Option<&'a Type> {
+    analysis
+        .constants
+        .get(constant_id)
+        .map(|buffer| buffer.ast.name.id)
+        .and_then(|id| analysis.idents.get(&id))
+        .and_then(|ident| ident.type_id.as_ref())
+        .and_then(|type_| analysis.types.get(type_))
+}
+
 pub(crate) fn buffer_type<'a>(analysis: &'a Analysis, buffer_id: &BufferId) -> Option<&'a Type> {
     analysis
         .buffers
@@ -92,7 +106,8 @@ pub(crate) fn fn_<'a>(analysis: &'a Analysis, name: &AstIdent) -> Option<&'a Fun
         .get(&name.id)
         .map(|ident| match &ident.source {
             IdentSource::Fn(id) => id.clone(),
-            IdentSource::Buffer(_)
+            IdentSource::Constant(_)
+            | IdentSource::Buffer(_)
             | IdentSource::Var(_)
             | IdentSource::Field
             | IdentSource::GenericType => {

@@ -1,4 +1,5 @@
 use crate::atom::{parse_token, parse_token_option};
+use crate::item::constant::AstConstItem;
 use crate::token::{Lexer, TokenType};
 use crate::{AstGpuQualifier, AstStatement, AstStructItem};
 use buffer::AstBufferItem;
@@ -8,6 +9,7 @@ use run_block::AstRunItem;
 use shad_error::SyntaxError;
 
 pub(crate) mod buffer;
+pub(crate) mod constant;
 pub(crate) mod function;
 pub(crate) mod gpu;
 pub(crate) mod import;
@@ -19,6 +21,8 @@ pub(crate) mod struct_;
 pub enum AstItem {
     /// A struct definition.
     Struct(AstStructItem),
+    /// A constant definition.
+    Const(AstConstItem),
     /// A buffer definition.
     Buffer(AstBufferItem),
     /// A function definition.
@@ -40,6 +44,7 @@ impl AstItem {
     fn parse_without_visibility(lexer: &mut Lexer<'_>, is_pub: bool) -> Result<Self, SyntaxError> {
         match lexer.clone().next_token()?.type_ {
             TokenType::Struct => Ok(Self::Struct(AstStructItem::parse(lexer, is_pub)?)),
+            TokenType::Const => Ok(Self::Const(AstConstItem::parse(lexer, is_pub)?)),
             TokenType::Buf => Ok(Self::Buffer(AstBufferItem::parse(lexer, is_pub)?)),
             TokenType::Fn => Ok(Self::Fn(AstFnItem::parse(lexer, is_pub)?)),
             TokenType::Run => Ok(Self::Run(AstRunItem::parse(lexer)?)),

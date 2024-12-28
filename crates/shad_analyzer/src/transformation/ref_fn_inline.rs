@@ -161,7 +161,8 @@ impl VisitMut for RefFnStatementsTransform<'_> {
     fn exit_ident(&mut self, node: &mut AstIdent) {
         if let Some(ident) = self.analysis.idents.get(&node.id) {
             match ident.source {
-                IdentSource::Buffer(_)
+                IdentSource::Constant(_)
+                | IdentSource::Buffer(_)
                 | IdentSource::Fn(_)
                 | IdentSource::Field
                 | IdentSource::GenericType => {}

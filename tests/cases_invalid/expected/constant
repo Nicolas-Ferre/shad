@@ -1,0 +1,27 @@
+error: invalid expression in `const` context
+ --> ./cases_invalid/code/constant/main.shd:1:19
+  |
+1 | const FN_RESULT = f();
+  |                   ^^^ not allowed in `const` context
+  |
+
+error: invalid expression in `const` context
+ --> ./cases_invalid/code/constant/main.shd:2:15
+  |
+2 | const IDENT = FN_RESULT;
+  |               ^^^^^^^^^ not allowed in `const` context
+  |
+
+error: could not find `field` field in `i32` type
+ --> ./cases_invalid/code/constant/main.shd:3:17
+  |
+3 | const FIELD = 0.field;
+  |                 ^^^^^ undefined field
+  |
+
+error: `i32` literal out of range
+ --> ./cases_invalid/code/constant/main.shd:4:25
+  |
+4 | const INVALID_LITERAL = 123456789123456789;
+  |                         ^^^^^^^^^^^^^^^^^^ value is outside allowed range for `i32` type
+  |
