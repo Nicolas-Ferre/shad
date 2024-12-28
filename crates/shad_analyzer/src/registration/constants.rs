@@ -1,4 +1,4 @@
-use crate::{errors, Analysis};
+use crate::{errors, Analysis, IdentSource};
 use shad_parser::{AstConstItem, AstExpr, AstExprRoot, AstItem, AstLiteralType};
 use std::mem;
 use std::str::FromStr;
@@ -62,19 +62,31 @@ pub(crate) fn register(analysis: &mut Analysis) {
 }
 
 pub(crate) fn calculate(analysis: &mut Analysis) {
-    for (id, constant) in analysis.constants.clone() {
-        if !constant.ast.value.fields.is_empty() {
-            return;
+    let mut last_calculated_constant_count = calculated_constant_count(analysis);
+    while last_calculated_constant_count < analysis.constants.len() {
+        let constant_ids = analysis.constants.keys().cloned().collect::<Vec<_>>();
+        for id in constant_ids {
+            let constant = &analysis.constants[&id];
+            if constant.value.is_none() {
+                if !constant.ast.value.fields.is_empty() {
+                    return;
+                }
+                analysis
+                    .constants
+                    .get_mut(&id)
+                    .expect("internal error: missing constant")
+                    .value = calculate_const_expr(analysis, &constant.ast.value);
+            }
         }
-        analysis
-            .constants
-            .get_mut(&id)
-            .expect("internal error: missing constant")
-            .value = calculate_const_expr(&constant.ast.value);
+        let calculated_constant_value = calculated_constant_count(analysis);
+        if calculated_constant_value == last_calculated_constant_count {
+            break; // recursive constant init
+        }
+        last_calculated_constant_count = calculated_constant_value;
     }
 }
 
-fn calculate_const_expr(expr: &AstExpr) -> Option<ConstantValue> {
+fn calculate_const_expr(analysis: &Analysis, expr: &AstExpr) -> Option<ConstantValue> {
     match &expr.root {
         AstExprRoot::Literal(literal) => match literal.type_ {
             AstLiteralType::F32 => f32::from_str(&literal.value).ok().map(ConstantValue::F32),
@@ -84,6 +96,29 @@ fn calculate_const_expr(expr: &AstExpr) -> Option<ConstantValue> {
             AstLiteralType::I32 => i32::from_str(&literal.value).ok().map(ConstantValue::I32),
             AstLiteralType::Bool => Some(ConstantValue::Bool(literal.value == "true")),
         },
-        AstExprRoot::Ident(_) | AstExprRoot::FnCall(_) => None,
+        AstExprRoot::Ident(ident) => {
+            if let Some(ident) = &analysis.idents.get(&ident.id) {
+                if let IdentSource::Constant(constant_id) = &ident.source {
+                    analysis
+                        .constants
+                        .get(constant_id)
+                        .as_ref()
+                        .and_then(|constant| constant.value.clone())
+                } else {
+                    None
+                }
+            } else {
+                None
+            }
+        }
+        AstExprRoot::FnCall(_) => None,
     }
+}
+
+fn calculated_constant_count(analysis: &Analysis) -> usize {
+    analysis
+        .constants
+        .values()
+        .filter(|constant| constant.value.is_some())
+        .count()
 }

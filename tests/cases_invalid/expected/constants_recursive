@@ -1,0 +1,26 @@
+error: buffer `RECURSIVE2_INDIRECT` defined recursively
+ --> ./cases_invalid/code/constants_recursive/other.shd:3:9
+  |
+3 | pub buf RECURSIVE2_INDIRECT = RECURSIVE3_INDIRECT;
+  |         ^^^^^^^^^^^^^^^^^^^   ------------------- info: `RECURSIVE3_INDIRECT` buffer used during `RECURSIVE2_INDIRECT` buffer init
+  |         |
+  |         recursive buffer `RECURSIVE2_INDIRECT` defined here
+4 | pub buf RECURSIVE3_INDIRECT = RECURSIVE4_INDIRECT;
+  |                               ------------------- info: `RECURSIVE4_INDIRECT` buffer used during `RECURSIVE3_INDIRECT` buffer init
+  |
+ ::: ./cases_invalid/code/constants_recursive/main.shd:5:31
+  |
+4 | pub buf RECURSIVE1_INDIRECT = RECURSIVE2_INDIRECT;
+  |                               ------------------- info: `RECURSIVE2_INDIRECT` buffer used during `RECURSIVE1_INDIRECT` buffer init
+5 | pub buf RECURSIVE4_INDIRECT = RECURSIVE1_INDIRECT;
+  |                               ------------------- info: `RECURSIVE1_INDIRECT` buffer used during `RECURSIVE4_INDIRECT` buffer init
+  |
+
+error: constant `RECURSIVE_DIRECT` defined recursively
+ --> ./cases_invalid/code/constants_recursive/main.shd:3:11
+  |
+3 | pub const RECURSIVE_DIRECT = RECURSIVE_DIRECT;
+  |           ^^^^^^^^^^^^^^^^   ---------------- info: `RECURSIVE_DIRECT` constant used during `RECURSIVE_DIRECT` constant init
+  |           |
+  |           recursive constant `RECURSIVE_DIRECT` defined here
+  |

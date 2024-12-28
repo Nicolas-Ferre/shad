@@ -1,6 +1,9 @@
-use crate::registration::constants::Constant;
+use crate::checks::recursion::UsedItem;
+use crate::registration::constants::{Constant, ConstantId};
+use itertools::Itertools;
 use shad_error::{ErrorLevel, LocatedMessage, SemanticError};
 use shad_parser::{AstConstItem, AstExpr};
+use std::iter;
 
 pub(crate) fn duplicated(
     duplicated_constant: &AstConstItem,
@@ -34,5 +37,39 @@ pub(crate) fn invalid_expr(expr: &AstExpr) -> SemanticError {
             span: expr.span.clone(),
             text: "not allowed in `const` context".into(),
         }],
+    )
+}
+
+pub(crate) fn recursion_found(
+    current_constant_id: &ConstantId,
+    constant_stack: &[UsedItem<ConstantId>],
+) -> SemanticError {
+    SemanticError::new(
+        format!(
+            "constant `{}` defined recursively",
+            current_constant_id.name
+        ),
+        iter::once(LocatedMessage {
+            level: ErrorLevel::Error,
+            span: constant_stack[constant_stack.len() - 1].def_span.clone(),
+            text: format!(
+                "recursive constant `{}` defined here",
+                constant_stack[constant_stack.len() - 1].id.name
+            ),
+        })
+        .chain(
+            constant_stack
+                .iter()
+                .circular_tuple_windows()
+                .map(|(usage, next_usage)| LocatedMessage {
+                    level: ErrorLevel::Info,
+                    span: next_usage.usage_span.clone(),
+                    text: format!(
+                        "`{}` constant used during `{}` constant init",
+                        next_usage.id.name, usage.id.name,
+                    ),
+                }),
+        )
+        .collect(),
     )
 }

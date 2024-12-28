@@ -78,6 +78,7 @@ impl Analysis {
         if !analysis.errors.is_empty() {
             return analysis;
         }
+        checks::recursion::constants::check(&mut analysis);
         checks::recursion::buffers::check(&mut analysis);
         if !analysis.errors.is_empty() {
             return analysis;
