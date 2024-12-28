@@ -1,8 +1,8 @@
 use crate::checks::recursion::{ItemRecursionCheck, UsedItem};
 use crate::registration::constants::ConstantId;
-use crate::{errors, resolver, Analysis, IdentSource};
+use crate::{errors, Analysis, IdentSource};
 use fxhash::FxHashSet;
-use shad_parser::{AstFnCall, AstIdent, Visit};
+use shad_parser::{AstIdent, Visit};
 use std::mem;
 
 pub(crate) fn check(analysis: &mut Analysis) {
