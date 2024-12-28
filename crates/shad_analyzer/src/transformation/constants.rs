@@ -29,6 +29,31 @@ impl<'a> ConstantTransform<'a> {
             statements: vec![],
         }
     }
+
+    fn literal_str(value: &ConstantValue) -> String {
+        match value {
+            ConstantValue::U32(value) => format!("{value}u"),
+            ConstantValue::I32(value) => value.to_string(),
+            ConstantValue::F32(value) => {
+                let value = value.to_string();
+                if value.contains('.') {
+                    value
+                } else {
+                    format!("{value}.0")
+                }
+            }
+            ConstantValue::Bool(value) => value.to_string(),
+        }
+    }
+
+    fn literal_type(value: &ConstantValue) -> AstLiteralType {
+        match value {
+            ConstantValue::U32(_) => AstLiteralType::U32,
+            ConstantValue::I32(_) => AstLiteralType::I32,
+            ConstantValue::F32(_) => AstLiteralType::F32,
+            ConstantValue::Bool(_) => AstLiteralType::Bool,
+        }
+    }
 }
 
 impl VisitMut for ConstantTransform<'_> {
@@ -39,38 +64,11 @@ impl VisitMut for ConstantTransform<'_> {
                     .value
                     .clone()
                     .expect("internal error: not calculated constant");
-                node.root = AstExprRoot::Literal(match value {
-                    ConstantValue::U32(value) => AstLiteral {
-                        span: node.root.span().clone(),
-                        value: format!("{value}u"),
-                        type_: AstLiteralType::U32,
-                        is_neg: false,
-                    },
-                    ConstantValue::I32(value) => AstLiteral {
-                        span: node.root.span().clone(),
-                        value: value.to_string(),
-                        type_: AstLiteralType::I32,
-                        is_neg: false,
-                    },
-                    ConstantValue::F32(value) => AstLiteral {
-                        span: node.root.span().clone(),
-                        value: {
-                            let value = value.to_string();
-                            if value.contains('.') {
-                                value
-                            } else {
-                                format!("{value}.0")
-                            }
-                        },
-                        type_: AstLiteralType::F32,
-                        is_neg: false,
-                    },
-                    ConstantValue::Bool(value) => AstLiteral {
-                        span: node.root.span().clone(),
-                        value: value.to_string(),
-                        type_: AstLiteralType::Bool,
-                        is_neg: false,
-                    },
+                node.root = AstExprRoot::Literal(AstLiteral {
+                    span: node.root.span().clone(),
+                    value: Self::literal_str(&value),
+                    type_: Self::literal_type(&value),
+                    is_neg: false,
                 });
             }
         }

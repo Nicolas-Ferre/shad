@@ -1,27 +1,39 @@
 error: invalid expression in `const` context
- --> ./cases_invalid/code/constant/main.shd:1:19
+ --> ./cases_invalid/code/constant/main.shd:2:19
   |
-1 | const FN_RESULT = f();
+2 | const FN_RESULT = f();
   |                   ^^^ not allowed in `const` context
   |
 
 error: invalid expression in `const` context
- --> ./cases_invalid/code/constant/main.shd:2:15
+ --> ./cases_invalid/code/constant/main.shd:3:15
   |
-2 | const IDENT = FN_RESULT;
+3 | const IDENT = FN_RESULT;
   |               ^^^^^^^^^ not allowed in `const` context
   |
 
 error: could not find `field` field in `i32` type
- --> ./cases_invalid/code/constant/main.shd:3:17
+ --> ./cases_invalid/code/constant/main.shd:4:17
   |
-3 | const FIELD = 0.field;
+4 | const FIELD = 0.field;
   |                 ^^^^^ undefined field
   |
 
 error: `i32` literal out of range
- --> ./cases_invalid/code/constant/main.shd:4:25
+ --> ./cases_invalid/code/constant/main.shd:5:25
   |
-4 | const INVALID_LITERAL = 123456789123456789;
+5 | const INVALID_LITERAL = 123456789123456789;
   |                         ^^^^^^^^^^^^^^^^^^ value is outside allowed range for `i32` type
+  |
+
+error: constant with name `DUPLICATED_CONST` is defined multiple times
+ --> ./cases_invalid/code/constant/main.shd:6:7
+  |
+1 | const DUPLICATED_CONST = 0;
+  |       ---------------- info: constant with same name is defined here
+2 | const FN_RESULT = f();
+...
+5 | const INVALID_LITERAL = 123456789123456789;
+6 | const DUPLICATED_CONST = 1;
+  |       ^^^^^^^^^^^^^^^^ duplicated constant name
   |

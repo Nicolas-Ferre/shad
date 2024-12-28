@@ -1,5 +1,6 @@
 use crate::fn_call::AstFnCall;
 use crate::item::buffer::AstBufferItem;
+use crate::item::constant::AstConstItem;
 use crate::item::function::AstFnItem;
 use crate::item::import::AstImportItem;
 use crate::item::run_block::AstRunItem;
@@ -7,7 +8,6 @@ use crate::{
     Ast, AstAssignment, AstExpr, AstExprRoot, AstExprStatement, AstIdent, AstItem, AstLiteral,
     AstReturn, AstStatement, AstStructItem, AstVarDefinition,
 };
-use crate::item::constant::AstConstItem;
 
 // coverage: off (not all functions are used by other crates)
 macro_rules! visit_trait {
