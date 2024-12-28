@@ -22,26 +22,21 @@ pub(crate) fn check(analysis: &mut Analysis) {
 }
 
 impl Visit for ItemRecursionCheck<'_, ConstantId> {
-    fn enter_fn_call(&mut self, node: &AstFnCall) {
-        if let Some(fn_) = resolver::fn_(self.analysis, &node.name) {
-            self.visit_fn_item(&fn_.ast);
-        }
-    }
-
     fn enter_ident(&mut self, node: &AstIdent) {
-        if let Some(ident) = self.analysis.idents.get(&node.id) {
-            if let IdentSource::Constant(id) = &ident.source {
-                let constant = &self.analysis.constants[id].ast;
-                self.used_item_ids.push(UsedItem {
-                    usage_span: node.span.clone(),
-                    def_span: constant.name.span.clone(),
-                    id: id.clone(),
-                });
-                if !self.detect_error(errors::constants::recursion_found) {
-                    self.visit_expr(&constant.value);
-                }
-                self.used_item_ids.pop();
+        let ident = &self.analysis.idents[&node.id];
+        if let IdentSource::Constant(id) = &ident.source {
+            let constant = &self.analysis.constants[id].ast;
+            self.used_item_ids.push(UsedItem {
+                usage_span: node.span.clone(),
+                def_span: constant.name.span.clone(),
+                id: id.clone(),
+            });
+            if !self.detect_error(errors::constants::recursion_found) {
+                self.visit_expr(&constant.value);
             }
+            self.used_item_ids.pop();
+        } else {
+            unreachable!("internal error: non-constant identifier in const context")
         }
     }
 }

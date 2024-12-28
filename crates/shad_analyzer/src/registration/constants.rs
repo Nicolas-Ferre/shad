@@ -105,7 +105,7 @@ fn calculate_const_expr(analysis: &Analysis, expr: &AstExpr) -> Option<ConstantV
                         .as_ref()
                         .and_then(|constant| constant.value.clone())
                 } else {
-                    None
+                    unreachable!("internal error: non-constant identifier in const context")
                 }
             } else {
                 None
