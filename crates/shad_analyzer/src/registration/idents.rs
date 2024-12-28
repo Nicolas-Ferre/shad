@@ -41,7 +41,8 @@ pub enum IdentSource {
 
 pub(crate) fn register(analysis: &mut Analysis) {
     register_structs(analysis);
-    register_constants(analysis);
+    register_constant_init(analysis);
+    register_constant_types(analysis);
     register_buffer_init(analysis);
     register_buffer_types(analysis);
     register_run_blocks(analysis);
@@ -65,10 +66,31 @@ fn register_structs(analysis: &mut Analysis) {
     }
 }
 
-fn register_constants(analysis: &mut Analysis) {
+fn register_constant_init(analysis: &mut Analysis) {
     for constant in analysis.constants.clone().values() {
         let module = &constant.ast.name.span.module.name;
-        IdentRegistration::new(analysis, module, true).visit_const_item(&constant.ast);
+        IdentRegistration::new(analysis, module, true, true).visit_const_item(&constant.ast);
+    }
+}
+
+fn register_constant_types(analysis: &mut Analysis) {
+    let constant_count = count_constants(analysis);
+    let mut typed_constant_count = 0;
+    let mut last_typed_constant_count = 0;
+    let constants = analysis.constants.clone();
+    while typed_constant_count < constant_count {
+        for constant in constants.values() {
+            if analysis.idents[&constant.ast.name.id].type_id.is_none() {
+                let module = &constant.ast.name.span.module.name;
+                IdentRegistration::new(analysis, module, true, false)
+                    .visit_const_item(&constant.ast);
+            }
+        }
+        typed_constant_count = count_typed_constants(analysis);
+        if typed_constant_count == last_typed_constant_count {
+            break; // recursive constant init
+        }
+        last_typed_constant_count = typed_constant_count;
     }
 }
 
@@ -77,7 +99,7 @@ fn register_buffer_init(analysis: &mut Analysis) {
     for (module, ast) in &asts {
         for item in &ast.items {
             if let AstItem::Buffer(buffer) = item {
-                IdentRegistration::new(analysis, module, true).visit_buffer_item(buffer);
+                IdentRegistration::new(analysis, module, false, true).visit_buffer_item(buffer);
             }
         }
     }
@@ -93,7 +115,8 @@ fn register_buffer_types(analysis: &mut Analysis) {
         for buffer in buffers.values() {
             if analysis.idents[&buffer.ast.name.id].type_id.is_none() {
                 let module = &buffer.ast.name.span.module.name;
-                IdentRegistration::new(analysis, module, false).visit_buffer_item(&buffer.ast);
+                IdentRegistration::new(analysis, module, false, false)
+                    .visit_buffer_item(&buffer.ast);
             }
         }
         typed_buffer_count = count_typed_buffers(analysis);
@@ -107,14 +130,14 @@ fn register_buffer_types(analysis: &mut Analysis) {
 fn register_run_blocks(analysis: &mut Analysis) {
     let blocks = mem::take(&mut analysis.run_blocks);
     for block in &blocks {
-        IdentRegistration::new(analysis, &block.module, true).visit_run_item(&block.ast);
+        IdentRegistration::new(analysis, &block.module, false, true).visit_run_item(&block.ast);
     }
     analysis.run_blocks = blocks;
 }
 
 fn register_fns(analysis: &mut Analysis) {
     for fn_ in analysis.fns.clone().into_values() {
-        IdentRegistration::new(analysis, &fn_.ast.name.span.module.name, true)
+        IdentRegistration::new(analysis, &fn_.ast.name.span.module.name, false, true)
             .visit_fn_item(&fn_.ast);
         let name = fn_
             .ast
@@ -137,6 +160,23 @@ fn register_gpu_name(analysis: &mut Analysis, module: &str, name: &AstGpuName) {
     }
 }
 
+fn count_constants(analysis: &Analysis) -> usize {
+    analysis
+        .idents
+        .values()
+        .filter(|e| matches!(e.source, IdentSource::Constant(_)))
+        .count()
+}
+
+fn count_typed_constants(analysis: &Analysis) -> usize {
+    analysis
+        .idents
+        .values()
+        .filter(|e| matches!(e.source, IdentSource::Constant(_)))
+        .filter(|e| e.type_id.is_some())
+        .count()
+}
+
 fn count_buffers(analysis: &Analysis) -> usize {
     analysis
         .idents
@@ -157,6 +197,7 @@ fn count_typed_buffers(analysis: &Analysis) -> usize {
 struct IdentRegistration<'a> {
     analysis: &'a mut Analysis,
     module: &'a str,
+    is_const_context: bool,
     are_errors_enabled: bool,
     variables: FxHashMap<String, u64>,
 }
@@ -165,11 +206,13 @@ impl<'a> IdentRegistration<'a> {
     pub(crate) fn new(
         analysis: &'a mut Analysis,
         module: &'a str,
+        is_const_context: bool,
         are_errors_enabled: bool,
     ) -> Self {
         Self {
             analysis,
             module,
+            is_const_context,
             are_errors_enabled,
             variables: FxHashMap::default(),
         }
@@ -257,7 +300,9 @@ impl<'a> IdentRegistration<'a> {
             let var_ident = Ident::new(IdentSource::Var(id), var_type.clone());
             self.analysis.idents.insert(variable.id, var_ident);
             var_type
-        } else if let Some((buffer_id, _)) = self.find_buffer(&variable.label) {
+        } else if let (Some((buffer_id, _)), false) =
+            (self.find_buffer(&variable.label), self.is_const_context)
+        {
             let buffer_type =
                 resolver::buffer_type(self.analysis, &buffer_id).map(|type_| type_.id.clone());
             let buffer_ident = Ident::new(IdentSource::Buffer(buffer_id), buffer_type.clone());

@@ -1,53 +1,60 @@
 error: invalid expression in `const` context
- --> ./cases_invalid/code/constant/main.shd:2:19
+ --> ./cases_invalid/code/constant/main.shd:4:19
   |
-2 | const FN_RESULT = f();
+4 | const FN_RESULT = f();
   |                   ^^^ not allowed in `const` context
   |
 
-error: invalid expression in `const` context
- --> ./cases_invalid/code/constant/main.shd:3:15
+error: could not find `UNDEFINED` value
+ --> ./cases_invalid/code/constant/main.shd:5:25
   |
-3 | const IDENT = FN_RESULT;
-  |               ^^^^^^^^^ not allowed in `const` context
+5 | const UNDEFINED_IDENT = UNDEFINED;
+  |                         ^^^^^^^^^ undefined identifier
+  |
+
+error: could not find `buffer_value` value
+ --> ./cases_invalid/code/constant/main.shd:6:22
+  |
+6 | const BUFFER_ident = buffer_value;
+  |                      ^^^^^^^^^^^^ undefined identifier
   |
 
 error: could not find `field` field in `i32` type
- --> ./cases_invalid/code/constant/main.shd:4:17
+ --> ./cases_invalid/code/constant/main.shd:7:17
   |
-4 | const FIELD = 0.field;
+7 | const FIELD = 0.field;
   |                 ^^^^^ undefined field
   |
 
 error: `i32` literal out of range
- --> ./cases_invalid/code/constant/main.shd:5:25
+ --> ./cases_invalid/code/constant/main.shd:8:25
   |
-5 | const INVALID_LITERAL = 123456789123456789;
+8 | const INVALID_LITERAL = 123456789123456789;
   |                         ^^^^^^^^^^^^^^^^^^ value is outside allowed range for `i32` type
   |
 
 error: constant with name `DUPLICATED_CONST` is defined multiple times
- --> ./cases_invalid/code/constant/main.shd:6:7
+ --> ./cases_invalid/code/constant/main.shd:9:7
   |
-1 | const DUPLICATED_CONST = 0;
+3 | const DUPLICATED_CONST = 0;
   |       ---------------- info: constant with same name is defined here
-2 | const FN_RESULT = f();
+4 | const FN_RESULT = f();
 ...
-5 | const INVALID_LITERAL = 123456789123456789;
-6 | const DUPLICATED_CONST = 1;
+8 | const INVALID_LITERAL = 123456789123456789;
+9 | const DUPLICATED_CONST = 1;
   |       ^^^^^^^^^^^^^^^^ duplicated constant name
   |
 
 error: expression is not a reference
-  --> ./cases_invalid/code/constant/main.shd:13:5
+  --> ./cases_invalid/code/constant/main.shd:16:5
    |
-13 |     DUPLICATED_CONST = 42;
+16 |     DUPLICATED_CONST = 42;
    |     ^^^^^^^^^^^^^^^^ a valid reference is expected here
    |
 
 error: expression is not a reference
-  --> ./cases_invalid/code/constant/main.shd:14:21
+  --> ./cases_invalid/code/constant/main.shd:17:21
    |
-14 |     ref ref_const = DUPLICATED_CONST;
+17 |     ref ref_const = DUPLICATED_CONST;
    |                     ^^^^^^^^^^^^^^^^ a valid reference is expected here
    |

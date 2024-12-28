@@ -4,4 +4,5 @@ main.f32_without_decimal_result=123
 main.false_result=0
 main.i32_result=123
 main.true_result=1
+main.u32_copy_result=123
 main.u32_result=123
