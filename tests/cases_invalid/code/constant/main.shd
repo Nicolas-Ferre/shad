@@ -8,3 +8,8 @@ const DUPLICATED_CONST = 1;
 fn f() -> i32 {
     return 0;
 }
+
+run {
+    DUPLICATED_CONST = 42;
+    ref ref_const = DUPLICATED_CONST;
+}

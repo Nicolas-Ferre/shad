@@ -37,3 +37,17 @@ error: constant with name `DUPLICATED_CONST` is defined multiple times
 6 | const DUPLICATED_CONST = 1;
   |       ^^^^^^^^^^^^^^^^ duplicated constant name
   |
+
+error: expression is not a reference
+  --> ./cases_invalid/code/constant/main.shd:13:5
+   |
+13 |     DUPLICATED_CONST = 42;
+   |     ^^^^^^^^^^^^^^^^ a valid reference is expected here
+   |
+
+error: expression is not a reference
+  --> ./cases_invalid/code/constant/main.shd:14:21
+   |
+14 |     ref ref_const = DUPLICATED_CONST;
+   |                     ^^^^^^^^^^^^^^^^ a valid reference is expected here
+   |

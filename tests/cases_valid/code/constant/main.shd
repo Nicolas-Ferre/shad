@@ -11,3 +11,16 @@ buf f32_without_decimal_result = F32_WITHOUT_DECIMAL;
 buf f32_with_decimal_result = F32_WITH_DECIMAL;
 buf true_result = TRUE;
 buf false_result = FALSE;
+
+buf const_ref_param_result = 0;
+
+run {
+    const_ref_param_result = add_two(I32);
+}
+
+fn add_two(value: ref i32) -> ref i32 {
+    value = value + 2;
+    return value;
+}
+
+gpu fn __add__(left: i32, right: i32) -> i32;
