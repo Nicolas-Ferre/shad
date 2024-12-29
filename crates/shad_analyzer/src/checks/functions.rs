@@ -66,8 +66,12 @@ fn check_duplicated_params(fn_: &Function) -> Vec<SemanticError> {
 
 fn check_gpu_const_fn(analysis: &Analysis, fn_: &Function) -> Option<SemanticError> {
     if fn_.ast.is_const && fn_.ast.gpu_qualifier.is_some() {
-        let const_fn_id = fn_.const_fn_id()?;
-        if let Some(&const_fn) = analysis.const_functions.get(&const_fn_id) {
+        if let Some((const_fn_id, &const_fn)) = fn_.const_fn_id().and_then(|id| {
+            analysis
+                .const_functions
+                .get(&id)
+                .map(|const_fn| (id, const_fn))
+        }) {
             if let (Some(return_type), Some(actual_return_type_id)) =
                 (&fn_.ast.return_type, &fn_.return_type_id)
             {
