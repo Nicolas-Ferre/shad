@@ -1,8 +1,8 @@
 use crate::checks::recursion::UsedItem;
-use crate::{FnId, TypeId};
+use crate::{FnId, Function, TypeId};
 use itertools::Itertools;
 use shad_error::{ErrorLevel, LocatedMessage, SemanticError};
-use shad_parser::{AstFnCall, AstFnItem, AstIdent};
+use shad_parser::{AstFnCall, AstFnItem, AstIdent, AstReturnType};
 use std::iter;
 
 pub(crate) fn duplicated(
@@ -112,5 +112,40 @@ pub(crate) fn duplicated_param(
                 text: "parameter with same name is defined here".into(),
             },
         ],
+    )
+}
+
+pub(crate) fn not_found_const_fn(fn_: &Function) -> SemanticError {
+    SemanticError::new(
+        format!(
+            "`const` function `{}` is not implemented in the compiler",
+            fn_.id.signature()
+        ),
+        vec![LocatedMessage {
+            level: ErrorLevel::Error,
+            span: fn_.ast.name.span.clone(),
+            text: "undefined `const` function".into(),
+        }],
+    )
+}
+
+pub(crate) fn invalid_const_fn_return_type(
+    fn_: &Function,
+    return_type: &AstReturnType,
+    expected_type_id: &TypeId,
+    actual_type_id: &TypeId,
+) -> SemanticError {
+    SemanticError::new(
+        format!(
+            "`const` function `{}` has invalid return type `{}`, expected `{}`",
+            fn_.id.signature(),
+            actual_type_id.name,
+            expected_type_id.name,
+        ),
+        vec![LocatedMessage {
+            level: ErrorLevel::Error,
+            span: return_type.name.span.clone(),
+            text: "invalid return type".into(),
+        }],
     )
 }

@@ -1,9 +1,9 @@
-use crate::{errors, Analysis};
+use crate::{errors, Analysis, ConstFnId, ConstFnParamType, Function};
 use fxhash::FxHashMap;
 use shad_error::SemanticError;
 use shad_parser::{
-    AstFnItem, ADD_FN, AND_FN, DIV_FN, EQ_FN, GE_FN, GT_FN, LE_FN, LT_FN, MOD_FN, MUL_FN, NEG_FN,
-    NE_FN, NOT_FN, OR_FN, SUB_FN,
+    ADD_FN, AND_FN, DIV_FN, EQ_FN, GE_FN, GT_FN, LE_FN, LT_FN, MOD_FN, MUL_FN, NEG_FN, NE_FN,
+    NOT_FN, OR_FN, SUB_FN,
 };
 
 const UNARY_FN_PARAM_COUNT: usize = 1;
@@ -16,12 +16,12 @@ const SPECIAL_BINARY_FNS: [&str; 13] = [
 pub(crate) fn check(analysis: &mut Analysis) {
     let mut errors = vec![];
     for fn_ in analysis.fns.values() {
-        check_fn(&fn_.ast, &mut errors);
+        check_fn(analysis, fn_, &mut errors);
     }
     analysis.errors.extend(errors);
 }
 
-fn check_fn(fn_: &AstFnItem, errors: &mut Vec<SemanticError>) {
+fn check_fn(analysis: &Analysis, fn_: &Function, errors: &mut Vec<SemanticError>) {
     errors.extend(check_param_count(
         fn_,
         &SPECIAL_UNARY_FNS,
@@ -33,21 +33,25 @@ fn check_fn(fn_: &AstFnItem, errors: &mut Vec<SemanticError>) {
         BINARY_FN_PARAM_COUNT,
     ));
     errors.extend(check_duplicated_params(fn_));
+    errors.extend(check_gpu_const_fn(analysis, fn_));
 }
 
 fn check_param_count(
-    fn_: &AstFnItem,
+    fn_: &Function,
     matching_names: &[&str],
     expected_count: usize,
 ) -> Option<SemanticError> {
-    if matching_names.contains(&fn_.name.label.as_str()) && fn_.params.len() != expected_count {
-        Some(errors::functions::invalid_param_count(fn_, expected_count))
+    if matching_names.contains(&fn_.ast.name.label.as_str()) && fn_.params.len() != expected_count {
+        Some(errors::functions::invalid_param_count(
+            &fn_.ast,
+            expected_count,
+        ))
     } else {
         None
     }
 }
 
-fn check_duplicated_params(fn_: &AstFnItem) -> Vec<SemanticError> {
+fn check_duplicated_params(fn_: &Function) -> Vec<SemanticError> {
     let mut names = FxHashMap::default();
     fn_.params
         .iter()
@@ -58,4 +62,50 @@ fn check_duplicated_params(fn_: &AstFnItem) -> Vec<SemanticError> {
         })
         .map(|(param1, param2)| errors::functions::duplicated_param(param1, param2))
         .collect()
+}
+
+fn check_gpu_const_fn(analysis: &Analysis, fn_: &Function) -> Option<SemanticError> {
+    if fn_.ast.is_const && fn_.ast.gpu_qualifier.is_some() {
+        let const_fn_id = ConstFnId {
+            name: fn_.ast.name.label.clone(),
+            param_types: fn_
+                .params
+                .iter()
+                .map(|param| {
+                    param
+                        .type_id
+                        .as_ref()
+                        .and_then(ConstFnParamType::from_type_id)
+                })
+                .collect::<Option<Vec<_>>>()?,
+        };
+        if let Some(const_fn) = analysis.const_functions.get(&const_fn_id) {
+            let test_params: Vec<_> = const_fn_id
+                .param_types
+                .iter()
+                .map(|param_type| param_type.zero_value())
+                .collect();
+            if let (Some(return_type), Some(actual_return_type_id)) =
+                (&fn_.ast.return_type, &fn_.return_type_id)
+            {
+                let expected_result_type_id = const_fn(&test_params).type_id();
+                if &expected_result_type_id == actual_return_type_id {
+                    None
+                } else {
+                    Some(errors::functions::invalid_const_fn_return_type(
+                        fn_,
+                        return_type,
+                        &expected_result_type_id,
+                        actual_return_type_id,
+                    ))
+                }
+            } else {
+                None
+            }
+        } else {
+            Some(errors::functions::not_found_const_fn(fn_))
+        }
+    } else {
+        None
+    }
 }

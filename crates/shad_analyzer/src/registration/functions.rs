@@ -169,6 +169,7 @@ fn struct_initializer_fn(analysis: &mut Analysis, ast: &AstStructItem) -> AstFnI
         }),
         statements: vec![],
         is_pub: ast.is_pub && ast.fields.iter().all(|field| field.is_pub),
+        is_const: false,
         gpu_qualifier: Some(AstGpuQualifier {
             span: ast.name.span.clone(),
             name: None,

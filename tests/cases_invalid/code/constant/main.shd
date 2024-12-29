@@ -1,7 +1,8 @@
 buf buffer_value = 0;
 
 const DUPLICATED_CONST = 0;
-const FN_RESULT = f();
+const NON_CONST_FN_RESULT = f();
+const UNDEFINED_FN_RESULT = undefined();
 const UNDEFINED_IDENT = UNDEFINED;
 const BUFFER_ident = buffer_value;
 const FIELD = 0.field;

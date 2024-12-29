@@ -2,7 +2,7 @@ use crate::checks::recursion::UsedItem;
 use crate::registration::constants::{Constant, ConstantId};
 use itertools::Itertools;
 use shad_error::{ErrorLevel, LocatedMessage, SemanticError};
-use shad_parser::{AstConstItem, AstExpr};
+use shad_parser::{AstConstItem, AstFnCall};
 use std::iter;
 
 pub(crate) fn duplicated(
@@ -29,12 +29,12 @@ pub(crate) fn duplicated(
     )
 }
 
-pub(crate) fn invalid_expr(expr: &AstExpr) -> SemanticError {
+pub(crate) fn non_const_fn_call(call: &AstFnCall) -> SemanticError {
     SemanticError::new(
-        "invalid expression in `const` context",
+        "non-`const` function called in `const` context",
         vec![LocatedMessage {
             level: ErrorLevel::Error,
-            span: expr.span.clone(),
+            span: call.span.clone(),
             text: "not allowed in `const` context".into(),
         }],
     )

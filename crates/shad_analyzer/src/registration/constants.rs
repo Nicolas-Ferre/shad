@@ -1,4 +1,4 @@
-use crate::{errors, Analysis, IdentSource};
+use crate::{errors, resolver, Analysis, ConstFnId, ConstFnParamType, IdentSource, TypeId};
 use shad_parser::{AstConstItem, AstExpr, AstExprRoot, AstItem, AstLiteralType};
 use std::mem;
 use std::str::FromStr;
@@ -36,6 +36,26 @@ pub enum ConstantValue {
     I32(i32),
     F32(f32),
     Bool(bool),
+}
+
+impl ConstantValue {
+    pub(crate) fn type_id(&self) -> TypeId {
+        match self {
+            Self::U32(_) => TypeId::from_builtin("u32"),
+            Self::I32(_) => TypeId::from_builtin("i32"),
+            Self::F32(_) => TypeId::from_builtin("f32"),
+            Self::Bool(_) => TypeId::from_builtin("bool"),
+        }
+    }
+
+    fn param_type(&self) -> ConstFnParamType {
+        match self {
+            Self::U32(_) => ConstFnParamType::U32,
+            Self::I32(_) => ConstFnParamType::I32,
+            Self::F32(_) => ConstFnParamType::F32,
+            Self::Bool(_) => ConstFnParamType::Bool,
+        }
+    }
 }
 
 pub(crate) fn register(analysis: &mut Analysis) {
@@ -111,7 +131,29 @@ fn calculate_const_expr(analysis: &Analysis, expr: &AstExpr) -> Option<ConstantV
                 None
             }
         }
-        AstExprRoot::FnCall(_) => None,
+        AstExprRoot::FnCall(call) => {
+            if let Some(fn_) = resolver::fn_(analysis, &call.name) {
+                if fn_.ast.is_const {
+                    let params: Vec<_> = call
+                        .args
+                        .iter()
+                        .map(|arg| calculate_const_expr(analysis, &arg.value))
+                        .collect::<Option<_>>()?;
+                    let const_fn_id = ConstFnId {
+                        name: call.name.label.to_string(),
+                        param_types: params.iter().map(ConstantValue::param_type).collect(),
+                    };
+                    analysis
+                        .const_functions
+                        .get(&const_fn_id)
+                        .map(|const_fn| const_fn(&params))
+                } else {
+                    None
+                }
+            } else {
+                None
+            }
+        }
     }
 }
 
