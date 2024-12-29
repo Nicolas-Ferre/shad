@@ -1,60 +1,67 @@
-error: invalid expression in `const` context
- --> ./cases_invalid/code/constant/main.shd:4:19
+error: non-`const` function called in `const` context
+ --> ./cases_invalid/code/constant/main.shd:4:29
   |
-4 | const FN_RESULT = f();
-  |                   ^^^ not allowed in `const` context
+4 | const NON_CONST_FN_RESULT = f();
+  |                             ^^^ not allowed in `const` context
+  |
+
+error: could not find `undefined()` function
+ --> ./cases_invalid/code/constant/main.shd:5:29
+  |
+5 | const UNDEFINED_FN_RESULT = undefined();
+  |                             ^^^^^^^^^^^ undefined function
   |
 
 error: could not find `UNDEFINED` value
- --> ./cases_invalid/code/constant/main.shd:5:25
+ --> ./cases_invalid/code/constant/main.shd:6:25
   |
-5 | const UNDEFINED_IDENT = UNDEFINED;
+6 | const UNDEFINED_IDENT = UNDEFINED;
   |                         ^^^^^^^^^ undefined identifier
   |
 
 error: could not find `buffer_value` value
- --> ./cases_invalid/code/constant/main.shd:6:22
+ --> ./cases_invalid/code/constant/main.shd:7:22
   |
-6 | const BUFFER_ident = buffer_value;
+7 | const BUFFER_IDENT = buffer_value;
   |                      ^^^^^^^^^^^^ undefined identifier
   |
 
 error: could not find `field` field in `i32` type
- --> ./cases_invalid/code/constant/main.shd:7:17
+ --> ./cases_invalid/code/constant/main.shd:8:17
   |
-7 | const FIELD = 0.field;
+8 | const FIELD = 0.field;
   |                 ^^^^^ undefined field
   |
 
 error: `i32` literal out of range
- --> ./cases_invalid/code/constant/main.shd:8:25
+ --> ./cases_invalid/code/constant/main.shd:9:25
   |
-8 | const INVALID_LITERAL = 123456789123456789;
+9 | const INVALID_LITERAL = 123456789123456789;
   |                         ^^^^^^^^^^^^^^^^^^ value is outside allowed range for `i32` type
   |
 
 error: constant with name `DUPLICATED_CONST` is defined multiple times
- --> ./cases_invalid/code/constant/main.shd:9:7
-  |
-3 | const DUPLICATED_CONST = 0;
-  |       ---------------- info: constant with same name is defined here
-4 | const FN_RESULT = f();
+  --> ./cases_invalid/code/constant/main.shd:10:7
+   |
+ 3 | const DUPLICATED_CONST = 0;
+   |       ---------------- info: constant with same name is defined here
+ 4 | const NON_CONST_FN_RESULT = f();
 ...
-8 | const INVALID_LITERAL = 123456789123456789;
-9 | const DUPLICATED_CONST = 1;
-  |       ^^^^^^^^^^^^^^^^ duplicated constant name
-  |
+ 9 | const INVALID_LITERAL = 123456789123456789;
+10 | const DUPLICATED_CONST = 1;
+   |       ^^^^^^^^^^^^^^^^ duplicated constant name
+   |
 
 error: expression is not a reference
-  --> ./cases_invalid/code/constant/main.shd:16:5
+  --> ./cases_invalid/code/constant/main.shd:17:5
    |
-16 |     DUPLICATED_CONST = 42;
+17 |     DUPLICATED_CONST = 42;
    |     ^^^^^^^^^^^^^^^^ a valid reference is expected here
    |
 
 error: expression is not a reference
-  --> ./cases_invalid/code/constant/main.shd:17:21
+  --> ./cases_invalid/code/constant/main.shd:18:21
    |
-17 |     ref ref_const = DUPLICATED_CONST;
+18 |     ref ref_const = DUPLICATED_CONST;
    |                     ^^^^^^^^^^^^^^^^ a valid reference is expected here
    |

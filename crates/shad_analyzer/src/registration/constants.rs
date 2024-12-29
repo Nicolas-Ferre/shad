@@ -1,4 +1,4 @@
-use crate::{errors, Analysis, IdentSource};
+use crate::{errors, resolver, Analysis, IdentSource, TypeId};
 use shad_parser::{AstConstItem, AstExpr, AstExprRoot, AstItem, AstLiteralType};
 use std::mem;
 use std::str::FromStr;
@@ -38,6 +38,19 @@ pub enum ConstantValue {
     Bool(bool),
 }
 
+impl ConstantValue {
+    // coverage: off (simple logic)
+    pub(crate) fn type_id(&self) -> TypeId {
+        match self {
+            Self::U32(_) => TypeId::from_builtin("u32"),
+            Self::I32(_) => TypeId::from_builtin("i32"),
+            Self::F32(_) => TypeId::from_builtin("f32"),
+            Self::Bool(_) => TypeId::from_builtin("bool"),
+        }
+    }
+    // coverage: on
+}
+
 pub(crate) fn register(analysis: &mut Analysis) {
     let asts = mem::take(&mut analysis.asts);
     for ast in asts.values() {
@@ -69,7 +82,7 @@ pub(crate) fn calculate(analysis: &mut Analysis) {
             let constant = &analysis.constants[&id];
             if constant.value.is_none() {
                 if !constant.ast.value.fields.is_empty() {
-                    return;
+                    continue;
                 }
                 analysis
                     .constants
@@ -111,7 +124,26 @@ fn calculate_const_expr(analysis: &Analysis, expr: &AstExpr) -> Option<ConstantV
                 None
             }
         }
-        AstExprRoot::FnCall(_) => None,
+        AstExprRoot::FnCall(call) => {
+            if let Some(fn_) = resolver::fn_(analysis, &call.name) {
+                if fn_.ast.is_const {
+                    let params: Vec<_> = call
+                        .args
+                        .iter()
+                        .map(|arg| calculate_const_expr(analysis, &arg.value))
+                        .collect::<Option<_>>()?;
+                    let const_fn_id = fn_.const_fn_id()?;
+                    analysis
+                        .const_functions
+                        .get(&const_fn_id)
+                        .map(|const_fn| const_fn(&params))
+                } else {
+                    None
+                }
+            } else {
+                None
+            }
+        }
     }
 }
 

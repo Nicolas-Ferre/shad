@@ -1,4 +1,6 @@
-use crate::{errors, resolver, Analysis, Type, TypeId, NO_RETURN_TYPE};
+use crate::{
+    errors, resolver, Analysis, ConstFnId, ConstFnParamType, Type, TypeId, NO_RETURN_TYPE,
+};
 use itertools::Itertools;
 use shad_parser::{
     AstFnItem, AstFnParam, AstGpuQualifier, AstIdent, AstItem, AstReturnType, AstStructItem,
@@ -20,6 +22,24 @@ pub struct Function {
     pub params: Vec<FnParam>,
     /// The type from which the function has been generated.
     pub source_type: Option<TypeId>,
+}
+
+impl Function {
+    pub(crate) fn const_fn_id(&self) -> Option<ConstFnId> {
+        Some(ConstFnId {
+            name: self.ast.name.label.clone(),
+            param_types: self
+                .params
+                .iter()
+                .map(|param| {
+                    param
+                        .type_id
+                        .as_ref()
+                        .and_then(ConstFnParamType::from_type_id)
+                })
+                .collect::<Option<Vec<_>>>()?,
+        })
+    }
 }
 
 /// An analyzed function parameter.
@@ -169,6 +189,7 @@ fn struct_initializer_fn(analysis: &mut Analysis, ast: &AstStructItem) -> AstFnI
         }),
         statements: vec![],
         is_pub: ast.is_pub && ast.fields.iter().all(|field| field.is_pub),
+        is_const: false,
         gpu_qualifier: Some(AstGpuQualifier {
             span: ast.name.span.clone(),
             name: None,

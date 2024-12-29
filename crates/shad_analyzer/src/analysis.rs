@@ -1,3 +1,4 @@
+use crate::registration::const_functions::{ConstFn, ConstFnId};
 use crate::registration::constants::{Constant, ConstantId};
 use crate::registration::functions::Function;
 use crate::registration::idents::Ident;
@@ -16,8 +17,10 @@ pub struct Analysis {
     /// The module ASTs.
     pub asts: FxHashMap<String, Ast>,
     /// From each module, the list of visible modules sorted by priority.
-    pub visible_modules: FxHashMap<String, Vec<String>>,
+    pub const_functions: FxHashMap<ConstFnId, ConstFn>,
     /// The analyzed identifiers.
+    pub visible_modules: FxHashMap<String, Vec<String>>,
+    /// The builtin constant functions.
     pub idents: FxHashMap<u64, Ident>,
     /// The analyzed types.
     pub types: FxHashMap<TypeId, Type>,
@@ -46,6 +49,7 @@ impl Analysis {
         let next_id = asts.values().map(|ast| ast.next_id).max().unwrap_or(0);
         let mut analysis = Self {
             asts,
+            const_functions: FxHashMap::default(),
             visible_modules: FxHashMap::default(),
             idents: FxHashMap::default(),
             types: FxHashMap::default(),
@@ -59,6 +63,7 @@ impl Analysis {
             errors: vec![],
             next_id,
         };
+        registration::const_functions::register(&mut analysis);
         registration::modules::register(&mut analysis);
         registration::types::register(&mut analysis);
         registration::functions::register(&mut analysis);

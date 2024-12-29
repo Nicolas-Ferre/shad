@@ -20,6 +20,8 @@ pub struct AstFnItem {
     pub statements: Vec<AstStatement>,
     /// Whether the item is public.
     pub is_pub: bool,
+    /// Whether the item is a `const` function.
+    pub is_const: bool,
     /// The `gpu` qualifier.
     pub gpu_qualifier: Option<AstGpuQualifier>,
 }
@@ -37,12 +39,14 @@ impl AstFnItem {
             return_type,
             statements,
             is_pub,
+            is_const: false,
             gpu_qualifier: None,
         })
     }
 
     pub(crate) fn parse_gpu(lexer: &mut Lexer<'_>, is_pub: bool) -> Result<Self, SyntaxError> {
         let gpu_qualifier = AstGpuQualifier::parse(lexer)?;
+        let is_const = parse_token_option(lexer, TokenType::Const)?.is_some();
         parse_token(lexer, TokenType::Fn)?;
         let name = AstIdent::parse(lexer)?;
         let params = Self::parse_params(lexer)?;
@@ -54,6 +58,7 @@ impl AstFnItem {
             return_type,
             statements: vec![],
             is_pub,
+            is_const,
             gpu_qualifier,
         })
     }

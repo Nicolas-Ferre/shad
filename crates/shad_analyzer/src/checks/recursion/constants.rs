@@ -35,8 +35,6 @@ impl Visit for ItemRecursionCheck<'_, ConstantId> {
                 self.visit_expr(&constant.value);
             }
             self.used_item_ids.pop();
-        } else {
-            unreachable!("internal error: non-constant identifier in const context")
         }
     }
 }

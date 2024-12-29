@@ -5,6 +5,7 @@ const F32_WITH_DECIMAL = 123.4;
 const TRUE = true;
 const FALSE = false;
 const U32_COPY = U32;
+const CONST_FN_CALL = I32 + -2;
 
 buf i32_result = I32;
 buf u32_result = U32;
@@ -13,6 +14,7 @@ buf f32_with_decimal_result = F32_WITH_DECIMAL;
 buf true_result = TRUE;
 buf false_result = FALSE;
 buf u32_copy_result = U32_COPY;
+buf const_fn_call_result = CONST_FN_CALL;
 
 buf const_ref_param_result = 0;
 
@@ -25,4 +27,5 @@ fn add_two(value: ref i32) -> ref i32 {
     return value;
 }
 
-gpu fn __add__(left: i32, right: i32) -> i32;
+gpu const fn __add__(left: i32, right: i32) -> i32;
+gpu const fn __neg__(value: i32) -> i32;

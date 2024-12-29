@@ -52,6 +52,7 @@ impl AstItem {
             TokenType::Gpu => {
                 let mut tmp_lexer = lexer.clone();
                 if AstGpuQualifier::parse(&mut tmp_lexer).is_ok()
+                    && parse_token_option(&mut tmp_lexer, TokenType::Const).is_ok()
                     && tmp_lexer.next_token()?.type_ == TokenType::Fn
                 {
                     Ok(Self::Fn(AstFnItem::parse_gpu(lexer, is_pub)?))

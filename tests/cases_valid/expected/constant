@@ -1,3 +1,4 @@
+main.const_fn_call_result=121
 main.const_ref_param_result=125
 main.f32_with_decimal_result=123.4
 main.f32_without_decimal_result=123
