@@ -22,7 +22,7 @@ error: could not find `UNDEFINED` value
 error: could not find `buffer_value` value
  --> ./cases_invalid/code/constant/main.shd:7:22
   |
-7 | const BUFFER_ident = buffer_value;
+7 | const BUFFER_IDENT = buffer_value;
   |                      ^^^^^^^^^^^^ undefined identifier
   |
 

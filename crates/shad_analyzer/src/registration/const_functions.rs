@@ -9,7 +9,7 @@ pub type ConstFn = fn(&[ConstantValue]) -> ConstantValue;
 pub struct ConstFnId {
     /// The function name.
     pub name: String,
-    /// The function parameter type identifiers.
+    /// The function parameter types.
     pub param_types: Vec<ConstFnParamType>,
 }
 
@@ -37,6 +37,7 @@ impl ConstFnParamType {
         }
     }
 
+    // coverage: off (simple and not critical logic)
     pub(crate) fn zero_value(self) -> ConstantValue {
         match self {
             Self::U32 => ConstantValue::U32(0),
@@ -45,6 +46,7 @@ impl ConstFnParamType {
             Self::Bool => ConstantValue::Bool(false),
         }
     }
+    // coverage: on
 }
 
 macro_rules! unary_operator {

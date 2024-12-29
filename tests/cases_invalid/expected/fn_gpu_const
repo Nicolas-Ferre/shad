@@ -11,3 +11,10 @@ error: `const` function `__neg__(i32)` has invalid return type `u32`, expected `
 2 | gpu const fn __neg__(invalid_return_type: i32) -> u32;
   |                                                   ^^^ invalid return type
   |
+
+error: could not find `undefined` type
+ --> ./cases_invalid/code/fn_gpu_const/main.shd:3:53
+  |
+3 | gpu const fn __neg__(undefined_return_type: f32) -> undefined;
+  |                                                     ^^^^^^^^^ undefined type
+  |

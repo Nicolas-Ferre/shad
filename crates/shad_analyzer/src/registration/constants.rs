@@ -1,4 +1,4 @@
-use crate::{errors, resolver, Analysis, ConstFnId, ConstFnParamType, IdentSource, TypeId};
+use crate::{errors, resolver, Analysis, IdentSource, TypeId};
 use shad_parser::{AstConstItem, AstExpr, AstExprRoot, AstItem, AstLiteralType};
 use std::mem;
 use std::str::FromStr;
@@ -39,6 +39,7 @@ pub enum ConstantValue {
 }
 
 impl ConstantValue {
+    // coverage: off (simple logic)
     pub(crate) fn type_id(&self) -> TypeId {
         match self {
             Self::U32(_) => TypeId::from_builtin("u32"),
@@ -47,15 +48,7 @@ impl ConstantValue {
             Self::Bool(_) => TypeId::from_builtin("bool"),
         }
     }
-
-    fn param_type(&self) -> ConstFnParamType {
-        match self {
-            Self::U32(_) => ConstFnParamType::U32,
-            Self::I32(_) => ConstFnParamType::I32,
-            Self::F32(_) => ConstFnParamType::F32,
-            Self::Bool(_) => ConstFnParamType::Bool,
-        }
-    }
+    // coverage: on
 }
 
 pub(crate) fn register(analysis: &mut Analysis) {
@@ -89,7 +82,7 @@ pub(crate) fn calculate(analysis: &mut Analysis) {
             let constant = &analysis.constants[&id];
             if constant.value.is_none() {
                 if !constant.ast.value.fields.is_empty() {
-                    return;
+                    continue;
                 }
                 analysis
                     .constants
@@ -139,10 +132,7 @@ fn calculate_const_expr(analysis: &Analysis, expr: &AstExpr) -> Option<ConstantV
                         .iter()
                         .map(|arg| calculate_const_expr(analysis, &arg.value))
                         .collect::<Option<_>>()?;
-                    let const_fn_id = ConstFnId {
-                        name: call.name.label.to_string(),
-                        param_types: params.iter().map(ConstantValue::param_type).collect(),
-                    };
+                    let const_fn_id = fn_.const_fn_id()?;
                     analysis
                         .const_functions
                         .get(&const_fn_id)

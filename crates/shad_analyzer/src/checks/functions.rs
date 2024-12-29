@@ -1,4 +1,4 @@
-use crate::{errors, Analysis, ConstFnId, ConstFnParamType, Function};
+use crate::{errors, Analysis, ConstFn, ConstFnId, Function, TypeId};
 use fxhash::FxHashMap;
 use shad_error::SemanticError;
 use shad_parser::{
@@ -66,36 +66,20 @@ fn check_duplicated_params(fn_: &Function) -> Vec<SemanticError> {
 
 fn check_gpu_const_fn(analysis: &Analysis, fn_: &Function) -> Option<SemanticError> {
     if fn_.ast.is_const && fn_.ast.gpu_qualifier.is_some() {
-        let const_fn_id = ConstFnId {
-            name: fn_.ast.name.label.clone(),
-            param_types: fn_
-                .params
-                .iter()
-                .map(|param| {
-                    param
-                        .type_id
-                        .as_ref()
-                        .and_then(ConstFnParamType::from_type_id)
-                })
-                .collect::<Option<Vec<_>>>()?,
-        };
-        if let Some(const_fn) = analysis.const_functions.get(&const_fn_id) {
-            let test_params: Vec<_> = const_fn_id
-                .param_types
-                .iter()
-                .map(|param_type| param_type.zero_value())
-                .collect();
+        let const_fn_id = fn_.const_fn_id()?;
+        if let Some(&const_fn) = analysis.const_functions.get(&const_fn_id) {
             if let (Some(return_type), Some(actual_return_type_id)) =
                 (&fn_.ast.return_type, &fn_.return_type_id)
             {
-                let expected_result_type_id = const_fn(&test_params).type_id();
-                if &expected_result_type_id == actual_return_type_id {
+                let expected_return_type_id =
+                    expected_const_fn_return_type_id(const_fn_id, const_fn);
+                if &expected_return_type_id == actual_return_type_id {
                     None
                 } else {
                     Some(errors::functions::invalid_const_fn_return_type(
                         fn_,
                         return_type,
-                        &expected_result_type_id,
+                        &expected_return_type_id,
                         actual_return_type_id,
                     ))
                 }
@@ -108,4 +92,13 @@ fn check_gpu_const_fn(analysis: &Analysis, fn_: &Function) -> Option<SemanticErr
     } else {
         None
     }
+}
+
+fn expected_const_fn_return_type_id(const_fn_id: ConstFnId, const_fn: ConstFn) -> TypeId {
+    let test_params: Vec<_> = const_fn_id
+        .param_types
+        .iter()
+        .map(|param_type| param_type.zero_value())
+        .collect();
+    const_fn(&test_params).type_id()
 }
