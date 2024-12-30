@@ -32,6 +32,7 @@ pub use fn_call::*;
 pub use item::buffer::*;
 pub use item::constant::*;
 pub use item::function::*;
+pub use item::generics::*;
 pub use item::gpu::*;
 pub use item::import::*;
 pub use item::run_block::*;

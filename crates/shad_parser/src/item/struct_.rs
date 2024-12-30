@@ -1,6 +1,6 @@
 use crate::atom::{parse_token, parse_token_option};
 use crate::token::{Lexer, TokenType};
-use crate::{AstGpuQualifier, AstIdent};
+use crate::{AstGpuQualifier, AstIdent, AstItemGenerics};
 use shad_error::{Span, SyntaxError};
 use std::num::NonZeroU32;
 use std::str::FromStr;
@@ -21,6 +21,8 @@ use std::str::FromStr;
 pub struct AstStructItem {
     /// The struct name.
     pub name: AstIdent,
+    /// The struct generics parameters.
+    pub generics: AstItemGenerics,
     /// The struct fields.
     pub fields: Vec<AstStructField>,
     /// Whether the item is public.
@@ -37,6 +39,7 @@ impl AstStructItem {
         let layout = AstStructLayout::parse(lexer)?;
         parse_token(lexer, TokenType::Struct)?;
         let name = AstIdent::parse(lexer)?;
+        let generics = AstItemGenerics::parse(lexer)?;
         parse_token(lexer, TokenType::OpenBrace)?;
         let mut fields = vec![];
         while parse_token_option(lexer, TokenType::CloseBrace)?.is_none() {
@@ -48,6 +51,7 @@ impl AstStructItem {
         }
         Ok(Self {
             name,
+            generics,
             fields,
             is_pub,
             gpu_qualifier,

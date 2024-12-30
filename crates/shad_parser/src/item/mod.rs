@@ -11,6 +11,7 @@ use shad_error::SyntaxError;
 pub(crate) mod buffer;
 pub(crate) mod constant;
 pub(crate) mod function;
+pub(crate) mod generics;
 pub(crate) mod gpu;
 pub(crate) mod import;
 pub(crate) mod run_block;
