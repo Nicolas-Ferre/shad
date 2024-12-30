@@ -1,0 +1,44 @@
+use crate::atom::{parse_token, parse_token_option};
+use crate::token::{Lexer, TokenType};
+use crate::AstIdent;
+use shad_error::SyntaxError;
+
+/// The parsed generic parameters of an item.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct AstItemGenerics {
+    /// The generics parameters.
+    pub params: Vec<AstItemGenericParam>,
+}
+
+impl AstItemGenerics {
+    pub(crate) fn parse(lexer: &mut Lexer<'_>) -> Result<Self, SyntaxError> {
+        if parse_token_option(lexer, TokenType::OpenAngleBracket)?.is_some() {
+            let mut params = vec![AstItemGenericParam::parse(lexer)?];
+            while parse_token_option(lexer, TokenType::Comma)?.is_some() {
+                if parse_token(&mut lexer.clone(), TokenType::CloseAngleBracket).is_ok() {
+                    break;
+                }
+                params.push(AstItemGenericParam::parse(lexer)?);
+            }
+            parse_token(lexer, TokenType::CloseAngleBracket)?;
+            Ok(Self { params })
+        } else {
+            Ok(Self { params: vec![] })
+        }
+    }
+}
+
+/// A parsed generic parameter of an item.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct AstItemGenericParam {
+    /// The parameter name.
+    pub name: AstIdent,
+}
+
+impl AstItemGenericParam {
+    fn parse(lexer: &mut Lexer<'_>) -> Result<Self, SyntaxError> {
+        Ok(Self {
+            name: AstIdent::parse(lexer)?,
+        })
+    }
+}

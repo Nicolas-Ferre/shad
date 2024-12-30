@@ -1,0 +1,11 @@
+struct OneGenericType<T> {
+    field: i32,
+}
+
+struct MultipleGenericTypes<T, U, V> {
+    field: i32,
+}
+
+struct MultipleGenericTypesWithTrailingComma<T, U, V,> {
+    field: i32,
+}
