@@ -3,7 +3,7 @@ use crate::token::{Lexer, TokenType};
 use crate::AstIdent;
 use shad_error::SyntaxError;
 
-/// Parsed generic parameters of an item.
+/// The parsed generic parameters of an item.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AstItemGenerics {
     /// The generics parameters.

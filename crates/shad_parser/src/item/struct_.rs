@@ -21,7 +21,7 @@ use std::str::FromStr;
 pub struct AstStructItem {
     /// The struct name.
     pub name: AstIdent,
-    /// The struct generics parameters.
+    /// The struct generic parameters.
     pub generics: AstItemGenerics,
     /// The struct fields.
     pub fields: Vec<AstStructField>,
