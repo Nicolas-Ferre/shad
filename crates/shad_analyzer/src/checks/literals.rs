@@ -43,18 +43,14 @@ impl LiteralCheck {
         } else {
             &literal.value
         };
-        let value_with_operator = if literal.is_neg {
-            format!("-{value}")
-        } else {
-            value.into()
-        };
-        T::from_str(&value_with_operator)
+        T::from_str(value)
             .is_err()
             .then(|| errors::literals::invalid_integer(literal, type_name))
     }
 
     fn int_part_digit_count(float: &str) -> usize {
         float
+            .replace('-', "")
             .find('.')
             .expect("internal error: `.` not found in `f32` literal")
     }

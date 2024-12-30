@@ -68,7 +68,6 @@ impl VisitMut for ConstantTransform<'_> {
                     span: node.root.span().clone(),
                     value: Self::literal_str(&value),
                     type_: Self::literal_type(&value),
-                    is_neg: false,
                 });
             }
         }

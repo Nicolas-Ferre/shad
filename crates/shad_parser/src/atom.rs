@@ -53,8 +53,6 @@ pub struct AstLiteral {
     pub value: String,
     /// The type of the literal.
     pub type_: AstLiteralType,
-    /// Whether the literal is just after unary `-` operator.
-    pub is_neg: bool,
 }
 
 impl AstLiteral {
@@ -71,7 +69,6 @@ impl AstLiteral {
                 TokenType::True | TokenType::False => AstLiteralType::Bool,
                 _ => unreachable!("internal error: not supported literal"),
             },
-            is_neg: false,
         })
     }
 }

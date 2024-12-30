@@ -1,6 +1,6 @@
 use crate::atom::{parse_token, parse_token_option};
 use crate::token::{Lexer, TokenType};
-use crate::{AstExpr, AstExprRoot, AstIdent};
+use crate::{AstExpr, AstExprRoot, AstIdent, AstLiteralType};
 use shad_error::{Span, SyntaxError};
 
 /// The function name corresponding to unary `-` operator behavior.
@@ -146,12 +146,16 @@ impl AstFnCall {
         })
     }
 
-    pub(crate) fn parse_unary_operation(lexer: &mut Lexer<'_>) -> Result<Self, SyntaxError> {
+    pub(crate) fn parse_unary_operation(lexer: &mut Lexer<'_>) -> Result<AstExpr, SyntaxError> {
         let operator_token = lexer.next_token()?;
         let mut expr = AstExpr::parse(lexer)?;
         if operator_token.type_ == TokenType::Minus && expr.fields.is_empty() {
             if let AstExprRoot::Literal(literal) = &mut expr.root {
-                literal.is_neg = true;
+                if matches!(literal.type_, AstLiteralType::F32 | AstLiteralType::I32) {
+                    literal.value = format!("-{}", literal.value);
+                    literal.span = Span::join(&operator_token.span, &literal.span);
+                    return Ok(literal.clone().into());
+                }
             }
         }
         Ok(Self {
@@ -164,7 +168,8 @@ impl AstFnCall {
             args: vec![expr.into()],
             is_operator: true,
             is_first_arg_external: false,
-        })
+        }
+        .into())
     }
 
     #[allow(clippy::wildcard_enum_match_arm)]

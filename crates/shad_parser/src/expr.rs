@@ -86,9 +86,7 @@ impl AstExpr {
                 expr.span = Self::span(&expr.root, &expr.fields);
                 Ok(expr)
             }
-            TokenType::Minus | TokenType::Not => {
-                Ok(AstFnCall::parse_unary_operation(lexer)?.into())
-            }
+            TokenType::Minus | TokenType::Not => AstFnCall::parse_unary_operation(lexer),
             TokenType::F32Literal
             | TokenType::U32Literal
             | TokenType::I32Literal
