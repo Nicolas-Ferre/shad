@@ -22,9 +22,16 @@ error: `u32` literal out of range
   |                   ^^^^^^^^^^^^^^ value is outside allowed range for `u32` type
   |
 
-error: `i32` literal out of range
- --> ./cases_invalid/code/atom/main.shd:4:19
+error: could not find `__neg__(u32)` function
+ --> ./cases_invalid/code/atom/main.shd:4:20
   |
-4 | buf i32_too_big = 2_147_483_648;
+4 | buf u32_negative = -1u;
+  |                    ^^^ undefined function
+  |
+
+error: `i32` literal out of range
+ --> ./cases_invalid/code/atom/main.shd:5:19
+  |
+5 | buf i32_too_big = 2_147_483_648;
   |                   ^^^^^^^^^^^^^ value is outside allowed range for `i32` type
   |

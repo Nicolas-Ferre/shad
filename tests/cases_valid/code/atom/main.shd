@@ -3,6 +3,7 @@ buf f32_no_frac_part = 2.;
 buf f32_many_digits = 123456700.123456789;
 buf f32_max_int_digits = 12345678901234567890123456789012345678.;
 buf f32_underscores = 1_2345______670_0_.1_234_567_89___;
+buf f32_negative = -12345678901234567890123456789012345678.;
 
 buf u32_zero = 0u;
 buf u32_underscores = 1_23______456_789___u;
@@ -18,5 +19,3 @@ buf true_val = true;
 
 buf not_yet_defined = copied_buffer;
 buf copied_buffer = i32_max_value;
-
-gpu fn __neg__(value: i32) -> i32;

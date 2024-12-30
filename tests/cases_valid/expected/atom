@@ -1,6 +1,7 @@
 main.copied_buffer=2147483647
 main.f32_many_digits=123456700
 main.f32_max_int_digits=12345678000000000000000000000000000000
+main.f32_negative=-12345678000000000000000000000000000000
 main.f32_no_frac_part=2
 main.f32_underscores=123456700
 main.f32_zero=0

@@ -7,6 +7,9 @@ pub(crate) fn transform(analysis: &mut Analysis) {
             LiteralTransform.visit_statement(statement);
         }
     });
+    for constant in analysis.constants.values_mut() {
+        LiteralTransform.visit_const_item(&mut constant.ast);
+    }
 }
 
 struct LiteralTransform;
