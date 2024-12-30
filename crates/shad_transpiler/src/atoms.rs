@@ -1,18 +1,26 @@
 use crate::fn_calls;
 use itertools::Itertools;
 use shad_analyzer::{Analysis, BufferId, IdentSource, TypeId};
-use shad_parser::{AstExpr, AstExprRoot, AstGpuGenericParam, AstGpuName, AstIdent};
+use shad_parser::{AstExpr, AstExprRoot, AstGpuGenericParam, AstGpuName, AstIdent, AstLiteralType};
 use std::iter;
 
 pub(crate) fn to_expr_wgsl(analysis: &Analysis, expr: &AstExpr) -> String {
     let root = match &expr.root {
         AstExprRoot::Ident(ident) => to_ident_wgsl(analysis, ident),
         AstExprRoot::FnCall(call) => fn_calls::to_wgsl(analysis, call),
-        AstExprRoot::Literal(expr) => match expr.value.as_str() {
-            "false" => "0u".into(),
-            "true" => "1u".into(),
-            _ => expr.value.clone(),
-        },
+        AstExprRoot::Literal(expr) => {
+            let value = match expr.value.as_str() {
+                "false" => "0u".into(),
+                "true" => "1u".into(),
+                _ => expr.value.clone(),
+            };
+            let converter = match expr.type_ {
+                AstLiteralType::F32 => "f32",
+                AstLiteralType::I32 => "i32",
+                AstLiteralType::U32 | AstLiteralType::Bool => "u32",
+            };
+            format!("{converter}({value})")
+        }
     };
     let fields = expr
         .fields
