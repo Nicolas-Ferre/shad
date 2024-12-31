@@ -1,0 +1,13 @@
+error: could not find `Undefined` type
+ --> ./cases_invalid/code/generics/main.shd:5:37
+  |
+5 | struct UndefinedGenericConstType<N: Undefined> {
+  |                                     ^^^^^^^^^ undefined type
+  |
+
+error: unsupported type `Data` in `const` context, expected `u32`, `i32`, `f32` or `bool`
+ --> ./cases_invalid/code/generics/main.shd:9:35
+  |
+9 | struct InvalidGenericConstType<N: Data> {
+  |                                   ^^^^ unsupported type
+  |

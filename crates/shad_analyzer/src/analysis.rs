@@ -75,6 +75,7 @@ impl Analysis {
         transformation::literals::transform(&mut analysis);
         registration::constants::calculate(&mut analysis);
         checks::constants::check(&mut analysis);
+        checks::generics::check(&mut analysis);
         checks::functions::check(&mut analysis);
         checks::types::check(&mut analysis);
         checks::literals::check(&mut analysis);

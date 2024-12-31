@@ -1,8 +1,6 @@
 use crate::{errors, resolver, Analysis};
 use shad_error::SemanticError;
-use shad_parser::{
-    AstGpuGenericParam, AstGpuQualifier, AstIdent, AstItem, AstStructField, AstStructItem,
-};
+use shad_parser::{AstGpuGenericParam, AstGpuQualifier, AstIdent, AstItem, AstStructItem};
 use std::mem;
 use std::num::NonZeroU32;
 use std::str::FromStr;
@@ -34,7 +32,9 @@ pub struct Type {
     pub ast: Option<AstStructItem>,
     /// The fields of the type when this is a struct.
     pub fields: Vec<StructField>,
-    /// The parsed generic arguments when the `gpu` type is an array.
+    /// The analyzed generic parameters of the type.
+    pub generics: Vec<GenericParam>,
+    /// The analyzed generic arguments when the `gpu` type is an array.
     pub array_params: Option<(TypeId, u32)>,
 }
 
@@ -75,6 +75,33 @@ impl TypeId {
     }
 }
 
+/// An analyzed generic parameter.
+#[derive(Debug, Clone)]
+pub enum GenericParam {
+    /// A type.
+    Type(TypeGenericParam),
+    /// A constant.
+    Constant(ConstantGenericParam),
+}
+
+/// An analyzed type generic parameter.
+#[derive(Debug, Clone)]
+pub struct TypeGenericParam {
+    /// The parameter name.
+    pub name: AstIdent,
+}
+
+/// An analyzed constant generic parameter.
+#[derive(Debug, Clone)]
+pub struct ConstantGenericParam {
+    /// The parameter name.
+    pub name: AstIdent,
+    /// The parameter type name.
+    pub type_name: AstIdent,
+    /// The parameter type identifier.
+    pub type_id: Option<TypeId>,
+}
+
 pub(crate) fn register(analysis: &mut Analysis) {
     register_builtin(analysis);
     register_structs(analysis);
@@ -92,6 +119,7 @@ fn register_builtin(analysis: &mut Analysis) {
                 alignment: 0,
                 ast: None,
                 fields: vec![],
+                generics: vec![],
                 array_params: None,
             },
             Type {
@@ -101,6 +129,7 @@ fn register_builtin(analysis: &mut Analysis) {
                 alignment: 4,
                 ast: None,
                 fields: vec![],
+                generics: vec![],
                 array_params: None,
             },
             Type {
@@ -110,6 +139,7 @@ fn register_builtin(analysis: &mut Analysis) {
                 alignment: 4,
                 ast: None,
                 fields: vec![],
+                generics: vec![],
                 array_params: None,
             },
             Type {
@@ -119,6 +149,7 @@ fn register_builtin(analysis: &mut Analysis) {
                 alignment: 4,
                 ast: None,
                 fields: vec![],
+                generics: vec![],
                 array_params: None,
             },
             Type {
@@ -128,6 +159,7 @@ fn register_builtin(analysis: &mut Analysis) {
                 alignment: 4,
                 ast: None,
                 fields: vec![],
+                generics: vec![],
                 array_params: None,
             },
         ]
@@ -149,6 +181,7 @@ fn register_structs(analysis: &mut Analysis) {
                     alignment: 0, // defined once all structs have been detected
                     ast: Some(struct_.clone()),
                     fields: vec![],     // defined once all structs have been detected
+                    generics: vec![],   // defined once all structs have been detected
                     array_params: None, // defined once all structs have been detected
                 };
                 if let Some(existing_struct) = analysis.types.insert(id.clone(), type_) {
@@ -238,14 +271,13 @@ fn parse_array_generic_args(
     }
 }
 
-fn calculate_type_details(analysis: &mut Analysis, type_: &mut Type) -> Option<()> {
+fn calculate_type_details(analysis: &mut Analysis, type_: &mut Type) {
     if let Some(ast) = &type_.ast {
         if type_.fields.is_empty() {
-            type_.fields = ast
-                .fields
-                .iter()
-                .map(|field| analyze_field(analysis, &ast.name.span.module.name, field))
-                .collect();
+            type_.fields = analyze_fields(analysis, ast);
+        }
+        if type_.generics.is_empty() && !ast.generics.params.is_empty() {
+            type_.generics = analyze_generics(analysis, ast);
         }
         let are_fields_registered = type_
             .fields
@@ -253,41 +285,79 @@ fn calculate_type_details(analysis: &mut Analysis, type_: &mut Type) -> Option<(
             .flat_map(|field| &field.type_id)
             .all(|type_id| analysis.types[type_id].size > 0);
         if are_fields_registered {
-            if let Some((item_type_id, length)) = &type_.array_params {
-                let item_type = &analysis.types[item_type_id];
-                if item_type.size == 0 {
-                    return Some(()); // item type layout not yet calculated
-                }
-                type_.size = length * round_up(item_type.alignment, item_type.size);
-                type_.alignment = item_type.alignment;
-            } else if let Some(layout) = &ast.layout {
-                type_.size = layout.size.into();
-                type_.alignment = layout.alignment.into();
-            } else if !type_.fields.is_empty() {
-                type_.alignment = type_
-                    .fields
-                    .iter()
-                    .flat_map(|field| &field.type_id)
-                    .map(|type_id| analysis.types[type_id].alignment)
-                    .max()
-                    .unwrap_or(0);
-                let last_field_type_id = type_.fields[type_.fields.len() - 1].type_id.as_ref()?;
-                let last_field_size = analysis.types[last_field_type_id].size;
-                type_.size = round_up(
-                    type_.alignment,
-                    struct_offset(analysis, &type_.fields)? + last_field_size,
-                );
+            if let Some((size, alignment)) = calculate_layout(analysis, type_, ast) {
+                type_.size = size;
+                type_.alignment = alignment;
             }
         }
     }
-    Some(())
 }
 
-fn analyze_field(analysis: &mut Analysis, module: &str, field: &AstStructField) -> StructField {
-    StructField {
-        name: field.name.clone(),
-        type_id: resolver::type_or_add_error(analysis, module, &field.type_),
-        is_pub: field.is_pub,
+fn analyze_fields(analysis: &mut Analysis, ast: &AstStructItem) -> Vec<StructField> {
+    ast.fields
+        .iter()
+        .map(|field| {
+            let module = &ast.name.span.module.name;
+            StructField {
+                name: field.name.clone(),
+                type_id: resolver::type_or_add_error(analysis, module, &field.type_),
+                is_pub: field.is_pub,
+            }
+        })
+        .collect()
+}
+
+fn analyze_generics(analysis: &mut Analysis, ast: &AstStructItem) -> Vec<GenericParam> {
+    ast.generics
+        .params
+        .iter()
+        .map(|param| {
+            let module = &ast.name.span.module.name;
+            let name = param.name.clone();
+            if let Some(type_) = &param.type_ {
+                GenericParam::Constant(ConstantGenericParam {
+                    name,
+                    type_name: type_.clone(),
+                    type_id: resolver::type_or_add_error(analysis, module, type_),
+                })
+            } else {
+                GenericParam::Type(TypeGenericParam { name })
+            }
+        })
+        .collect()
+}
+
+fn calculate_layout(analysis: &Analysis, type_: &Type, ast: &AstStructItem) -> Option<(u32, u32)> {
+    if let Some((item_type_id, length)) = &type_.array_params {
+        let item_type = &analysis.types[item_type_id];
+        if item_type.size == 0 {
+            return None; // item type layout not yet calculated
+        }
+        Some((
+            length * round_up(item_type.alignment, item_type.size),
+            item_type.alignment,
+        ))
+    } else if let Some(layout) = &ast.layout {
+        Some((layout.size.into(), layout.alignment.into()))
+    } else if !type_.fields.is_empty() {
+        let alignment = type_
+            .fields
+            .iter()
+            .flat_map(|field| &field.type_id)
+            .map(|type_id| analysis.types[type_id].alignment)
+            .max()
+            .unwrap_or(0);
+        let last_field_type_id = type_.fields[type_.fields.len() - 1].type_id.as_ref()?;
+        let last_field_size = analysis.types[last_field_type_id].size;
+        Some((
+            round_up(
+                alignment,
+                struct_offset(analysis, &type_.fields)? + last_field_size,
+            ),
+            alignment,
+        ))
+    } else {
+        None
     }
 }
 
