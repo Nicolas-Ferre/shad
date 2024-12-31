@@ -1,0 +1,11 @@
+struct Data {
+    field: i32,
+}
+
+struct UndefinedGenericConstType<N: Undefined> {
+    field: i32,
+}
+
+struct InvalidGenericConstType<N: Data> {
+    field: i32,
+}

@@ -33,12 +33,18 @@ impl AstItemGenerics {
 pub struct AstItemGenericParam {
     /// The parameter name.
     pub name: AstIdent,
+    /// The parameter type.
+    pub type_: Option<AstIdent>,
 }
 
 impl AstItemGenericParam {
     fn parse(lexer: &mut Lexer<'_>) -> Result<Self, SyntaxError> {
-        Ok(Self {
-            name: AstIdent::parse(lexer)?,
-        })
+        let name = AstIdent::parse(lexer)?;
+        let type_ = if parse_token_option(lexer, TokenType::Colon)?.is_some() {
+            Some(AstIdent::parse(lexer)?)
+        } else {
+            None
+        };
+        Ok(Self { name, type_ })
     }
 }

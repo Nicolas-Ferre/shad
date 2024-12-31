@@ -2,7 +2,7 @@ use crate::checks::recursion::UsedItem;
 use crate::registration::constants::{Constant, ConstantId};
 use itertools::Itertools;
 use shad_error::{ErrorLevel, LocatedMessage, SemanticError};
-use shad_parser::{AstConstItem, AstFnCall};
+use shad_parser::{AstConstItem, AstFnCall, AstIdent};
 use std::iter;
 
 pub(crate) fn duplicated(
@@ -71,5 +71,19 @@ pub(crate) fn recursion_found(
                 }),
         )
         .collect(),
+    )
+}
+
+pub(crate) fn unsupported_type(type_: &AstIdent) -> SemanticError {
+    SemanticError::new(
+        format!(
+            "unsupported type `{}` in `const` context, expected `u32`, `i32`, `f32` or `bool`",
+            type_.label
+        ),
+        vec![LocatedMessage {
+            level: ErrorLevel::Error,
+            span: type_.span.clone(),
+            text: "unsupported type".into(),
+        }],
     )
 }
