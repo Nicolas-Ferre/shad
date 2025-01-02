@@ -1,3 +1,5 @@
+use crate::registration::generics;
+use crate::registration::generics::GenericParam;
 use crate::{errors, resolver, Analysis};
 use shad_error::SemanticError;
 use shad_parser::{AstGpuGenericParam, AstGpuQualifier, AstIdent, AstItem, AstStructItem};
@@ -73,33 +75,6 @@ impl TypeId {
             name: fn_.name.label.clone(),
         }
     }
-}
-
-/// An analyzed generic parameter.
-#[derive(Debug, Clone)]
-pub enum GenericParam {
-    /// A type.
-    Type(TypeGenericParam),
-    /// A constant.
-    Constant(ConstantGenericParam),
-}
-
-/// An analyzed type generic parameter.
-#[derive(Debug, Clone)]
-pub struct TypeGenericParam {
-    /// The parameter name.
-    pub name: AstIdent,
-}
-
-/// An analyzed constant generic parameter.
-#[derive(Debug, Clone)]
-pub struct ConstantGenericParam {
-    /// The parameter name.
-    pub name: AstIdent,
-    /// The parameter type name.
-    pub type_name: AstIdent,
-    /// The parameter type identifier.
-    pub type_id: Option<TypeId>,
 }
 
 pub(crate) fn register(analysis: &mut Analysis) {
@@ -277,7 +252,8 @@ fn calculate_type_details(analysis: &mut Analysis, type_: &mut Type) {
             type_.fields = analyze_fields(analysis, ast);
         }
         if type_.generics.is_empty() && !ast.generics.params.is_empty() {
-            type_.generics = analyze_generics(analysis, ast);
+            let module = &ast.name.span.module.name;
+            type_.generics = generics::register_for_item(analysis, &ast.generics, module);
         }
         let are_fields_registered = type_
             .fields
@@ -302,26 +278,6 @@ fn analyze_fields(analysis: &mut Analysis, ast: &AstStructItem) -> Vec<StructFie
                 name: field.name.clone(),
                 type_id: resolver::type_or_add_error(analysis, module, &field.type_),
                 is_pub: field.is_pub,
-            }
-        })
-        .collect()
-}
-
-fn analyze_generics(analysis: &mut Analysis, ast: &AstStructItem) -> Vec<GenericParam> {
-    ast.generics
-        .params
-        .iter()
-        .map(|param| {
-            let module = &ast.name.span.module.name;
-            let name = param.name.clone();
-            if let Some(type_) = &param.type_ {
-                GenericParam::Constant(ConstantGenericParam {
-                    name,
-                    type_name: type_.clone(),
-                    type_id: resolver::type_or_add_error(analysis, module, type_),
-                })
-            } else {
-                GenericParam::Type(TypeGenericParam { name })
             }
         })
         .collect()

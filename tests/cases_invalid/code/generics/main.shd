@@ -9,3 +9,15 @@ struct UndefinedGenericConstType<N: Undefined> {
 struct InvalidGenericConstType<N: Data> {
     field: i32,
 }
+
+fn undefined_generic_const_type<N: Undefined>() {
+}
+
+fn invalid_generic_const_type<N: Data>() {
+}
+
+fn duplicated_function<T, U>(param: i32) {
+}
+
+fn duplicated_function<T, U, V>(param: u32) {
+}

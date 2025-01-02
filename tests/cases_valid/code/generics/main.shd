@@ -1,3 +1,7 @@
+struct GenericType<T> {
+    field: i32,
+}
+
 struct MultipleGenericTypes<T, U, V> {
     field: i32,
 }
@@ -6,10 +10,15 @@ struct MultipleGenericTypesWithTrailingComma<T, U, V,> {
     field: i32,
 }
 
-struct GenericType<T> {
+struct GenericConst<N: u32> {
     field: i32,
 }
 
-struct GenericConst<N: u32> {
-    field: i32,
+fn generic_params<T, N: u32>() {
+}
+
+fn same_fn_name<T>() {
+}
+
+fn same_fn_name<T>(param: i32) {
 }

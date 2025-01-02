@@ -1,6 +1,6 @@
 use crate::atom::{parse_token, parse_token_option};
 use crate::token::{Lexer, TokenType};
-use crate::{AstGpuQualifier, AstIdent, AstStatement};
+use crate::{AstGpuQualifier, AstIdent, AstItemGenerics, AstStatement};
 use shad_error::{Span, SyntaxError};
 
 /// A parsed GPU function definition.
@@ -12,6 +12,8 @@ use shad_error::{Span, SyntaxError};
 pub struct AstFnItem {
     /// The function name.
     pub name: AstIdent,
+    /// The function generic parameters.
+    pub generics: AstItemGenerics,
     /// The function parameters.
     pub params: Vec<AstFnParam>,
     /// The return type of the function.
@@ -30,11 +32,13 @@ impl AstFnItem {
     pub(crate) fn parse(lexer: &mut Lexer<'_>, is_pub: bool) -> Result<Self, SyntaxError> {
         parse_token(lexer, TokenType::Fn)?;
         let name = AstIdent::parse(lexer)?;
+        let generics = AstItemGenerics::parse(lexer)?;
         let params = Self::parse_params(lexer)?;
         let return_type = AstReturnType::parse(lexer)?;
         let statements = super::parse_statement_block(lexer)?;
         Ok(Self {
             name,
+            generics,
             params,
             return_type,
             statements,
@@ -49,11 +53,13 @@ impl AstFnItem {
         let is_const = parse_token_option(lexer, TokenType::Const)?.is_some();
         parse_token(lexer, TokenType::Fn)?;
         let name = AstIdent::parse(lexer)?;
+        let generics = AstItemGenerics::parse(lexer)?;
         let params = Self::parse_params(lexer)?;
         let return_type = AstReturnType::parse(lexer)?;
         parse_token(lexer, TokenType::SemiColon)?;
         Ok(Self {
             name,
+            generics,
             params,
             return_type,
             statements: vec![],
