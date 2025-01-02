@@ -63,7 +63,7 @@ pub struct FnId {
     pub module: String,
     /// The function name.
     pub name: String,
-    /// In case the function is not generic,the function parameter types.
+    /// In case the function is not generic, the function parameter types.
     pub param_types: Vec<Option<TypeId>>,
     /// The number of parameters of the function.
     pub param_count: usize,
