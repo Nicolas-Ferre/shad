@@ -10,6 +10,15 @@ pub enum GenericParam {
     Constant(ConstantGenericParam),
 }
 
+impl GenericParam {
+    pub(crate) fn name(&self) -> &AstIdent {
+        match self {
+            GenericParam::Type(param) => &param.name,
+            GenericParam::Constant(param) => &param.name,
+        }
+    }
+}
+
 /// An analyzed type generic parameter.
 #[derive(Debug, Clone)]
 pub struct TypeGenericParam {

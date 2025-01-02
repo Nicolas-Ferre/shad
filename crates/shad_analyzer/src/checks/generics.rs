@@ -1,5 +1,6 @@
 use crate::registration::generics::{ConstantGenericParam, GenericParam};
 use crate::{errors, Analysis};
+use fxhash::FxHashMap;
 use shad_error::SemanticError;
 
 const SUPPORTED_CONST_TYPES: &[&str] = &["u32", "i32", "f32", "bool"];
@@ -27,6 +28,13 @@ fn check_params(errors: &mut Vec<SemanticError>, generics: &[GenericParam]) {
                 let error = errors::constants::unsupported_type(type_name);
                 errors.push(error);
             }
+        }
+    }
+    let mut name_params = FxHashMap::default();
+    for param in generics {
+        if let Some(duplicated_param) = name_params.insert(&param.name().label, param) {
+            let error = errors::generics::duplicated_param(duplicated_param, param);
+            errors.push(error);
         }
     }
 }

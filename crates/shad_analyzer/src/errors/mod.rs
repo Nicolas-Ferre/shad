@@ -4,6 +4,7 @@ pub(crate) mod constants;
 pub(crate) mod expressions;
 pub(crate) mod fn_calls;
 pub(crate) mod functions;
+pub(crate) mod generics;
 pub(crate) mod literals;
 pub(crate) mod modules;
 pub(crate) mod returns;
