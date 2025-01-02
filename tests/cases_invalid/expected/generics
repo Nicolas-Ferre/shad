@@ -11,3 +11,64 @@ error: unsupported type `Data` in `const` context, expected `u32`, `i32`, `f32` 
 9 | struct InvalidGenericConstType<N: Data> {
   |                                   ^^^^ unsupported type
   |
+
+error: generic parameter with name `T` is defined multiple times
+  --> ./cases_invalid/code/generics/main.shd:13:32
+   |
+13 | struct DuplicatedGenericParams<T, U, T: u32, U: u32> {
+   |                                ^     - info: generic parameter with same name is defined here
+   |                                |
+   |                                duplicated generic parameter name
+   |
+
+error: generic parameter with name `U` is defined multiple times
+  --> ./cases_invalid/code/generics/main.shd:13:35
+   |
+13 | struct DuplicatedGenericParams<T, U, T: u32, U: u32> {
+   |                                   ^          - info: generic parameter with same name is defined here
+   |                                   |
+   |                                   duplicated generic parameter name
+   |
+
+error: could not find `Undefined` type
+  --> ./cases_invalid/code/generics/main.shd:17:36
+   |
+17 | fn undefined_generic_const_type<N: Undefined>() {
+   |                                    ^^^^^^^^^ undefined type
+   |
+
+error: unsupported type `Data` in `const` context, expected `u32`, `i32`, `f32` or `bool`
+  --> ./cases_invalid/code/generics/main.shd:20:34
+   |
+20 | fn invalid_generic_const_type<N: Data>() {
+   |                                  ^^^^ unsupported type
+   |
+
+error: function `duplicated_function<...>(_)` is defined multiple times
+  --> ./cases_invalid/code/generics/main.shd:26:4
+   |
+23 | fn duplicated_function<T, U>(param: i32) {
+   |    ------------------- info: function with same signature is defined here
+24 | }
+25 |
+26 | fn duplicated_function<T, U, V>(param: u32) {
+   |    ^^^^^^^^^^^^^^^^^^^ duplicated function
+   |
+
+error: generic parameter with name `T` is defined multiple times
+  --> ./cases_invalid/code/generics/main.shd:29:30
+   |
+29 | fn duplicated_generic_params<T, U, T: u32, U: u32>() {
+   |                              ^     - info: generic parameter with same name is defined here
+   |                              |
+   |                              duplicated generic parameter name
+   |
+
+error: generic parameter with name `U` is defined multiple times
+  --> ./cases_invalid/code/generics/main.shd:29:33
+   |
+29 | fn duplicated_generic_params<T, U, T: u32, U: u32>() {
+   |                                 ^          - info: generic parameter with same name is defined here
+   |                                 |
+   |                                 duplicated generic parameter name
+   |

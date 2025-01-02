@@ -233,6 +233,8 @@ impl<'a> IdentRegistration<'a> {
                     module: module.clone(),
                     name: call.name.label.clone(),
                     param_types: arg_types.iter().map(|type_| Some(type_.clone())).collect(),
+                    param_count: arg_types.len(),
+                    is_generic: false,
                 };
                 self.analysis.fns.get(&id).map(|fn_| (id, fn_))
             })

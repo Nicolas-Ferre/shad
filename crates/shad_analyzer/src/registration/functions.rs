@@ -1,9 +1,12 @@
+use crate::registration::generics;
+use crate::registration::generics::GenericParam;
 use crate::{
     errors, resolver, Analysis, ConstFnId, ConstFnParamType, Type, TypeId, NO_RETURN_TYPE,
 };
 use itertools::Itertools;
 use shad_parser::{
-    AstFnItem, AstFnParam, AstGpuQualifier, AstIdent, AstItem, AstReturnType, AstStructItem,
+    AstFnItem, AstFnParam, AstGpuQualifier, AstIdent, AstItem, AstItemGenerics, AstReturnType,
+    AstStructItem,
 };
 use std::mem;
 
@@ -22,6 +25,8 @@ pub struct Function {
     pub params: Vec<FnParam>,
     /// The type from which the function has been generated.
     pub source_type: Option<TypeId>,
+    /// The analyzed generic parameters of the function.
+    pub generics: Vec<GenericParam>,
 }
 
 impl Function {
@@ -58,21 +63,37 @@ pub struct FnId {
     pub module: String,
     /// The function name.
     pub name: String,
-    /// The function parameter types.
+    /// In case the function is not generic, the function parameter types.
     pub param_types: Vec<Option<TypeId>>,
+    /// The number of parameters of the function.
+    pub param_count: usize,
+    /// Whether the function is generic.
+    pub is_generic: bool,
 }
 
 impl FnId {
     pub(crate) fn from_item(analysis: &Analysis, fn_: &AstFnItem) -> Self {
         let module = fn_.name.span.module.name.clone();
-        Self {
-            name: fn_.name.label.clone(),
-            param_types: fn_
-                .params
-                .iter()
-                .map(|param| resolver::type_(analysis, &module, &param.type_).ok())
-                .collect(),
-            module,
+        if fn_.generics.params.is_empty() {
+            Self {
+                name: fn_.name.label.clone(),
+                param_types: fn_
+                    .params
+                    .iter()
+                    .map(|param| resolver::type_(analysis, &module, &param.type_).ok())
+                    .collect(),
+                module,
+                param_count: fn_.params.len(),
+                is_generic: false,
+            }
+        } else {
+            Self {
+                module,
+                name: fn_.name.label.clone(),
+                param_types: vec![],
+                param_count: fn_.params.len(),
+                is_generic: true,
+            }
         }
     }
 
@@ -85,18 +106,28 @@ impl FnId {
                 .iter()
                 .map(|field| field.type_id.clone())
                 .collect(),
+            param_count: type_.fields.len(),
+            is_generic: false,
         }
     }
 
     pub(crate) fn signature(&self) -> String {
-        format!(
-            "{}({})",
-            self.name,
-            self.param_types
-                .iter()
-                .map(|type_| type_.as_ref().map_or("?", |t| t.name.as_str()))
-                .join(", ")
-        )
+        if self.is_generic {
+            format!(
+                "{}<...>({})",
+                self.name,
+                (0..self.param_count).map(|_| "_").join(", ")
+            )
+        } else {
+            format!(
+                "{}({})",
+                self.name,
+                self.param_types
+                    .iter()
+                    .map(|type_| type_.as_ref().map_or("?", |t| t.name.as_str()))
+                    .join(", ")
+            )
+        }
     }
 }
 
@@ -127,6 +158,7 @@ fn register_initializers(analysis: &mut Analysis) {
                     })
                     .collect(),
                 source_type: Some(type_id.clone()),
+                generics: vec![],
             };
             analysis.fns.insert(id, fn_);
         }
@@ -157,6 +189,7 @@ fn register_ast(analysis: &mut Analysis) {
                         })
                         .collect(),
                     source_type: None,
+                    generics: generics::register_for_item(analysis, &fn_ast.generics, module),
                 };
                 if let Some(existing_fn) = analysis.fns.insert(id.clone(), fn_) {
                     analysis.errors.push(errors::functions::duplicated(
@@ -174,6 +207,7 @@ fn register_ast(analysis: &mut Analysis) {
 fn struct_initializer_fn(analysis: &mut Analysis, ast: &AstStructItem) -> AstFnItem {
     AstFnItem {
         name: clone_ident(analysis, &ast.name),
+        generics: AstItemGenerics { params: vec![] },
         params: ast
             .fields
             .iter()
