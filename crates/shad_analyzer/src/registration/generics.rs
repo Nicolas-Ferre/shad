@@ -13,8 +13,8 @@ pub enum GenericParam {
 impl GenericParam {
     pub(crate) fn name(&self) -> &AstIdent {
         match self {
-            GenericParam::Type(param) => &param.name,
-            GenericParam::Constant(param) => &param.name,
+            Self::Type(param) => &param.name,
+            Self::Constant(param) => &param.name,
         }
     }
 }
