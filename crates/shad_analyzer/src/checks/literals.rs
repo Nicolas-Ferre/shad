@@ -28,7 +28,7 @@ struct LiteralCheck {
 impl LiteralCheck {
     fn check_f32_literal(literal: &AstLiteral) -> Option<SemanticError> {
         const F32_INT_PART_LIMIT: usize = 38;
-        let digit_count = Self::int_part_digit_count(&literal.value);
+        let digit_count = Self::int_part_digit_count(&literal.cleaned_value);
         (digit_count > F32_INT_PART_LIMIT).then(|| {
             errors::literals::too_many_f32_digits(literal, digit_count, F32_INT_PART_LIMIT)
         })
@@ -39,9 +39,9 @@ impl LiteralCheck {
         T: FromStr,
     {
         let value = if type_name == "u32" {
-            &literal.value[..literal.value.len() - 1]
+            &literal.cleaned_value[..literal.cleaned_value.len() - 1]
         } else {
-            &literal.value
+            &literal.cleaned_value
         };
         T::from_str(value)
             .is_err()

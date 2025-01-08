@@ -1,4 +1,4 @@
-use crate::registration::constants::{Constant, ConstantId};
+use crate::registration::constants::{Constant, ConstantId, ConstantValue};
 use crate::{errors, Analysis, Buffer, BufferId, FnId, Function, IdentSource, TypeId};
 use shad_error::SemanticError;
 use shad_parser::{AstFnCall, AstIdent};
@@ -94,6 +94,30 @@ pub(crate) fn fn_<'a>(
             analysis.fns.get(&id)
         })
         .find(|fn_| fn_.ast.is_pub || &fn_.id.module == module)
+}
+
+pub(crate) fn const_fn<'a>(
+    analysis: &'a Analysis,
+    call: &AstFnCall,
+    args: &[ConstantValue],
+) -> Option<&'a Function> {
+    let module = &call.name.span.module.name;
+    analysis
+        .visible_modules
+        .get(module)
+        .into_iter()
+        .flatten()
+        .filter_map(|module| {
+            let id = FnId {
+                module: module.clone(),
+                name: call.name.label.clone(),
+                param_types: args.iter().map(|arg| Some(arg.type_id())).collect(),
+                param_count: args.len(),
+                is_generic: false,
+            };
+            analysis.fns.get(&id)
+        })
+        .find(|fn_| fn_.ast.is_const && (fn_.ast.is_pub || &fn_.id.module == module))
 }
 
 pub(crate) fn registered_fn<'a>(analysis: &'a Analysis, name: &AstIdent) -> Option<&'a Function> {

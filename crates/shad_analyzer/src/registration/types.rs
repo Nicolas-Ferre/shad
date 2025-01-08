@@ -237,7 +237,7 @@ fn parse_array_generic_args(
         (generics.first(), generics.get(1))
     {
         let item_type = resolving::items::type_id(analysis, item_type).map_err(|_| None)?;
-        let length = NonZeroU32::from_str(&length.value.replace('_', ""))
+        let length = NonZeroU32::from_str(&length.cleaned_value)
             .map_err(|_| errors::types::invalid_gpu_array_args(gpu))?;
         Ok((item_type, length.into()))
     } else {

@@ -152,9 +152,10 @@ impl AstFnCall {
         if operator_token.type_ == TokenType::Minus && expr.fields.is_empty() {
             if let AstExprRoot::Literal(literal) = &mut expr.root {
                 if matches!(literal.type_, AstLiteralType::F32 | AstLiteralType::I32)
-                    && !literal.value.starts_with('-')
+                    && !literal.raw_value.starts_with('-')
                 {
-                    literal.value = format!("-{}", literal.value);
+                    literal.raw_value = format!("-{}", literal.raw_value);
+                    literal.cleaned_value = format!("-{}", literal.cleaned_value);
                     literal.span = Span::join(&operator_token.span, &literal.span);
                     return Ok(literal.clone().into());
                 }

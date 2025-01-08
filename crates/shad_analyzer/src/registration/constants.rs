@@ -1,4 +1,4 @@
-use crate::{errors, resolving, Analysis, IdentSource, TypeId};
+use crate::{errors, resolving, Analysis, TypeId};
 use shad_parser::{AstConstItem, AstExpr, AstExprRoot, AstItem, AstLiteralType};
 use std::mem;
 use std::str::FromStr;
@@ -54,6 +54,11 @@ impl ConstantValue {
 }
 
 pub(crate) fn register(analysis: &mut Analysis) {
+    register_items(analysis);
+    register_values(analysis);
+}
+
+fn register_items(analysis: &mut Analysis) {
     let asts = mem::take(&mut analysis.asts);
     for ast in asts.values() {
         for item in &ast.items {
@@ -76,7 +81,7 @@ pub(crate) fn register(analysis: &mut Analysis) {
     analysis.asts = asts;
 }
 
-pub(crate) fn calculate(analysis: &mut Analysis) {
+fn register_values(analysis: &mut Analysis) {
     let mut last_calculated_constant_count = calculated_constant_count(analysis);
     while last_calculated_constant_count < analysis.constants.len() {
         let constant_ids = analysis.constants.keys().cloned().collect::<Vec<_>>();
@@ -103,45 +108,32 @@ pub(crate) fn calculate(analysis: &mut Analysis) {
 
 fn calculate_const_expr(analysis: &Analysis, expr: &AstExpr) -> Option<ConstantValue> {
     match &expr.root {
-        AstExprRoot::Literal(literal) => match literal.type_ {
-            AstLiteralType::F32 => f32::from_str(&literal.value).ok().map(ConstantValue::F32),
-            AstLiteralType::U32 => u32::from_str(&literal.value[..literal.value.len() - 1])
-                .ok()
-                .map(ConstantValue::U32),
-            AstLiteralType::I32 => i32::from_str(&literal.value).ok().map(ConstantValue::I32),
-            AstLiteralType::Bool => Some(ConstantValue::Bool(literal.value == "true")),
-        },
-        AstExprRoot::Ident(ident) => {
-            if let Some(ident) = &analysis.idents.get(&ident.id) {
-                if let IdentSource::Constant(constant_id) = &ident.source {
-                    analysis
-                        .constants
-                        .get(constant_id)
-                        .as_ref()
-                        .and_then(|constant| constant.value.clone())
-                } else {
-                    unreachable!("internal error: non-constant identifier in const context")
-                }
-            } else {
-                None
+        AstExprRoot::Literal(literal) => {
+            let value = &literal.cleaned_value;
+            match literal.type_ {
+                AstLiteralType::F32 => f32::from_str(value).ok().map(ConstantValue::F32),
+                AstLiteralType::U32 => u32::from_str(&value[..value.len() - 1])
+                    .ok()
+                    .map(ConstantValue::U32),
+                AstLiteralType::I32 => i32::from_str(value).ok().map(ConstantValue::I32),
+                AstLiteralType::Bool => Some(ConstantValue::Bool(value == "true")),
             }
         }
+        AstExprRoot::Ident(ident) => {
+            resolving::items::constant(analysis, ident).and_then(|constant| constant.value.clone())
+        }
         AstExprRoot::FnCall(call) => {
-            if let Some(fn_) = resolving::items::registered_fn(analysis, &call.name) {
-                if fn_.ast.is_const {
-                    let params: Vec<_> = call
-                        .args
-                        .iter()
-                        .map(|arg| calculate_const_expr(analysis, &arg.value))
-                        .collect::<Option<_>>()?;
-                    let const_fn_id = fn_.const_fn_id()?;
-                    analysis
-                        .const_functions
-                        .get(&const_fn_id)
-                        .map(|const_fn| const_fn(&params))
-                } else {
-                    None
-                }
+            let args: Vec<_> = call
+                .args
+                .iter()
+                .map(|arg| calculate_const_expr(analysis, &arg.value))
+                .collect::<Option<_>>()?;
+            if let Some(fn_) = resolving::items::const_fn(analysis, call, &args) {
+                let const_fn_id = fn_.const_fn_id()?;
+                analysis
+                    .const_functions
+                    .get(&const_fn_id)
+                    .map(|const_fn| const_fn(&args))
             } else {
                 None
             }
