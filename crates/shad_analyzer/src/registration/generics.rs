@@ -40,7 +40,6 @@ pub struct ConstantGenericParam {
 pub(crate) fn register_for_item(
     analysis: &mut Analysis,
     generics: &AstItemGenerics,
-    module: &str,
 ) -> Vec<GenericParam> {
     generics
         .params
@@ -51,7 +50,7 @@ pub(crate) fn register_for_item(
                 GenericParam::Constant(ConstantGenericParam {
                     name,
                     type_name: type_.clone(),
-                    type_id: resolving::items::type_id_or_add_error(analysis, module, type_),
+                    type_id: resolving::items::type_id_or_add_error(analysis, type_),
                 })
             } else {
                 GenericParam::Type(TypeGenericParam { name })

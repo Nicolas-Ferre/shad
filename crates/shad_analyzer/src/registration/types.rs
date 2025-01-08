@@ -236,8 +236,7 @@ fn parse_array_generic_args(
     if let (Some(AstGpuGenericParam::Ident(item_type)), Some(AstGpuGenericParam::Literal(length))) =
         (generics.first(), generics.get(1))
     {
-        let module = &gpu.span.module.name;
-        let item_type = resolving::items::type_id(analysis, module, item_type).map_err(|_| None)?;
+        let item_type = resolving::items::type_id(analysis, item_type).map_err(|_| None)?;
         let length = NonZeroU32::from_str(&length.value.replace('_', ""))
             .map_err(|_| errors::types::invalid_gpu_array_args(gpu))?;
         Ok((item_type, length.into()))
@@ -252,8 +251,7 @@ fn calculate_type_details(analysis: &mut Analysis, type_: &mut Type) {
             type_.fields = analyze_fields(analysis, ast);
         }
         if type_.generics.is_empty() && !ast.generics.params.is_empty() {
-            let module = &ast.name.span.module.name;
-            type_.generics = generics::register_for_item(analysis, &ast.generics, module);
+            type_.generics = generics::register_for_item(analysis, &ast.generics);
         }
         let are_fields_registered = type_
             .fields
@@ -272,13 +270,10 @@ fn calculate_type_details(analysis: &mut Analysis, type_: &mut Type) {
 fn analyze_fields(analysis: &mut Analysis, ast: &AstStructItem) -> Vec<StructField> {
     ast.fields
         .iter()
-        .map(|field| {
-            let module = &ast.name.span.module.name;
-            StructField {
-                name: field.name.clone(),
-                type_id: resolving::items::type_id_or_add_error(analysis, module, &field.type_),
-                is_pub: field.is_pub,
-            }
+        .map(|field| StructField {
+            name: field.name.clone(),
+            type_id: resolving::items::type_id_or_add_error(analysis, &field.type_),
+            is_pub: field.is_pub,
         })
         .collect()
 }

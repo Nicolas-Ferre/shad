@@ -4,12 +4,8 @@ use shad_error::SemanticError;
 use shad_parser::{AstFnCall, AstIdent};
 use std::iter;
 
-pub(crate) fn type_id_or_add_error(
-    analysis: &mut Analysis,
-    module: &str,
-    type_: &AstIdent,
-) -> Option<TypeId> {
-    match type_id(analysis, module, type_) {
+pub(crate) fn type_id_or_add_error(analysis: &mut Analysis, name: &AstIdent) -> Option<TypeId> {
+    match type_id(analysis, name) {
         Ok(type_id) => Some(type_id),
         Err(error) => {
             analysis.errors.push(error);
@@ -18,11 +14,8 @@ pub(crate) fn type_id_or_add_error(
     }
 }
 
-pub(crate) fn type_id(
-    analysis: &Analysis,
-    module: &str,
-    type_: &AstIdent,
-) -> Result<TypeId, SemanticError> {
+pub(crate) fn type_id(analysis: &Analysis, name: &AstIdent) -> Result<TypeId, SemanticError> {
+    let module = &name.span.module.name;
     analysis
         .visible_modules
         .get(module)
@@ -33,7 +26,7 @@ pub(crate) fn type_id(
         .filter_map(|module| {
             let id = TypeId {
                 module: module.cloned(),
-                name: type_.label.clone(),
+                name: name.label.clone(),
             };
             analysis.types.get(&id).map(|type_| (id, type_))
         })
@@ -42,10 +35,11 @@ pub(crate) fn type_id(
                 || type_id.module.as_deref() == Some(module)
         })
         .map(|(type_id, _)| type_id)
-        .ok_or_else(|| errors::types::not_found(type_))
+        .ok_or_else(|| errors::types::not_found(name))
 }
 
-pub(crate) fn buffer<'a>(analysis: &'a Analysis, module: &str, name: &str) -> Option<&'a Buffer> {
+pub(crate) fn buffer<'a>(analysis: &'a Analysis, name: &AstIdent) -> Option<&'a Buffer> {
+    let module = &name.span.module.name;
     analysis
         .visible_modules
         .get(module)
@@ -54,18 +48,15 @@ pub(crate) fn buffer<'a>(analysis: &'a Analysis, module: &str, name: &str) -> Op
         .filter_map(|module| {
             let id = BufferId {
                 module: module.clone(),
-                name: name.into(),
+                name: name.label.clone(),
             };
             analysis.buffers.get(&id)
         })
-        .find(|buffer| buffer.ast.is_pub || buffer.id.module == module)
+        .find(|buffer| buffer.ast.is_pub || &buffer.id.module == module)
 }
 
-pub(crate) fn constant<'a>(
-    analysis: &'a Analysis,
-    module: &str,
-    name: &str,
-) -> Option<&'a Constant> {
+pub(crate) fn constant<'a>(analysis: &'a Analysis, name: &AstIdent) -> Option<&'a Constant> {
+    let module = &name.span.module.name;
     analysis
         .visible_modules
         .get(module)
@@ -74,19 +65,19 @@ pub(crate) fn constant<'a>(
         .filter_map(|module| {
             let id = ConstantId {
                 module: module.clone(),
-                name: name.into(),
+                name: name.label.clone(),
             };
             analysis.constants.get(&id)
         })
-        .find(|constant| constant.ast.is_pub || constant.id.module == module)
+        .find(|constant| constant.ast.is_pub || &constant.id.module == module)
 }
 
 pub(crate) fn fn_<'a>(
     analysis: &'a Analysis,
-    module: &str,
     call: &AstFnCall,
     arg_types: &[TypeId],
 ) -> Option<&'a Function> {
+    let module = &call.name.span.module.name;
     analysis
         .visible_modules
         .get(module)
@@ -102,7 +93,7 @@ pub(crate) fn fn_<'a>(
             };
             analysis.fns.get(&id)
         })
-        .find(|fn_| fn_.ast.is_pub || fn_.id.module == module)
+        .find(|fn_| fn_.ast.is_pub || &fn_.id.module == module)
 }
 
 pub(crate) fn registered_fn<'a>(analysis: &'a Analysis, name: &AstIdent) -> Option<&'a Function> {

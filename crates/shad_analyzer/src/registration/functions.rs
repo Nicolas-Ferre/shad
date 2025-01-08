@@ -80,7 +80,7 @@ impl FnId {
                 param_types: fn_
                     .params
                     .iter()
-                    .map(|param| resolving::items::type_id(analysis, &module, &param.type_).ok())
+                    .map(|param| resolving::items::type_id(analysis, &param.type_).ok())
                     .collect(),
                 module,
                 param_count: fn_.params.len(),
@@ -167,7 +167,7 @@ fn register_initializers(analysis: &mut Analysis) {
 
 fn register_ast(analysis: &mut Analysis) {
     let asts = mem::take(&mut analysis.asts);
-    for (module, ast) in &asts {
+    for ast in asts.values() {
         for items in &ast.items {
             if let AstItem::Fn(fn_ast) = items {
                 let id = FnId::from_item(analysis, fn_ast);
@@ -176,7 +176,7 @@ fn register_ast(analysis: &mut Analysis) {
                     id: id.clone(),
                     is_inlined: is_inlined(fn_ast),
                     return_type_id: if let Some(return_type) = &fn_ast.return_type {
-                        resolving::items::type_id_or_add_error(analysis, module, &return_type.name)
+                        resolving::items::type_id_or_add_error(analysis, &return_type.name)
                     } else {
                         Some(TypeId::from_builtin(NO_RETURN_TYPE))
                     },
@@ -185,15 +185,11 @@ fn register_ast(analysis: &mut Analysis) {
                         .iter()
                         .map(|param| FnParam {
                             name: param.name.clone(),
-                            type_id: resolving::items::type_id_or_add_error(
-                                analysis,
-                                module,
-                                &param.type_,
-                            ),
+                            type_id: resolving::items::type_id_or_add_error(analysis, &param.type_),
                         })
                         .collect(),
                     source_type: None,
-                    generics: generics::register_for_item(analysis, &fn_ast.generics, module),
+                    generics: generics::register_for_item(analysis, &fn_ast.generics),
                 };
                 if let Some(existing_fn) = analysis.fns.insert(id.clone(), fn_) {
                     analysis.errors.push(errors::functions::duplicated(
