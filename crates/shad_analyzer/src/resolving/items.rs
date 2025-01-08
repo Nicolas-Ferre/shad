@@ -4,6 +4,23 @@ use shad_error::SemanticError;
 use shad_parser::{AstFnCall, AstIdent};
 use std::iter;
 
+pub(crate) fn item<'a>(analysis: &'a Analysis, ident: &AstIdent) -> Option<Item<'a>> {
+    if let Some(ident) = analysis.idents.get(&ident.id) {
+        match &ident.source {
+            IdentSource::Buffer(id) => analysis.buffers.get(id).map(Item::Buffer),
+            IdentSource::Var(id) => analysis
+                .idents
+                .get(id)
+                .map(|ident| Item::Var(*id, &ident.type_id)),
+            IdentSource::Fn(id) => analysis.fns.get(id).map(Item::Fn),
+            IdentSource::Field => Some(Item::Field(&ident.type_id)),
+            IdentSource::GenericType => Some(Item::GenericType),
+        }
+    } else {
+        constant(analysis, ident).map(Item::Constant)
+    }
+}
+
 pub(crate) fn type_id_or_add_error(analysis: &mut Analysis, name: &AstIdent) -> Option<TypeId> {
     match type_id(analysis, name) {
         Ok(type_id) => Some(type_id),
@@ -120,19 +137,12 @@ pub(crate) fn const_fn<'a>(
         .find(|fn_| fn_.ast.is_const && (fn_.ast.is_pub || &fn_.id.module == module))
 }
 
-pub(crate) fn registered_fn<'a>(analysis: &'a Analysis, name: &AstIdent) -> Option<&'a Function> {
-    analysis
-        .idents
-        .get(&name.id)
-        .map(|ident| match &ident.source {
-            IdentSource::Fn(id) => id.clone(),
-            IdentSource::Constant(_)
-            | IdentSource::Buffer(_)
-            | IdentSource::Var(_)
-            | IdentSource::Field
-            | IdentSource::GenericType => {
-                unreachable!("internal error: retrieve non-function ID")
-            }
-        })
-        .map(|fn_id| &analysis.fns[&fn_id])
+#[derive(Debug, Clone)]
+pub(crate) enum Item<'a> {
+    Constant(&'a Constant),
+    Buffer(&'a Buffer),
+    Var(u64, &'a Option<TypeId>),
+    Fn(&'a Function),
+    Field(&'a Option<TypeId>),
+    GenericType,
 }

@@ -1,3 +1,4 @@
+use crate::resolving::items::Item;
 use crate::{listing, resolving, Analysis, FnId, Ident, IdentSource};
 use fxhash::FxHashMap;
 use shad_parser::{
@@ -74,17 +75,18 @@ impl<'a> RefFnInlineTransform<'a> {
 impl VisitMut for RefFnInlineTransform<'_> {
     fn exit_expr_statement(&mut self, node: &mut AstExprStatement) {
         if let AstExprRoot::FnCall(call) = &node.expr.root {
-            if resolving::items::registered_fn(self.analysis, &call.name)
-                .expect("internal error: missing function")
-                .is_inlined
-            {
-                node.expr = AstLiteral {
-                    span: node.span.clone(),
-                    raw_value: "0".to_string(),
-                    cleaned_value: "0".to_string(),
-                    type_: AstLiteralType::I32,
+            if let Some(Item::Fn(fn_)) = resolving::items::item(self.analysis, &call.name) {
+                if fn_.is_inlined {
+                    node.expr = AstLiteral {
+                        span: node.span.clone(),
+                        raw_value: "0".to_string(),
+                        cleaned_value: "0".to_string(),
+                        type_: AstLiteralType::I32,
+                    }
+                    .into();
                 }
-                .into();
+            } else {
+                unreachable!("internal error: missing function");
             }
         }
     }
@@ -109,21 +111,24 @@ impl VisitMut for RefFnInlineTransform<'_> {
 }
 
 fn inlined_fn_statements(analysis: &mut Analysis, call: &AstFnCall) -> Vec<AstStatement> {
-    let fn_ = resolving::items::registered_fn(analysis, &call.name)
-        .expect("internal error: missing function")
-        .clone();
-    if !fn_.is_inlined {
-        return vec![];
+    if let Some(Item::Fn(fn_)) = resolving::items::item(analysis, &call.name) {
+        let fn_ = fn_.clone();
+        if fn_.is_inlined {
+            let mut transform = RefFnStatementsTransform::new(analysis, &fn_.ast, call);
+            fn_.ast
+                .statements
+                .into_iter()
+                .map(|mut statement| {
+                    transform.visit_statement(&mut statement);
+                    statement
+                })
+                .collect()
+        } else {
+            vec![]
+        }
+    } else {
+        unreachable!("internal error: missing function");
     }
-    let mut transform = RefFnStatementsTransform::new(analysis, &fn_.ast, call);
-    fn_.ast
-        .statements
-        .into_iter()
-        .map(|mut statement| {
-            transform.visit_statement(&mut statement);
-            statement
-        })
-        .collect()
 }
 
 struct RefFnStatementsTransform<'a> {
@@ -149,37 +154,28 @@ impl<'a> RefFnStatementsTransform<'a> {
 
 impl VisitMut for RefFnStatementsTransform<'_> {
     fn enter_expr(&mut self, node: &mut AstExpr) {
-        if let Some(IdentSource::Var(id)) =
-            resolving::expressions::root_id(node).map(|id| &self.analysis.idents[&id].source)
-        {
-            if let Some(new_root) = self.param_args.get(id) {
-                node.replace_root(new_root.clone());
+        if let AstExprRoot::Ident(ident) = &node.root {
+            if let Some(Item::Var(id, _)) = resolving::items::item(self.analysis, ident) {
+                if let Some(new_root) = self.param_args.get(&id) {
+                    node.replace_root(new_root.clone());
+                }
             }
         }
     }
 
     fn exit_ident(&mut self, node: &mut AstIdent) {
-        if let Some(ident) = self.analysis.idents.get(&node.id) {
-            match ident.source {
-                IdentSource::Constant(_)
-                | IdentSource::Buffer(_)
-                | IdentSource::Fn(_)
-                | IdentSource::Field
-                | IdentSource::GenericType => {}
-                IdentSource::Var(id) => {
-                    let ident = ident.clone();
-                    let old_id = node.id;
-                    node.id = self.analysis.next_id();
-                    self.old_new_id.insert(old_id, node.id);
-                    self.analysis.idents.insert(
-                        node.id,
-                        Ident::new(
-                            IdentSource::Var(self.old_new_id.get(&id).copied().unwrap_or(id)),
-                            ident.type_id,
-                        ),
-                    );
-                }
-            }
+        if let Some(Item::Var(id, type_id)) = resolving::items::item(self.analysis, node) {
+            let type_id = type_id.clone();
+            let old_id = node.id;
+            node.id = self.analysis.next_id();
+            self.old_new_id.insert(old_id, node.id);
+            self.analysis.idents.insert(
+                node.id,
+                Ident::new(
+                    IdentSource::Var(self.old_new_id.get(&id).copied().unwrap_or(id)),
+                    type_id,
+                ),
+            );
         }
     }
 }

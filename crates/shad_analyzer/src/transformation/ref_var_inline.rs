@@ -1,6 +1,7 @@
-use crate::{resolving, Analysis, IdentSource};
+use crate::resolving::items::Item;
+use crate::{resolving, Analysis};
 use fxhash::FxHashMap;
-use shad_parser::{AstExpr, AstStatement, AstVarDefinition, VisitMut};
+use shad_parser::{AstExpr, AstExprRoot, AstStatement, AstVarDefinition, VisitMut};
 use std::mem;
 
 pub(crate) fn transform(analysis: &mut Analysis) {
@@ -46,20 +47,12 @@ impl VisitMut for RefVarInlineTransform<'_> {
     }
 
     fn exit_expr(&mut self, node: &mut AstExpr) {
-        match resolving::expressions::root_id(node).map(|id| &self.analysis.idents[&id].source) {
-            Some(IdentSource::Var(id)) => {
-                if let Some(new_root) = self.ref_expressions.get(id) {
+        if let AstExprRoot::Ident(ident) = &node.root {
+            if let Some(Item::Var(id, _)) = resolving::items::item(self.analysis, ident) {
+                if let Some(new_root) = self.ref_expressions.get(&id) {
                     node.replace_root(new_root.clone());
                 }
             }
-            Some(
-                IdentSource::Constant(_)
-                | IdentSource::Buffer(_)
-                | IdentSource::Fn(_)
-                | IdentSource::Field
-                | IdentSource::GenericType,
-            )
-            | None => {}
         }
     }
 }

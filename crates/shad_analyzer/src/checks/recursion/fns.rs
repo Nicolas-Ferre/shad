@@ -1,4 +1,5 @@
 use crate::checks::recursion::{ItemRecursionCheck, UsedItem};
+use crate::resolving::items::Item;
 use crate::{errors, resolving, Analysis, FnId};
 use fxhash::FxHashSet;
 use shad_parser::{AstFnCall, Visit};
@@ -19,7 +20,7 @@ pub(crate) fn check(analysis: &mut Analysis) {
 
 impl Visit for ItemRecursionCheck<'_, FnId> {
     fn enter_fn_call(&mut self, node: &AstFnCall) {
-        if let Some(fn_) = resolving::items::registered_fn(self.analysis, &node.name) {
+        if let Some(Item::Fn(fn_)) = resolving::items::item(self.analysis, &node.name) {
             self.used_item_ids.push(UsedItem {
                 usage_span: node.span.clone(),
                 def_span: fn_.ast.name.span.clone(),

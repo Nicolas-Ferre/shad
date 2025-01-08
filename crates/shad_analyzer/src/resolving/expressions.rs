@@ -1,38 +1,30 @@
-use crate::{resolving, Analysis, IdentSource};
+use crate::resolving::items::Item;
+use crate::{resolving, Analysis};
 use shad_parser::{AstExpr, AstExprRoot};
-
-pub(crate) fn root_id(expr: &AstExpr) -> Option<u64> {
-    match &expr.root {
-        AstExprRoot::Ident(ident) => Some(ident.id),
-        AstExprRoot::FnCall(call) => Some(call.name.id),
-        AstExprRoot::Literal(_) => None,
-    }
-}
 
 pub(crate) fn semantic(analysis: &Analysis, expr: &AstExpr) -> ExprSemantic {
     match &expr.root {
-        AstExprRoot::Ident(ident) => {
-            if let Some(ident) = analysis.idents.get(&ident.id) {
-                if matches!(ident.source, IdentSource::Constant(_)) {
-                    ExprSemantic::Value
-                } else {
-                    ExprSemantic::Ref
-                }
-            } else {
-                ExprSemantic::None
-            }
-        }
+        AstExprRoot::Ident(ident) => match resolving::items::item(analysis, ident) {
+            Some(Item::Constant(_)) => ExprSemantic::Value,
+            Some(_) => ExprSemantic::Ref,
+            None => ExprSemantic::None,
+        },
         AstExprRoot::FnCall(call) => {
             if expr.fields.is_empty() {
-                resolving::items::registered_fn(analysis, &call.name)
-                    .and_then(|fn_| fn_.ast.return_type.as_ref())
-                    .map_or(ExprSemantic::None, |type_| {
-                        if type_.is_ref {
-                            ExprSemantic::Ref
-                        } else {
-                            ExprSemantic::Value
-                        }
-                    })
+                if let Some(Item::Fn(fn_)) = resolving::items::item(analysis, &call.name) {
+                    fn_.ast
+                        .return_type
+                        .as_ref()
+                        .map_or(ExprSemantic::None, |type_| {
+                            if type_.is_ref {
+                                ExprSemantic::Ref
+                            } else {
+                                ExprSemantic::Value
+                            }
+                        })
+                } else {
+                    ExprSemantic::None
+                }
             } else {
                 ExprSemantic::Ref
             }

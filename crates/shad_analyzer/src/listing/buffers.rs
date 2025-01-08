@@ -1,4 +1,4 @@
-use crate::registration::idents::IdentSource;
+use crate::resolving::items::Item;
 use crate::{resolving, Analysis, BufferId};
 use fxhash::FxHashSet;
 use shad_parser::{AstFnCall, AstIdent, AstRunItem, Visit};
@@ -25,23 +25,14 @@ impl<'a> BufferListing<'a> {
 
 impl Visit for BufferListing<'_> {
     fn enter_fn_call(&mut self, node: &AstFnCall) {
-        if let Some(fn_) = resolving::items::registered_fn(self.analysis, &node.name) {
+        if let Some(Item::Fn(fn_)) = resolving::items::item(self.analysis, &node.name) {
             self.visit_fn_item(&fn_.ast);
         }
     }
 
     fn enter_ident(&mut self, node: &AstIdent) {
-        if let Some(ident) = self.analysis.idents.get(&node.id) {
-            match &ident.source {
-                IdentSource::Buffer(name) => {
-                    self.buffers.insert(name.clone());
-                }
-                IdentSource::Constant(_)
-                | IdentSource::Var(_)
-                | IdentSource::Fn(_)
-                | IdentSource::Field
-                | IdentSource::GenericType => (),
-            }
+        if let Some(Item::Buffer(buffer)) = resolving::items::item(self.analysis, node) {
+            self.buffers.insert(buffer.id.clone());
         }
     }
 }

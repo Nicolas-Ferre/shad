@@ -3,6 +3,7 @@ use crate::registration::constants::{Constant, ConstantId};
 use crate::registration::functions::Function;
 use crate::registration::idents::Ident;
 use crate::registration::shaders::ComputeShader;
+use crate::resolving::items::Item;
 use crate::{
     checks, registration, resolving, transformation, Buffer, BufferId, BufferInitRunBlock, FnId,
     RunBlock, Type, TypeId,
@@ -105,7 +106,11 @@ impl Analysis {
 
     /// Returns the function from a function name identifier.
     pub fn fn_(&self, ident: &AstIdent) -> Option<&Function> {
-        resolving::items::registered_fn(self, ident)
+        if let Some(Item::Fn(fn_)) = resolving::items::item(self, ident) {
+            Some(fn_)
+        } else {
+            None
+        }
     }
 
     pub(crate) fn next_id(&mut self) -> u64 {

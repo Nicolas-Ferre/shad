@@ -1,5 +1,6 @@
 use crate::registration::constants::ConstantValue;
-use crate::{Analysis, IdentSource};
+use crate::resolving::items::Item;
+use crate::{resolving, Analysis};
 use shad_parser::{AstExpr, AstExprRoot, AstLiteral, AstLiteralType, AstStatement, VisitMut};
 use std::mem;
 
@@ -59,8 +60,8 @@ impl<'a> ConstantTransform<'a> {
 impl VisitMut for ConstantTransform<'_> {
     fn enter_expr(&mut self, node: &mut AstExpr) {
         if let AstExprRoot::Ident(ident) = &node.root {
-            if let IdentSource::Constant(constant_id) = &self.analysis.idents[&ident.id].source {
-                let value = self.analysis.constants[constant_id]
+            if let Some(Item::Constant(constant)) = resolving::items::item(self.analysis, ident) {
+                let value = constant
                     .value
                     .clone()
                     .expect("internal error: not calculated constant");

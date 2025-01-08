@@ -32,7 +32,6 @@ pub(crate) fn to_expr_wgsl(analysis: &Analysis, expr: &AstExpr) -> String {
 pub(crate) fn to_ident_wgsl(analysis: &Analysis, name: &AstIdent) -> String {
     let ident = &analysis.idents[&name.id];
     match &ident.source {
-        IdentSource::Constant(_) => unreachable!("internal error: constant not replaced"),
         IdentSource::Buffer(name) => to_buffer_ident_wgsl(analysis, name),
         IdentSource::Var(id) => format!("v{}_{}", id, name.label),
         IdentSource::Fn(_) => {

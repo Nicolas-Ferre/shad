@@ -1,5 +1,6 @@
 use crate::checks::recursion::{ItemRecursionCheck, UsedItem};
-use crate::{errors, resolving, Analysis, BufferId, IdentSource};
+use crate::resolving::items::Item;
+use crate::{errors, resolving, Analysis, BufferId};
 use fxhash::FxHashSet;
 use shad_parser::{AstFnCall, AstIdent, Visit};
 use std::mem;
@@ -22,25 +23,22 @@ pub(crate) fn check(analysis: &mut Analysis) {
 
 impl Visit for ItemRecursionCheck<'_, BufferId> {
     fn enter_fn_call(&mut self, node: &AstFnCall) {
-        if let Some(fn_) = resolving::items::registered_fn(self.analysis, &node.name) {
+        if let Some(Item::Fn(fn_)) = resolving::items::item(self.analysis, &node.name) {
             self.visit_fn_item(&fn_.ast);
         }
     }
 
     fn enter_ident(&mut self, node: &AstIdent) {
-        if let Some(ident) = self.analysis.idents.get(&node.id) {
-            if let IdentSource::Buffer(id) = &ident.source {
-                let buffer = &self.analysis.buffers[id].ast;
-                self.used_item_ids.push(UsedItem {
-                    usage_span: node.span.clone(),
-                    def_span: buffer.name.span.clone(),
-                    id: id.clone(),
-                });
-                if !self.detect_error(errors::buffers::recursion_found) {
-                    self.visit_expr(&buffer.value);
-                }
-                self.used_item_ids.pop();
+        if let Some(Item::Buffer(buffer)) = resolving::items::item(self.analysis, node) {
+            self.used_item_ids.push(UsedItem {
+                usage_span: node.span.clone(),
+                def_span: buffer.ast.name.span.clone(),
+                id: buffer.id.clone(),
+            });
+            if !self.detect_error(errors::buffers::recursion_found) {
+                self.visit_expr(&buffer.ast.value);
             }
+            self.used_item_ids.pop();
         }
     }
 }

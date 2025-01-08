@@ -1,6 +1,7 @@
 use crate::checks::recursion::{ItemRecursionCheck, UsedItem};
 use crate::registration::constants::ConstantId;
-use crate::{errors, Analysis, IdentSource};
+use crate::resolving::items::Item;
+use crate::{errors, resolving, Analysis};
 use fxhash::FxHashSet;
 use shad_parser::{AstIdent, Visit};
 use std::mem;
@@ -23,16 +24,14 @@ pub(crate) fn check(analysis: &mut Analysis) {
 
 impl Visit for ItemRecursionCheck<'_, ConstantId> {
     fn enter_ident(&mut self, node: &AstIdent) {
-        let ident = &self.analysis.idents[&node.id];
-        if let IdentSource::Constant(id) = &ident.source {
-            let constant = &self.analysis.constants[id].ast;
+        if let Some(Item::Constant(constant)) = resolving::items::item(self.analysis, node) {
             self.used_item_ids.push(UsedItem {
                 usage_span: node.span.clone(),
-                def_span: constant.name.span.clone(),
-                id: id.clone(),
+                def_span: constant.ast.name.span.clone(),
+                id: constant.id.clone(),
             });
             if !self.detect_error(errors::constants::recursion_found) {
-                self.visit_expr(&constant.value);
+                self.visit_expr(&constant.ast.value);
             }
             self.used_item_ids.pop();
         }

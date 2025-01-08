@@ -1,8 +1,10 @@
 use crate::resolving::expressions::ExprSemantic;
-use crate::{errors, resolving, Analysis, Function, NO_RETURN_TYPE};
+use crate::resolving::items::Item;
+use crate::{errors, resolving, Analysis, FnId, Function, NO_RETURN_TYPE};
 use shad_error::SemanticError;
 use shad_parser::{
-    AstAssignment, AstExpr, AstFnCall, AstFnItem, AstReturn, AstStatement, AstVarDefinition, Visit,
+    AstAssignment, AstExpr, AstExprRoot, AstFnCall, AstFnItem, AstReturn, AstStatement,
+    AstVarDefinition, Visit,
 };
 
 pub(crate) fn check(analysis: &mut Analysis) {
@@ -14,6 +16,10 @@ pub(crate) fn check(analysis: &mut Analysis) {
     for block in &analysis.run_blocks {
         checker.module = &block.module;
         checker.visit_run_item(&block.ast);
+    }
+    for constant in analysis.constants.values() {
+        checker.module = &constant.id.module;
+        checker.visit_expr(&constant.ast.value);
     }
     for fn_ in analysis.fns.values() {
         checker.module = &fn_.ast.name.span.module.name;
@@ -52,8 +58,7 @@ impl<'a> StatementCheck<'a> {
 
 impl Visit for StatementCheck<'_> {
     fn enter_fn_item(&mut self, node: &AstFnItem) {
-        let fn_ = resolving::items::registered_fn(self.analysis, &node.name)
-            .expect("internal error: missing function");
+        let fn_ = &self.analysis.fns[&FnId::from_item(self.analysis, node)];
         if let Some(return_pos) = node
             .statements
             .iter()
@@ -127,7 +132,7 @@ impl Visit for StatementCheck<'_> {
     }
 
     fn enter_fn_call(&mut self, node: &AstFnCall) {
-        if let Some(fn_) = resolving::items::registered_fn(self.analysis, &node.name) {
+        if let Some(Item::Fn(fn_)) = resolving::items::item(self.analysis, &node.name) {
             for (arg, param) in node.args.iter().zip(&fn_.ast.params) {
                 if let Some(name) = &arg.name {
                     if param.name.label != name.label {
@@ -135,6 +140,42 @@ impl Visit for StatementCheck<'_> {
                         self.errors.push(error);
                     }
                 }
+            }
+        }
+    }
+
+    fn enter_expr(&mut self, node: &AstExpr) {
+        match &node.root {
+            AstExprRoot::Ident(ident) => {
+                if resolving::items::item(self.analysis, ident).is_none() {
+                    let error = errors::variables::not_found(ident);
+                    self.errors.push(error);
+                }
+            }
+            AstExprRoot::FnCall(call) => {
+                if resolving::items::item(self.analysis, &call.name).is_none() {
+                    if let Some(arg_type_ids) = resolving::types::fn_args(self.analysis, call) {
+                        if resolving::items::item(self.analysis, &call.name).is_none() {
+                            let error = errors::functions::not_found(call, &arg_type_ids);
+                            self.errors.push(error);
+                        }
+                    }
+                }
+            }
+            AstExprRoot::Literal(_) => (),
+        }
+        let mut last_type_id = resolving::types::expr_root(self.analysis, node);
+        for field in &node.fields {
+            if let Some(parent_type_id) = &last_type_id {
+                if let Some(Item::Field(type_id)) = resolving::items::item(self.analysis, field) {
+                    last_type_id.clone_from(type_id);
+                } else {
+                    let error = errors::types::field_not_found(field, parent_type_id);
+                    self.errors.push(error);
+                    return;
+                }
+            } else {
+                return;
             }
         }
     }
