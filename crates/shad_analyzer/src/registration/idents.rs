@@ -1,5 +1,5 @@
-use crate::registration::constants::{Constant, ConstantId};
-use crate::{errors, resolver, Analysis, Buffer, BufferId, FnId, Function, TypeId};
+use crate::registration::constants::ConstantId;
+use crate::{errors, resolving, Analysis, BufferId, FnId, TypeId};
 use fxhash::FxHashMap;
 use shad_parser::{
     AstBufferItem, AstConstItem, AstExpr, AstExprRoot, AstFnCall, AstFnItem, AstFnParam,
@@ -153,7 +153,7 @@ fn register_fns(analysis: &mut Analysis) {
 fn register_gpu_name(analysis: &mut Analysis, module: &str, name: &AstGpuName) {
     for param in &name.generics {
         if let AstGpuGenericParam::Ident(param) = param {
-            let type_id = resolver::type_or_add_error(analysis, module, param);
+            let type_id = resolving::items::type_id_or_add_error(analysis, module, param);
             let ident = Ident::new(IdentSource::GenericType, type_id);
             analysis.idents.insert(param.id, ident);
         }
@@ -222,57 +222,6 @@ impl<'a> IdentRegistration<'a> {
         self.variables.insert(ident.label.clone(), ident.id);
     }
 
-    fn find_fn(&self, call: &AstFnCall, arg_types: &[TypeId]) -> Option<(FnId, &Function)> {
-        self.analysis
-            .visible_modules
-            .get(self.module)
-            .into_iter()
-            .flatten()
-            .filter_map(|module| {
-                let id = FnId {
-                    module: module.clone(),
-                    name: call.name.label.clone(),
-                    param_types: arg_types.iter().map(|type_| Some(type_.clone())).collect(),
-                    param_count: arg_types.len(),
-                    is_generic: false,
-                };
-                self.analysis.fns.get(&id).map(|fn_| (id, fn_))
-            })
-            .find(|(fn_id, fn_)| fn_.ast.is_pub || fn_id.module == self.module)
-    }
-
-    fn find_buffer(&self, name: &str) -> Option<(BufferId, &Buffer)> {
-        self.analysis
-            .visible_modules
-            .get(self.module)
-            .into_iter()
-            .flatten()
-            .filter_map(|module| {
-                let id = BufferId {
-                    module: module.clone(),
-                    name: name.into(),
-                };
-                self.analysis.buffers.get(&id).map(|buffer| (id, buffer))
-            })
-            .find(|(buffer_id, buffer)| buffer.ast.is_pub || buffer_id.module == self.module)
-    }
-
-    fn find_constant(&self, name: &str) -> Option<(ConstantId, &Constant)> {
-        self.analysis
-            .visible_modules
-            .get(self.module)
-            .into_iter()
-            .flatten()
-            .filter_map(|module| {
-                let id = ConstantId {
-                    module: module.clone(),
-                    name: name.into(),
-                };
-                self.analysis.constants.get(&id).map(|buffer| (id, buffer))
-            })
-            .find(|(buffer_id, buffer)| buffer.ast.is_pub || buffer_id.module == self.module)
-    }
-
     fn register_fn_item(&mut self, node: &AstFnItem) {
         let fn_id = FnId::from_item(self.analysis, node);
         let return_type_id = self
@@ -286,7 +235,7 @@ impl<'a> IdentRegistration<'a> {
     }
 
     fn register_fn_param(&mut self, param: &AstFnParam) {
-        let type_id = resolver::type_(self.analysis, self.module, &param.type_).ok();
+        let type_id = resolving::items::type_id(self.analysis, self.module, &param.type_).ok();
         let ident = Ident::new(IdentSource::Var(param.name.id), type_id);
         self.analysis.idents.insert(param.name.id, ident);
         self.add_variable(&param.name);
@@ -302,19 +251,23 @@ impl<'a> IdentRegistration<'a> {
             let var_ident = Ident::new(IdentSource::Var(id), var_type.clone());
             self.analysis.idents.insert(variable.id, var_ident);
             var_type
-        } else if let (Some((buffer_id, _)), false) =
-            (self.find_buffer(&variable.label), self.is_const_context)
-        {
+        } else if let (Some(buffer), false) = (
+            resolving::items::buffer(self.analysis, self.module, &variable.label),
+            self.is_const_context,
+        ) {
             let buffer_type =
-                resolver::buffer_type(self.analysis, &buffer_id).map(|type_| type_.id.clone());
-            let buffer_ident = Ident::new(IdentSource::Buffer(buffer_id), buffer_type.clone());
+                resolving::types::buffer(self.analysis, &buffer.id).map(|type_| type_.id.clone());
+            let buffer_source = IdentSource::Buffer(buffer.id.clone());
+            let buffer_ident = Ident::new(buffer_source, buffer_type.clone());
             self.analysis.idents.insert(variable.id, buffer_ident);
             buffer_type
-        } else if let Some((constant_id, _)) = self.find_constant(&variable.label) {
-            let constant_type =
-                resolver::constant_type(self.analysis, &constant_id).map(|type_| type_.id.clone());
-            let constant_ident =
-                Ident::new(IdentSource::Constant(constant_id), constant_type.clone());
+        } else if let Some(constant) =
+            resolving::items::constant(self.analysis, self.module, &variable.label)
+        {
+            let constant_type = resolving::types::constant(self.analysis, &constant.id)
+                .map(|type_| type_.id.clone());
+            let constant_source = IdentSource::Constant(constant.id.clone());
+            let constant_ident = Ident::new(constant_source, constant_type.clone());
             self.analysis.idents.insert(variable.id, constant_ident);
             constant_type
         } else if self.are_errors_enabled {
@@ -336,7 +289,7 @@ impl Visit for IdentRegistration<'_> {
     }
 
     fn exit_const_item(&mut self, node: &AstConstItem) {
-        let constant_type = resolver::expr_type(self.analysis, &node.value);
+        let constant_type = resolving::types::expr(self.analysis, &node.value);
         let constant_ident = Ident::new(
             IdentSource::Constant(ConstantId {
                 module: self.module.into(),
@@ -348,7 +301,7 @@ impl Visit for IdentRegistration<'_> {
     }
 
     fn exit_buffer_item(&mut self, node: &AstBufferItem) {
-        let buffer_type = resolver::expr_type(self.analysis, &node.value);
+        let buffer_type = resolving::types::expr(self.analysis, &node.value);
         let buffer_ident = Ident::new(
             IdentSource::Buffer(BufferId {
                 module: self.module.into(),
@@ -360,7 +313,7 @@ impl Visit for IdentRegistration<'_> {
     }
 
     fn exit_var_definition(&mut self, node: &AstVarDefinition) {
-        let var_type = resolver::expr_type(self.analysis, &node.expr);
+        let var_type = resolving::types::expr(self.analysis, &node.expr);
         let var_ident = Ident::new(IdentSource::Var(node.name.id), var_type);
         self.analysis.idents.insert(node.name.id, var_ident);
         self.add_variable(&node.name);
@@ -370,11 +323,14 @@ impl Visit for IdentRegistration<'_> {
         if let Some(arg_type_ids) = node
             .args
             .iter()
-            .map(|node| resolver::expr_type(self.analysis, &node.value))
+            .map(|node| resolving::types::expr(self.analysis, &node.value))
             .collect::<Option<Vec<_>>>()
         {
-            if let Some((fn_id, fn_)) = self.find_fn(node, &arg_type_ids) {
-                let fn_ident = Ident::new(IdentSource::Fn(fn_id), fn_.return_type_id.clone());
+            if let Some(fn_) =
+                resolving::items::fn_(self.analysis, self.module, node, &arg_type_ids)
+            {
+                let fn_ident =
+                    Ident::new(IdentSource::Fn(fn_.id.clone()), fn_.return_type_id.clone());
                 self.analysis.idents.insert(node.name.id, fn_ident);
             } else if self.are_errors_enabled {
                 let error = errors::functions::not_found(node, &arg_type_ids);
@@ -391,7 +347,7 @@ impl Visit for IdentRegistration<'_> {
                 .idents
                 .get(&value.name.id)
                 .and_then(|ident| ident.type_id.clone()),
-            AstExprRoot::Literal(literal) => Some(resolver::literal_type(literal)),
+            AstExprRoot::Literal(literal) => Some(resolving::types::literal(literal)),
         };
         for field in &node.fields {
             let Some(current_type) = last_type.clone() else {

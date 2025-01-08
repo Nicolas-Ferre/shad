@@ -1,4 +1,4 @@
-use crate::{resolver, Analysis, NO_RETURN_TYPE};
+use crate::{resolving, Analysis, NO_RETURN_TYPE};
 use shad_parser::{AstExprStatement, AstStatement};
 use std::mem;
 
@@ -18,7 +18,7 @@ pub(crate) fn transform(analysis: &mut Analysis) {
 }
 
 fn transform_expr(analysis: &mut Analysis, statement: AstExprStatement) -> AstStatement {
-    let has_type = resolver::expr_type(analysis, &statement.expr)
+    let has_type = resolving::types::expr(analysis, &statement.expr)
         .map_or(false, |type_id| type_id.name != NO_RETURN_TYPE);
     if has_type {
         let (var_def_statement, _var_name) =

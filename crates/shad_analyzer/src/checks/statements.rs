@@ -1,5 +1,5 @@
-use crate::resolver::ExprSemantic;
-use crate::{errors, resolver, Analysis, Function, NO_RETURN_TYPE};
+use crate::resolving::expressions::ExprSemantic;
+use crate::{errors, resolving, Analysis, Function, NO_RETURN_TYPE};
 use shad_error::SemanticError;
 use shad_parser::{
     AstAssignment, AstExpr, AstFnCall, AstFnItem, AstReturn, AstStatement, AstVarDefinition, Visit,
@@ -41,7 +41,7 @@ impl<'a> StatementCheck<'a> {
     }
 
     fn check_invalid_expr_type(&mut self, expr: &AstExpr) {
-        if let Some(type_id) = resolver::expr_type(self.analysis, expr) {
+        if let Some(type_id) = resolving::types::expr(self.analysis, expr) {
             if type_id.name == NO_RETURN_TYPE {
                 let error = errors::expressions::invalid_type(expr, &type_id);
                 self.errors.push(error);
@@ -52,8 +52,8 @@ impl<'a> StatementCheck<'a> {
 
 impl Visit for StatementCheck<'_> {
     fn enter_fn_item(&mut self, node: &AstFnItem) {
-        let fn_ =
-            resolver::fn_(self.analysis, &node.name).expect("internal error: missing function");
+        let fn_ = resolving::items::registered_fn(self.analysis, &node.name)
+            .expect("internal error: missing function");
         if let Some(return_pos) = node
             .statements
             .iter()
@@ -73,8 +73,8 @@ impl Visit for StatementCheck<'_> {
 
     fn enter_assignment(&mut self, node: &AstAssignment) {
         self.check_invalid_expr_type(&node.right);
-        let expected_type = resolver::expr_type(self.analysis, &node.left);
-        let expr_type = resolver::expr_type(self.analysis, &node.right);
+        let expected_type = resolving::types::expr(self.analysis, &node.left);
+        let expr_type = resolving::types::expr(self.analysis, &node.right);
         if let (Some(expected_type), Some(expr_type)) = (expected_type, expr_type) {
             if expected_type != expr_type {
                 self.errors.push(errors::assignments::invalid_type(
@@ -84,14 +84,14 @@ impl Visit for StatementCheck<'_> {
                 ));
             }
         }
-        if resolver::expr_semantic(self.analysis, &node.left) == ExprSemantic::Value {
+        if resolving::expressions::semantic(self.analysis, &node.left) == ExprSemantic::Value {
             self.errors.push(errors::expressions::not_ref(&node.left));
         }
     }
 
     fn enter_var_definition(&mut self, node: &AstVarDefinition) {
         self.check_invalid_expr_type(&node.expr);
-        let semantic = resolver::expr_semantic(self.analysis, &node.expr);
+        let semantic = resolving::expressions::semantic(self.analysis, &node.expr);
         if node.is_ref && semantic == ExprSemantic::Value {
             self.errors.push(errors::expressions::not_ref(&node.expr));
         }
@@ -100,7 +100,7 @@ impl Visit for StatementCheck<'_> {
     fn enter_return(&mut self, node: &AstReturn) {
         if let Some(fn_) = self.fn_ {
             if let Some(return_type) = &fn_.ast.return_type {
-                let Some(type_id) = resolver::expr_type(self.analysis, &node.expr) else {
+                let Some(type_id) = resolving::types::expr(self.analysis, &node.expr) else {
                     return;
                 };
                 if let Some(return_type_id) = &fn_.return_type_id {
@@ -114,7 +114,7 @@ impl Visit for StatementCheck<'_> {
                         return;
                     }
                 }
-                let semantic = resolver::expr_semantic(self.analysis, &node.expr);
+                let semantic = resolving::expressions::semantic(self.analysis, &node.expr);
                 if return_type.is_ref && semantic == ExprSemantic::Value {
                     self.errors.push(errors::expressions::not_ref(&node.expr));
                 }
@@ -127,7 +127,7 @@ impl Visit for StatementCheck<'_> {
     }
 
     fn enter_fn_call(&mut self, node: &AstFnCall) {
-        if let Some(fn_) = resolver::fn_(self.analysis, &node.name) {
+        if let Some(fn_) = resolving::items::registered_fn(self.analysis, &node.name) {
             for (arg, param) in node.args.iter().zip(&fn_.ast.params) {
                 if let Some(name) = &arg.name {
                     if param.name.label != name.label {

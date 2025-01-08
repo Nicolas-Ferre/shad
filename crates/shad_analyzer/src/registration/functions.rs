@@ -1,7 +1,7 @@
 use crate::registration::generics;
 use crate::registration::generics::GenericParam;
 use crate::{
-    errors, resolver, Analysis, ConstFnId, ConstFnParamType, Type, TypeId, NO_RETURN_TYPE,
+    errors, resolving, Analysis, ConstFnId, ConstFnParamType, Type, TypeId, NO_RETURN_TYPE,
 };
 use itertools::Itertools;
 use shad_parser::{
@@ -80,7 +80,7 @@ impl FnId {
                 param_types: fn_
                     .params
                     .iter()
-                    .map(|param| resolver::type_(analysis, &module, &param.type_).ok())
+                    .map(|param| resolving::items::type_id(analysis, &module, &param.type_).ok())
                     .collect(),
                 module,
                 param_count: fn_.params.len(),
@@ -176,7 +176,7 @@ fn register_ast(analysis: &mut Analysis) {
                     id: id.clone(),
                     is_inlined: is_inlined(fn_ast),
                     return_type_id: if let Some(return_type) = &fn_ast.return_type {
-                        resolver::type_or_add_error(analysis, module, &return_type.name)
+                        resolving::items::type_id_or_add_error(analysis, module, &return_type.name)
                     } else {
                         Some(TypeId::from_builtin(NO_RETURN_TYPE))
                     },
@@ -185,7 +185,11 @@ fn register_ast(analysis: &mut Analysis) {
                         .iter()
                         .map(|param| FnParam {
                             name: param.name.clone(),
-                            type_id: resolver::type_or_add_error(analysis, module, &param.type_),
+                            type_id: resolving::items::type_id_or_add_error(
+                                analysis,
+                                module,
+                                &param.type_,
+                            ),
                         })
                         .collect(),
                     source_type: None,

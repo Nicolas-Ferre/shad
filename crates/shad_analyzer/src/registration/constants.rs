@@ -1,4 +1,4 @@
-use crate::{errors, resolver, Analysis, IdentSource, TypeId};
+use crate::{errors, resolving, Analysis, IdentSource, TypeId};
 use shad_parser::{AstConstItem, AstExpr, AstExprRoot, AstItem, AstLiteralType};
 use std::mem;
 use std::str::FromStr;
@@ -8,6 +8,8 @@ use std::str::FromStr;
 pub struct Constant {
     /// The constant AST.
     pub ast: AstConstItem,
+    /// The unique identifier of the constant.
+    pub id: ConstantId,
     /// The value of the constant.
     pub value: Option<ConstantValue>,
 }
@@ -56,13 +58,13 @@ pub(crate) fn register(analysis: &mut Analysis) {
     for ast in asts.values() {
         for item in &ast.items {
             if let AstItem::Const(constant) = item {
+                let id = ConstantId::new(constant);
                 let constant_details = Constant {
                     ast: constant.clone(),
+                    id: id.clone(),
                     value: None,
                 };
-                let existing_constant = analysis
-                    .constants
-                    .insert(ConstantId::new(constant), constant_details);
+                let existing_constant = analysis.constants.insert(id, constant_details);
                 if let Some(existing_constant) = existing_constant {
                     analysis
                         .errors
@@ -125,7 +127,7 @@ fn calculate_const_expr(analysis: &Analysis, expr: &AstExpr) -> Option<ConstantV
             }
         }
         AstExprRoot::FnCall(call) => {
-            if let Some(fn_) = resolver::fn_(analysis, &call.name) {
+            if let Some(fn_) = resolving::items::registered_fn(analysis, &call.name) {
                 if fn_.ast.is_const {
                     let params: Vec<_> = call
                         .args

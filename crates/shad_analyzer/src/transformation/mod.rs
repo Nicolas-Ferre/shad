@@ -1,4 +1,4 @@
-use crate::{resolver, Analysis, Ident, IdentSource};
+use crate::{resolving, Analysis, Ident, IdentSource};
 use shad_parser::{AstExpr, AstIdent, AstStatement, AstVarDefinition};
 use std::mem;
 
@@ -16,7 +16,7 @@ fn extract_in_variable(
     expr: &AstExpr,
     is_ref: bool,
 ) -> (AstStatement, AstIdent) {
-    let type_id = resolver::expr_type(analysis, expr);
+    let type_id = resolving::types::expr(analysis, expr);
     let var_name = "generated";
     let var_def_id = analysis.next_id();
     let var_id = analysis.next_id();
