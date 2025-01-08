@@ -55,13 +55,13 @@ fn register_structs(analysis: &mut Analysis) {
             let ident = Ident::new(IdentSource::Field, field.type_id.clone());
             analysis.idents.insert(field.name.id, ident);
         }
-        let ast_and_name = type_
+        if let Some(name) = &type_
             .ast
             .as_ref()
-            .and_then(|ast| ast.gpu_qualifier.as_ref().map(|gpu| (ast, gpu)))
-            .and_then(|(ast, gpu)| gpu.name.as_ref().map(|name| (ast, name)));
-        if let Some((ast, name)) = &ast_and_name {
-            register_gpu_name(analysis, &ast.name.span.module.name, name);
+            .and_then(|ast| ast.gpu_qualifier.as_ref())
+            .and_then(|gpu| gpu.name.as_ref())
+        {
+            register_gpu_name(analysis, name);
         }
     }
 }
@@ -145,15 +145,15 @@ fn register_fns(analysis: &mut Analysis) {
             .as_ref()
             .and_then(|gpu| gpu.name.as_ref());
         if let Some(name) = name {
-            register_gpu_name(analysis, &fn_.id.module, name);
+            register_gpu_name(analysis, name);
         }
     }
 }
 
-fn register_gpu_name(analysis: &mut Analysis, module: &str, name: &AstGpuName) {
+fn register_gpu_name(analysis: &mut Analysis, name: &AstGpuName) {
     for param in &name.generics {
         if let AstGpuGenericParam::Ident(param) = param {
-            let type_id = resolving::items::type_id_or_add_error(analysis, module, param);
+            let type_id = resolving::items::type_id_or_add_error(analysis, param);
             let ident = Ident::new(IdentSource::GenericType, type_id);
             analysis.idents.insert(param.id, ident);
         }
@@ -235,7 +235,7 @@ impl<'a> IdentRegistration<'a> {
     }
 
     fn register_fn_param(&mut self, param: &AstFnParam) {
-        let type_id = resolving::items::type_id(self.analysis, self.module, &param.type_).ok();
+        let type_id = resolving::items::type_id(self.analysis, &param.type_).ok();
         let ident = Ident::new(IdentSource::Var(param.name.id), type_id);
         self.analysis.idents.insert(param.name.id, ident);
         self.add_variable(&param.name);
@@ -252,7 +252,7 @@ impl<'a> IdentRegistration<'a> {
             self.analysis.idents.insert(variable.id, var_ident);
             var_type
         } else if let (Some(buffer), false) = (
-            resolving::items::buffer(self.analysis, self.module, &variable.label),
+            resolving::items::buffer(self.analysis, variable),
             self.is_const_context,
         ) {
             let buffer_type =
@@ -261,9 +261,7 @@ impl<'a> IdentRegistration<'a> {
             let buffer_ident = Ident::new(buffer_source, buffer_type.clone());
             self.analysis.idents.insert(variable.id, buffer_ident);
             buffer_type
-        } else if let Some(constant) =
-            resolving::items::constant(self.analysis, self.module, &variable.label)
-        {
+        } else if let Some(constant) = resolving::items::constant(self.analysis, variable) {
             let constant_type = resolving::types::constant(self.analysis, &constant.id)
                 .map(|type_| type_.id.clone());
             let constant_source = IdentSource::Constant(constant.id.clone());
@@ -326,9 +324,7 @@ impl Visit for IdentRegistration<'_> {
             .map(|node| resolving::types::expr(self.analysis, &node.value))
             .collect::<Option<Vec<_>>>()
         {
-            if let Some(fn_) =
-                resolving::items::fn_(self.analysis, self.module, node, &arg_type_ids)
-            {
+            if let Some(fn_) = resolving::items::fn_(self.analysis, node, &arg_type_ids) {
                 let fn_ident =
                     Ident::new(IdentSource::Fn(fn_.id.clone()), fn_.return_type_id.clone());
                 self.analysis.idents.insert(node.name.id, fn_ident);
