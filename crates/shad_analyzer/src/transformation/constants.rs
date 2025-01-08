@@ -66,7 +66,8 @@ impl VisitMut for ConstantTransform<'_> {
                     .expect("internal error: not calculated constant");
                 node.root = AstExprRoot::Literal(AstLiteral {
                     span: node.root.span().clone(),
-                    value: Self::literal_str(&value),
+                    raw_value: Self::literal_str(&value),
+                    cleaned_value: Self::literal_str(&value),
                     type_: Self::literal_type(&value),
                 });
             }

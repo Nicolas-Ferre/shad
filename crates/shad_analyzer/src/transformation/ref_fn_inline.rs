@@ -80,7 +80,8 @@ impl VisitMut for RefFnInlineTransform<'_> {
             {
                 node.expr = AstLiteral {
                     span: node.span.clone(),
-                    value: "0".to_string(),
+                    raw_value: "0".to_string(),
+                    cleaned_value: "0".to_string(),
                     type_: AstLiteralType::I32,
                 }
                 .into();

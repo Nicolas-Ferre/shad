@@ -49,8 +49,10 @@ impl AstIdent {
 pub struct AstLiteral {
     /// The span of the literal.
     pub span: Span,
-    /// The value of the literal.
-    pub value: String,
+    /// The raw value of the literal.
+    pub raw_value: String,
+    /// The value of the literal without underscores.
+    pub cleaned_value: String,
     /// The type of the literal.
     pub type_: AstLiteralType,
 }
@@ -61,7 +63,8 @@ impl AstLiteral {
         let token = lexer.next_token()?;
         Ok(Self {
             span: token.span,
-            value: token.slice.to_string(),
+            raw_value: token.slice.to_string(),
+            cleaned_value: token.slice.replace('_', ""),
             type_: match token.type_ {
                 TokenType::F32Literal => AstLiteralType::F32,
                 TokenType::U32Literal => AstLiteralType::U32,

@@ -63,17 +63,15 @@ impl Analysis {
             errors: vec![],
             next_id,
         };
+        registration::run_blocks::register(&mut analysis);
         registration::const_functions::register(&mut analysis);
         registration::modules::register(&mut analysis);
         registration::types::register(&mut analysis);
         registration::functions::register(&mut analysis);
         registration::constants::register(&mut analysis);
         registration::buffers::register(&mut analysis);
-        registration::run_blocks::register(&mut analysis);
         transformation::fn_params::transform(&mut analysis);
         registration::idents::register(&mut analysis);
-        transformation::literals::transform(&mut analysis);
-        registration::constants::calculate(&mut analysis);
         checks::constants::check(&mut analysis);
         checks::generics::check(&mut analysis);
         checks::functions::check(&mut analysis);

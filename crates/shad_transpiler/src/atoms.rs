@@ -9,10 +9,10 @@ pub(crate) fn to_expr_wgsl(analysis: &Analysis, expr: &AstExpr) -> String {
         AstExprRoot::Ident(ident) => to_ident_wgsl(analysis, ident),
         AstExprRoot::FnCall(call) => fn_calls::to_wgsl(analysis, call),
         AstExprRoot::Literal(expr) => {
-            let value = match expr.value.as_str() {
+            let value = match expr.cleaned_value.as_str() {
                 "false" => "0u".into(),
                 "true" => "1u".into(),
-                _ => expr.value.clone(),
+                _ => expr.cleaned_value.clone(),
             };
             let converter = match expr.type_ {
                 AstLiteralType::F32 => "f32",
@@ -109,7 +109,7 @@ fn to_gpu_name_wgsl(analysis: &Analysis, name: &AstGpuName) -> String {
                 .iter()
                 .map(|param| match param {
                     AstGpuGenericParam::Ident(ident) => to_ident_wgsl(analysis, ident),
-                    AstGpuGenericParam::Literal(literal) => literal.value.clone(),
+                    AstGpuGenericParam::Literal(literal) => literal.cleaned_value.clone(),
                 })
                 .join(", ")
         )
