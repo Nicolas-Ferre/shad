@@ -1,4 +1,4 @@
-use crate::{Analysis, resolving, TypeId};
+use crate::{resolving, Analysis, TypeId};
 use shad_parser::{AstIdent, AstItemGenerics};
 
 /// An analyzed generic parameter.
