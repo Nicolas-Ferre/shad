@@ -4,7 +4,7 @@ use crate::registration::functions::Function;
 use crate::registration::idents::Ident;
 use crate::registration::shaders::ComputeShader;
 use crate::{
-    checks, registration, resolver, transformation, Buffer, BufferId, BufferInitRunBlock, FnId,
+    checks, registration, resolving, transformation, Buffer, BufferId, BufferInitRunBlock, FnId,
     RunBlock, Type, TypeId,
 };
 use fxhash::FxHashMap;
@@ -102,12 +102,12 @@ impl Analysis {
 
     /// Returns the type of a buffer.
     pub fn buffer_type(&self, buffer_id: &BufferId) -> Option<&Type> {
-        resolver::buffer_type(self, buffer_id)
+        resolving::types::buffer(self, buffer_id)
     }
 
     /// Returns the function from a function name identifier.
     pub fn fn_(&self, ident: &AstIdent) -> Option<&Function> {
-        resolver::fn_(self, ident)
+        resolving::items::registered_fn(self, ident)
     }
 
     pub(crate) fn next_id(&mut self) -> u64 {

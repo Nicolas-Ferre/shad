@@ -1,5 +1,5 @@
-use crate::resolver::ExprSemantic;
-use crate::{resolver, Analysis};
+use crate::resolving::expressions::ExprSemantic;
+use crate::{resolving, Analysis};
 use shad_parser::{AstFnCall, AstStatement, VisitMut};
 use std::mem;
 
@@ -33,7 +33,7 @@ impl<'a> RefSplitTransform<'a> {
 
 impl VisitMut for RefSplitTransform<'_> {
     fn exit_fn_call(&mut self, node: &mut AstFnCall) {
-        let fn_ = resolver::fn_(self.analysis, &node.name)
+        let fn_ = resolving::items::registered_fn(self.analysis, &node.name)
             .expect("internal error: missing function")
             .clone();
         if !fn_.is_inlined {
@@ -41,7 +41,7 @@ impl VisitMut for RefSplitTransform<'_> {
         }
         for (param, arg) in fn_.ast.params.iter().zip(&mut node.args) {
             if param.ref_span.is_none()
-                || resolver::expr_semantic(self.analysis, &arg.value) != ExprSemantic::Ref
+                || resolving::expressions::semantic(self.analysis, &arg.value) != ExprSemantic::Ref
             {
                 let (var_def_statement, var_name) =
                     super::extract_in_variable(self.analysis, &arg.value, false);

@@ -1,4 +1,4 @@
-use crate::{resolver, Analysis};
+use crate::{resolving, Analysis};
 use shad_parser::{AstAssignment, AstExprRoot, AstStatement, VisitMut};
 use std::mem;
 
@@ -33,7 +33,7 @@ impl<'a> ValueTransform<'a> {
 impl VisitMut for ValueTransform<'_> {
     fn enter_assignment(&mut self, node: &mut AstAssignment) {
         if let AstExprRoot::FnCall(call) = &mut node.left.root {
-            if let Some(fn_) = resolver::fn_(self.analysis, &call.name) {
+            if let Some(fn_) = resolving::items::registered_fn(self.analysis, &call.name) {
                 let is_ref = fn_
                     .ast
                     .return_type

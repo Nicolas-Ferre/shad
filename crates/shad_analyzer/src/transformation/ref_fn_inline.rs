@@ -1,4 +1,4 @@
-use crate::{listing, resolver, Analysis, FnId, Ident, IdentSource};
+use crate::{listing, resolving, Analysis, FnId, Ident, IdentSource};
 use fxhash::FxHashMap;
 use shad_parser::{
     AstExpr, AstExprRoot, AstExprStatement, AstFnCall, AstFnItem, AstIdent, AstLiteral,
@@ -74,7 +74,7 @@ impl<'a> RefFnInlineTransform<'a> {
 impl VisitMut for RefFnInlineTransform<'_> {
     fn exit_expr_statement(&mut self, node: &mut AstExprStatement) {
         if let AstExprRoot::FnCall(call) = &node.expr.root {
-            if resolver::fn_(self.analysis, &call.name)
+            if resolving::items::registered_fn(self.analysis, &call.name)
                 .expect("internal error: missing function")
                 .is_inlined
             {
@@ -108,7 +108,7 @@ impl VisitMut for RefFnInlineTransform<'_> {
 }
 
 fn inlined_fn_statements(analysis: &mut Analysis, call: &AstFnCall) -> Vec<AstStatement> {
-    let fn_ = resolver::fn_(analysis, &call.name)
+    let fn_ = resolving::items::registered_fn(analysis, &call.name)
         .expect("internal error: missing function")
         .clone();
     if !fn_.is_inlined {
@@ -149,7 +149,7 @@ impl<'a> RefFnStatementsTransform<'a> {
 impl VisitMut for RefFnStatementsTransform<'_> {
     fn enter_expr(&mut self, node: &mut AstExpr) {
         if let Some(IdentSource::Var(id)) =
-            resolver::expr_root_id(node).map(|id| &self.analysis.idents[&id].source)
+            resolving::expressions::root_id(node).map(|id| &self.analysis.idents[&id].source)
         {
             if let Some(new_root) = self.param_args.get(id) {
                 node.replace_root(new_root.clone());

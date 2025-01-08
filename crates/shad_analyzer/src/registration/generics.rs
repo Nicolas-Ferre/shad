@@ -1,4 +1,4 @@
-use crate::{resolver, Analysis, TypeId};
+use crate::{Analysis, resolving, TypeId};
 use shad_parser::{AstIdent, AstItemGenerics};
 
 /// An analyzed generic parameter.
@@ -51,7 +51,7 @@ pub(crate) fn register_for_item(
                 GenericParam::Constant(ConstantGenericParam {
                     name,
                     type_name: type_.clone(),
-                    type_id: resolver::type_or_add_error(analysis, module, type_),
+                    type_id: resolving::items::type_id_or_add_error(analysis, module, type_),
                 })
             } else {
                 GenericParam::Type(TypeGenericParam { name })

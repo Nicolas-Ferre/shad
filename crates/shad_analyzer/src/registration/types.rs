@@ -1,6 +1,6 @@
 use crate::registration::generics;
 use crate::registration::generics::GenericParam;
-use crate::{errors, resolver, Analysis};
+use crate::{errors, resolving, Analysis};
 use shad_error::SemanticError;
 use shad_parser::{AstGpuGenericParam, AstGpuQualifier, AstIdent, AstItem, AstStructItem};
 use std::mem;
@@ -237,7 +237,7 @@ fn parse_array_generic_args(
         (generics.first(), generics.get(1))
     {
         let module = &gpu.span.module.name;
-        let item_type = resolver::type_(analysis, module, item_type).map_err(|_| None)?;
+        let item_type = resolving::items::type_id(analysis, module, item_type).map_err(|_| None)?;
         let length = NonZeroU32::from_str(&length.value.replace('_', ""))
             .map_err(|_| errors::types::invalid_gpu_array_args(gpu))?;
         Ok((item_type, length.into()))
@@ -276,7 +276,7 @@ fn analyze_fields(analysis: &mut Analysis, ast: &AstStructItem) -> Vec<StructFie
             let module = &ast.name.span.module.name;
             StructField {
                 name: field.name.clone(),
-                type_id: resolver::type_or_add_error(analysis, module, &field.type_),
+                type_id: resolving::items::type_id_or_add_error(analysis, module, &field.type_),
                 is_pub: field.is_pub,
             }
         })
