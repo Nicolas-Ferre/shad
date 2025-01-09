@@ -1,24 +1,9 @@
 use crate::registration::constants::{Constant, ConstantId, ConstantValue};
-use crate::{errors, Analysis, Buffer, BufferId, FnId, Function, IdentSource, StructField, TypeId};
+use crate::resolving::types::fn_args;
+use crate::{errors, Analysis, Buffer, BufferId, FnId, Function, StructField, TypeId};
 use shad_error::SemanticError;
 use shad_parser::{AstFnCall, AstIdent};
 use std::iter;
-
-pub(crate) fn item<'a>(analysis: &'a Analysis, ident: &AstIdent) -> Option<Item<'a>> {
-    if let Some(ident) = analysis.idents.get(&ident.id) {
-        match &ident.source {
-            IdentSource::Buffer(id) => analysis.buffers.get(id).map(Item::Buffer),
-            IdentSource::Var(id) => analysis
-                .idents
-                .get(id)
-                .map(|ident| Item::Var(*id, &ident.type_id)),
-            IdentSource::Fn(id) => analysis.fns.get(id).map(Item::Fn),
-            IdentSource::GenericType => unreachable!("internal error: generic type item retrieval"),
-        }
-    } else {
-        constant(analysis, ident).map(Item::Constant)
-    }
-}
 
 pub(crate) fn type_id_or_add_error(analysis: &mut Analysis, name: &AstIdent) -> Option<TypeId> {
     match type_id(analysis, name) {
@@ -88,12 +73,9 @@ pub(crate) fn constant<'a>(analysis: &'a Analysis, name: &AstIdent) -> Option<&'
         .find(|constant| constant.ast.is_pub || &constant.id.module == module)
 }
 
-pub(crate) fn fn_<'a>(
-    analysis: &'a Analysis,
-    call: &AstFnCall,
-    arg_types: &[TypeId],
-) -> Option<&'a Function> {
+pub(crate) fn fn_<'a>(analysis: &'a Analysis, call: &AstFnCall) -> Option<&'a Function> {
     let module = &call.name.span.module.name;
+    let arg_types = fn_args(analysis, call)?;
     analysis
         .visible_modules
         .get(module)
@@ -147,12 +129,4 @@ pub(crate) fn field<'a>(
         .iter()
         .filter(|type_field| type_field.is_pub || type_id.module.as_deref() == Some(module))
         .find(|type_field| type_field.name.label == field.label)
-}
-
-#[derive(Debug, Clone)]
-pub(crate) enum Item<'a> {
-    Constant(&'a Constant),
-    Buffer(&'a Buffer),
-    Var(u64, &'a Option<TypeId>),
-    Fn(&'a Function),
 }

@@ -18,6 +18,7 @@ pub(crate) mod run_block;
 pub(crate) mod struct_;
 
 /// A parsed item.
+#[allow(clippy::large_enum_variant)]
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum AstItem {
     /// A struct definition.

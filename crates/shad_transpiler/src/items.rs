@@ -80,7 +80,7 @@ fn fn_item(analysis: &Analysis, fn_id: &FnId) -> String {
     let fn_ = &analysis.fns[fn_id];
     format!(
         "fn {}({}){} {{\n{}\n}}",
-        atoms::to_ident_wgsl(analysis, &fn_.ast.name),
+        atoms::to_fn_ident_wgsl(analysis, fn_),
         fn_params(analysis, fn_),
         fn_return_type(analysis, fn_),
         statements::to_wgsl(analysis, &fn_.ast.statements)

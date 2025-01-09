@@ -1,5 +1,4 @@
-use crate::resolving::items::Item;
-use crate::{listing, resolving, Analysis, FnId, Ident, IdentSource};
+use crate::{listing, resolving, Analysis, FnId, Ident, IdentSource, Item};
 use fxhash::FxHashMap;
 use shad_parser::{
     AstExpr, AstExprRoot, AstExprStatement, AstFnCall, AstFnItem, AstIdent, AstLiteral,
@@ -75,7 +74,7 @@ impl<'a> RefFnInlineTransform<'a> {
 impl VisitMut for RefFnInlineTransform<'_> {
     fn exit_expr_statement(&mut self, node: &mut AstExprStatement) {
         if let AstExprRoot::FnCall(call) = &node.expr.root {
-            if let Some(Item::Fn(fn_)) = resolving::items::item(self.analysis, &call.name) {
+            if let Some(fn_) = resolving::items::fn_(self.analysis, call) {
                 if fn_.is_inlined {
                     node.expr = AstLiteral {
                         span: node.span.clone(),
@@ -111,7 +110,7 @@ impl VisitMut for RefFnInlineTransform<'_> {
 }
 
 fn inlined_fn_statements(analysis: &mut Analysis, call: &AstFnCall) -> Vec<AstStatement> {
-    if let Some(Item::Fn(fn_)) = resolving::items::item(analysis, &call.name) {
+    if let Some(fn_) = resolving::items::fn_(analysis, call) {
         let fn_ = fn_.clone();
         if fn_.is_inlined {
             let mut transform = RefFnStatementsTransform::new(analysis, &fn_.ast, call);
@@ -155,7 +154,7 @@ impl<'a> RefFnStatementsTransform<'a> {
 impl VisitMut for RefFnStatementsTransform<'_> {
     fn enter_expr(&mut self, node: &mut AstExpr) {
         if let AstExprRoot::Ident(ident) = &node.root {
-            if let Some(Item::Var(id, _)) = resolving::items::item(self.analysis, ident) {
+            if let Some(Item::Var(id, _)) = self.analysis.item(ident) {
                 if let Some(new_root) = self.param_args.get(&id) {
                     node.replace_root(new_root.clone());
                 }
@@ -164,7 +163,7 @@ impl VisitMut for RefFnStatementsTransform<'_> {
     }
 
     fn exit_ident(&mut self, node: &mut AstIdent) {
-        if let Some(Item::Var(id, type_id)) = resolving::items::item(self.analysis, node) {
+        if let Some(Item::Var(id, type_id)) = self.analysis.item(node) {
             let type_id = type_id.clone();
             let old_id = node.id;
             node.id = self.analysis.next_id();

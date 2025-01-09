@@ -1,5 +1,4 @@
-use crate::resolving::items::Item;
-use crate::{resolving, Analysis};
+use crate::{Analysis, Item};
 use fxhash::FxHashMap;
 use shad_parser::{AstExpr, AstExprRoot, AstStatement, AstVarDefinition, VisitMut};
 use std::mem;
@@ -48,7 +47,7 @@ impl VisitMut for RefVarInlineTransform<'_> {
 
     fn exit_expr(&mut self, node: &mut AstExpr) {
         if let AstExprRoot::Ident(ident) = &node.root {
-            if let Some(Item::Var(id, _)) = resolving::items::item(self.analysis, ident) {
+            if let Some(Item::Var(id, _)) = self.analysis.item(ident) {
                 if let Some(new_root) = self.ref_expressions.get(&id) {
                     node.replace_root(new_root.clone());
                 }

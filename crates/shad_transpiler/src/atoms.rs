@@ -1,6 +1,6 @@
 use crate::{fn_calls, wgsl};
 use itertools::Itertools;
-use shad_analyzer::{Analysis, BufferId, IdentSource, TypeId};
+use shad_analyzer::{Analysis, BufferId, Function, Item, TypeId};
 use shad_parser::{AstExpr, AstExprRoot, AstGpuGenericParam, AstGpuName, AstIdent, AstLiteralType};
 use std::iter;
 
@@ -27,31 +27,29 @@ pub(crate) fn to_expr_wgsl(analysis: &Analysis, expr: &AstExpr) -> String {
 }
 
 pub(crate) fn to_ident_wgsl(analysis: &Analysis, name: &AstIdent) -> String {
-    let ident = &analysis.idents[&name.id];
-    match &ident.source {
-        IdentSource::Buffer(name) => to_buffer_ident_wgsl(analysis, name),
-        IdentSource::Var(id) => format!("v{}_{}", id, name.label),
-        IdentSource::Fn(_) => {
-            let fn_ = analysis.fn_(name).expect("internal error: missing fn");
-            if let Some(gpu) = &fn_.ast.gpu_qualifier {
-                if let Some(source_type) = &fn_.source_type {
-                    to_type_wgsl(analysis, source_type)
-                } else if let Some(name) = &gpu.name {
-                    to_gpu_name_wgsl(analysis, name)
-                } else {
-                    fn_.ast.name.label.clone()
-                }
-            } else {
-                format!("f{}_{}", fn_.ast.name.id, fn_.ast.name.label)
-            }
-        }
-        IdentSource::GenericType => {
-            let type_id = ident
-                .type_id
-                .as_ref()
-                .expect("internal error: missing type");
+    match analysis.item(name) {
+        None => unreachable!("internal error: not found item"),
+        Some(Item::Constant(_)) => unreachable!("internal error: not inlined constant"),
+        Some(Item::Buffer(buffer)) => to_buffer_ident_wgsl(analysis, &buffer.id),
+        Some(Item::Var(id, _)) => format!("v{}_{}", id, name.label),
+        Some(Item::GenericType(type_id)) => {
+            let type_id = type_id.as_ref().expect("internal error: missing type");
             to_type_wgsl(analysis, type_id)
         }
+    }
+}
+
+pub(crate) fn to_fn_ident_wgsl(analysis: &Analysis, fn_: &Function) -> String {
+    if let Some(gpu) = &fn_.ast.gpu_qualifier {
+        if let Some(source_type) = &fn_.source_type {
+            to_type_wgsl(analysis, source_type)
+        } else if let Some(name) = &gpu.name {
+            to_gpu_name_wgsl(analysis, name)
+        } else {
+            fn_.ast.name.label.clone()
+        }
+    } else {
+        format!("f{}_{}", fn_.ast.name.id, fn_.ast.name.label)
     }
 }
 

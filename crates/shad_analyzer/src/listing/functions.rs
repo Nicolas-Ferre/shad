@@ -1,7 +1,6 @@
-use crate::resolving::items::Item;
 use crate::{resolving, Analysis, FnId};
 use fxhash::FxHashSet;
-use shad_parser::{AstFnCall, AstIdent, AstRunItem, AstStatement, Visit};
+use shad_parser::{AstFnCall, AstRunItem, AstStatement, Visit};
 
 pub(crate) fn list_in_block(analysis: &Analysis, block: &AstRunItem) -> Vec<FnId> {
     let mut listing = FunctionListing::new(analysis);
@@ -31,14 +30,9 @@ impl<'a> FunctionListing<'a> {
 
 impl Visit for FunctionListing<'_> {
     fn enter_fn_call(&mut self, node: &AstFnCall) {
-        if let Some(Item::Fn(fn_)) = resolving::items::item(self.analysis, &node.name) {
-            self.visit_fn_item(&fn_.ast);
-        }
-    }
-
-    fn enter_ident(&mut self, node: &AstIdent) {
-        if let Some(Item::Fn(fn_)) = resolving::items::item(self.analysis, node) {
+        if let Some(fn_) = resolving::items::fn_(self.analysis, node) {
             self.fn_ids.insert(fn_.id.clone());
+            self.visit_fn_item(&fn_.ast);
         }
     }
 }

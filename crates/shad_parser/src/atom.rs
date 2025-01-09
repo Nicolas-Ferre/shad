@@ -18,6 +18,8 @@ pub struct AstIdent {
     pub label: String,
     /// The unique ID of the identifier.
     pub id: u64,
+    /// The identifier kind.
+    pub kind: AstIdentKind,
 }
 
 impl AstIdent {
@@ -27,8 +29,20 @@ impl AstIdent {
             span: token.span,
             label: token.slice.to_string(),
             id: lexer.next_id(),
+            kind: AstIdentKind::Other,
         })
     }
+}
+
+/// An parsed identifier kind.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum AstIdentKind {
+    /// A function reference.
+    FnRef,
+    /// A field reference.
+    FieldRef,
+    /// Another kind.
+    Other,
 }
 
 /// A parsed literal.
