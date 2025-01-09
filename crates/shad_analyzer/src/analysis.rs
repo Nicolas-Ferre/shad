@@ -75,6 +75,7 @@ impl Analysis {
         checks::constants::check(&mut analysis);
         checks::generics::check(&mut analysis);
         checks::functions::check(&mut analysis);
+        checks::gpu_names::check(&mut analysis);
         checks::types::check(&mut analysis);
         checks::literals::check(&mut analysis);
         checks::statements::check(&mut analysis);
@@ -101,13 +102,10 @@ impl Analysis {
     /// Returns the item corresponding to an identifier.
     pub fn item(&self, ident: &AstIdent) -> Option<Item<'_>> {
         if let Some(ident) = self.idents.get(&ident.id) {
-            match &ident.source {
-                IdentSource::Var(id) => self
-                    .idents
-                    .get(id)
-                    .map(|ident| Item::Var(*id, &ident.type_id)),
-                IdentSource::GenericType => Some(Item::GenericType(&ident.type_id)),
-            }
+            let IdentSource::Var(id) = &ident.source;
+            self.idents
+                .get(id)
+                .map(|ident| Item::Var(*id, &ident.type_id))
         } else {
             resolving::items::buffer(self, ident)
                 .map(Item::Buffer)
@@ -123,6 +121,11 @@ impl Analysis {
     /// Returns the function corresponding to a function call.
     pub fn fn_(&self, call: &AstFnCall) -> Option<&Function> {
         resolving::items::fn_(self, call)
+    }
+
+    /// Returns the type ID corresponding to an identifier.
+    pub fn type_id(&self, ident: &AstIdent) -> Option<TypeId> {
+        resolving::items::type_id(self, ident).ok()
     }
 
     pub(crate) fn next_id(&mut self) -> u64 {
@@ -141,6 +144,4 @@ pub enum Item<'a> {
     Buffer(&'a Buffer),
     /// A variable.
     Var(u64, &'a Option<TypeId>),
-    /// A generic type.
-    GenericType(&'a Option<TypeId>),
 }

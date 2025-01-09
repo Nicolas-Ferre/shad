@@ -32,10 +32,6 @@ pub(crate) fn to_ident_wgsl(analysis: &Analysis, name: &AstIdent) -> String {
         Some(Item::Constant(_)) => unreachable!("internal error: not inlined constant"),
         Some(Item::Buffer(buffer)) => to_buffer_ident_wgsl(analysis, &buffer.id),
         Some(Item::Var(id, _)) => format!("v{}_{}", id, name.label),
-        Some(Item::GenericType(type_id)) => {
-            let type_id = type_id.as_ref().expect("internal error: missing type");
-            to_type_wgsl(analysis, type_id)
-        }
     }
 }
 
@@ -95,7 +91,12 @@ fn to_gpu_name_wgsl(analysis: &Analysis, name: &AstGpuName) -> String {
             name.generics
                 .iter()
                 .map(|param| match param {
-                    AstGpuGenericParam::Ident(ident) => to_ident_wgsl(analysis, ident),
+                    AstGpuGenericParam::Ident(ident) => {
+                        let type_id = analysis
+                            .type_id(ident)
+                            .expect("internal error: missing type");
+                        to_type_wgsl(analysis, &type_id)
+                    }
                     AstGpuGenericParam::Literal(literal) => literal.cleaned_value.clone(),
                 })
                 .join(", ")

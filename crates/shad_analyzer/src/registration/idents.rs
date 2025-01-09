@@ -1,9 +1,6 @@
 use crate::{resolving, Analysis, TypeId};
 use fxhash::FxHashMap;
-use shad_parser::{
-    AstExpr, AstExprRoot, AstFnItem, AstFnParam, AstGpuGenericParam, AstGpuName, AstIdent,
-    AstVarDefinition, Visit,
-};
+use shad_parser::{AstExpr, AstExprRoot, AstFnItem, AstFnParam, AstIdent, AstVarDefinition, Visit};
 use std::mem;
 
 /// An analyzed identifier.
@@ -26,28 +23,12 @@ impl Ident {
 pub enum IdentSource {
     /// A variable.
     Var(u64),
-    /// A generic type.
-    GenericType,
 }
 
 pub(crate) fn register(analysis: &mut Analysis) {
-    register_structs(analysis);
     register_constants(analysis);
     register_run_blocks(analysis);
     register_fns(analysis);
-}
-
-fn register_structs(analysis: &mut Analysis) {
-    for type_ in analysis.types.clone().values() {
-        if let Some(name) = &type_
-            .ast
-            .as_ref()
-            .and_then(|ast| ast.gpu_qualifier.as_ref())
-            .and_then(|gpu| gpu.name.as_ref())
-        {
-            register_gpu_name(analysis, name);
-        }
-    }
 }
 
 fn register_constants(analysis: &mut Analysis) {
@@ -67,24 +48,6 @@ fn register_run_blocks(analysis: &mut Analysis) {
 fn register_fns(analysis: &mut Analysis) {
     for fn_ in analysis.fns.clone().into_values() {
         IdentRegistration::new(analysis, false).visit_fn_item(&fn_.ast);
-        let name = fn_
-            .ast
-            .gpu_qualifier
-            .as_ref()
-            .and_then(|gpu| gpu.name.as_ref());
-        if let Some(name) = name {
-            register_gpu_name(analysis, name);
-        }
-    }
-}
-
-fn register_gpu_name(analysis: &mut Analysis, name: &AstGpuName) {
-    for param in &name.generics {
-        if let AstGpuGenericParam::Ident(param) = param {
-            let type_id = resolving::items::type_id_or_add_error(analysis, param);
-            let ident = Ident::new(IdentSource::GenericType, type_id);
-            analysis.idents.insert(param.id, ident);
-        }
     }
 }
 

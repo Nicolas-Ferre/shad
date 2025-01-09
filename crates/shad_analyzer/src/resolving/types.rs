@@ -58,7 +58,7 @@ fn ident(analysis: &Analysis, ident: &AstIdent) -> Option<TypeId> {
     match analysis.item(ident) {
         Some(Item::Constant(constant)) => constant.value.as_ref().map(ConstantValue::type_id),
         Some(Item::Buffer(buffer)) => buffer.type_id.clone(),
-        Some(Item::Var(_, type_id) | Item::GenericType(type_id)) => type_id.clone(),
+        Some(Item::Var(_, type_id)) => type_id.clone(),
         None => None,
     }
 }
