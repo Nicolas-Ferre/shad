@@ -6,7 +6,7 @@ pub(crate) fn semantic(analysis: &Analysis, expr: &AstExpr) -> ExprSemantic {
         AstExprRoot::Ident(ident) => match analysis.item(ident) {
             Some(Item::Constant(_)) => ExprSemantic::Value,
             Some(Item::Buffer(_) | Item::Var(_, _)) => ExprSemantic::Ref,
-            Some(Item::GenericType(_)) | None => ExprSemantic::None,
+            None => ExprSemantic::None,
         },
         AstExprRoot::FnCall(call) => {
             if expr.fields.is_empty() {
