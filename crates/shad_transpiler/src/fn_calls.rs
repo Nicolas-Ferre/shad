@@ -7,9 +7,7 @@ use shad_parser::{
 };
 
 pub(crate) fn to_wgsl(analysis: &Analysis, call: &AstFnCall) -> String {
-    let fn_ = analysis
-        .fn_(&call.name)
-        .expect("internal error: missing fn");
+    let fn_ = analysis.fn_(call).expect("internal error: missing fn");
     cast_fn_call(
         fn_,
         if let Some(operator) = unary_operator(analysis, fn_) {
@@ -28,7 +26,7 @@ pub(crate) fn to_wgsl(analysis: &Analysis, call: &AstFnCall) -> String {
         } else {
             format!(
                 "{}({})",
-                atoms::to_ident_wgsl(analysis, &call.name),
+                atoms::to_fn_ident_wgsl(analysis, fn_),
                 call.args
                     .iter()
                     .zip(&fn_.params)
@@ -65,7 +63,7 @@ fn cast_fn_arg(analysis: &Analysis, fn_: &Function, param: &FnParam, arg: &AstEx
 
 fn unary_operator(analysis: &Analysis, fn_: &Function) -> Option<&'static str> {
     if fn_.ast.gpu_qualifier.is_some() {
-        match atoms::to_ident_wgsl(analysis, &fn_.ast.name) {
+        match atoms::to_fn_ident_wgsl(analysis, fn_) {
             n if n == NEG_FN => Some("-"),
             n if n == NOT_FN => Some("!"),
             _ => None,
@@ -77,7 +75,7 @@ fn unary_operator(analysis: &Analysis, fn_: &Function) -> Option<&'static str> {
 
 fn binary_operator(analysis: &Analysis, fn_: &Function) -> Option<&'static str> {
     if fn_.ast.gpu_qualifier.is_some() {
-        match atoms::to_ident_wgsl(analysis, &fn_.ast.name) {
+        match atoms::to_fn_ident_wgsl(analysis, fn_) {
             n if n == ADD_FN => Some("+"),
             n if n == SUB_FN => Some("-"),
             n if n == MUL_FN => Some("*"),

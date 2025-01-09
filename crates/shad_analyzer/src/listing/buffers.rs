@@ -1,7 +1,6 @@
-use crate::resolving::items::Item;
-use crate::{resolving, Analysis, BufferId};
+use crate::{resolving, Analysis, BufferId, Item};
 use fxhash::FxHashSet;
-use shad_parser::{AstFnCall, AstIdent, AstRunItem, Visit};
+use shad_parser::{AstFnCall, AstIdent, AstIdentKind, AstRunItem, Visit};
 
 pub(crate) fn list_in_block(analysis: &Analysis, block: &AstRunItem) -> Vec<BufferId> {
     let mut listing = BufferListing::new(analysis);
@@ -25,14 +24,16 @@ impl<'a> BufferListing<'a> {
 
 impl Visit for BufferListing<'_> {
     fn enter_fn_call(&mut self, node: &AstFnCall) {
-        if let Some(Item::Fn(fn_)) = resolving::items::item(self.analysis, &node.name) {
+        if let Some(fn_) = resolving::items::fn_(self.analysis, node) {
             self.visit_fn_item(&fn_.ast);
         }
     }
 
     fn enter_ident(&mut self, node: &AstIdent) {
-        if let Some(Item::Buffer(buffer)) = resolving::items::item(self.analysis, node) {
-            self.buffers.insert(buffer.id.clone());
+        if node.kind != AstIdentKind::FieldRef {
+            if let Some(Item::Buffer(buffer)) = self.analysis.item(node) {
+                self.buffers.insert(buffer.id.clone());
+            }
         }
     }
 }

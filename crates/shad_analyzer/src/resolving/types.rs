@@ -1,5 +1,7 @@
 use crate::registration::constants::ConstantValue;
-use crate::{resolving, Analysis, BufferId, Type, TypeId, BOOL_TYPE, F32_TYPE, I32_TYPE, U32_TYPE};
+use crate::{
+    resolving, Analysis, BufferId, Item, Type, TypeId, BOOL_TYPE, F32_TYPE, I32_TYPE, U32_TYPE,
+};
 use shad_parser::{AstExpr, AstExprRoot, AstFnCall, AstIdent, AstLiteral, AstLiteralType};
 
 pub(crate) fn fn_args(analysis: &Analysis, call: &AstFnCall) -> Option<Vec<TypeId>> {
@@ -25,7 +27,7 @@ pub(crate) fn expr(analysis: &Analysis, expr: &AstExpr) -> Option<TypeId> {
 pub(crate) fn expr_root(analysis: &Analysis, expr: &AstExpr) -> Option<TypeId> {
     match &expr.root {
         AstExprRoot::Ident(value) => ident(analysis, value),
-        AstExprRoot::FnCall(value) => ident(analysis, &value.name),
+        AstExprRoot::FnCall(value) => fn_call(analysis, value),
         AstExprRoot::Literal(value) => Some(literal(value)),
     }
 }
@@ -43,18 +45,20 @@ pub(crate) fn buffer<'a>(analysis: &'a Analysis, buffer_id: &BufferId) -> Option
     analysis
         .buffers
         .get(buffer_id)
-        .map(|buffer| buffer.ast.name.id)
-        .and_then(|id| analysis.idents.get(&id))
-        .and_then(|ident| ident.type_id.as_ref())
+        .and_then(|buffer| buffer.type_id.as_ref())
         .and_then(|type_| analysis.types.get(type_))
 }
 
+fn fn_call(analysis: &Analysis, call: &AstFnCall) -> Option<TypeId> {
+    let fn_ = resolving::items::fn_(analysis, call)?;
+    fn_.return_type_id.clone()
+}
+
 fn ident(analysis: &Analysis, ident: &AstIdent) -> Option<TypeId> {
-    if let Some(ident) = analysis.idents.get(&ident.id) {
-        ident.type_id.clone()
-    } else {
-        resolving::items::constant(analysis, ident)
-            .and_then(|constant| constant.value.as_ref())
-            .map(ConstantValue::type_id)
+    match analysis.item(ident) {
+        Some(Item::Constant(constant)) => constant.value.as_ref().map(ConstantValue::type_id),
+        Some(Item::Buffer(buffer)) => buffer.type_id.clone(),
+        Some(Item::Var(_, type_id) | Item::GenericType(type_id)) => type_id.clone(),
+        None => None,
     }
 }

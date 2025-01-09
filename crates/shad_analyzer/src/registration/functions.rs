@@ -236,6 +236,7 @@ fn clone_ident(analysis: &mut Analysis, ident: &AstIdent) -> AstIdent {
         span: ident.span.clone(),
         label: ident.label.clone(),
         id: analysis.next_id(),
+        kind: ident.kind,
     }
 }
 

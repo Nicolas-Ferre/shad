@@ -1,6 +1,5 @@
 use crate::registration::constants::ConstantValue;
-use crate::resolving::items::Item;
-use crate::{resolving, Analysis};
+use crate::{Analysis, Item};
 use shad_parser::{AstExpr, AstExprRoot, AstLiteral, AstLiteralType, AstStatement, VisitMut};
 use std::mem;
 
@@ -60,7 +59,7 @@ impl<'a> ConstantTransform<'a> {
 impl VisitMut for ConstantTransform<'_> {
     fn enter_expr(&mut self, node: &mut AstExpr) {
         if let AstExprRoot::Ident(ident) = &node.root {
-            if let Some(Item::Constant(constant)) = resolving::items::item(self.analysis, ident) {
+            if let Some(Item::Constant(constant)) = self.analysis.item(ident) {
                 let value = constant
                     .value
                     .clone()

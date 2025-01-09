@@ -3,14 +3,13 @@ use crate::registration::constants::{Constant, ConstantId};
 use crate::registration::functions::Function;
 use crate::registration::idents::Ident;
 use crate::registration::shaders::ComputeShader;
-use crate::resolving::items::Item;
 use crate::{
     checks, registration, resolving, transformation, Buffer, BufferId, BufferInitRunBlock, FnId,
-    RunBlock, Type, TypeId,
+    IdentSource, RunBlock, Type, TypeId,
 };
 use fxhash::FxHashMap;
 use shad_error::SemanticError;
-use shad_parser::{Ast, AstIdent};
+use shad_parser::{Ast, AstFnCall, AstIdent};
 
 /// The semantic analysis of an AST.
 #[derive(Debug, Clone)]
@@ -99,18 +98,31 @@ impl Analysis {
         analysis
     }
 
+    /// Returns the item corresponding to an identifier.
+    pub fn item(&self, ident: &AstIdent) -> Option<Item<'_>> {
+        if let Some(ident) = self.idents.get(&ident.id) {
+            match &ident.source {
+                IdentSource::Var(id) => self
+                    .idents
+                    .get(id)
+                    .map(|ident| Item::Var(*id, &ident.type_id)),
+                IdentSource::GenericType => Some(Item::GenericType(&ident.type_id)),
+            }
+        } else {
+            resolving::items::buffer(self, ident)
+                .map(Item::Buffer)
+                .or_else(|| resolving::items::constant(self, ident).map(Item::Constant))
+        }
+    }
+
     /// Returns the type of a buffer.
     pub fn buffer_type(&self, buffer_id: &BufferId) -> Option<&Type> {
         resolving::types::buffer(self, buffer_id)
     }
 
-    /// Returns the function from a function name identifier.
-    pub fn fn_(&self, ident: &AstIdent) -> Option<&Function> {
-        if let Some(Item::Fn(fn_)) = resolving::items::item(self, ident) {
-            Some(fn_)
-        } else {
-            None // no-coverage (no run for valid Shad code)
-        }
+    /// Returns the function corresponding to a function call.
+    pub fn fn_(&self, call: &AstFnCall) -> Option<&Function> {
+        resolving::items::fn_(self, call)
     }
 
     pub(crate) fn next_id(&mut self) -> u64 {
@@ -118,4 +130,17 @@ impl Analysis {
         self.next_id += 1;
         next_id
     }
+}
+
+/// A found item.
+#[derive(Debug, Clone)]
+pub enum Item<'a> {
+    /// A constant.
+    Constant(&'a Constant),
+    /// A buffer.
+    Buffer(&'a Buffer),
+    /// A variable.
+    Var(u64, &'a Option<TypeId>),
+    /// A generic type.
+    GenericType(&'a Option<TypeId>),
 }

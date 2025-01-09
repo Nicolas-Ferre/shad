@@ -1,5 +1,5 @@
 use crate::{resolving, Analysis, Ident, IdentSource};
-use shad_parser::{AstExpr, AstIdent, AstStatement, AstVarDefinition};
+use shad_parser::{AstExpr, AstIdent, AstIdentKind, AstStatement, AstVarDefinition};
 use std::mem;
 
 pub(crate) mod constants;
@@ -40,6 +40,7 @@ fn extract_in_variable(
                 span: expr.span.clone(),
                 label: var_name.to_string(),
                 id: var_def_id,
+                kind: AstIdentKind::Other,
             },
             is_ref,
             expr: expr.clone(),
@@ -48,6 +49,7 @@ fn extract_in_variable(
             span: expr.span.clone(),
             label: var_name.to_string(),
             id: var_id,
+            kind: AstIdentKind::Other,
         },
     )
 }

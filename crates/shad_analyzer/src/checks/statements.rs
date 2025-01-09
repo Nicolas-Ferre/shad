@@ -1,5 +1,4 @@
 use crate::resolving::expressions::ExprSemantic;
-use crate::resolving::items::Item;
 use crate::{errors, resolving, Analysis, FnId, Function, NO_RETURN_TYPE};
 use shad_error::SemanticError;
 use shad_parser::{
@@ -8,7 +7,7 @@ use shad_parser::{
 };
 
 pub(crate) fn check(analysis: &mut Analysis) {
-    let mut checker = StatementCheck::new(analysis);
+    let mut checker = StatementCheck::new(analysis, false);
     for block in &analysis.init_blocks {
         checker.module = &block.buffer.module;
         checker.visit_run_item(&block.ast);
@@ -19,11 +18,13 @@ pub(crate) fn check(analysis: &mut Analysis) {
     }
     for constant in analysis.constants.values() {
         checker.module = &constant.id.module;
+        checker.is_const_context = true;
         checker.visit_expr(&constant.ast.value);
     }
     for fn_ in analysis.fns.values() {
         checker.module = &fn_.ast.name.span.module.name;
         checker.fn_ = Some(fn_);
+        checker.is_const_context = false;
         checker.visit_fn_item(&fn_.ast);
     }
     analysis.errors.extend(checker.errors);
@@ -34,15 +35,17 @@ struct StatementCheck<'a> {
     errors: Vec<SemanticError>,
     fn_: Option<&'a Function>,
     module: &'a str,
+    is_const_context: bool,
 }
 
 impl<'a> StatementCheck<'a> {
-    fn new(analysis: &'a Analysis) -> Self {
+    fn new(analysis: &'a Analysis, is_const_context: bool) -> Self {
         Self {
             analysis,
             errors: vec![],
             fn_: None,
             module: "",
+            is_const_context,
         }
     }
 
@@ -132,7 +135,7 @@ impl Visit for StatementCheck<'_> {
     }
 
     fn enter_fn_call(&mut self, node: &AstFnCall) {
-        if let Some(Item::Fn(fn_)) = resolving::items::item(self.analysis, &node.name) {
+        if let Some(fn_) = resolving::items::fn_(self.analysis, node) {
             for (arg, param) in node.args.iter().zip(&fn_.ast.params) {
                 if let Some(name) = &arg.name {
                     if param.name.label != name.label {
@@ -147,15 +150,18 @@ impl Visit for StatementCheck<'_> {
     fn enter_expr(&mut self, node: &AstExpr) {
         match &node.root {
             AstExprRoot::Ident(ident) => {
-                if resolving::items::item(self.analysis, ident).is_none() {
+                if (!self.is_const_context && self.analysis.item(ident).is_none())
+                    || (self.is_const_context
+                        && resolving::items::constant(self.analysis, ident).is_none())
+                {
                     let error = errors::variables::not_found(ident);
                     self.errors.push(error);
                 }
             }
             AstExprRoot::FnCall(call) => {
-                if resolving::items::item(self.analysis, &call.name).is_none() {
+                if resolving::items::fn_(self.analysis, call).is_none() {
                     if let Some(arg_type_ids) = resolving::types::fn_args(self.analysis, call) {
-                        if resolving::items::item(self.analysis, &call.name).is_none() {
+                        if self.analysis.fn_(call).is_none() {
                             let error = errors::functions::not_found(call, &arg_type_ids);
                             self.errors.push(error);
                         }

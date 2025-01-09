@@ -1,6 +1,6 @@
 use crate::atom::{parse_token, parse_token_option};
 use crate::token::{Lexer, TokenType};
-use crate::{AstFnCall, AstIdent, AstLiteral};
+use crate::{AstFnCall, AstIdent, AstIdentKind, AstLiteral};
 use shad_error::{Span, SyntaxError};
 use std::mem;
 
@@ -155,7 +155,9 @@ impl AstExpr {
                 break;
             }
             parse_token(lexer, TokenType::Dot)?;
-            fields.push(AstIdent::parse(lexer)?);
+            let mut ident = AstIdent::parse(lexer)?;
+            ident.kind = AstIdentKind::FieldRef;
+            fields.push(ident);
         }
         Ok(fields)
     }

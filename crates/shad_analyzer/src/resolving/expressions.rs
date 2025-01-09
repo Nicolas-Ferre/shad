@@ -1,17 +1,16 @@
-use crate::resolving::items::Item;
-use crate::{resolving, Analysis};
+use crate::{resolving, Analysis, Item};
 use shad_parser::{AstExpr, AstExprRoot};
 
 pub(crate) fn semantic(analysis: &Analysis, expr: &AstExpr) -> ExprSemantic {
     match &expr.root {
-        AstExprRoot::Ident(ident) => match resolving::items::item(analysis, ident) {
+        AstExprRoot::Ident(ident) => match analysis.item(ident) {
             Some(Item::Constant(_)) => ExprSemantic::Value,
-            Some(_) => ExprSemantic::Ref,
-            None => ExprSemantic::None,
+            Some(Item::Buffer(_) | Item::Var(_, _)) => ExprSemantic::Ref,
+            Some(Item::GenericType(_)) | None => ExprSemantic::None,
         },
         AstExprRoot::FnCall(call) => {
             if expr.fields.is_empty() {
-                if let Some(Item::Fn(fn_)) = resolving::items::item(analysis, &call.name) {
+                if let Some(fn_) = resolving::items::fn_(analysis, call) {
                     fn_.ast
                         .return_type
                         .as_ref()

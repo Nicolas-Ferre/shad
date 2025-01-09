@@ -294,9 +294,9 @@ impl RunComputeShader {
                 .buffer_ids
                 .iter()
                 .enumerate()
-                .map(|(index, buffer)| wgpu::BindGroupEntry {
+                .map(|(index, buffer_id)| wgpu::BindGroupEntry {
                     binding: index as u32,
-                    resource: buffers[buffer].as_entire_binding(),
+                    resource: buffers[buffer_id].as_entire_binding(),
                 })
                 .collect::<Vec<_>>(),
         })

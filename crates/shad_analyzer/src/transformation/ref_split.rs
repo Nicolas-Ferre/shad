@@ -1,5 +1,4 @@
 use crate::resolving::expressions::ExprSemantic;
-use crate::resolving::items::Item;
 use crate::{resolving, Analysis};
 use shad_parser::{AstFnCall, AstStatement, VisitMut};
 use std::mem;
@@ -34,7 +33,7 @@ impl<'a> RefSplitTransform<'a> {
 
 impl VisitMut for RefSplitTransform<'_> {
     fn exit_fn_call(&mut self, node: &mut AstFnCall) {
-        if let Some(Item::Fn(fn_)) = resolving::items::item(self.analysis, &node.name) {
+        if let Some(fn_) = resolving::items::fn_(self.analysis, node) {
             let fn_ = fn_.clone();
             for (param, arg) in fn_.ast.params.iter().zip(&mut node.args) {
                 if param.ref_span.is_none()
