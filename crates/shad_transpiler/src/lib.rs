@@ -6,6 +6,7 @@ mod atoms;
 mod fn_calls;
 mod items;
 mod statements;
+mod wgsl;
 
 const IDENT_UNIT: usize = 4;
 
