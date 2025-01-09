@@ -10,11 +10,16 @@ pub(crate) fn fn_args(analysis: &Analysis, call: &AstFnCall) -> Option<Vec<TypeI
 }
 
 pub(crate) fn expr(analysis: &Analysis, expr: &AstExpr) -> Option<TypeId> {
-    if expr.fields.is_empty() {
-        expr_root(analysis, expr)
-    } else {
-        ident(analysis, &expr.fields[expr.fields.len() - 1])
+    let mut last_type_id = expr_root(analysis, expr);
+    for field in &expr.fields {
+        if let Some(type_id) = &last_type_id {
+            last_type_id = resolving::items::field(analysis, type_id, field)
+                .and_then(|field| field.type_id.clone());
+        } else {
+            return None;
+        }
     }
+    last_type_id
 }
 
 pub(crate) fn expr_root(analysis: &Analysis, expr: &AstExpr) -> Option<TypeId> {

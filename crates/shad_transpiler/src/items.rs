@@ -71,7 +71,7 @@ fn struct_field(analysis: &Analysis, field: &StructField) -> String {
         .expect("internal error: invalid field type");
     format!(
         "{}: {}",
-        atoms::to_ident_wgsl(analysis, &field.name),
+        atoms::to_struct_field_wgsl(&field.name),
         atoms::to_type_wgsl(analysis, field_type)
     )
 }

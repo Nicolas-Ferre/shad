@@ -1,4 +1,4 @@
-use crate::fn_calls;
+use crate::{fn_calls, wgsl};
 use itertools::Itertools;
 use shad_analyzer::{Analysis, BufferId, IdentSource, TypeId};
 use shad_parser::{AstExpr, AstExprRoot, AstGpuGenericParam, AstGpuName, AstIdent, AstLiteralType};
@@ -22,10 +22,7 @@ pub(crate) fn to_expr_wgsl(analysis: &Analysis, expr: &AstExpr) -> String {
             format!("{converter}({value})")
         }
     };
-    let fields = expr
-        .fields
-        .iter()
-        .map(|ident| to_ident_wgsl(analysis, ident));
+    let fields = expr.fields.iter().map(to_struct_field_wgsl);
     iter::once(root).chain(fields).join(".")
 }
 
@@ -46,21 +43,6 @@ pub(crate) fn to_ident_wgsl(analysis: &Analysis, name: &AstIdent) -> String {
                 }
             } else {
                 format!("f{}_{}", fn_.ast.name.id, fn_.ast.name.label)
-            }
-        }
-        IdentSource::Field => {
-            let type_ = &analysis.types[ident
-                .type_id
-                .as_ref()
-                .expect("internal error: missing type")];
-            if type_
-                .ast
-                .as_ref()
-                .map_or(true, |ast| ast.gpu_qualifier.is_some())
-            {
-                name.label.clone()
-            } else {
-                format!("s_{}", name.label)
             }
         }
         IdentSource::GenericType => {
@@ -94,6 +76,14 @@ pub(crate) fn to_type_wgsl(analysis: &Analysis, type_id: &TypeId) -> String {
         "u32".into()
     } else {
         type_.name.clone()
+    }
+}
+
+pub(crate) fn to_struct_field_wgsl(ident: &AstIdent) -> String {
+    if wgsl::is_ident_name_accepted(&ident.label) {
+        ident.label.clone()
+    } else {
+        format!("s_{}", ident.label)
     }
 }
 

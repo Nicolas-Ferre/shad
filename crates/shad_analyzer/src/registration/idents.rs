@@ -1,4 +1,3 @@
-use crate::registration::constants::ConstantValue;
 use crate::{resolving, Analysis, BufferId, FnId, TypeId};
 use fxhash::FxHashMap;
 use shad_parser::{
@@ -31,8 +30,6 @@ pub enum IdentSource {
     Var(u64),
     /// A function.
     Fn(FnId),
-    /// A field.
-    Field,
     /// A generic type.
     GenericType,
 }
@@ -48,10 +45,6 @@ pub(crate) fn register(analysis: &mut Analysis) {
 
 fn register_structs(analysis: &mut Analysis) {
     for type_ in analysis.types.clone().values() {
-        for field in &type_.fields {
-            let ident = Ident::new(IdentSource::Field, field.type_id.clone());
-            analysis.idents.insert(field.name.id, ident);
-        }
         if let Some(name) = &type_
             .ast
             .as_ref()
@@ -191,36 +184,6 @@ impl<'a> IdentRegistration<'a> {
         self.analysis.idents.insert(param.name.id, ident);
         self.add_variable(&param.name);
     }
-
-    fn register_variable(&mut self, variable: &AstIdent) -> Option<TypeId> {
-        if self.is_const_context {
-            if let Some(constant) = resolving::items::constant(self.analysis, variable) {
-                constant.value.as_ref().map(ConstantValue::type_id)
-            } else {
-                None
-            }
-        } else if let Some(&id) = self.variables.get(&variable.label) {
-            let var_type = self
-                .analysis
-                .idents
-                .get(&id)
-                .and_then(|var| var.type_id.clone());
-            let var_ident = Ident::new(IdentSource::Var(id), var_type.clone());
-            self.analysis.idents.insert(variable.id, var_ident);
-            var_type
-        } else if let Some(buffer) = resolving::items::buffer(self.analysis, variable) {
-            let buffer_type =
-                resolving::types::buffer(self.analysis, &buffer.id).map(|type_| type_.id.clone());
-            let buffer_source = IdentSource::Buffer(buffer.id.clone());
-            let buffer_ident = Ident::new(buffer_source, buffer_type.clone());
-            self.analysis.idents.insert(variable.id, buffer_ident);
-            buffer_type
-        } else if let Some(constant) = resolving::items::constant(self.analysis, variable) {
-            constant.value.as_ref().map(ConstantValue::type_id)
-        } else {
-            None
-        }
-    }
 }
 
 impl Visit for IdentRegistration<'_> {
@@ -261,32 +224,25 @@ impl Visit for IdentRegistration<'_> {
     }
 
     fn exit_expr(&mut self, node: &AstExpr) {
-        let mut last_type = match &node.root {
-            AstExprRoot::Ident(value) => self.register_variable(value),
-            AstExprRoot::FnCall(value) => self
-                .analysis
-                .idents
-                .get(&value.name.id)
-                .and_then(|ident| ident.type_id.clone()),
-            AstExprRoot::Literal(literal) => Some(resolving::types::literal(literal)),
-        };
-        for field in &node.fields {
-            let Some(current_type) = last_type.clone() else {
-                return;
-            };
-            let type_field = self.analysis.types[&current_type]
-                .fields
-                .iter()
-                .filter(|type_field| {
-                    type_field.is_pub || current_type.module.as_deref() == Some(self.module)
-                })
-                .find(|type_field| type_field.name.label == field.label);
-            if type_field.is_none() {
-                return;
+        if self.is_const_context {
+            return;
+        }
+        if let AstExprRoot::Ident(value) = &node.root {
+            if let Some(&id) = self.variables.get(&value.label) {
+                let var_type = self
+                    .analysis
+                    .idents
+                    .get(&id)
+                    .and_then(|var| var.type_id.clone());
+                let var_ident = Ident::new(IdentSource::Var(id), var_type);
+                self.analysis.idents.insert(value.id, var_ident);
+            } else if let Some(buffer) = resolving::items::buffer(self.analysis, value) {
+                let buffer_type = resolving::types::buffer(self.analysis, &buffer.id)
+                    .map(|type_| type_.id.clone());
+                let buffer_source = IdentSource::Buffer(buffer.id.clone());
+                let buffer_ident = Ident::new(buffer_source, buffer_type);
+                self.analysis.idents.insert(value.id, buffer_ident);
             }
-            last_type = type_field.and_then(|field| field.type_id.clone());
-            let buffer_ident = Ident::new(IdentSource::Field, last_type.clone());
-            self.analysis.idents.insert(field.id, buffer_ident);
         }
     }
 }

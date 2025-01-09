@@ -166,11 +166,12 @@ impl Visit for StatementCheck<'_> {
         }
         let mut last_type_id = resolving::types::expr_root(self.analysis, node);
         for field in &node.fields {
-            if let Some(parent_type_id) = &last_type_id {
-                if let Some(Item::Field(type_id)) = resolving::items::item(self.analysis, field) {
-                    last_type_id.clone_from(type_id);
+            if let Some(type_id) = &last_type_id {
+                let type_field = resolving::items::field(self.analysis, type_id, field);
+                if let Some(type_field) = type_field {
+                    last_type_id.clone_from(&type_field.type_id);
                 } else {
-                    let error = errors::types::field_not_found(field, parent_type_id);
+                    let error = errors::types::field_not_found(field, type_id);
                     self.errors.push(error);
                     return;
                 }

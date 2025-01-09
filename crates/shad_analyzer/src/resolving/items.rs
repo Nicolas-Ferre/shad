@@ -1,5 +1,5 @@
 use crate::registration::constants::{Constant, ConstantId, ConstantValue};
-use crate::{errors, Analysis, Buffer, BufferId, FnId, Function, IdentSource, TypeId};
+use crate::{errors, Analysis, Buffer, BufferId, FnId, Function, IdentSource, StructField, TypeId};
 use shad_error::SemanticError;
 use shad_parser::{AstFnCall, AstIdent};
 use std::iter;
@@ -13,7 +13,6 @@ pub(crate) fn item<'a>(analysis: &'a Analysis, ident: &AstIdent) -> Option<Item<
                 .get(id)
                 .map(|ident| Item::Var(*id, &ident.type_id)),
             IdentSource::Fn(id) => analysis.fns.get(id).map(Item::Fn),
-            IdentSource::Field => Some(Item::Field(&ident.type_id)),
             IdentSource::GenericType => unreachable!("internal error: generic type item retrieval"),
         }
     } else {
@@ -137,11 +136,23 @@ pub(crate) fn const_fn<'a>(
         .find(|fn_| fn_.ast.is_const && (fn_.ast.is_pub || &fn_.id.module == module))
 }
 
+pub(crate) fn field<'a>(
+    analysis: &'a Analysis,
+    type_id: &TypeId,
+    field: &AstIdent,
+) -> Option<&'a StructField> {
+    let module = &field.span.module.name;
+    analysis.types[type_id]
+        .fields
+        .iter()
+        .filter(|type_field| type_field.is_pub || type_id.module.as_deref() == Some(module))
+        .find(|type_field| type_field.name.label == field.label)
+}
+
 #[derive(Debug, Clone)]
 pub(crate) enum Item<'a> {
     Constant(&'a Constant),
     Buffer(&'a Buffer),
     Var(u64, &'a Option<TypeId>),
     Fn(&'a Function),
-    Field(&'a Option<TypeId>),
 }
