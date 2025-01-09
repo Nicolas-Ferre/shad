@@ -1,9 +1,9 @@
-use crate::registration::constants::ConstantId;
-use crate::{errors, resolving, Analysis, BufferId, FnId, TypeId};
+use crate::registration::constants::ConstantValue;
+use crate::{resolving, Analysis, BufferId, FnId, TypeId};
 use fxhash::FxHashMap;
 use shad_parser::{
-    AstBufferItem, AstConstItem, AstExpr, AstExprRoot, AstFnCall, AstFnItem, AstFnParam,
-    AstGpuGenericParam, AstGpuName, AstIdent, AstItem, AstVarDefinition, Visit,
+    AstBufferItem, AstExpr, AstExprRoot, AstFnCall, AstFnItem, AstFnParam, AstGpuGenericParam,
+    AstGpuName, AstIdent, AstItem, AstVarDefinition, Visit,
 };
 use std::mem;
 
@@ -25,8 +25,6 @@ impl Ident {
 /// The source of an identifier.
 #[derive(Debug, Clone)]
 pub enum IdentSource {
-    /// A constant.
-    Constant(ConstantId),
     /// A buffer.
     Buffer(BufferId),
     /// A variable.
@@ -41,9 +39,8 @@ pub enum IdentSource {
 
 pub(crate) fn register(analysis: &mut Analysis) {
     register_structs(analysis);
-    register_constant_init(analysis);
-    register_constant_types(analysis);
     register_buffer_init(analysis);
+    register_constants(analysis);
     register_buffer_types(analysis);
     register_run_blocks(analysis);
     register_fns(analysis);
@@ -66,31 +63,10 @@ fn register_structs(analysis: &mut Analysis) {
     }
 }
 
-fn register_constant_init(analysis: &mut Analysis) {
+fn register_constants(analysis: &mut Analysis) {
     for constant in analysis.constants.clone().values() {
         let module = &constant.ast.name.span.module.name;
-        IdentRegistration::new(analysis, module, true, true).visit_const_item(&constant.ast);
-    }
-}
-
-fn register_constant_types(analysis: &mut Analysis) {
-    let constant_count = count_constants(analysis);
-    let mut typed_constant_count = 0;
-    let mut last_typed_constant_count = 0;
-    let constants = analysis.constants.clone();
-    while typed_constant_count < constant_count {
-        for constant in constants.values() {
-            if analysis.idents[&constant.ast.name.id].type_id.is_none() {
-                let module = &constant.ast.name.span.module.name;
-                IdentRegistration::new(analysis, module, true, false)
-                    .visit_const_item(&constant.ast);
-            }
-        }
-        typed_constant_count = count_typed_constants(analysis);
-        if typed_constant_count == last_typed_constant_count {
-            break; // recursive constant init
-        }
-        last_typed_constant_count = typed_constant_count;
+        IdentRegistration::new(analysis, module, true).visit_const_item(&constant.ast);
     }
 }
 
@@ -99,7 +75,7 @@ fn register_buffer_init(analysis: &mut Analysis) {
     for (module, ast) in &asts {
         for item in &ast.items {
             if let AstItem::Buffer(buffer) = item {
-                IdentRegistration::new(analysis, module, false, true).visit_buffer_item(buffer);
+                IdentRegistration::new(analysis, module, false).visit_buffer_item(buffer);
             }
         }
     }
@@ -115,8 +91,7 @@ fn register_buffer_types(analysis: &mut Analysis) {
         for buffer in buffers.values() {
             if analysis.idents[&buffer.ast.name.id].type_id.is_none() {
                 let module = &buffer.ast.name.span.module.name;
-                IdentRegistration::new(analysis, module, false, false)
-                    .visit_buffer_item(&buffer.ast);
+                IdentRegistration::new(analysis, module, false).visit_buffer_item(&buffer.ast);
             }
         }
         typed_buffer_count = count_typed_buffers(analysis);
@@ -130,14 +105,14 @@ fn register_buffer_types(analysis: &mut Analysis) {
 fn register_run_blocks(analysis: &mut Analysis) {
     let blocks = mem::take(&mut analysis.run_blocks);
     for block in &blocks {
-        IdentRegistration::new(analysis, &block.module, false, true).visit_run_item(&block.ast);
+        IdentRegistration::new(analysis, &block.module, false).visit_run_item(&block.ast);
     }
     analysis.run_blocks = blocks;
 }
 
 fn register_fns(analysis: &mut Analysis) {
     for fn_ in analysis.fns.clone().into_values() {
-        IdentRegistration::new(analysis, &fn_.ast.name.span.module.name, false, true)
+        IdentRegistration::new(analysis, &fn_.ast.name.span.module.name, false)
             .visit_fn_item(&fn_.ast);
         let name = fn_
             .ast
@@ -158,23 +133,6 @@ fn register_gpu_name(analysis: &mut Analysis, name: &AstGpuName) {
             analysis.idents.insert(param.id, ident);
         }
     }
-}
-
-fn count_constants(analysis: &Analysis) -> usize {
-    analysis
-        .idents
-        .values()
-        .filter(|e| matches!(e.source, IdentSource::Constant(_)))
-        .count()
-}
-
-fn count_typed_constants(analysis: &Analysis) -> usize {
-    analysis
-        .idents
-        .values()
-        .filter(|e| matches!(e.source, IdentSource::Constant(_)))
-        .filter(|e| e.type_id.is_some())
-        .count()
 }
 
 fn count_buffers(analysis: &Analysis) -> usize {
@@ -198,22 +156,15 @@ struct IdentRegistration<'a> {
     analysis: &'a mut Analysis,
     module: &'a str,
     is_const_context: bool,
-    are_errors_enabled: bool,
     variables: FxHashMap<String, u64>,
 }
 
 impl<'a> IdentRegistration<'a> {
-    pub(crate) fn new(
-        analysis: &'a mut Analysis,
-        module: &'a str,
-        is_const_context: bool,
-        are_errors_enabled: bool,
-    ) -> Self {
+    pub(crate) fn new(analysis: &'a mut Analysis, module: &'a str, is_const_context: bool) -> Self {
         Self {
             analysis,
             module,
             is_const_context,
-            are_errors_enabled,
             variables: FxHashMap::default(),
         }
     }
@@ -242,7 +193,13 @@ impl<'a> IdentRegistration<'a> {
     }
 
     fn register_variable(&mut self, variable: &AstIdent) -> Option<TypeId> {
-        if let Some(&id) = self.variables.get(&variable.label) {
+        if self.is_const_context {
+            if let Some(constant) = resolving::items::constant(self.analysis, variable) {
+                constant.value.as_ref().map(ConstantValue::type_id)
+            } else {
+                None
+            }
+        } else if let Some(&id) = self.variables.get(&variable.label) {
             let var_type = self
                 .analysis
                 .idents
@@ -251,10 +208,7 @@ impl<'a> IdentRegistration<'a> {
             let var_ident = Ident::new(IdentSource::Var(id), var_type.clone());
             self.analysis.idents.insert(variable.id, var_ident);
             var_type
-        } else if let (Some(buffer), false) = (
-            resolving::items::buffer(self.analysis, variable),
-            self.is_const_context,
-        ) {
+        } else if let Some(buffer) = resolving::items::buffer(self.analysis, variable) {
             let buffer_type =
                 resolving::types::buffer(self.analysis, &buffer.id).map(|type_| type_.id.clone());
             let buffer_source = IdentSource::Buffer(buffer.id.clone());
@@ -262,16 +216,7 @@ impl<'a> IdentRegistration<'a> {
             self.analysis.idents.insert(variable.id, buffer_ident);
             buffer_type
         } else if let Some(constant) = resolving::items::constant(self.analysis, variable) {
-            let constant_type = resolving::types::constant(self.analysis, &constant.id)
-                .map(|type_| type_.id.clone());
-            let constant_source = IdentSource::Constant(constant.id.clone());
-            let constant_ident = Ident::new(constant_source, constant_type.clone());
-            self.analysis.idents.insert(variable.id, constant_ident);
-            constant_type
-        } else if self.are_errors_enabled {
-            let error = errors::variables::not_found(variable);
-            self.analysis.errors.push(error);
-            None
+            constant.value.as_ref().map(ConstantValue::type_id)
         } else {
             None
         }
@@ -284,18 +229,6 @@ impl Visit for IdentRegistration<'_> {
         for param in &node.params {
             self.register_fn_param(param);
         }
-    }
-
-    fn exit_const_item(&mut self, node: &AstConstItem) {
-        let constant_type = resolving::types::expr(self.analysis, &node.value);
-        let constant_ident = Ident::new(
-            IdentSource::Constant(ConstantId {
-                module: self.module.into(),
-                name: node.name.label.clone(),
-            }),
-            constant_type,
-        );
-        self.analysis.idents.insert(node.name.id, constant_ident);
     }
 
     fn exit_buffer_item(&mut self, node: &AstBufferItem) {
@@ -318,19 +251,11 @@ impl Visit for IdentRegistration<'_> {
     }
 
     fn exit_fn_call(&mut self, node: &AstFnCall) {
-        if let Some(arg_type_ids) = node
-            .args
-            .iter()
-            .map(|node| resolving::types::expr(self.analysis, &node.value))
-            .collect::<Option<Vec<_>>>()
-        {
+        if let Some(arg_type_ids) = resolving::types::fn_args(self.analysis, node) {
             if let Some(fn_) = resolving::items::fn_(self.analysis, node, &arg_type_ids) {
                 let fn_ident =
                     Ident::new(IdentSource::Fn(fn_.id.clone()), fn_.return_type_id.clone());
                 self.analysis.idents.insert(node.name.id, fn_ident);
-            } else if self.are_errors_enabled {
-                let error = errors::functions::not_found(node, &arg_type_ids);
-                self.analysis.errors.push(error);
             }
         }
     }
@@ -356,9 +281,8 @@ impl Visit for IdentRegistration<'_> {
                     type_field.is_pub || current_type.module.as_deref() == Some(self.module)
                 })
                 .find(|type_field| type_field.name.label == field.label);
-            if type_field.is_none() && self.are_errors_enabled {
-                let error = errors::types::field_not_found(field, &current_type);
-                self.analysis.errors.push(error);
+            if type_field.is_none() {
+                return;
             }
             last_type = type_field.and_then(|field| field.type_id.clone());
             let buffer_ident = Ident::new(IdentSource::Field, last_type.clone());
