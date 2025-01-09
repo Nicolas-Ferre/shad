@@ -109,7 +109,7 @@ impl Analysis {
         if let Some(Item::Fn(fn_)) = resolving::items::item(self, ident) {
             Some(fn_)
         } else {
-            None
+            None // no-coverage (no run for valid Shad code)
         }
     }
 

@@ -14,7 +14,7 @@ pub(crate) fn item<'a>(analysis: &'a Analysis, ident: &AstIdent) -> Option<Item<
                 .map(|ident| Item::Var(*id, &ident.type_id)),
             IdentSource::Fn(id) => analysis.fns.get(id).map(Item::Fn),
             IdentSource::Field => Some(Item::Field(&ident.type_id)),
-            IdentSource::GenericType => Some(Item::GenericType),
+            IdentSource::GenericType => unreachable!("internal error: generic type item retrieval"),
         }
     } else {
         constant(analysis, ident).map(Item::Constant)
@@ -144,5 +144,4 @@ pub(crate) enum Item<'a> {
     Var(u64, &'a Option<TypeId>),
     Fn(&'a Function),
     Field(&'a Option<TypeId>),
-    GenericType,
 }
