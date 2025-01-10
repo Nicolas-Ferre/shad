@@ -78,69 +78,37 @@ impl TypeId {
 }
 
 pub(crate) fn register(analysis: &mut Analysis) {
-    register_builtin(analysis);
+    register_builtin_types(analysis);
     register_structs(analysis);
     register_array_params(analysis);
     register_struct_details(analysis);
 }
 
-fn register_builtin(analysis: &mut Analysis) {
+fn register_builtin_types(analysis: &mut Analysis) {
     analysis.types.extend(
         [
-            Type {
-                id: TypeId::from_builtin(NO_RETURN_TYPE),
-                name: NO_RETURN_TYPE.into(),
-                size: 0,
-                alignment: 0,
-                ast: None,
-                fields: vec![],
-                generics: vec![],
-                array_params: None,
-            },
-            Type {
-                id: TypeId::from_builtin(F32_TYPE),
-                name: F32_TYPE.into(),
-                size: 4,
-                alignment: 4,
-                ast: None,
-                fields: vec![],
-                generics: vec![],
-                array_params: None,
-            },
-            Type {
-                id: TypeId::from_builtin(U32_TYPE),
-                name: U32_TYPE.into(),
-                size: 4,
-                alignment: 4,
-                ast: None,
-                fields: vec![],
-                generics: vec![],
-                array_params: None,
-            },
-            Type {
-                id: TypeId::from_builtin(I32_TYPE),
-                name: I32_TYPE.into(),
-                size: 4,
-                alignment: 4,
-                ast: None,
-                fields: vec![],
-                generics: vec![],
-                array_params: None,
-            },
-            Type {
-                id: TypeId::from_builtin(BOOL_TYPE),
-                name: BOOL_TYPE.into(),
-                size: 4,
-                alignment: 4,
-                ast: None,
-                fields: vec![],
-                generics: vec![],
-                array_params: None,
-            },
+            builtin_type(NO_RETURN_TYPE, 0, 0),
+            builtin_type(F32_TYPE, 4, 4),
+            builtin_type(U32_TYPE, 4, 4),
+            builtin_type(I32_TYPE, 4, 4),
+            builtin_type(BOOL_TYPE, 4, 4),
         ]
         .into_iter()
         .map(|type_| (type_.id.clone(), type_)),
     );
+}
+
+fn builtin_type(name: &str, size: u32, alignment: u32) -> Type {
+    Type {
+        id: TypeId::from_builtin(name),
+        name: name.into(),
+        size,
+        alignment,
+        ast: None,
+        fields: vec![],
+        generics: vec![],
+        array_params: None,
+    }
 }
 
 fn register_structs(analysis: &mut Analysis) {

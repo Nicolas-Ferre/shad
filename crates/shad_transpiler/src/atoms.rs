@@ -4,6 +4,10 @@ use shad_analyzer::{Analysis, BufferId, Function, Item, TypeId};
 use shad_parser::{AstExpr, AstExprRoot, AstGpuGenericParam, AstGpuName, AstIdent, AstLiteralType};
 use std::iter;
 
+// An identifier character valid in WGSL but not in Shad,
+// to ensure generated identifiers don't conflict with Shad identifiers defined by users.
+const SPECIAL_WGSL_IDENT_CHARACTER: &str = "µ";
+
 pub(crate) fn to_expr_wgsl(analysis: &Analysis, expr: &AstExpr) -> String {
     let root = match &expr.root {
         AstExprRoot::Ident(ident) => to_var_ident_wgsl(analysis, ident),
@@ -44,31 +48,39 @@ pub(crate) fn to_fn_ident_wgsl(analysis: &Analysis, fn_: &Function) -> String {
             fn_.ast.name.label.clone()
         }
     } else {
-        format!("f{}_{}", fn_.ast.name.id, fn_.ast.name.label)
+        format!(
+            "f{}_{}{SPECIAL_WGSL_IDENT_CHARACTER}{}",
+            analysis.module_ids[&fn_.id.module],
+            fn_.ast.name.label,
+            fn_.params
+                .iter()
+                .filter_map(|param| param.type_id.as_ref())
+                .map(|type_id| to_type_wgsl(analysis, type_id))
+                .join(SPECIAL_WGSL_IDENT_CHARACTER)
+        )
     }
 }
 
 pub(crate) fn to_buffer_ident_wgsl(analysis: &Analysis, buffer: &BufferId) -> String {
-    let name = &analysis.buffers[buffer].ast.name;
-    format!("b{}_{}", name.id, name.label)
+    format!("b{}_{}", analysis.module_ids[&buffer.module], buffer.name)
 }
 
 pub(crate) fn to_type_wgsl(analysis: &Analysis, type_id: &TypeId) -> String {
     let type_ = &analysis.types[type_id];
-    if let Some(type_) = &type_.ast {
-        if let Some(gpu) = &type_.gpu_qualifier {
+    if let (Some(module), Some(type_ast)) = (&type_id.module, &type_.ast) {
+        if let Some(gpu) = &type_ast.gpu_qualifier {
             if let Some(name) = &gpu.name {
                 to_gpu_name_wgsl(analysis, name)
             } else {
-                type_.name.label.clone()
+                type_ast.name.label.clone()
             }
         } else {
-            format!("t{}_{}", type_.name.id, type_.name.label)
+            format!("t{}_{}", analysis.module_ids[module], type_id.name)
         }
-    } else if type_.id == TypeId::from_builtin("bool") {
+    } else if type_id == &TypeId::from_builtin("bool") {
         "u32".into()
     } else {
-        type_.name.clone()
+        type_id.name.clone()
     }
 }
 
