@@ -6,7 +6,7 @@ use std::iter;
 
 pub(crate) fn to_expr_wgsl(analysis: &Analysis, expr: &AstExpr) -> String {
     let root = match &expr.root {
-        AstExprRoot::Ident(ident) => to_ident_wgsl(analysis, ident),
+        AstExprRoot::Ident(ident) => to_var_ident_wgsl(analysis, ident),
         AstExprRoot::FnCall(call) => fn_calls::to_wgsl(analysis, call),
         AstExprRoot::Literal(expr) => {
             let value = match expr.cleaned_value.as_str() {
@@ -26,12 +26,11 @@ pub(crate) fn to_expr_wgsl(analysis: &Analysis, expr: &AstExpr) -> String {
     iter::once(root).chain(fields).join(".")
 }
 
-pub(crate) fn to_ident_wgsl(analysis: &Analysis, name: &AstIdent) -> String {
+pub(crate) fn to_var_ident_wgsl(analysis: &Analysis, name: &AstIdent) -> String {
     match analysis.item(name) {
-        None => unreachable!("internal error: not found item"),
         Some(Item::Constant(_)) => unreachable!("internal error: not inlined constant"),
         Some(Item::Buffer(buffer)) => to_buffer_ident_wgsl(analysis, &buffer.id),
-        Some(Item::Var(id, _)) => format!("v{}_{}", id, name.label),
+        Some(Item::Var(_, _)) | None => format!("v_{}", name.label),
     }
 }
 

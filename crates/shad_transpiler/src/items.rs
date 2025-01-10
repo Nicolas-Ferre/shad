@@ -101,7 +101,7 @@ fn fn_param(analysis: &Analysis, param: &FnParam) -> String {
         .expect("internal error: invalid param type");
     format!(
         "{}: {}",
-        atoms::to_ident_wgsl(analysis, &param.name),
+        atoms::to_var_ident_wgsl(analysis, &param.name),
         atoms::to_type_wgsl(analysis, type_id)
     )
 }

@@ -9,6 +9,11 @@ pub(crate) mod left_values;
 pub(crate) mod ref_fn_inline;
 pub(crate) mod ref_split;
 pub(crate) mod ref_var_inline;
+pub(crate) mod var_names;
+
+// An identifier character valid in WGSL but not in Shad,
+// to ensure generated identifiers don't conflict with Shad identifiers defined by users.
+const SPECIAL_WGSL_IDENT_CHARACTER: char = 'µ';
 
 fn extract_in_variable(
     analysis: &mut Analysis,
@@ -16,7 +21,10 @@ fn extract_in_variable(
     is_ref: bool,
 ) -> (AstStatement, AstIdent) {
     let type_id = resolving::types::expr(analysis, expr);
-    let var_name = "generated";
+    let var_name = format!(
+        "generated_{SPECIAL_WGSL_IDENT_CHARACTER}{}",
+        analysis.next_id()
+    );
     let var_def_id = analysis.next_id();
     let var_id = analysis.next_id();
     analysis.idents.insert(
@@ -38,7 +46,7 @@ fn extract_in_variable(
             span: expr.span.clone(),
             name: AstIdent {
                 span: expr.span.clone(),
-                label: var_name.to_string(),
+                label: var_name.clone(),
                 id: var_def_id,
                 kind: AstIdentKind::Other,
             },
@@ -47,7 +55,7 @@ fn extract_in_variable(
         }),
         AstIdent {
             span: expr.span.clone(),
-            label: var_name.to_string(),
+            label: var_name,
             id: var_id,
             kind: AstIdentKind::Other,
         },
