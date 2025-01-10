@@ -37,6 +37,8 @@ impl AstIdent {
 /// An parsed identifier kind.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum AstIdentKind {
+    /// A variable definition.
+    VarDef,
     /// A function reference.
     FnRef,
     /// A field reference.

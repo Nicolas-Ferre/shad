@@ -1,8 +1,8 @@
-use crate::{listing, resolving, Analysis, FnId, Ident, IdentSource, Item};
+use crate::{listing, resolving, transformation, Analysis, FnId, Item};
 use fxhash::FxHashMap;
 use shad_parser::{
-    AstExpr, AstExprRoot, AstExprStatement, AstFnCall, AstFnItem, AstIdent, AstLiteral,
-    AstLiteralType, AstStatement, VisitMut,
+    AstExpr, AstExprRoot, AstExprStatement, AstFnCall, AstFnItem, AstLiteral, AstLiteralType,
+    AstStatement, VisitMut,
 };
 use std::mem;
 
@@ -113,9 +113,10 @@ fn inlined_fn_statements(analysis: &mut Analysis, call: &AstFnCall) -> Vec<AstSt
     if let Some(fn_) = resolving::items::fn_(analysis, call) {
         let fn_ = fn_.clone();
         if fn_.is_inlined {
+            let mut statements = fn_.ast.statements.clone();
+            transformation::var_names::transform_statements(analysis, &mut statements);
             let mut transform = RefFnStatementsTransform::new(analysis, &fn_.ast, call);
-            fn_.ast
-                .statements
+            statements
                 .into_iter()
                 .map(|mut statement| {
                     transform.visit_statement(&mut statement);
@@ -133,7 +134,6 @@ fn inlined_fn_statements(analysis: &mut Analysis, call: &AstFnCall) -> Vec<AstSt
 struct RefFnStatementsTransform<'a> {
     analysis: &'a mut Analysis,
     param_args: FxHashMap<u64, AstExpr>,
-    old_new_id: FxHashMap<u64, u64>,
 }
 
 impl<'a> RefFnStatementsTransform<'a> {
@@ -146,7 +146,6 @@ impl<'a> RefFnStatementsTransform<'a> {
                 .zip(&call.args)
                 .map(|(param, arg)| (param.name.id, arg.value.clone()))
                 .collect(),
-            old_new_id: FxHashMap::default(),
         }
     }
 }
@@ -159,22 +158,6 @@ impl VisitMut for RefFnStatementsTransform<'_> {
                     node.replace_root(new_root.clone());
                 }
             }
-        }
-    }
-
-    fn exit_ident(&mut self, node: &mut AstIdent) {
-        if let Some(Item::Var(id, type_id)) = self.analysis.item(node) {
-            let type_id = type_id.clone();
-            let old_id = node.id;
-            node.id = self.analysis.next_id();
-            self.old_new_id.insert(old_id, node.id);
-            self.analysis.idents.insert(
-                node.id,
-                Ident::new(
-                    IdentSource::Var(self.old_new_id.get(&id).copied().unwrap_or(id)),
-                    type_id,
-                ),
-            );
         }
     }
 }

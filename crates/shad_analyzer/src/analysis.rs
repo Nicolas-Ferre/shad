@@ -16,11 +16,11 @@ use shad_parser::{Ast, AstFnCall, AstIdent};
 pub struct Analysis {
     /// The module ASTs.
     pub asts: FxHashMap<String, Ast>,
-    /// From each module, the list of visible modules sorted by priority.
-    pub const_functions: FxHashMap<ConstFnId, ConstFn>,
-    /// The analyzed identifiers.
-    pub visible_modules: FxHashMap<String, Vec<String>>,
     /// The builtin constant functions.
+    pub const_functions: FxHashMap<ConstFnId, ConstFn>,
+    /// From each module, the list of visible modules sorted by priority.
+    pub visible_modules: FxHashMap<String, Vec<String>>,
+    /// The analyzed identifiers.
     pub idents: FxHashMap<u64, Ident>,
     /// The analyzed types.
     pub types: FxHashMap<TypeId, Type>,
@@ -68,9 +68,10 @@ impl Analysis {
         registration::modules::register(&mut analysis);
         registration::types::register(&mut analysis);
         registration::functions::register(&mut analysis);
+        transformation::fn_params::transform(&mut analysis);
         registration::constants::register(&mut analysis);
         registration::buffers::register(&mut analysis);
-        transformation::fn_params::transform(&mut analysis);
+        transformation::var_names::transform(&mut analysis);
         registration::idents::register(&mut analysis);
         checks::constants::check(&mut analysis);
         checks::generics::check(&mut analysis);
