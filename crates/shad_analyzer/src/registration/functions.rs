@@ -5,8 +5,8 @@ use crate::{
 };
 use itertools::Itertools;
 use shad_parser::{
-    AstFnItem, AstFnParam, AstGpuQualifier, AstIdent, AstItem, AstItemGenerics, AstReturnType,
-    AstStructItem,
+    AstFnItem, AstFnParam, AstGpuQualifier, AstIdent, AstIdentKind, AstItem, AstItemGenerics,
+    AstReturnType, AstStructItem,
 };
 use std::mem;
 
@@ -97,20 +97,6 @@ impl FnId {
         }
     }
 
-    pub(crate) fn initializer(type_: &Type, ast: &AstStructItem) -> Self {
-        Self {
-            module: ast.name.span.module.name.clone(),
-            name: ast.name.label.clone(),
-            param_types: type_
-                .fields
-                .iter()
-                .map(|field| field.type_id.clone())
-                .collect(),
-            param_count: type_.fields.len(),
-            is_generic: false,
-        }
-    }
-
     pub(crate) fn signature(&self) -> String {
         if self.is_generic {
             format!(
@@ -127,6 +113,20 @@ impl FnId {
                     .map(|type_| type_.as_ref().map_or("?", |t| t.name.as_str()))
                     .join(", ")
             )
+        }
+    }
+
+    fn initializer(type_: &Type, ast: &AstStructItem) -> Self {
+        Self {
+            module: ast.name.span.module.name.clone(),
+            name: ast.name.label.clone(),
+            param_types: type_
+                .fields
+                .iter()
+                .map(|field| field.type_id.clone())
+                .collect(),
+            param_count: type_.fields.len(),
+            is_generic: false,
         }
     }
 }
@@ -236,7 +236,7 @@ fn clone_ident(analysis: &mut Analysis, ident: &AstIdent) -> AstIdent {
         span: ident.span.clone(),
         label: ident.label.clone(),
         id: analysis.next_id(),
-        kind: ident.kind,
+        kind: AstIdentKind::Other,
     }
 }
 
