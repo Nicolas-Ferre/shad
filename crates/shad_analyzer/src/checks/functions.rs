@@ -81,20 +81,17 @@ fn check_gpu_const_fn(analysis: &Analysis, fn_: &Function) -> Option<SemanticErr
                     None
                 } else {
                     Some(errors::functions::invalid_const_fn_return_type(
-                        &fn_.id.signature(analysis),
+                        fn_,
                         return_type,
-                        &analysis.types[&expected_return_type_id],
-                        &analysis.types[actual_return_type_id],
+                        &expected_return_type_id,
+                        actual_return_type_id,
                     ))
                 }
             } else {
                 None
             }
         } else {
-            Some(errors::functions::not_found_const_fn(
-                fn_,
-                &fn_.id.signature(analysis),
-            ))
+            Some(errors::functions::not_found_const_fn(fn_))
         }
     } else {
         None

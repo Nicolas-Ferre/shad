@@ -1,19 +1,17 @@
 use crate::checks::recursion::UsedItem;
-use crate::{Type, TypeId};
+use crate::TypeId;
 use itertools::Itertools;
 use shad_error::{ErrorLevel, LocatedMessage, SemanticError};
 use shad_parser::{AstGpuQualifier, AstIdent, AstStructItem};
 use std::iter;
 
 pub(crate) fn duplicated(
+    id: &TypeId,
     duplicated_type: &AstStructItem,
     existing_type: &AstStructItem,
 ) -> SemanticError {
     SemanticError::new(
-        format!(
-            "type `{}` is defined multiple times",
-            duplicated_type.name.label
-        ),
+        format!("type `{}` is defined multiple times", id.name),
         vec![
             LocatedMessage {
                 level: ErrorLevel::Error,
@@ -41,7 +39,7 @@ pub(crate) fn not_found(ident: &AstIdent) -> SemanticError {
 }
 
 pub(crate) fn recursion_found(
-    current_type_id: &Type,
+    current_type_id: &TypeId,
     type_stack: &[UsedItem<TypeId>],
 ) -> SemanticError {
     SemanticError::new(
@@ -51,7 +49,7 @@ pub(crate) fn recursion_found(
             span: type_stack[type_stack.len() - 1].def_span.clone(),
             text: format!(
                 "recursive type `{}` defined here",
-                type_stack[type_stack.len() - 1].name
+                type_stack[type_stack.len() - 1].id.name
             ),
         })
         .chain(
@@ -61,14 +59,17 @@ pub(crate) fn recursion_found(
                 .map(|(usage, next_usage)| LocatedMessage {
                     level: ErrorLevel::Info,
                     span: next_usage.usage_span.clone(),
-                    text: format!("`{}` type used in `{}` type", next_usage.name, usage.name,),
+                    text: format!(
+                        "`{}` type used in `{}` type",
+                        next_usage.id.name, usage.id.name,
+                    ),
                 }),
         )
         .collect(),
     )
 }
 
-pub(crate) fn field_not_found(field: &AstIdent, type_id: &Type) -> SemanticError {
+pub(crate) fn field_not_found(field: &AstIdent, type_id: &TypeId) -> SemanticError {
     SemanticError::new(
         format!(
             "could not find `{}` field in `{}` type",

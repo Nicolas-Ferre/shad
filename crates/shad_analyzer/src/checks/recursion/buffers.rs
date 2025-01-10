@@ -33,11 +33,8 @@ impl Visit for ItemRecursionCheck<'_, BufferId> {
                 usage_span: node.span.clone(),
                 def_span: buffer.ast.name.span.clone(),
                 id: buffer.id.clone(),
-                name: buffer.ast.name.label.clone(),
             });
-            if !self.detect_error(|_analysis, buffer_id, type_stack| {
-                errors::buffers::recursion_found(buffer_id, type_stack)
-            }) {
+            if !self.detect_error(errors::buffers::recursion_found) {
                 self.visit_expr(&buffer.ast.value);
             }
             self.used_item_ids.pop();

@@ -4,14 +4,8 @@ use itertools::Itertools;
 use shad_parser::AstItem;
 use std::iter;
 
-struct Module {
-    path: String,
-    is_pub: bool,
-}
-
 pub(crate) fn register(analysis: &mut Analysis) {
     let imported_modules = imported_modules(analysis);
-    register_ids(analysis, &imported_modules);
     register_visible(analysis, &imported_modules);
 }
 
@@ -87,9 +81,7 @@ fn find_visible_modules(
         .collect::<Vec<_>>()
 }
 
-fn register_ids(analysis: &mut Analysis, imported_modules: &FxHashMap<String, Vec<Module>>) {
-    analysis.module_ids = imported_modules
-        .iter()
-        .map(|module| (module.0.clone(), analysis.next_id()))
-        .collect();
+struct Module {
+    path: String,
+    is_pub: bool,
 }

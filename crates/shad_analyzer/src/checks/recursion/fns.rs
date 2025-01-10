@@ -24,11 +24,8 @@ impl Visit for ItemRecursionCheck<'_, FnId> {
                 usage_span: node.span.clone(),
                 def_span: fn_.ast.name.span.clone(),
                 id: fn_.id.clone(),
-                name: fn_.id.signature(self.analysis),
             });
-            if !self.detect_error(|analysis, fn_id, type_stack| {
-                errors::functions::recursion_found(&fn_id.signature(analysis), type_stack)
-            }) {
+            if !self.detect_error(errors::functions::recursion_found) {
                 self.visit_fn_item(&fn_.ast);
             }
             self.used_item_ids.pop();

@@ -1,8 +1,7 @@
 use crate::registration::generics;
 use crate::registration::generics::GenericParam;
 use crate::{
-    errors, registration, resolving, Analysis, ConstFnId, ConstFnParamType, Type, TypeId,
-    NO_RETURN_TYPE,
+    errors, resolving, Analysis, ConstFnId, ConstFnParamType, Type, TypeId, NO_RETURN_TYPE,
 };
 use itertools::Itertools;
 use shad_parser::{
@@ -24,7 +23,7 @@ pub struct Function {
     pub return_type_id: Option<TypeId>,
     /// The analyzed function parameters.
     pub params: Vec<FnParam>,
-    /// The final type name from which the function has been generated.
+    /// The type from which the function has been generated.
     pub source_type: Option<TypeId>,
     /// The analyzed generic parameters of the function.
     pub generics: Vec<GenericParam>,
@@ -64,7 +63,7 @@ pub struct FnId {
     pub module: String,
     /// The function name.
     pub name: String,
-    /// In case the function is not generic, the function parameter type name.
+    /// In case the function is not generic, the function parameter types.
     pub param_types: Vec<Option<TypeId>>,
     /// The number of parameters of the function.
     pub param_count: usize,
@@ -112,7 +111,7 @@ impl FnId {
         }
     }
 
-    pub(crate) fn signature(&self, analysis: &Analysis) -> String {
+    pub(crate) fn signature(&self) -> String {
         if self.is_generic {
             format!(
                 "{}<...>({})",
@@ -125,7 +124,7 @@ impl FnId {
                 self.name,
                 self.param_types
                     .iter()
-                    .map(|type_id| type_id.as_ref().map_or("?", |id| &analysis.types[id].name))
+                    .map(|type_| type_.as_ref().map_or("?", |t| t.name.as_str()))
                     .join(", ")
             )
         }
@@ -134,7 +133,7 @@ impl FnId {
 
 pub(crate) fn register(analysis: &mut Analysis) {
     register_initializers(analysis);
-    register_items(analysis);
+    register_ast(analysis);
 }
 
 fn register_initializers(analysis: &mut Analysis) {
@@ -166,22 +165,20 @@ fn register_initializers(analysis: &mut Analysis) {
     }
 }
 
-fn register_items(analysis: &mut Analysis) {
+fn register_ast(analysis: &mut Analysis) {
     let asts = mem::take(&mut analysis.asts);
     for ast in asts.values() {
         for items in &ast.items {
             if let AstItem::Fn(fn_ast) = items {
-                let mut fn_ast = fn_ast.clone();
-                generics::register_gpu_qualifier(analysis, &mut fn_ast.gpu_qualifier);
-                let id = FnId::from_item(analysis, &fn_ast);
+                let id = FnId::from_item(analysis, fn_ast);
                 let fn_ = Function {
                     ast: fn_ast.clone(),
                     id: id.clone(),
-                    is_inlined: is_inlined(&fn_ast),
+                    is_inlined: is_inlined(fn_ast),
                     return_type_id: if let Some(return_type) = &fn_ast.return_type {
                         resolving::items::type_id_or_add_error(analysis, &return_type.name)
                     } else {
-                        Some(registration::types::id(analysis, NO_RETURN_TYPE, None))
+                        Some(TypeId::from_builtin(NO_RETURN_TYPE))
                     },
                     params: fn_ast
                         .params
@@ -196,8 +193,8 @@ fn register_items(analysis: &mut Analysis) {
                 };
                 if let Some(existing_fn) = analysis.fns.insert(id.clone(), fn_) {
                     analysis.errors.push(errors::functions::duplicated(
-                        &id.signature(analysis),
-                        &fn_ast,
+                        &id,
+                        fn_ast,
                         &existing_fn.ast,
                     ));
                 }

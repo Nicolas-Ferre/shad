@@ -18,7 +18,7 @@ pub(crate) fn to_struct_wgsl(analysis: &Analysis, shader: &ComputeShader) -> Str
         .type_ids
         .iter()
         .filter(|id| {
-            analysis.types[*id]
+            analysis.types[id]
                 .ast
                 .as_ref()
                 .map_or(false, |ast| ast.gpu_qualifier.is_none())
@@ -110,7 +110,7 @@ fn fn_return_type(analysis: &Analysis, type_: &Function) -> String {
     if let Some(type_) = type_
         .return_type_id
         .as_ref()
-        .filter(|type_id| analysis.types[*type_id].size > 0)
+        .filter(|type_id| analysis.types[type_id].size > 0)
     {
         format!(" -> {}", atoms::to_type_wgsl(analysis, type_))
     } else {

@@ -19,7 +19,7 @@ pub(crate) fn transform(analysis: &mut Analysis) {
 
 fn transform_expr(analysis: &mut Analysis, statement: AstExprStatement) -> AstStatement {
     let has_type = resolving::types::expr(analysis, &statement.expr)
-        .map_or(false, |type_id| type_id != NO_RETURN_TYPE);
+        .map_or(false, |type_id| type_id.name != NO_RETURN_TYPE);
     if has_type {
         let (var_def_statement, _var_name) =
             super::extract_in_variable(analysis, &statement.expr, false);

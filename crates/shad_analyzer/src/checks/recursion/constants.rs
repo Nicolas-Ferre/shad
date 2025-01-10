@@ -28,11 +28,8 @@ impl Visit for ItemRecursionCheck<'_, ConstantId> {
                 usage_span: node.span.clone(),
                 def_span: constant.ast.name.span.clone(),
                 id: constant.id.clone(),
-                name: constant.ast.name.label.clone(),
             });
-            if !self.detect_error(|_analysis, type_id, type_stack| {
-                errors::constants::recursion_found(type_id, type_stack)
-            }) {
+            if !self.detect_error(errors::constants::recursion_found) {
                 self.visit_expr(&constant.ast.value);
             }
             self.used_item_ids.pop();

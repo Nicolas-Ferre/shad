@@ -13,7 +13,6 @@ pub(crate) struct UsedItem<I> {
     pub(crate) usage_span: Span,
     pub(crate) def_span: Span,
     pub(crate) id: I,
-    pub(crate) name: String,
 }
 
 struct ItemRecursionCheck<'a, I> {
@@ -38,7 +37,7 @@ where
         }
     }
 
-    fn detect_error(&mut self, error: fn(&Analysis, &I, &[UsedItem<I>]) -> SemanticError) -> bool {
+    fn detect_error(&mut self, error: fn(&I, &[UsedItem<I>]) -> SemanticError) -> bool {
         if !self.is_last_usage_recursive() {
             false
         } else if self.is_error_already_generated() {
@@ -48,11 +47,8 @@ where
                 self.errored_item_ids.insert(call.id.clone());
             }
             self.errored_item_ids.insert(self.current_item_id.clone());
-            self.errors.push(error(
-                self.analysis,
-                &self.current_item_id,
-                &self.used_item_ids,
-            ));
+            self.errors
+                .push(error(&self.current_item_id, &self.used_item_ids));
             true
         }
     }

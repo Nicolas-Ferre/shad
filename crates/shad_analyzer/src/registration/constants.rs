@@ -44,10 +44,10 @@ impl ConstantValue {
     // coverage: off (simple logic)
     pub(crate) fn type_id(&self) -> TypeId {
         match self {
-            Self::U32(_) => "u32".into(),
-            Self::I32(_) => "i32".into(),
-            Self::F32(_) => "f32".into(),
-            Self::Bool(_) => "bool".into(),
+            Self::U32(_) => TypeId::from_builtin("u32"),
+            Self::I32(_) => TypeId::from_builtin("i32"),
+            Self::F32(_) => TypeId::from_builtin("f32"),
+            Self::Bool(_) => TypeId::from_builtin("bool"),
         }
     }
     // coverage: on

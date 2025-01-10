@@ -22,12 +22,10 @@ pub(crate) const WGSL_ARRAY_TYPE: &str = "array";
 /// An analyzed type.
 #[derive(Debug, Clone)]
 pub struct Type {
-    /// The type name.
-    pub name: String,
     /// The unique ID of the type.
     pub id: TypeId,
-    /// The module in which the type is defined.
-    pub module: Option<String>,
+    /// The type name.
+    pub name: String,
     /// The type size in bytes.
     pub size: u32,
     /// The type alignment in bytes.
@@ -43,14 +41,12 @@ pub struct Type {
 }
 
 /// The unique identifier of a type.
-pub type TypeId = String;
-
-pub(crate) fn id(analysis: &Analysis, name: &str, module: Option<&str>) -> String {
-    if let Some(module) = module {
-        format!("{}_{}", name, analysis.module_ids[module])
-    } else {
-        name.to_string()
-    }
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct TypeId {
+    /// The module in which the type is defined.
+    pub module: Option<String>,
+    /// The type name.
+    pub name: String,
 }
 
 /// An analyzed struct field.
@@ -64,6 +60,23 @@ pub struct StructField {
     pub is_pub: bool,
 }
 
+impl TypeId {
+    /// Creates the type ID of a builtin type.
+    pub fn from_builtin(name: &str) -> Self {
+        Self {
+            module: None,
+            name: name.into(),
+        }
+    }
+
+    pub(crate) fn from_struct(fn_: &AstStructItem) -> Self {
+        Self {
+            module: Some(fn_.name.span.module.name.clone()),
+            name: fn_.name.label.clone(),
+        }
+    }
+}
+
 pub(crate) fn register(analysis: &mut Analysis) {
     register_builtin(analysis);
     register_structs(analysis);
@@ -75,9 +88,8 @@ fn register_builtin(analysis: &mut Analysis) {
     analysis.types.extend(
         [
             Type {
+                id: TypeId::from_builtin(NO_RETURN_TYPE),
                 name: NO_RETURN_TYPE.into(),
-                id: NO_RETURN_TYPE.into(),
-                module: None,
                 size: 0,
                 alignment: 0,
                 ast: None,
@@ -86,9 +98,8 @@ fn register_builtin(analysis: &mut Analysis) {
                 array_params: None,
             },
             Type {
+                id: TypeId::from_builtin(F32_TYPE),
                 name: F32_TYPE.into(),
-                id: F32_TYPE.into(),
-                module: None,
                 size: 4,
                 alignment: 4,
                 ast: None,
@@ -97,9 +108,8 @@ fn register_builtin(analysis: &mut Analysis) {
                 array_params: None,
             },
             Type {
+                id: TypeId::from_builtin(U32_TYPE),
                 name: U32_TYPE.into(),
-                id: U32_TYPE.into(),
-                module: None,
                 size: 4,
                 alignment: 4,
                 ast: None,
@@ -108,9 +118,8 @@ fn register_builtin(analysis: &mut Analysis) {
                 array_params: None,
             },
             Type {
+                id: TypeId::from_builtin(I32_TYPE),
                 name: I32_TYPE.into(),
-                id: I32_TYPE.into(),
-                module: None,
                 size: 4,
                 alignment: 4,
                 ast: None,
@@ -119,9 +128,8 @@ fn register_builtin(analysis: &mut Analysis) {
                 array_params: None,
             },
             Type {
+                id: TypeId::from_builtin(BOOL_TYPE),
                 name: BOOL_TYPE.into(),
-                id: BOOL_TYPE.into(),
-                module: None,
                 size: 4,
                 alignment: 4,
                 ast: None,
@@ -140,14 +148,10 @@ fn register_structs(analysis: &mut Analysis) {
     for ast in asts.values() {
         for items in &ast.items {
             if let AstItem::Struct(struct_) = items {
-                let mut struct_ = struct_.clone();
-                generics::register_gpu_qualifier(analysis, &mut struct_.gpu_qualifier);
-                let module = &struct_.name.span.module.name;
-                let final_name = id(analysis, &struct_.name.label, Some(module));
+                let id = TypeId::from_struct(struct_);
                 let type_ = Type {
+                    id: id.clone(),
                     name: struct_.name.label.clone(),
-                    id: final_name.clone(),
-                    module: Some(module.clone()),
                     size: 0,      // defined once all structs have been detected
                     alignment: 0, // defined once all structs have been detected
                     ast: Some(struct_.clone()),
@@ -155,9 +159,10 @@ fn register_structs(analysis: &mut Analysis) {
                     generics: vec![],   // defined once all structs have been detected
                     array_params: None, // defined once all structs have been detected
                 };
-                if let Some(existing_struct) = analysis.types.insert(final_name, type_) {
+                if let Some(existing_struct) = analysis.types.insert(id.clone(), type_) {
                     analysis.errors.push(errors::types::duplicated(
-                        &struct_,
+                        &id,
+                        struct_,
                         existing_struct
                             .ast
                             .as_ref()
@@ -231,10 +236,10 @@ fn parse_array_generic_args(
     if let (Some(AstGpuGenericParam::Ident(item_type)), Some(AstGpuGenericParam::Literal(length))) =
         (generics.first(), generics.get(1))
     {
-        let item_type_id = resolving::items::type_id(analysis, item_type).map_err(|_| None)?;
+        let item_type = resolving::items::type_id(analysis, item_type).map_err(|_| None)?;
         let length = NonZeroU32::from_str(&length.cleaned_value)
             .map_err(|_| errors::types::invalid_gpu_array_args(gpu))?;
-        Ok((item_type_id, length.into()))
+        Ok((item_type, length.into()))
     } else {
         Err(Some(errors::types::invalid_gpu_array_args(gpu)))
     }

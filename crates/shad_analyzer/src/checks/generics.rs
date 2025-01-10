@@ -24,7 +24,7 @@ fn check_params(errors: &mut Vec<SemanticError>, generics: &[GenericParam]) {
             ..
         }) = param
         {
-            if !SUPPORTED_CONST_TYPES.contains(&type_id.as_str()) {
+            if type_id.module.is_some() || !SUPPORTED_CONST_TYPES.contains(&type_id.name.as_str()) {
                 let error = errors::constants::unsupported_type(type_name);
                 errors.push(error);
             }

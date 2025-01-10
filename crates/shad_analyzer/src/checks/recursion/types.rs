@@ -33,11 +33,8 @@ fn visit(checker: &mut ItemRecursionCheck<'_, TypeId>, type_: &Type, ast: &AstSt
                 usage_span: ast_field.type_.span.clone(),
                 def_span: field_type_ast.name.span.clone(),
                 id: field_type.id.clone(),
-                name: field_type.name.clone(),
             });
-            if !checker.detect_error(|analysis, type_id, type_stack| {
-                errors::types::recursion_found(&analysis.types[type_id], type_stack)
-            }) {
+            if !checker.detect_error(errors::types::recursion_found) {
                 visit(checker, field_type, field_type_ast);
             }
             checker.used_item_ids.pop();
