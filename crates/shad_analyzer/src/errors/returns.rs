@@ -1,4 +1,4 @@
-use crate::{FnId, TypeId};
+use crate::Type;
 use shad_error::{ErrorLevel, LocatedMessage, SemanticError};
 use shad_parser::{AstFnItem, AstReturn, AstStatement};
 
@@ -16,8 +16,8 @@ pub(crate) fn outside_fn(return_: &AstReturn) -> SemanticError {
 pub(crate) fn invalid_type(
     return_: &AstReturn,
     fn_: &AstFnItem,
-    actual: &TypeId,
-    expected: &TypeId,
+    actual: &Type,
+    expected: &Type,
 ) -> SemanticError {
     SemanticError::new(
         "invalid type for returned expression",
@@ -74,12 +74,9 @@ pub(crate) fn no_return_type(return_: &AstReturn) -> SemanticError {
     )
 }
 
-pub(crate) fn missing_return(fn_: &AstFnItem, fn_id: &FnId) -> SemanticError {
+pub(crate) fn missing_return(fn_: &AstFnItem, fn_signature: &str) -> SemanticError {
     SemanticError::new(
-        format!(
-            "missing `return` statement in function `{}`",
-            fn_id.signature()
-        ),
+        format!("missing `return` statement in function `{fn_signature}`"),
         vec![LocatedMessage {
             level: ErrorLevel::Error,
             span: fn_

@@ -1,17 +1,17 @@
 use crate::checks::recursion::UsedItem;
-use crate::{FnId, Function, TypeId};
+use crate::{FnId, Function, Type};
 use itertools::Itertools;
 use shad_error::{ErrorLevel, LocatedMessage, SemanticError};
 use shad_parser::{AstFnCall, AstFnItem, AstIdent, AstReturnType};
 use std::iter;
 
 pub(crate) fn duplicated(
-    id: &FnId,
+    signature: &str,
     duplicated_fn: &AstFnItem,
     existing_fn: &AstFnItem,
 ) -> SemanticError {
     SemanticError::new(
-        format!("function `{}` is defined multiple times", id.signature()),
+        format!("function `{signature}` is defined multiple times"),
         vec![
             LocatedMessage {
                 level: ErrorLevel::Error,
@@ -27,12 +27,15 @@ pub(crate) fn duplicated(
     )
 }
 
-pub(crate) fn not_found(call: &AstFnCall, arg_types: &[TypeId]) -> SemanticError {
+pub(crate) fn not_found<'a>(
+    call: &AstFnCall,
+    arg_types: impl Iterator<Item = &'a Type>,
+) -> SemanticError {
     SemanticError::new(
         format!(
             "could not find `{}({})` function",
             call.name.label,
-            arg_types.iter().map(|type_| &type_.name).join(", ")
+            arg_types.map(|type_| &type_.name).join(", ")
         ),
         vec![LocatedMessage {
             level: ErrorLevel::Error,
@@ -42,18 +45,18 @@ pub(crate) fn not_found(call: &AstFnCall, arg_types: &[TypeId]) -> SemanticError
     )
 }
 
-pub(crate) fn recursion_found(current_fn_id: &FnId, fn_stack: &[UsedItem<FnId>]) -> SemanticError {
+pub(crate) fn recursion_found(
+    current_fn_signature: &str,
+    fn_stack: &[UsedItem<FnId>],
+) -> SemanticError {
     SemanticError::new(
-        format!(
-            "function `{}` defined recursively",
-            current_fn_id.signature()
-        ),
+        format!("function `{current_fn_signature}` defined recursively"),
         iter::once(LocatedMessage {
             level: ErrorLevel::Error,
             span: fn_stack[fn_stack.len() - 1].def_span.clone(),
             text: format!(
                 "recursive function `{}` defined here",
-                fn_stack[fn_stack.len() - 1].id.signature()
+                fn_stack[fn_stack.len() - 1].name
             ),
         })
         .chain(
@@ -65,8 +68,7 @@ pub(crate) fn recursion_found(current_fn_id: &FnId, fn_stack: &[UsedItem<FnId>])
                     span: next_usage.usage_span.clone(),
                     text: format!(
                         "`{}` function called in `{}` function",
-                        next_usage.id.signature(),
-                        usage.id.signature(),
+                        next_usage.name, usage.name,
                     ),
                 }),
         )
@@ -115,12 +117,9 @@ pub(crate) fn duplicated_param(
     )
 }
 
-pub(crate) fn not_found_const_fn(fn_: &Function) -> SemanticError {
+pub(crate) fn not_found_const_fn(fn_: &Function, fn_signature: &str) -> SemanticError {
     SemanticError::new(
-        format!(
-            "`const` function `{}` is not implemented in the compiler",
-            fn_.id.signature()
-        ),
+        format!("`const` function `{fn_signature}` is not implemented in the compiler"),
         vec![LocatedMessage {
             level: ErrorLevel::Error,
             span: fn_.ast.name.span.clone(),
@@ -130,17 +129,15 @@ pub(crate) fn not_found_const_fn(fn_: &Function) -> SemanticError {
 }
 
 pub(crate) fn invalid_const_fn_return_type(
-    fn_: &Function,
+    fn_signature: &str,
     return_type: &AstReturnType,
-    expected_type_id: &TypeId,
-    actual_type_id: &TypeId,
+    expected_type_id: &Type,
+    actual_type_id: &Type,
 ) -> SemanticError {
     SemanticError::new(
         format!(
             "`const` function `{}` has invalid return type `{}`, expected `{}`",
-            fn_.id.signature(),
-            actual_type_id.name,
-            expected_type_id.name,
+            fn_signature, actual_type_id.name, expected_type_id.name,
         ),
         vec![LocatedMessage {
             level: ErrorLevel::Error,

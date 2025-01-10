@@ -34,10 +34,10 @@ pub(crate) fn expr_root(analysis: &Analysis, expr: &AstExpr) -> Option<TypeId> {
 
 pub(crate) fn literal(literal: &AstLiteral) -> TypeId {
     match literal.type_ {
-        AstLiteralType::F32 => TypeId::from_builtin(F32_TYPE),
-        AstLiteralType::U32 => TypeId::from_builtin(U32_TYPE),
-        AstLiteralType::I32 => TypeId::from_builtin(I32_TYPE),
-        AstLiteralType::Bool => TypeId::from_builtin(BOOL_TYPE),
+        AstLiteralType::F32 => F32_TYPE.into(),
+        AstLiteralType::U32 => U32_TYPE.into(),
+        AstLiteralType::I32 => I32_TYPE.into(),
+        AstLiteralType::Bool => BOOL_TYPE.into(),
     }
 }
 

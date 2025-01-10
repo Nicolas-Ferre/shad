@@ -18,6 +18,8 @@ pub struct Analysis {
     pub asts: FxHashMap<String, Ast>,
     /// The builtin constant functions.
     pub const_functions: FxHashMap<ConstFnId, ConstFn>,
+    /// The unique ID of each module.
+    pub module_ids: FxHashMap<String, u64>,
     /// From each module, the list of visible modules sorted by priority.
     pub visible_modules: FxHashMap<String, Vec<String>>,
     /// The analyzed identifiers.
@@ -50,6 +52,7 @@ impl Analysis {
         let mut analysis = Self {
             asts,
             const_functions: FxHashMap::default(),
+            module_ids: FxHashMap::default(),
             visible_modules: FxHashMap::default(),
             idents: FxHashMap::default(),
             types: FxHashMap::default(),

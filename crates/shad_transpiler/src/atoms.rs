@@ -55,17 +55,17 @@ pub(crate) fn to_buffer_ident_wgsl(analysis: &Analysis, buffer: &BufferId) -> St
 
 pub(crate) fn to_type_wgsl(analysis: &Analysis, type_id: &TypeId) -> String {
     let type_ = &analysis.types[type_id];
-    if let Some(type_) = &type_.ast {
-        if let Some(gpu) = &type_.gpu_qualifier {
+    if let Some(type_ast) = &type_.ast {
+        if let Some(gpu) = &type_ast.gpu_qualifier {
             if let Some(name) = &gpu.name {
                 to_gpu_name_wgsl(analysis, name)
             } else {
-                type_.name.label.clone()
+                type_ast.name.label.clone()
             }
         } else {
-            format!("t{}_{}", type_.name.id, type_.name.label)
+            format!("t_{type_id}")
         }
-    } else if type_.id == TypeId::from_builtin("bool") {
+    } else if type_.id == "bool" {
         "u32".into()
     } else {
         type_.name.clone()

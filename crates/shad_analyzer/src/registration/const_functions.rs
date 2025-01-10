@@ -28,12 +28,12 @@ pub enum ConstFnParamType {
 
 impl ConstFnParamType {
     pub(crate) fn from_type_id(type_id: &TypeId) -> Option<Self> {
-        match (&type_id.module, type_id.name.as_str()) {
-            (None, "u32") => Some(Self::U32),
-            (None, "i32") => Some(Self::I32),
-            (None, "f32") => Some(Self::F32),
-            (None, "bool") => Some(Self::Bool),
-            (_, _) => None,
+        match type_id.as_str() {
+            "u32" => Some(Self::U32),
+            "i32" => Some(Self::I32),
+            "f32" => Some(Self::F32),
+            "bool" => Some(Self::Bool),
+            _ => None,
         }
     }
 

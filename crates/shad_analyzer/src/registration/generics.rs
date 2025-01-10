@@ -1,5 +1,5 @@
 use crate::{resolving, Analysis, TypeId};
-use shad_parser::{AstIdent, AstItemGenerics};
+use shad_parser::{AstGpuGenericParam, AstGpuQualifier, AstIdent, AstItemGenerics};
 
 /// An analyzed generic parameter.
 #[derive(Debug, Clone)]
@@ -57,4 +57,18 @@ pub(crate) fn register_for_item(
             }
         })
         .collect()
+}
+
+pub(crate) fn register_gpu_qualifier(analysis: &Analysis, qualifier: &mut Option<AstGpuQualifier>) {
+    if let Some(qualifier) = qualifier {
+        if let Some(name) = &mut qualifier.name {
+            for param in &mut name.generics {
+                if let AstGpuGenericParam::Ident(ident) = param {
+                    if let Ok(type_id) = resolving::items::type_id(analysis, ident) {
+                        ident.label = type_id;
+                    }
+                }
+            }
+        }
+    }
 }

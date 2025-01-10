@@ -1,9 +1,12 @@
 use crate::registration::constants::{Constant, ConstantId, ConstantValue};
 use crate::resolving::types::fn_args;
-use crate::{errors, Analysis, Buffer, BufferId, FnId, Function, StructField, TypeId};
+use crate::{
+    errors, registration, Analysis, Buffer, BufferId, FnId, Function, StructField, TypeId,
+};
 use shad_error::SemanticError;
 use shad_parser::{AstFnCall, AstIdent};
 use std::iter;
+use std::ops::Deref;
 
 pub(crate) fn type_id_or_add_error(analysis: &mut Analysis, name: &AstIdent) -> Option<TypeId> {
     match type_id(analysis, name) {
@@ -25,17 +28,17 @@ pub(crate) fn type_id(analysis: &Analysis, name: &AstIdent) -> Result<TypeId, Se
         .map(Some)
         .chain(iter::once(None))
         .filter_map(|module| {
-            let id = TypeId {
-                module: module.cloned(),
-                name: name.label.clone(),
-            };
-            analysis.types.get(&id).map(|type_| (id, type_))
+            analysis.types.get(&registration::types::id(
+                analysis,
+                &name.label,
+                module.map(Deref::deref),
+            ))
         })
-        .find(|(type_id, type_)| {
+        .find(|type_| {
             type_.ast.as_ref().map_or(true, |ast| ast.is_pub)
-                || type_id.module.as_deref() == Some(module)
+                || type_.module.as_deref() == Some(module)
         })
-        .map(|(type_id, _)| type_id)
+        .map(|type_| type_.id.clone())
         .ok_or_else(|| errors::types::not_found(name))
 }
 
@@ -123,10 +126,13 @@ pub(crate) fn field<'a>(
     type_id: &TypeId,
     field: &AstIdent,
 ) -> Option<&'a StructField> {
-    let module = &field.span.module.name;
+    let type_module = &analysis.types[type_id].module;
+    let field_usage_module = &field.span.module.name;
     analysis.types[type_id]
         .fields
         .iter()
-        .filter(|type_field| type_field.is_pub || type_id.module.as_deref() == Some(module))
+        .filter(|type_field| {
+            type_field.is_pub || type_module.as_deref() == Some(field_usage_module)
+        })
         .find(|type_field| type_field.name.label == field.label)
 }

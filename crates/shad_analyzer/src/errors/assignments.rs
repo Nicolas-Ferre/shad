@@ -1,11 +1,11 @@
-use crate::TypeId;
+use crate::Type;
 use shad_error::{ErrorLevel, LocatedMessage, SemanticError};
 use shad_parser::AstAssignment;
 
 pub(crate) fn invalid_type(
     assignment: &AstAssignment,
-    expected_type: &TypeId,
-    expr_type: &TypeId,
+    expected_type: &Type,
+    expr_type: &Type,
 ) -> SemanticError {
     SemanticError::new(
         "invalid type in assignment",

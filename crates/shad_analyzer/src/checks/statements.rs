@@ -51,8 +51,9 @@ impl<'a> StatementCheck<'a> {
 
     fn check_invalid_expr_type(&mut self, expr: &AstExpr) {
         if let Some(type_id) = resolving::types::expr(self.analysis, expr) {
-            if type_id.name == NO_RETURN_TYPE {
-                let error = errors::expressions::invalid_type(expr, &type_id);
+            if type_id == NO_RETURN_TYPE {
+                let type_ = &self.analysis.types[&type_id];
+                let error = errors::expressions::invalid_type(expr, type_);
                 self.errors.push(error);
             }
         }
@@ -74,21 +75,21 @@ impl Visit for StatementCheck<'_> {
                 ));
             }
         } else if node.return_type.is_some() && node.gpu_qualifier.is_none() {
-            let error = errors::returns::missing_return(node, &fn_.id);
+            let error = errors::returns::missing_return(node, &fn_.id.signature(self.analysis));
             self.errors.push(error);
         }
     }
 
     fn enter_assignment(&mut self, node: &AstAssignment) {
         self.check_invalid_expr_type(&node.right);
-        let expected_type = resolving::types::expr(self.analysis, &node.left);
-        let expr_type = resolving::types::expr(self.analysis, &node.right);
-        if let (Some(expected_type), Some(expr_type)) = (expected_type, expr_type) {
-            if expected_type != expr_type {
+        let expected_type_id = resolving::types::expr(self.analysis, &node.left);
+        let expr_type_id = resolving::types::expr(self.analysis, &node.right);
+        if let (Some(expected_type_id), Some(expr_type_id)) = (expected_type_id, expr_type_id) {
+            if expected_type_id != expr_type_id {
                 self.errors.push(errors::assignments::invalid_type(
                     node,
-                    &expected_type,
-                    &expr_type,
+                    &self.analysis.types[&expected_type_id],
+                    &self.analysis.types[&expr_type_id],
                 ));
             }
         }
@@ -116,8 +117,8 @@ impl Visit for StatementCheck<'_> {
                         self.errors.push(errors::returns::invalid_type(
                             node,
                             &fn_.ast,
-                            &type_id,
-                            return_type_id,
+                            &self.analysis.types[&type_id],
+                            &self.analysis.types[return_type_id],
                         ));
                         return;
                     }
@@ -162,7 +163,12 @@ impl Visit for StatementCheck<'_> {
                 if resolving::items::fn_(self.analysis, call).is_none() {
                     if let Some(arg_type_ids) = resolving::types::fn_args(self.analysis, call) {
                         if self.analysis.fn_(call).is_none() {
-                            let error = errors::functions::not_found(call, &arg_type_ids);
+                            let error = errors::functions::not_found(
+                                call,
+                                arg_type_ids
+                                    .iter()
+                                    .map(|type_id| &self.analysis.types[type_id]),
+                            );
                             self.errors.push(error);
                         }
                     }
@@ -177,7 +183,8 @@ impl Visit for StatementCheck<'_> {
                 if let Some(type_field) = type_field {
                     last_type_id.clone_from(&type_field.type_id);
                 } else {
-                    let error = errors::types::field_not_found(field, type_id);
+                    let type_ = &self.analysis.types[type_id];
+                    let error = errors::types::field_not_found(field, type_);
                     self.errors.push(error);
                     return;
                 }
