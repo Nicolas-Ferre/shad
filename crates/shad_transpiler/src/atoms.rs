@@ -34,7 +34,7 @@ pub(crate) fn to_var_ident_wgsl(analysis: &Analysis, name: &AstIdent) -> String 
     match analysis.item(name) {
         Some(Item::Constant(_)) => unreachable!("internal error: not inlined constant"),
         Some(Item::Buffer(buffer)) => to_buffer_ident_wgsl(analysis, &buffer.id),
-        Some(Item::Var(_, _)) | None => format!("v_{}", name.label),
+        Some(Item::Var(_)) | None => format!("v{}_{}", name.var_id, name.label),
     }
 }
 

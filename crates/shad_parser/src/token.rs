@@ -194,17 +194,10 @@ pub(crate) struct Lexer<'a> {
     inner: logos::Lexer<'a, TokenType>,
     next_token: NextToken,
     module: Rc<ModuleLocation>,
-    next_id: u64,
 }
 
 impl<'a> Lexer<'a> {
-    pub(crate) fn new(
-        cleaned_code: &'a str,
-        raw_code: &'a str,
-        path: &str,
-        module: &str,
-        next_id: u64,
-    ) -> Self {
+    pub(crate) fn new(cleaned_code: &'a str, raw_code: &'a str, path: &str, module: &str) -> Self {
         Self {
             inner: TokenType::lexer(cleaned_code),
             module: Rc::new(ModuleLocation {
@@ -212,7 +205,6 @@ impl<'a> Lexer<'a> {
                 path: path.into(),
                 code: raw_code.into(),
             }),
-            next_id,
             next_token: NextToken::Actual,
         }
     }
@@ -269,12 +261,6 @@ impl<'a> Lexer<'a> {
             ),
             slice: &self.inner.slice()[..self.inner.slice().len() - 1],
         }
-    }
-
-    pub(crate) fn next_id(&mut self) -> u64 {
-        let id = self.next_id;
-        self.next_id += 1;
-        id
     }
 
     fn next_token_type(&mut self) -> Result<TokenType, SyntaxError> {

@@ -30,7 +30,7 @@ impl AstRunItem {
         Ok(Self {
             statements,
             priority,
-            id: lexer.next_id(),
+            id: 0,
         })
     }
 

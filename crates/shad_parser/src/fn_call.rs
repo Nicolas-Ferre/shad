@@ -97,7 +97,6 @@ impl AstFnCall {
     }
 
     pub(crate) fn parse_binary_operation(
-        lexer: &mut Lexer<'_>,
         expressions: &[AstExpr],
         operators: &[(TokenType, Span)],
     ) -> Result<Self, SyntaxError> {
@@ -118,7 +117,6 @@ impl AstFnCall {
             expressions[0].clone()
         } else {
             Self::parse_binary_operation(
-                lexer,
                 &expressions[..=operator_index],
                 &operators[..operator_index],
             )?
@@ -128,7 +126,6 @@ impl AstFnCall {
             expressions[expressions.len() - 1].clone()
         } else {
             Self::parse_binary_operation(
-                lexer,
                 &expressions[operator_index + 1..],
                 &operators[operator_index + 1..],
             )?
@@ -139,7 +136,7 @@ impl AstFnCall {
             name: AstIdent {
                 span: operators[operator_index].1.clone(),
                 label: Self::binary_operator_fn_name(operators[operator_index].0).into(),
-                id: lexer.next_id(),
+                var_id: 0,
                 kind: AstIdentKind::FnRef,
             },
             args: vec![left.into(), right.into()],
@@ -168,7 +165,7 @@ impl AstFnCall {
             name: AstIdent {
                 span: operator_token.span,
                 label: Self::unary_operator_fn_name(operator_token.type_).into(),
-                id: lexer.next_id(),
+                var_id: 0,
                 kind: AstIdentKind::FnRef,
             },
             args: vec![expr.into()],

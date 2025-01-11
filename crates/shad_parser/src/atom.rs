@@ -16,8 +16,12 @@ pub struct AstIdent {
     pub span: Span,
     /// The identifier as a string.
     pub label: String,
-    /// The unique ID of the identifier.
-    pub id: u64,
+    /// In case the identifier corresponds to a local variable, the unique identifier of the
+    /// variable.
+    ///
+    /// Note that this ID is set and used only for analysis purpose,
+    /// the `shad_parser` crate assigns the ID `0` to all identifiers.
+    pub var_id: u64,
     /// The identifier kind.
     pub kind: AstIdentKind,
 }
@@ -28,7 +32,7 @@ impl AstIdent {
         Ok(Self {
             span: token.span,
             label: token.slice.to_string(),
-            id: lexer.next_id(),
+            var_id: 0,
             kind: AstIdentKind::Other,
         })
     }
