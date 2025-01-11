@@ -30,7 +30,7 @@ fn extract_in_variable(
             name: AstIdent {
                 span: expr.span.clone(),
                 label: var_name.clone(),
-                var_id: var_id,
+                var_id,
                 kind: AstIdentKind::VarDef,
             },
             is_ref,
@@ -39,7 +39,7 @@ fn extract_in_variable(
         AstIdent {
             span: expr.span.clone(),
             label: var_name,
-            var_id: var_id,
+            var_id,
             kind: AstIdentKind::Other,
         },
     )
