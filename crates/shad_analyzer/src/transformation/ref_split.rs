@@ -34,11 +34,14 @@ impl<'a> RefSplitTransform<'a> {
 impl VisitMut for RefSplitTransform<'_> {
     fn exit_fn_call(&mut self, node: &mut AstFnCall) {
         if let Some(fn_) = resolving::items::fn_(self.analysis, node) {
+            if !fn_.is_inlined {
+                return;
+            }
             let fn_ = fn_.clone();
             for (param, arg) in fn_.ast.params.iter().zip(&mut node.args) {
                 if param.ref_span.is_none()
                     || resolving::expressions::semantic(self.analysis, &arg.value)
-                        != ExprSemantic::Ref
+                    != ExprSemantic::Ref
                 {
                     let (var_def_statement, var_name) =
                         super::extract_in_variable(self.analysis, &arg.value, false);
