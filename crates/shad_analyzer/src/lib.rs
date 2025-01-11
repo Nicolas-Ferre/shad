@@ -35,7 +35,7 @@ pub use registration::buffers::*;
 pub use registration::const_functions::*;
 pub use registration::functions::*;
 pub use registration::generics::*;
-pub use registration::idents::*;
 pub use registration::run_blocks::*;
 pub use registration::shaders::*;
 pub use registration::types::*;
+pub use registration::vars::*;

@@ -1,4 +1,4 @@
-use crate::{listing, resolving, transformation, Analysis, FnId, Item};
+use crate::{listing, registration, resolving, Analysis, FnId};
 use fxhash::FxHashMap;
 use shad_parser::{
     AstExpr, AstExprRoot, AstExprStatement, AstFnCall, AstFnItem, AstLiteral, AstLiteralType,
@@ -111,12 +111,12 @@ impl VisitMut for RefFnInlineTransform<'_> {
 
 fn inlined_fn_statements(analysis: &mut Analysis, call: &AstFnCall) -> Vec<AstStatement> {
     if let Some(fn_) = resolving::items::fn_(analysis, call) {
-        let fn_ = fn_.clone();
+        let mut fn_ = fn_.clone();
         if fn_.is_inlined {
-            let mut statements = fn_.ast.statements.clone();
-            transformation::var_names::transform_statements(analysis, &mut statements);
-            let mut transform = RefFnStatementsTransform::new(analysis, &fn_.ast, call);
-            statements
+            registration::vars::register_fn(analysis, &mut fn_);
+            let mut transform = RefFnStatementsTransform::new(&fn_.ast, call);
+            fn_.ast
+                .statements
                 .into_iter()
                 .map(|mut statement| {
                     transform.visit_statement(&mut statement);
@@ -131,32 +131,28 @@ fn inlined_fn_statements(analysis: &mut Analysis, call: &AstFnCall) -> Vec<AstSt
     }
 }
 
-struct RefFnStatementsTransform<'a> {
-    analysis: &'a mut Analysis,
-    param_args: FxHashMap<u64, AstExpr>,
+struct RefFnStatementsTransform {
+    param_args: FxHashMap<String, AstExpr>,
 }
 
-impl<'a> RefFnStatementsTransform<'a> {
-    fn new(analysis: &'a mut Analysis, fn_: &AstFnItem, call: &AstFnCall) -> Self {
+impl RefFnStatementsTransform {
+    fn new(fn_: &AstFnItem, call: &AstFnCall) -> Self {
         Self {
-            analysis,
             param_args: fn_
                 .params
                 .iter()
                 .zip(&call.args)
-                .map(|(param, arg)| (param.name.id, arg.value.clone()))
+                .map(|(param, arg)| (param.name.label.clone(), arg.value.clone()))
                 .collect(),
         }
     }
 }
 
-impl VisitMut for RefFnStatementsTransform<'_> {
+impl VisitMut for RefFnStatementsTransform {
     fn enter_expr(&mut self, node: &mut AstExpr) {
         if let AstExprRoot::Ident(ident) = &node.root {
-            if let Some(Item::Var(id, _)) = self.analysis.item(ident) {
-                if let Some(new_root) = self.param_args.get(&id) {
-                    node.replace_root(new_root.clone());
-                }
+            if let Some(new_root) = self.param_args.get(&ident.label) {
+                node.replace_root(new_root.clone());
             }
         }
     }

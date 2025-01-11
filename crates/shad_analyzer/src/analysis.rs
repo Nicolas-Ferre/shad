@@ -1,11 +1,11 @@
 use crate::registration::const_functions::{ConstFn, ConstFnId};
 use crate::registration::constants::{Constant, ConstantId};
 use crate::registration::functions::Function;
-use crate::registration::idents::Ident;
 use crate::registration::shaders::ComputeShader;
+use crate::registration::vars::Var;
 use crate::{
     checks, registration, resolving, transformation, Buffer, BufferId, BufferInitRunBlock, FnId,
-    IdentSource, RunBlock, Type, TypeId,
+    RunBlock, Type, TypeId,
 };
 use fxhash::FxHashMap;
 use shad_error::SemanticError;
@@ -22,8 +22,6 @@ pub struct Analysis {
     pub module_ids: FxHashMap<String, u64>,
     /// From each module, the list of visible modules sorted by priority.
     pub visible_modules: FxHashMap<String, Vec<String>>,
-    /// The analyzed identifiers.
-    pub idents: FxHashMap<u64, Ident>,
     /// The analyzed types.
     pub types: FxHashMap<TypeId, Type>,
     /// The analyzed functions.
@@ -32,6 +30,8 @@ pub struct Analysis {
     pub constants: FxHashMap<ConstantId, Constant>,
     /// The analyzed buffers.
     pub buffers: FxHashMap<BufferId, Buffer>,
+    /// The analyzed local variables.
+    pub vars: FxHashMap<u64, Var>,
     /// The analyzed init blocks.
     pub init_blocks: Vec<BufferInitRunBlock>,
     /// The analyzed run blocks.
@@ -48,23 +48,22 @@ pub struct Analysis {
 impl Analysis {
     /// Runs the semantic analysis on an `ast`.
     pub fn run(asts: FxHashMap<String, Ast>) -> Self {
-        let next_id = asts.values().map(|ast| ast.next_id).max().unwrap_or(0);
         let mut analysis = Self {
             asts,
             const_functions: FxHashMap::default(),
             module_ids: FxHashMap::default(),
             visible_modules: FxHashMap::default(),
-            idents: FxHashMap::default(),
             types: FxHashMap::default(),
             fns: FxHashMap::default(),
             constants: FxHashMap::default(),
             buffers: FxHashMap::default(),
+            vars: FxHashMap::default(),
             init_blocks: vec![],
             run_blocks: vec![],
             init_shaders: vec![],
             step_shaders: vec![],
             errors: vec![],
-            next_id,
+            next_id: 1,
         };
         registration::run_blocks::register(&mut analysis);
         registration::const_functions::register(&mut analysis);
@@ -74,8 +73,7 @@ impl Analysis {
         transformation::fn_params::transform(&mut analysis);
         registration::constants::register(&mut analysis);
         registration::buffers::register(&mut analysis);
-        transformation::var_names::transform(&mut analysis);
-        registration::idents::register(&mut analysis);
+        registration::vars::register(&mut analysis);
         checks::constants::check(&mut analysis);
         checks::generics::check(&mut analysis);
         checks::functions::check(&mut analysis);
@@ -105,16 +103,11 @@ impl Analysis {
 
     /// Returns the item corresponding to an identifier.
     pub fn item(&self, ident: &AstIdent) -> Option<Item<'_>> {
-        if let Some(ident) = self.idents.get(&ident.id) {
-            let IdentSource::Var(id) = &ident.source;
-            self.idents
-                .get(id)
-                .map(|ident| Item::Var(*id, &ident.type_id))
-        } else {
+        self.vars.get(&ident.id).map(Item::Var).or_else(|| {
             resolving::items::buffer(self, ident)
                 .map(Item::Buffer)
                 .or_else(|| resolving::items::constant(self, ident).map(Item::Constant))
-        }
+        })
     }
 
     /// Returns the type of a buffer.
@@ -147,5 +140,5 @@ pub enum Item<'a> {
     /// A buffer.
     Buffer(&'a Buffer),
     /// A variable.
-    Var(u64, &'a Option<TypeId>),
+    Var(&'a Var),
 }

@@ -1,11 +1,11 @@
-use crate::{Analysis, Item};
+use crate::Analysis;
 use fxhash::FxHashMap;
 use shad_parser::{AstExpr, AstExprRoot, AstStatement, AstVarDefinition, VisitMut};
 use std::mem;
 
 pub(crate) fn transform(analysis: &mut Analysis) {
-    super::transform_statements(analysis, |analysis, statements| {
-        let mut transform = RefVarInlineTransform::new(analysis);
+    super::transform_statements(analysis, |_analysis, statements| {
+        let mut transform = RefVarInlineTransform::default();
         for statement in statements.iter_mut() {
             transform.visit_statement(statement);
         }
@@ -24,33 +24,23 @@ fn is_not_ref_variable_definition(statement: &AstStatement) -> bool {
     }
 }
 
-struct RefVarInlineTransform<'a> {
-    analysis: &'a mut Analysis,
-    ref_expressions: FxHashMap<u64, AstExpr>,
+#[derive(Default)]
+struct RefVarInlineTransform {
+    ref_expressions: FxHashMap<String, AstExpr>,
 }
 
-impl<'a> RefVarInlineTransform<'a> {
-    fn new(analysis: &'a mut Analysis) -> Self {
-        Self {
-            analysis,
-            ref_expressions: FxHashMap::default(),
-        }
-    }
-}
-
-impl VisitMut for RefVarInlineTransform<'_> {
+impl VisitMut for RefVarInlineTransform {
     fn exit_var_definition(&mut self, node: &mut AstVarDefinition) {
         if node.is_ref {
-            self.ref_expressions.insert(node.name.id, node.expr.clone());
+            self.ref_expressions
+                .insert(node.name.label.clone(), node.expr.clone());
         }
     }
 
     fn exit_expr(&mut self, node: &mut AstExpr) {
         if let AstExprRoot::Ident(ident) = &node.root {
-            if let Some(Item::Var(id, _)) = self.analysis.item(ident) {
-                if let Some(new_root) = self.ref_expressions.get(&id) {
-                    node.replace_root(new_root.clone());
-                }
+            if let Some(new_root) = self.ref_expressions.get(&ident.label) {
+                node.replace_root(new_root.clone());
             }
         }
     }

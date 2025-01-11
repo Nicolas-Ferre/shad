@@ -5,8 +5,8 @@ use crate::{
 };
 use itertools::Itertools;
 use shad_parser::{
-    AstFnItem, AstFnParam, AstGpuQualifier, AstIdent, AstIdentKind, AstItem, AstItemGenerics,
-    AstReturnType, AstStructItem,
+    AstFnItem, AstFnParam, AstGpuQualifier, AstIdent, AstItem, AstItemGenerics, AstReturnType,
+    AstStructItem,
 };
 use std::mem;
 
@@ -143,7 +143,7 @@ fn register_initializers(analysis: &mut Analysis) {
                 continue;
             }
             let id = FnId::initializer(type_, ast);
-            let fn_ = struct_initializer_fn(analysis, ast);
+            let fn_ = struct_initializer_fn(ast);
             let fn_ = Function {
                 ast: fn_.clone(),
                 id: id.clone(),
@@ -204,21 +204,21 @@ fn register_ast(analysis: &mut Analysis) {
     analysis.asts = asts;
 }
 
-fn struct_initializer_fn(analysis: &mut Analysis, ast: &AstStructItem) -> AstFnItem {
+fn struct_initializer_fn(ast: &AstStructItem) -> AstFnItem {
     AstFnItem {
-        name: clone_ident(analysis, &ast.name),
+        name: ast.name.clone(),
         generics: AstItemGenerics { params: vec![] },
         params: ast
             .fields
             .iter()
             .map(|field| AstFnParam {
-                name: clone_ident(analysis, &field.name),
-                type_: clone_ident(analysis, &field.type_),
+                name: field.name.clone(),
+                type_: field.type_.clone(),
                 ref_span: None,
             })
             .collect(),
         return_type: Some(AstReturnType {
-            name: clone_ident(analysis, &ast.name),
+            name: ast.name.clone(),
             is_ref: false,
         }),
         statements: vec![],
@@ -228,15 +228,6 @@ fn struct_initializer_fn(analysis: &mut Analysis, ast: &AstStructItem) -> AstFnI
             span: ast.name.span.clone(),
             name: None,
         }),
-    }
-}
-
-fn clone_ident(analysis: &mut Analysis, ident: &AstIdent) -> AstIdent {
-    AstIdent {
-        span: ident.span.clone(),
-        label: ident.label.clone(),
-        id: analysis.next_id(),
-        kind: AstIdentKind::Other,
     }
 }
 

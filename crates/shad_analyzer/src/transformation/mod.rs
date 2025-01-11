@@ -1,4 +1,5 @@
-use crate::{resolving, Analysis, Ident, IdentSource};
+use crate::registration::vars::Var;
+use crate::{resolving, Analysis};
 use shad_parser::{AstExpr, AstIdent, AstIdentKind, AstStatement, AstVarDefinition};
 use std::mem;
 
@@ -9,7 +10,6 @@ pub(crate) mod left_values;
 pub(crate) mod ref_fn_inline;
 pub(crate) mod ref_split;
 pub(crate) mod ref_var_inline;
-pub(crate) mod var_names;
 
 // An identifier character valid in WGSL but not in Shad,
 // to ensure generated identifiers don't conflict with Shad identifiers defined by users.
@@ -21,34 +21,17 @@ fn extract_in_variable(
     is_ref: bool,
 ) -> (AstStatement, AstIdent) {
     let type_id = resolving::types::expr(analysis, expr);
-    let var_name = format!(
-        "generated_{SPECIAL_WGSL_IDENT_CHARACTER}{}",
-        analysis.next_id()
-    );
-    let var_def_id = analysis.next_id();
     let var_id = analysis.next_id();
-    analysis.idents.insert(
-        var_def_id,
-        Ident {
-            source: IdentSource::Var(var_def_id),
-            type_id: type_id.clone(),
-        },
-    );
-    analysis.idents.insert(
-        var_id,
-        Ident {
-            source: IdentSource::Var(var_def_id),
-            type_id,
-        },
-    );
+    let var_name = format!("generated{SPECIAL_WGSL_IDENT_CHARACTER}{var_id}");
+    analysis.vars.insert(var_id, Var { type_id });
     (
         AstStatement::Var(AstVarDefinition {
             span: expr.span.clone(),
             name: AstIdent {
                 span: expr.span.clone(),
                 label: var_name.clone(),
-                id: var_def_id,
-                kind: AstIdentKind::Other,
+                id: var_id,
+                kind: AstIdentKind::VarDef,
             },
             is_ref,
             expr: expr.clone(),

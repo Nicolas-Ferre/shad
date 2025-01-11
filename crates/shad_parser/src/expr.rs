@@ -71,7 +71,7 @@ impl AstExpr {
         if expressions.len() == 1 {
             Ok(expressions.remove(0))
         } else {
-            Ok(AstFnCall::parse_binary_operation(lexer, &expressions, &operators)?.into())
+            Ok(AstFnCall::parse_binary_operation(&expressions, &operators)?.into())
         }
     }
 

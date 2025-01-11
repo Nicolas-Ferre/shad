@@ -28,7 +28,7 @@ impl AstIdent {
         Ok(Self {
             span: token.span,
             label: token.slice.to_string(),
-            id: lexer.next_id(),
+            id: 0,
             kind: AstIdentKind::Other,
         })
     }
