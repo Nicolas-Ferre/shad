@@ -103,7 +103,7 @@ impl Analysis {
 
     /// Returns the item corresponding to an identifier.
     pub fn item(&self, ident: &AstIdent) -> Option<Item<'_>> {
-        self.vars.get(&ident.id).map(Item::Var).or_else(|| {
+        self.vars.get(&ident.var_id).map(Item::Var).or_else(|| {
             resolving::items::buffer(self, ident)
                 .map(Item::Buffer)
                 .or_else(|| resolving::items::constant(self, ident).map(Item::Constant))

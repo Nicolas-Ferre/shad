@@ -136,7 +136,7 @@ impl AstFnCall {
             name: AstIdent {
                 span: operators[operator_index].1.clone(),
                 label: Self::binary_operator_fn_name(operators[operator_index].0).into(),
-                id: 0,
+                var_id: 0,
                 kind: AstIdentKind::FnRef,
             },
             args: vec![left.into(), right.into()],
@@ -165,7 +165,7 @@ impl AstFnCall {
             name: AstIdent {
                 span: operator_token.span,
                 label: Self::unary_operator_fn_name(operator_token.type_).into(),
-                id: 0,
+                var_id: 0,
                 kind: AstIdentKind::FnRef,
             },
             args: vec![expr.into()],

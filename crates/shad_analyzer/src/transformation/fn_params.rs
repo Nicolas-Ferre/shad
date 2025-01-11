@@ -25,14 +25,14 @@ impl VisitMut for FnParamTransform {
                     name: AstIdent {
                         span: param.name.span.clone(),
                         label: param.name.label.clone(),
-                        id: 0,
+                        var_id: 0,
                         kind: AstIdentKind::Other,
                     },
                     is_ref: false,
                     expr: AstIdent {
                         span: param.name.span.clone(),
                         label: param.name.label.clone(),
-                        id: 0,
+                        var_id: 0,
                         kind: AstIdentKind::Other,
                     }
                     .into(),

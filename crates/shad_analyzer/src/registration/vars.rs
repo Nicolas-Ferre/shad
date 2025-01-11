@@ -44,7 +44,7 @@ pub(crate) fn register_fn(analysis: &mut Analysis, fn_: &mut Function) {
     let mut registration = VarRegistration::new(analysis);
     for (param, param_ast) in fn_.params.iter_mut().zip(&mut fn_.ast.params) {
         registration.register_var(&mut param.name, param.type_id.clone());
-        param_ast.name.id = param.name.id;
+        param_ast.name.var_id = param.name.var_id;
     }
     for statement in &mut fn_.ast.statements {
         registration.visit_statement(statement);
@@ -65,9 +65,9 @@ impl<'a> VarRegistration<'a> {
     }
 
     fn register_var(&mut self, node: &mut AstIdent, type_id: Option<TypeId>) {
-        node.id = self.analysis.next_id();
-        self.var_ids.insert(node.label.clone(), node.id);
-        self.analysis.vars.insert(node.id, Var { type_id });
+        node.var_id = self.analysis.next_id();
+        self.var_ids.insert(node.label.clone(), node.var_id);
+        self.analysis.vars.insert(node.var_id, Var { type_id });
     }
 }
 
@@ -83,7 +83,7 @@ impl VisitMut for VarRegistration<'_> {
         match node.kind {
             AstIdentKind::Other => {
                 if let Some(id) = self.var_ids.get(&node.label) {
-                    node.id = *id;
+                    node.var_id = *id;
                 }
             }
             AstIdentKind::VarDef | AstIdentKind::FnRef | AstIdentKind::FieldRef => (),
