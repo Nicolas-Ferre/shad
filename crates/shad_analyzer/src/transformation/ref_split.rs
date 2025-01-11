@@ -41,7 +41,7 @@ impl VisitMut for RefSplitTransform<'_> {
             for (param, arg) in fn_.ast.params.iter().zip(&mut node.args) {
                 if param.ref_span.is_none()
                     || resolving::expressions::semantic(self.analysis, &arg.value)
-                    != ExprSemantic::Ref
+                        != ExprSemantic::Ref
                 {
                     let (var_def_statement, var_name) =
                         super::extract_in_variable(self.analysis, &arg.value, false);
