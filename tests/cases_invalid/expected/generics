@@ -81,70 +81,70 @@ error: could not find `undefined` value
    |
 
 error: could not find `generic_function<...>(bool)` function
-  --> ./cases_invalid/code/generics/main.shd:39:5
+  --> ./cases_invalid/code/generics/main.shd:40:5
    |
-39 |     generic_function<u32, 1u>(true); // function param with invalid type
+40 |     generic_function<u32, 1u>(true); // function param with invalid type
    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ undefined function
    |
 
 error: expected 2 generic parameters, got 1 parameters
-  --> ./cases_invalid/code/generics/main.shd:40:21
+  --> ./cases_invalid/code/generics/main.shd:41:21
    |
 32 | fn generic_function<T, U: u32>(param: u32) {
    |                    ----------- info: expected generic parameters
 33 | }
 ...
-39 |     generic_function<u32, 1u>(true); // function param with invalid type
-40 |     generic_function<u32>(0u); // invalid number of generic params
+40 |     generic_function<u32, 1u>(true); // function param with invalid type
+41 |     generic_function<u32>(0u); // invalid number of generic params
    |                     ^^^^^ invalid number of generic parameters
    |
 
 error: expected type, got constant expression
-  --> ./cases_invalid/code/generics/main.shd:41:22
+  --> ./cases_invalid/code/generics/main.shd:42:22
    |
 32 | fn generic_function<T, U: u32>(param: u32) {
    |                     - info: type is expected
 33 | }
 ...
-40 |     generic_function<u32>(0u); // invalid number of generic params
-41 |     generic_function<1u, 1u>(0u); // invalid generic type
+41 |     generic_function<u32>(0u); // invalid number of generic params
+42 |     generic_function<1u, 1u>(0u); // invalid generic type
    |                      ^^ invalid type
    |
 
 error: expected constant expression, got type
-  --> ./cases_invalid/code/generics/main.shd:42:27
+  --> ./cases_invalid/code/generics/main.shd:43:27
    |
 32 | fn generic_function<T, U: u32>(param: u32) {
    |                        - info: constant expression is expected
 33 | }
 ...
-41 |     generic_function<1u, 1u>(0u); // invalid generic type
-42 |     generic_function<u32, u32>(0u); // invalid generic constant
+42 |     generic_function<1u, 1u>(0u); // invalid generic type
+43 |     generic_function<u32, u32>(0u); // invalid generic constant
    |                           ^^^ invalid constant expression
    |
 
 error: expression with invalid type
-  --> ./cases_invalid/code/generics/main.shd:43:27
+  --> ./cases_invalid/code/generics/main.shd:44:27
    |
 32 | fn generic_function<T, U: u32>(param: u32) {
    |                           --- info: expected type `u32`
 33 | }
 ...
-42 |     generic_function<u32, u32>(0u); // invalid generic constant
-43 |     generic_function<u32, 1>(0u); // invalid generic constant type
+43 |     generic_function<u32, u32>(0u); // invalid generic constant
+44 |     generic_function<u32, 1>(0u); // invalid generic constant type
    |                           ^ invalid type `i32`
    |
 
 error: could not find `undefined` value
-  --> ./cases_invalid/code/generics/main.shd:45:22
+  --> ./cases_invalid/code/generics/main.shd:46:22
    |
-45 |     generic_function<undefined, 1u>(0u); // undefined generic type
+46 |     generic_function<undefined, undefined>(0u);
    |                      ^^^^^^^^^ undefined identifier
    |
 
 error: could not find `undefined` value
-  --> ./cases_invalid/code/generics/main.shd:46:27
+  --> ./cases_invalid/code/generics/main.shd:46:33
    |
-46 |     generic_function<u32, undefined>(0u); // undefined generic constant
-   |                           ^^^^^^^^^ undefined identifier
+46 |     generic_function<undefined, undefined>(0u);
+   |                                 ^^^^^^^^^ undefined identifier
    |
