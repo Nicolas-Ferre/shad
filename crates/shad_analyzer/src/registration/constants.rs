@@ -34,11 +34,16 @@ impl ConstantId {
     }
 }
 
+/// A constant value.
 #[derive(Debug, Clone)]
 pub enum ConstantValue {
+    /// A `u32` value.
     U32(u32),
+    /// A `i32` value.
     I32(i32),
+    /// A `f32` value.
     F32(f32),
+    /// A `bool` value.
     Bool(bool),
 }
 
@@ -77,7 +82,7 @@ impl Display for ConstantValue {
         match self {
             Self::U32(value) => write!(f, "{value}"),
             Self::I32(value) => write!(f, "{value}"),
-            Self::F32(value) => write!(f, "{value}"),
+            Self::F32(value) => write!(f, "{}", value.to_bits()),
             Self::Bool(value) => write!(f, "{value}"),
         }
     }

@@ -163,16 +163,14 @@ impl Visit for StatementCheck<'_> {
             AstExprRoot::FnCall(call) => {
                 if resolving::items::fn_(self.analysis, call, true).is_none() {
                     if let Some(arg_type_ids) = resolving::types::fn_args(self.analysis, call) {
-                        if self.analysis.fn_(call).is_none() {
-                            if let Some(generic_args) =
-                                resolving::expressions::fn_call_generic_values(self.analysis, call)
-                            {
-                                self.errors.push(errors::functions::not_found(
-                                    call,
-                                    &arg_type_ids,
-                                    &generic_args,
-                                ));
-                            }
+                        if let Some(generic_args) =
+                            resolving::expressions::fn_call_generic_values(self.analysis, call)
+                        {
+                            self.errors.push(errors::functions::not_found(
+                                call,
+                                &arg_type_ids,
+                                &generic_args,
+                            ));
                         }
                     }
                 }

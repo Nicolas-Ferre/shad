@@ -74,7 +74,7 @@ impl Analysis {
         registration::types::register(&mut analysis);
         registration::functions::register(&mut analysis);
         registration::constants::register(&mut analysis);
-        registration::generic_fns::register(&mut analysis);
+        registration::specialized_fns::register(&mut analysis);
         registration::buffers::register(&mut analysis);
         transformation::fn_params::transform(&mut analysis);
         registration::vars::register(&mut analysis);

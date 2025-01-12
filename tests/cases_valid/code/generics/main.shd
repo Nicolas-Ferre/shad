@@ -31,6 +31,6 @@ fn generic_params<T, N: u32>() {
 
 run {
     generic_params<u32, 1u>();
-    generic_params<i32, VALUE>();
+    generic_params<i32, VALUE,>();
     generic_params<bool, 4u + VALUE>();
 }

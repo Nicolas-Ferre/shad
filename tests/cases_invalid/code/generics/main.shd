@@ -32,12 +32,16 @@ fn duplicated_generic_params<T, U, T: u32, U: u32>() {
 fn generic_function<T, U: u32>(param: u32) {
 }
 
+const INVALID = undefined;
+
 run {
-    generic_function<u32, 1u>(true); // invalid function param
+    generic_function<u32, 1u>(INVALID); // function param with undefined type
+    generic_function<u32, 1u>(true); // function param with invalid type
     generic_function<u32>(0u); // invalid number of generic params
     generic_function<1u, 1u>(0u); // invalid generic type
     generic_function<u32, u32>(0u); // invalid generic constant
     generic_function<u32, 1>(0u); // invalid generic constant type
+    generic_function<u32, INVALID>(0u); // undefined generic constant type
     generic_function<undefined, 1u>(0u); // undefined generic type
     generic_function<u32, undefined>(0u); // undefined generic constant
 }
