@@ -124,7 +124,24 @@ fn fn_with_genericity<'a>(
             };
             fns.get(&id)
         })
-        .find(|fn_| fn_.ast.is_pub || &fn_.id.module == module)
+        .find(|fn_| {
+            (fn_.ast.is_pub || &fn_.id.module == module)
+                && have_same_param_types(analysis, call, fn_)
+        })
+}
+
+fn have_same_param_types(analysis: &Analysis, call: &AstFnCall, fn_: &Function) -> bool {
+    if let (Some(arg_type_ids), Some(param_type_ids)) = (
+        fn_args(analysis, call),
+        fn_.params
+            .iter()
+            .map(|param| param.type_id.clone())
+            .collect::<Option<Vec<_>>>(),
+    ) {
+        arg_type_ids == param_type_ids
+    } else {
+        unreachable!("internal error: invalid function param/argument type");
+    }
 }
 
 pub(crate) fn const_fn<'a>(

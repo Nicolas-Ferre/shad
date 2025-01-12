@@ -1,5 +1,7 @@
 use crate::resolving::expressions::ExprSemantic;
-use crate::{errors, resolving, Analysis, FnId, Function, NO_RETURN_TYPE};
+use crate::{
+    errors, resolving, Analysis, FnId, Function, GenericParam, GenericValue, NO_RETURN_TYPE,
+};
 use shad_error::SemanticError;
 use shad_parser::{
     AstAssignment, AstExpr, AstExprRoot, AstFnCall, AstFnItem, AstReturn, AstStatement,
@@ -132,14 +134,60 @@ impl Visit for StatementCheck<'_> {
     }
 
     fn enter_fn_call(&mut self, node: &AstFnCall) {
-        if let Some(fn_) = resolving::items::fn_(self.analysis, node, true) {
-            for (arg, param) in node.args.iter().zip(&fn_.ast.params) {
-                if let Some(name) = &arg.name {
-                    if param.name.label != name.label {
-                        let error = errors::fn_calls::invalid_param_name(name, &param.name);
-                        self.errors.push(error);
+        let (Some(fn_), Some(specialized_fn)) = (
+            resolving::items::fn_(self.analysis, node, true),
+            resolving::items::fn_(self.analysis, node, false),
+        ) else {
+            return;
+        };
+        for (arg, param) in node.args.iter().zip(&fn_.ast.params) {
+            if let Some(name) = &arg.name {
+                if param.name.label != name.label {
+                    let error = errors::fn_calls::invalid_param_name(name, &param.name);
+                    self.errors.push(error);
+                }
+            }
+        }
+        if fn_.ast.generics.params.len() != node.generics.args.len() {
+            self.errors.push(errors::generics::invalid_generic_count(
+                &fn_.ast.generics,
+                &node.generics,
+            ));
+        }
+        for (((param, arg), param_ast), arg_ast) in fn_
+            .generics
+            .iter()
+            .zip(&specialized_fn.id.generic_values)
+            .zip(&fn_.ast.generics.params)
+            .zip(&node.generics.args)
+        {
+            match (param, arg) {
+                (GenericParam::Constant(_), GenericValue::Type(_)) => {
+                    self.errors.push(errors::generics::invalid_generic_constant(
+                        arg_ast,
+                        &param_ast.name,
+                    ));
+                }
+                (GenericParam::Type(_), GenericValue::Constant(_)) => {
+                    self.errors.push(errors::generics::invalid_generic_type(
+                        arg_ast,
+                        &param_ast.name,
+                    ));
+                }
+                (GenericParam::Constant(param), GenericValue::Constant(arg)) => {
+                    if let Some(expected_type) = &param.type_id {
+                        let actual_type = arg.type_id();
+                        if expected_type != &actual_type {
+                            self.errors.push(errors::expressions::invalid_type(
+                                &param.type_name.span,
+                                &arg_ast.span,
+                                expected_type,
+                                &actual_type,
+                            ));
+                        }
                     }
                 }
+                (GenericParam::Type(_), GenericValue::Type(_)) => (),
             }
         }
     }
