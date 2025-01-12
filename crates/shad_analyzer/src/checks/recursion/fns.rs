@@ -7,7 +7,7 @@ use std::mem;
 pub(crate) fn check(analysis: &mut Analysis) {
     let mut errors = vec![];
     let mut all_errored_fn_ids = FxHashSet::default();
-    for (fn_id, fn_) in &analysis.fns {
+    for (fn_id, fn_) in &analysis.raw_fns {
         let errored_fn_ids = mem::take(&mut all_errored_fn_ids);
         let mut checker = ItemRecursionCheck::new(analysis, fn_id.clone(), errored_fn_ids);
         checker.visit_fn_item(&fn_.ast);
@@ -19,7 +19,7 @@ pub(crate) fn check(analysis: &mut Analysis) {
 
 impl Visit for ItemRecursionCheck<'_, FnId> {
     fn enter_fn_call(&mut self, node: &AstFnCall) {
-        if let Some(fn_) = resolving::items::fn_(self.analysis, node) {
+        if let Some(fn_) = resolving::items::fn_(self.analysis, node, true) {
             self.used_item_ids.push(UsedItem {
                 usage_span: node.span.clone(),
                 def_span: fn_.ast.name.span.clone(),

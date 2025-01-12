@@ -1,6 +1,6 @@
 use crate::{fn_calls, wgsl};
 use itertools::Itertools;
-use shad_analyzer::{Analysis, BufferId, Function, Item, TypeId};
+use shad_analyzer::{Analysis, BufferId, Function, GenericValue, Item, TypeId};
 use shad_parser::{AstExpr, AstExprRoot, AstGpuGenericParam, AstGpuName, AstIdent, AstLiteralType};
 use std::iter;
 
@@ -48,15 +48,24 @@ pub(crate) fn to_fn_ident_wgsl(analysis: &Analysis, fn_: &Function) -> String {
             fn_.ast.name.label.clone()
         }
     } else {
+        let sep = SPECIAL_WGSL_IDENT_CHARACTER;
         format!(
-            "f{}_{}{SPECIAL_WGSL_IDENT_CHARACTER}{}",
+            "f{}_{}{sep}{sep}{}{sep}{sep}{}",
             analysis.module_ids[&fn_.id.module],
             fn_.ast.name.label,
+            fn_.id
+                .generic_values
+                .iter()
+                .map(|value| match value {
+                    GenericValue::Type(type_id) => to_type_wgsl(analysis, type_id),
+                    GenericValue::Constant(value) => format!("{value}"),
+                })
+                .join(sep),
             fn_.params
                 .iter()
                 .filter_map(|param| param.type_id.as_ref())
                 .map(|type_id| to_type_wgsl(analysis, type_id))
-                .join(SPECIAL_WGSL_IDENT_CHARACTER)
+                .join(sep),
         )
     }
 }

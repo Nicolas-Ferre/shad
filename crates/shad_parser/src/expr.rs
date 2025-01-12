@@ -1,6 +1,6 @@
 use crate::atom::{parse_token, parse_token_option};
 use crate::token::{Lexer, TokenType};
-use crate::{AstFnCall, AstIdent, AstIdentKind, AstLiteral};
+use crate::{AstFnCall, AstGenerics, AstIdent, AstIdentKind, AstLiteral};
 use shad_error::{Span, SyntaxError};
 use std::mem;
 
@@ -22,6 +22,8 @@ pub struct AstExpr {
     pub root: AstExprRoot,
     /// The fields referred after the root part.
     pub fields: Vec<AstIdent>,
+    /// Whether the expression is in const context.
+    pub is_const: bool,
 }
 
 pub(crate) const LITERALS: [TokenType; 5] = [
@@ -55,12 +57,14 @@ impl AstExpr {
     }
 
     #[allow(clippy::wildcard_enum_match_arm)]
-    pub(crate) fn parse(lexer: &mut Lexer<'_>) -> Result<Self, SyntaxError> {
+    pub(crate) fn parse(lexer: &mut Lexer<'_>, is_generic_arg: bool) -> Result<Self, SyntaxError> {
         let mut expressions = vec![Self::parse_operand(lexer)?];
         let mut operators = vec![];
         loop {
             let token = lexer.clone().next_token()?;
-            if BINARY_OPERATORS.contains(&token.type_) {
+            if (!is_generic_arg || token.type_ != TokenType::CloseAngleBracket)
+                && BINARY_OPERATORS.contains(&token.type_)
+            {
                 operators.push((token.type_, token.span));
             } else {
                 break;
@@ -80,7 +84,7 @@ impl AstExpr {
         match lexer.clone().next_token()?.type_ {
             TokenType::OpenParenthesis => {
                 parse_token(lexer, TokenType::OpenParenthesis)?;
-                let mut expr = Self::parse(lexer)?;
+                let mut expr = Self::parse(lexer, false)?;
                 parse_token(lexer, TokenType::CloseParenthesis)?;
                 expr.fields.extend(Self::parse_fields(lexer)?);
                 expr.span = Self::span(&expr.root, &expr.fields);
@@ -105,6 +109,7 @@ impl AstExpr {
                         span: Span::join(&expr.span, &call.span),
                         root: AstExprRoot::FnCall(call),
                         fields,
+                        is_const: false,
                     };
                 }
                 Ok(expr)
@@ -122,6 +127,7 @@ impl AstExpr {
         let root = if LITERALS.contains(&lexer.clone().next_token()?.type_) {
             AstExprRoot::Literal(AstLiteral::parse(lexer)?)
         } else if AstIdent::parse(&mut tmp_lexer).is_ok()
+            && AstGenerics::parse(&mut tmp_lexer).is_ok()
             && parse_token(&mut tmp_lexer, TokenType::OpenParenthesis).is_ok()
         {
             AstExprRoot::FnCall(AstFnCall::parse(lexer)?)
@@ -133,6 +139,7 @@ impl AstExpr {
             span: Self::span(&root, &fields),
             root,
             fields,
+            is_const: false,
         })
     }
 
@@ -169,6 +176,7 @@ impl From<AstIdent> for AstExpr {
             span: ident.span.clone(),
             root: AstExprRoot::Ident(ident),
             fields: vec![],
+            is_const: false,
         }
     }
 }
@@ -179,6 +187,7 @@ impl From<AstFnCall> for AstExpr {
             span: call.span.clone(),
             root: AstExprRoot::FnCall(call),
             fields: vec![],
+            is_const: false,
         }
     }
 }
@@ -189,6 +198,7 @@ impl From<AstLiteral> for AstExpr {
             span: literal.span.clone(),
             root: AstExprRoot::Literal(literal),
             fields: vec![],
+            is_const: false,
         }
     }
 }

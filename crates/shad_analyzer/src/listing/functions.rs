@@ -30,7 +30,7 @@ impl<'a> FunctionListing<'a> {
 
 impl Visit for FunctionListing<'_> {
     fn enter_fn_call(&mut self, node: &AstFnCall) {
-        if let Some(fn_) = resolving::items::fn_(self.analysis, node) {
+        if let Some(fn_) = resolving::items::fn_(self.analysis, node, false) {
             self.fn_ids.insert(fn_.id.clone());
             self.visit_fn_item(&fn_.ast);
         }

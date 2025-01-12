@@ -40,7 +40,7 @@ impl AstStructItem {
         parse_token(lexer, TokenType::Struct)?;
         let name = AstIdent::parse(lexer)?;
         let generics = AstItemGenerics::parse(lexer)?;
-        parse_token(lexer, TokenType::OpenBrace)?;
+        let open_brace = parse_token(lexer, TokenType::OpenBrace)?;
         let mut fields = vec![];
         while parse_token_option(lexer, TokenType::CloseBrace)?.is_none() {
             fields.push(AstStructField::parse(lexer)?);
@@ -51,7 +51,10 @@ impl AstStructItem {
         }
         Ok(Self {
             name,
-            generics,
+            generics: generics.unwrap_or_else(|| AstItemGenerics {
+                span: open_brace.span,
+                params: vec![],
+            }),
             fields,
             is_pub,
             gpu_qualifier,

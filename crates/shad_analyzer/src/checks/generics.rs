@@ -8,15 +8,15 @@ const SUPPORTED_CONST_TYPES: &[&str] = &["u32", "i32", "f32", "bool"];
 pub(crate) fn check(analysis: &mut Analysis) {
     let mut errors = vec![];
     for type_ in analysis.types.values() {
-        check_params(&mut errors, &type_.generics);
+        check_item_params(&mut errors, &type_.generics);
     }
-    for fn_ in analysis.fns.values() {
-        check_params(&mut errors, &fn_.generics);
+    for fn_ in analysis.raw_fns.values() {
+        check_item_params(&mut errors, &fn_.generics);
     }
     analysis.errors.extend(errors);
 }
 
-fn check_params(errors: &mut Vec<SemanticError>, generics: &[GenericParam]) {
+fn check_item_params(errors: &mut Vec<SemanticError>, generics: &[GenericParam]) {
     for param in generics {
         if let GenericParam::Constant(ConstantGenericParam {
             type_name,

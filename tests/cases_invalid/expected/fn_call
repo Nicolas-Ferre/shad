@@ -47,11 +47,11 @@ error: could not find `field` field in `<no return>` type
    |                           ^^^^^ undefined field
    |
 
-error: invalid type in assignment
+error: expression with invalid type
   --> ./cases_invalid/code/fn_call/main.shd:29:29
    |
 29 |     without_return_type() = 2;
-   |     ---------------------   ^ expression of type `i32`
+   |     ---------------------   ^ invalid type `i32`
    |     |
    |     info: expected type `<no return>`
    |

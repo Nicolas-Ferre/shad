@@ -1,5 +1,5 @@
 use crate::checks::recursion::UsedItem;
-use crate::{FnId, Function, TypeId};
+use crate::{FnId, Function, GenericValue, TypeId};
 use itertools::Itertools;
 use shad_error::{ErrorLevel, LocatedMessage, SemanticError};
 use shad_parser::{AstFnCall, AstFnItem, AstIdent, AstReturnType};
@@ -27,11 +27,16 @@ pub(crate) fn duplicated(
     )
 }
 
-pub(crate) fn not_found(call: &AstFnCall, arg_types: &[TypeId]) -> SemanticError {
+pub(crate) fn not_found(
+    call: &AstFnCall,
+    arg_types: &[TypeId],
+    generic_args: &[GenericValue],
+) -> SemanticError {
     SemanticError::new(
         format!(
-            "could not find `{}({})` function",
+            "could not find `{}{}({})` function",
             call.name.label,
+            if generic_args.is_empty() { "" } else { "<...>" },
             arg_types.iter().map(|type_| &type_.name).join(", ")
         ),
         vec![LocatedMessage {

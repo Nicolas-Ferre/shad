@@ -1,5 +1,7 @@
 use crate::resolving::expressions::ExprSemantic;
-use crate::{errors, resolving, Analysis, FnId, Function, NO_RETURN_TYPE};
+use crate::{
+    errors, resolving, Analysis, FnId, Function, GenericParam, GenericValue, NO_RETURN_TYPE,
+};
 use shad_error::SemanticError;
 use shad_parser::{
     AstAssignment, AstExpr, AstExprRoot, AstFnCall, AstFnItem, AstReturn, AstStatement,
@@ -7,7 +9,7 @@ use shad_parser::{
 };
 
 pub(crate) fn check(analysis: &mut Analysis) {
-    let mut checker = StatementCheck::new(analysis, false);
+    let mut checker = StatementCheck::new(analysis);
     for block in &analysis.init_blocks {
         checker.module = &block.buffer.module;
         checker.visit_run_item(&block.ast);
@@ -18,13 +20,11 @@ pub(crate) fn check(analysis: &mut Analysis) {
     }
     for constant in analysis.constants.values() {
         checker.module = &constant.id.module;
-        checker.is_const_context = true;
         checker.visit_expr(&constant.ast.value);
     }
-    for fn_ in analysis.fns.values() {
+    for fn_ in analysis.raw_fns.values() {
         checker.module = &fn_.ast.name.span.module.name;
         checker.fn_ = Some(fn_);
-        checker.is_const_context = false;
         checker.visit_fn_item(&fn_.ast);
     }
     analysis.errors.extend(checker.errors);
@@ -35,24 +35,22 @@ struct StatementCheck<'a> {
     errors: Vec<SemanticError>,
     fn_: Option<&'a Function>,
     module: &'a str,
-    is_const_context: bool,
 }
 
 impl<'a> StatementCheck<'a> {
-    fn new(analysis: &'a Analysis, is_const_context: bool) -> Self {
+    fn new(analysis: &'a Analysis) -> Self {
         Self {
             analysis,
             errors: vec![],
             fn_: None,
             module: "",
-            is_const_context,
         }
     }
 
     fn check_invalid_expr_type(&mut self, expr: &AstExpr) {
         if let Some(type_id) = resolving::types::expr(self.analysis, expr) {
             if type_id.name == NO_RETURN_TYPE {
-                let error = errors::expressions::invalid_type(expr, &type_id);
+                let error = errors::expressions::not_allowed_type(expr, &type_id);
                 self.errors.push(error);
             }
         }
@@ -61,7 +59,6 @@ impl<'a> StatementCheck<'a> {
 
 impl Visit for StatementCheck<'_> {
     fn enter_fn_item(&mut self, node: &AstFnItem) {
-        let fn_ = &self.analysis.fns[&FnId::from_item(self.analysis, node)];
         if let Some(return_pos) = node
             .statements
             .iter()
@@ -74,7 +71,8 @@ impl Visit for StatementCheck<'_> {
                 ));
             }
         } else if node.return_type.is_some() && node.gpu_qualifier.is_none() {
-            let error = errors::returns::missing_return(node, &fn_.id);
+            let id = FnId::from_item(self.analysis, node);
+            let error = errors::returns::missing_return(node, &id);
             self.errors.push(error);
         }
     }
@@ -85,8 +83,9 @@ impl Visit for StatementCheck<'_> {
         let expr_type = resolving::types::expr(self.analysis, &node.right);
         if let (Some(expected_type), Some(expr_type)) = (expected_type, expr_type) {
             if expected_type != expr_type {
-                self.errors.push(errors::assignments::invalid_type(
-                    node,
+                self.errors.push(errors::expressions::invalid_type(
+                    &node.left.span,
+                    &node.right.span,
                     &expected_type,
                     &expr_type,
                 ));
@@ -135,14 +134,60 @@ impl Visit for StatementCheck<'_> {
     }
 
     fn enter_fn_call(&mut self, node: &AstFnCall) {
-        if let Some(fn_) = resolving::items::fn_(self.analysis, node) {
-            for (arg, param) in node.args.iter().zip(&fn_.ast.params) {
-                if let Some(name) = &arg.name {
-                    if param.name.label != name.label {
-                        let error = errors::fn_calls::invalid_param_name(name, &param.name);
-                        self.errors.push(error);
+        let (Some(fn_), Some(specialized_fn)) = (
+            resolving::items::fn_(self.analysis, node, true),
+            resolving::items::fn_(self.analysis, node, false),
+        ) else {
+            return;
+        };
+        for (arg, param) in node.args.iter().zip(&fn_.ast.params) {
+            if let Some(name) = &arg.name {
+                if param.name.label != name.label {
+                    let error = errors::fn_calls::invalid_param_name(name, &param.name);
+                    self.errors.push(error);
+                }
+            }
+        }
+        if fn_.ast.generics.params.len() != node.generics.args.len() {
+            self.errors.push(errors::generics::invalid_generic_count(
+                &fn_.ast.generics,
+                &node.generics,
+            ));
+        }
+        for (((param, arg), param_ast), arg_ast) in fn_
+            .generics
+            .iter()
+            .zip(&specialized_fn.id.generic_values)
+            .zip(&fn_.ast.generics.params)
+            .zip(&node.generics.args)
+        {
+            match (param, arg) {
+                (GenericParam::Constant(_), GenericValue::Type(_)) => {
+                    self.errors.push(errors::generics::invalid_generic_constant(
+                        arg_ast,
+                        &param_ast.name,
+                    ));
+                }
+                (GenericParam::Type(_), GenericValue::Constant(_)) => {
+                    self.errors.push(errors::generics::invalid_generic_type(
+                        arg_ast,
+                        &param_ast.name,
+                    ));
+                }
+                (GenericParam::Constant(param), GenericValue::Constant(arg)) => {
+                    if let Some(expected_type) = &param.type_id {
+                        let actual_type = arg.type_id();
+                        if expected_type != &actual_type {
+                            self.errors.push(errors::expressions::invalid_type(
+                                &param.type_name.span,
+                                &arg_ast.span,
+                                expected_type,
+                                &actual_type,
+                            ));
+                        }
                     }
                 }
+                (GenericParam::Type(_), GenericValue::Type(_)) => (),
             }
         }
     }
@@ -150,20 +195,30 @@ impl Visit for StatementCheck<'_> {
     fn enter_expr(&mut self, node: &AstExpr) {
         match &node.root {
             AstExprRoot::Ident(ident) => {
-                if (!self.is_const_context && self.analysis.item(ident).is_none())
-                    || (self.is_const_context
-                        && resolving::items::constant(self.analysis, ident).is_none())
+                if node.is_const
+                    && node.fields.is_empty()
+                    && resolving::items::type_id(self.analysis, ident).is_ok()
+                {
+                    return;
+                }
+                if (!node.is_const && self.analysis.item(ident).is_none())
+                    || (node.is_const && resolving::items::constant(self.analysis, ident).is_none())
                 {
                     let error = errors::variables::not_found(ident);
                     self.errors.push(error);
                 }
             }
             AstExprRoot::FnCall(call) => {
-                if resolving::items::fn_(self.analysis, call).is_none() {
+                if resolving::items::fn_(self.analysis, call, true).is_none() {
                     if let Some(arg_type_ids) = resolving::types::fn_args(self.analysis, call) {
-                        if self.analysis.fn_(call).is_none() {
-                            let error = errors::functions::not_found(call, &arg_type_ids);
-                            self.errors.push(error);
+                        if let Some(generic_args) =
+                            resolving::expressions::fn_call_generic_values(self.analysis, call)
+                        {
+                            self.errors.push(errors::functions::not_found(
+                                call,
+                                &arg_type_ids,
+                                &generic_args,
+                            ));
                         }
                     }
                 }

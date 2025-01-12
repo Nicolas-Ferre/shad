@@ -241,6 +241,9 @@ macro_rules! visit_trait {
             fn visit_fn_call(&mut self, node: &$($mut_keyword)? AstFnCall) {
                 self.enter_fn_call(node);
                 self.visit_ident(&$($mut_keyword)? node.name);
+                for node in &$($mut_keyword)? node.generics.args {
+                    self.visit_expr(node);
+                }
                 for node in &$($mut_keyword)? node.args {
                     if let Some(node) = &$($mut_keyword)? node.name {
                         self.visit_ident(node);

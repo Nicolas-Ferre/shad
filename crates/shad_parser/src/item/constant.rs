@@ -23,7 +23,8 @@ impl AstConstItem {
         parse_token(lexer, TokenType::Const)?;
         let name = AstIdent::parse(lexer)?;
         parse_token(lexer, TokenType::Assigment)?;
-        let value = AstExpr::parse(lexer)?;
+        let mut value = AstExpr::parse(lexer, false)?;
+        value.is_const = true;
         parse_token(lexer, TokenType::SemiColon)?;
         Ok(Self {
             name,

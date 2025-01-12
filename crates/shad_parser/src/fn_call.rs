@@ -1,6 +1,6 @@
 use crate::atom::{parse_token, parse_token_option};
 use crate::token::{Lexer, TokenType};
-use crate::{AstExpr, AstExprRoot, AstIdent, AstIdentKind, AstLiteralType};
+use crate::{AstExpr, AstExprRoot, AstGenerics, AstIdent, AstIdentKind, AstLiteralType};
 use shad_error::{Span, SyntaxError};
 
 /// The function name corresponding to unary `-` operator behavior.
@@ -65,6 +65,8 @@ pub struct AstFnCall {
     pub span: Span,
     /// The function name.
     pub name: AstIdent,
+    /// The function generic arguments.
+    pub generics: AstGenerics,
     /// The arguments passed to the function.
     pub args: Vec<AstFnCallArg>,
     /// Whether the function call is done using an operator.
@@ -78,7 +80,8 @@ impl AstFnCall {
     pub(crate) fn parse(lexer: &mut Lexer<'_>) -> Result<Self, SyntaxError> {
         let mut name = AstIdent::parse(lexer)?;
         name.kind = AstIdentKind::FnRef;
-        parse_token(lexer, TokenType::OpenParenthesis)?;
+        let generics = AstGenerics::parse(lexer)?;
+        let open_parenthesis = parse_token(lexer, TokenType::OpenParenthesis)?;
         let mut args = vec![];
         while parse_token(&mut lexer.clone(), TokenType::CloseParenthesis).is_err() {
             args.push(AstFnCallArg::parse(lexer)?);
@@ -90,6 +93,10 @@ impl AstFnCall {
         Ok(Self {
             span: Span::join(&name.span, &close_parenthesis.span),
             name,
+            generics: generics.unwrap_or_else(|| AstGenerics {
+                span: open_parenthesis.span,
+                args: vec![],
+            }),
             args,
             is_operator: false,
             is_first_arg_external: false,
@@ -131,13 +138,18 @@ impl AstFnCall {
             )?
             .into()
         };
+        let operator_span = &operators[operator_index].1;
         Ok(Self {
             span: Span::join(&left.span, &right.span),
             name: AstIdent {
-                span: operators[operator_index].1.clone(),
+                span: operator_span.clone(),
                 label: Self::binary_operator_fn_name(operators[operator_index].0).into(),
                 var_id: 0,
                 kind: AstIdentKind::FnRef,
+            },
+            generics: AstGenerics {
+                span: operator_span.clone(),
+                args: vec![],
             },
             args: vec![left.into(), right.into()],
             is_operator: true,
@@ -147,7 +159,7 @@ impl AstFnCall {
 
     pub(crate) fn parse_unary_operation(lexer: &mut Lexer<'_>) -> Result<AstExpr, SyntaxError> {
         let operator_token = lexer.next_token()?;
-        let mut expr = AstExpr::parse(lexer)?;
+        let mut expr = AstExpr::parse(lexer, false)?;
         if operator_token.type_ == TokenType::Minus && expr.fields.is_empty() {
             if let AstExprRoot::Literal(literal) = &mut expr.root {
                 if matches!(literal.type_, AstLiteralType::F32 | AstLiteralType::I32)
@@ -163,10 +175,14 @@ impl AstFnCall {
         Ok(Self {
             span: Span::join(&operator_token.span, &expr.span),
             name: AstIdent {
-                span: operator_token.span,
+                span: operator_token.span.clone(),
                 label: Self::unary_operator_fn_name(operator_token.type_).into(),
                 var_id: 0,
                 kind: AstIdentKind::FnRef,
+            },
+            generics: AstGenerics {
+                span: operator_token.span,
+                args: vec![],
             },
             args: vec![expr.into()],
             is_operator: true,
@@ -234,7 +250,7 @@ pub struct AstFnCallArg {
 impl AstFnCallArg {
     fn parse(lexer: &mut Lexer<'_>) -> Result<Self, SyntaxError> {
         let name = Self::parse_name(&mut lexer.clone()).and_then(|_| Self::parse_name(lexer));
-        let value = AstExpr::parse(lexer)?;
+        let value = AstExpr::parse(lexer, false)?;
         Ok(Self { name, value })
     }
 

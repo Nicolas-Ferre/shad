@@ -1,6 +1,9 @@
 use crate::registration::constants::{Constant, ConstantId, ConstantValue};
 use crate::resolving::types::fn_args;
-use crate::{errors, Analysis, Buffer, BufferId, FnId, Function, StructField, TypeId};
+use crate::{
+    errors, resolving, Analysis, Buffer, BufferId, FnId, Function, GenericValue, StructField,
+    TypeId,
+};
 use shad_error::SemanticError;
 use shad_parser::{AstFnCall, AstIdent};
 use std::iter;
@@ -73,25 +76,72 @@ pub(crate) fn constant<'a>(analysis: &'a Analysis, name: &AstIdent) -> Option<&'
         .find(|constant| constant.ast.is_pub || &constant.id.module == module)
 }
 
-pub(crate) fn fn_<'a>(analysis: &'a Analysis, call: &AstFnCall) -> Option<&'a Function> {
-    let module = &call.name.span.module.name;
+pub(crate) fn fn_<'a>(analysis: &'a Analysis, call: &AstFnCall, raw: bool) -> Option<&'a Function> {
     let arg_types = fn_args(analysis, call)?;
+    let generic_args = resolving::expressions::fn_call_generic_values(analysis, call)?;
+    fn_with_genericity(analysis, call, raw, &arg_types, &generic_args, false)
+        .or_else(|| fn_with_genericity(analysis, call, raw, &arg_types, &generic_args, true))
+}
+
+fn fn_with_genericity<'a>(
+    analysis: &'a Analysis,
+    call: &AstFnCall,
+    raw: bool,
+    arg_types: &[TypeId],
+    generic_args: &[GenericValue],
+    is_generic: bool,
+) -> Option<&'a Function> {
+    let module = &call.name.span.module.name;
     analysis
         .visible_modules
         .get(module)
         .into_iter()
         .flatten()
         .filter_map(|module| {
-            let id = FnId {
-                module: module.clone(),
-                name: call.name.label.clone(),
-                param_types: arg_types.iter().map(|type_| Some(type_.clone())).collect(),
-                param_count: arg_types.len(),
-                is_generic: false,
+            let id = if is_generic {
+                FnId {
+                    module: module.clone(),
+                    name: call.name.label.clone(),
+                    param_types: vec![],
+                    generic_values: vec![],
+                    param_count: call.args.len(),
+                    is_generic: true,
+                }
+            } else {
+                FnId {
+                    module: module.clone(),
+                    name: call.name.label.clone(),
+                    param_types: arg_types.iter().map(|type_| Some(type_.clone())).collect(),
+                    generic_values: generic_args.to_vec(),
+                    param_count: arg_types.len(),
+                    is_generic: false,
+                }
             };
-            analysis.fns.get(&id)
+            let fns = if raw {
+                &analysis.raw_fns
+            } else {
+                &analysis.fns
+            };
+            fns.get(&id)
         })
-        .find(|fn_| fn_.ast.is_pub || &fn_.id.module == module)
+        .find(|fn_| {
+            (fn_.ast.is_pub || &fn_.id.module == module)
+                && have_same_param_types(analysis, call, fn_)
+        })
+}
+
+fn have_same_param_types(analysis: &Analysis, call: &AstFnCall, fn_: &Function) -> bool {
+    if let (Some(arg_type_ids), Some(param_type_ids)) = (
+        fn_args(analysis, call),
+        fn_.params
+            .iter()
+            .map(|param| param.type_id.clone())
+            .collect::<Option<Vec<_>>>(),
+    ) {
+        arg_type_ids == param_type_ids
+    } else {
+        unreachable!("internal error: invalid function param/argument type");
+    }
 }
 
 pub(crate) fn const_fn<'a>(
@@ -110,6 +160,7 @@ pub(crate) fn const_fn<'a>(
                 module: module.clone(),
                 name: call.name.label.clone(),
                 param_types: args.iter().map(|arg| Some(arg.type_id())).collect(),
+                generic_values: vec![],
                 param_count: args.len(),
                 is_generic: false,
             };

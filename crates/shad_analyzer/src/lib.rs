@@ -32,7 +32,8 @@ mod transformation;
 
 pub use analysis::*;
 pub use registration::buffers::*;
-pub use registration::const_functions::*;
+pub use registration::const_fns::*;
+pub use registration::constants::*;
 pub use registration::functions::*;
 pub use registration::generics::*;
 pub use registration::run_blocks::*;

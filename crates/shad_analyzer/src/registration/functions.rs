@@ -1,3 +1,4 @@
+use crate::registration::constants::ConstantValue;
 use crate::registration::generics;
 use crate::registration::generics::GenericParam;
 use crate::{
@@ -65,6 +66,8 @@ pub struct FnId {
     pub name: String,
     /// In case the function is not generic, the function parameter types.
     pub param_types: Vec<Option<TypeId>>,
+    /// In case the function is generic but specialized, the generic values.
+    pub generic_values: Vec<GenericValue>,
     /// The number of parameters of the function.
     pub param_count: usize,
     /// Whether the function is generic.
@@ -83,6 +86,7 @@ impl FnId {
                     .map(|param| resolving::items::type_id(analysis, &param.type_).ok())
                     .collect(),
                 module,
+                generic_values: vec![],
                 param_count: fn_.params.len(),
                 is_generic: false,
             }
@@ -91,6 +95,7 @@ impl FnId {
                 module,
                 name: fn_.name.label.clone(),
                 param_types: vec![],
+                generic_values: vec![],
                 param_count: fn_.params.len(),
                 is_generic: true,
             }
@@ -125,10 +130,20 @@ impl FnId {
                 .iter()
                 .map(|field| field.type_id.clone())
                 .collect(),
+            generic_values: vec![],
             param_count: type_.fields.len(),
             is_generic: false,
         }
     }
+}
+
+/// An analyzed generic value.
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub enum GenericValue {
+    /// A type.
+    Type(TypeId),
+    /// A constant.
+    Constant(ConstantValue),
 }
 
 pub(crate) fn register(analysis: &mut Analysis) {
@@ -207,7 +222,10 @@ fn register_ast(analysis: &mut Analysis) {
 fn struct_initializer_fn(ast: &AstStructItem) -> AstFnItem {
     AstFnItem {
         name: ast.name.clone(),
-        generics: AstItemGenerics { params: vec![] },
+        generics: AstItemGenerics {
+            span: ast.name.span.clone(),
+            params: vec![],
+        },
         params: ast
             .fields
             .iter()

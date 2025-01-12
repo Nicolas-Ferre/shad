@@ -10,10 +10,10 @@ It is particularly well suited for graphics applications like games.
 
 ## ⚠️ Warning ⚠️
 
-Before considering to use this language, please keep in mind that:
+Before you consider using this language, please keep in mind that:
 
 - It is developed by a single person in his spare time.
-- The language is very experimental, so it shouldn't be used for production applications.
+- The language is highly experimental, so it shouldn't be used for production applications.
 
 ## Main language features
 
