@@ -1,18 +1,20 @@
 use crate::atom::{parse_token, parse_token_option};
 use crate::token::{Lexer, TokenType};
 use crate::AstIdent;
-use shad_error::SyntaxError;
+use shad_error::{Span, SyntaxError};
 
 /// The parsed generic parameters of an item.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AstItemGenerics {
+    /// The span of the generics.
+    pub span: Span,
     /// The generics parameters.
     pub params: Vec<AstItemGenericParam>,
 }
 
 impl AstItemGenerics {
-    pub(crate) fn parse(lexer: &mut Lexer<'_>) -> Result<Self, SyntaxError> {
-        if parse_token_option(lexer, TokenType::OpenAngleBracket)?.is_some() {
+    pub(crate) fn parse(lexer: &mut Lexer<'_>) -> Result<Option<Self>, SyntaxError> {
+        if let Some(open_bracket) = parse_token_option(lexer, TokenType::OpenAngleBracket)? {
             let mut params = vec![AstItemGenericParam::parse(lexer)?];
             while parse_token_option(lexer, TokenType::Comma)?.is_some() {
                 if parse_token(&mut lexer.clone(), TokenType::CloseAngleBracket).is_ok() {
@@ -20,10 +22,13 @@ impl AstItemGenerics {
                 }
                 params.push(AstItemGenericParam::parse(lexer)?);
             }
-            parse_token(lexer, TokenType::CloseAngleBracket)?;
-            Ok(Self { params })
+            let close_bracket = parse_token(lexer, TokenType::CloseAngleBracket)?;
+            Ok(Some(Self {
+                span: Span::join(&open_bracket.span, &close_bracket.span),
+                params,
+            }))
         } else {
-            Ok(Self { params: vec![] })
+            Ok(None)
         }
     }
 }

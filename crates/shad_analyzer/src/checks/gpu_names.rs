@@ -12,7 +12,7 @@ pub(crate) fn check(analysis: &mut Analysis) {
             check_name(analysis, name);
         }
     }
-    for fn_ in analysis.fns.clone().into_values() {
+    for fn_ in analysis.raw_fns.clone().into_values() {
         let name = fn_
             .ast
             .gpu_qualifier

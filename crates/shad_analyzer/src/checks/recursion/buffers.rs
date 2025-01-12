@@ -22,7 +22,7 @@ pub(crate) fn check(analysis: &mut Analysis) {
 
 impl Visit for ItemRecursionCheck<'_, BufferId> {
     fn enter_fn_call(&mut self, node: &AstFnCall) {
-        if let Some(fn_) = resolving::items::fn_(self.analysis, node) {
+        if let Some(fn_) = resolving::items::fn_(self.analysis, node, true) {
             self.visit_fn_item(&fn_.ast);
         }
     }

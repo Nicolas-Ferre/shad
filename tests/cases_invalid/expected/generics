@@ -72,3 +72,72 @@ error: generic parameter with name `U` is defined multiple times
    |                                 |
    |                                 duplicated generic parameter name
    |
+
+error: could not find `generic_function<...>(bool)` function
+  --> ./cases_invalid/code/generics/main.shd:36:5
+   |
+36 |     generic_function<u32, 1u>(true); // invalid function param
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ undefined function
+   |
+
+error: expected 2 generic parameters, got 1 parameters
+  --> ./cases_invalid/code/generics/main.shd:37:21
+   |
+32 | fn generic_function<T, U: u32>(param: u32) {
+   |                    ----------- info: expected generic parameters
+33 | }
+...
+36 |     generic_function<u32, 1u>(true); // invalid function param
+37 |     generic_function<u32>(0u); // invalid number of generic params
+   |                     ^^^^^ invalid number of generic parameters
+   |
+
+error: expected type, got constant expression
+  --> ./cases_invalid/code/generics/main.shd:38:22
+   |
+32 | fn generic_function<T, U: u32>(param: u32) {
+   |                     - info: type is expected
+33 | }
+...
+37 |     generic_function<u32>(0u); // invalid number of generic params
+38 |     generic_function<1u, 1u>(0u); // invalid generic type
+   |                      ^^ invalid type
+   |
+
+error: expected constant expression, got type
+  --> ./cases_invalid/code/generics/main.shd:39:27
+   |
+32 | fn generic_function<T, U: u32>(param: u32) {
+   |                        - info: constant expression is expected
+33 | }
+...
+38 |     generic_function<1u, 1u>(0u); // invalid generic type
+39 |     generic_function<u32, u32>(0u); // invalid generic constant
+   |                           ^^^ invalid constant expression
+   |
+
+error: expression with invalid type
+  --> ./cases_invalid/code/generics/main.shd:40:27
+   |
+32 | fn generic_function<T, U: u32>(param: u32) {
+   |                           --- info: expected type `u32`
+33 | }
+...
+39 |     generic_function<u32, u32>(0u); // invalid generic constant
+40 |     generic_function<u32, 1>(0u); // invalid generic constant type
+   |                           ^ invalid type `i32`
+   |
+
+error: could not find `undefined` value
+  --> ./cases_invalid/code/generics/main.shd:41:22
+   |
+41 |     generic_function<undefined, 1u>(0u); // undefined generic type
+   |                      ^^^^^^^^^ undefined identifier
+   |
+
+error: could not find `undefined` value
+  --> ./cases_invalid/code/generics/main.shd:42:27
+   |
+42 |     generic_function<u32, undefined>(0u); // undefined generic constant
+   |                           ^^^^^^^^^ undefined identifier
+   |

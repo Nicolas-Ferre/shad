@@ -72,9 +72,9 @@ pub struct AstAssignment {
 
 impl AstAssignment {
     fn parse(lexer: &mut Lexer<'_>) -> Result<Self, SyntaxError> {
-        let left = AstExpr::parse(lexer)?;
+        let left = AstExpr::parse(lexer, false)?;
         parse_token(lexer, TokenType::Assigment)?;
-        let right = AstExpr::parse(lexer)?;
+        let right = AstExpr::parse(lexer, false)?;
         let semi_colon = parse_token(lexer, TokenType::SemiColon)?;
         Ok(Self {
             span: Span::join(&left.span, &semi_colon.span),
@@ -113,7 +113,7 @@ impl AstVarDefinition {
         let mut name = AstIdent::parse(lexer)?;
         name.kind = AstIdentKind::VarDef;
         parse_token(lexer, TokenType::Assigment)?;
-        let expr = AstExpr::parse(lexer)?;
+        let expr = AstExpr::parse(lexer, false)?;
         let semi_colon = parse_token(lexer, TokenType::SemiColon)?;
         Ok(Self {
             span: Span::join(&keyword.span, &semi_colon.span),
@@ -140,7 +140,7 @@ pub struct AstReturn {
 impl AstReturn {
     fn parse(lexer: &mut Lexer<'_>) -> Result<Self, SyntaxError> {
         let return_ = parse_token(lexer, TokenType::Return)?;
-        let expr = AstExpr::parse(lexer)?;
+        let expr = AstExpr::parse(lexer, false)?;
         let semi_colon = parse_token(lexer, TokenType::SemiColon)?;
         Ok(Self {
             span: Span::join(&return_.span, &semi_colon.span),
@@ -164,7 +164,7 @@ pub struct AstExprStatement {
 
 impl AstExprStatement {
     fn parse(lexer: &mut Lexer<'_>) -> Result<Self, SyntaxError> {
-        let expr = AstExpr::parse(lexer)?;
+        let expr = AstExpr::parse(lexer, false)?;
         let semi_colon = parse_token(lexer, TokenType::SemiColon)?;
         Ok(Self {
             span: Span::join(&expr.span, &semi_colon.span),

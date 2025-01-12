@@ -15,7 +15,7 @@ const SPECIAL_BINARY_FNS: [&str; 13] = [
 
 pub(crate) fn check(analysis: &mut Analysis) {
     let mut errors = vec![];
-    for fn_ in analysis.fns.values() {
+    for fn_ in analysis.raw_fns.values() {
         check_fn(analysis, fn_, &mut errors);
     }
     analysis.errors.extend(errors);

@@ -1,4 +1,4 @@
-use crate::registration::const_functions::{ConstFn, ConstFnId};
+use crate::registration::const_fns::{ConstFn, ConstFnId};
 use crate::registration::constants::{Constant, ConstantId};
 use crate::registration::functions::Function;
 use crate::registration::shaders::ComputeShader;
@@ -24,8 +24,10 @@ pub struct Analysis {
     pub visible_modules: FxHashMap<String, Vec<String>>,
     /// The analyzed types.
     pub types: FxHashMap<TypeId, Type>,
-    /// The analyzed functions.
+    /// The analyzed functions obtained after specialization.
     pub fns: FxHashMap<FnId, Function>,
+    /// The initial analyzed functions, without generics resolution.
+    pub raw_fns: FxHashMap<FnId, Function>,
     /// The analyzed constants.
     pub constants: FxHashMap<ConstantId, Constant>,
     /// The analyzed buffers.
@@ -54,6 +56,7 @@ impl Analysis {
             module_ids: FxHashMap::default(),
             visible_modules: FxHashMap::default(),
             types: FxHashMap::default(),
+            raw_fns: FxHashMap::default(),
             fns: FxHashMap::default(),
             constants: FxHashMap::default(),
             buffers: FxHashMap::default(),
@@ -66,13 +69,14 @@ impl Analysis {
             next_id: 1,
         };
         registration::run_blocks::register(&mut analysis);
-        registration::const_functions::register(&mut analysis);
+        registration::const_fns::register(&mut analysis);
         registration::modules::register(&mut analysis);
         registration::types::register(&mut analysis);
         registration::functions::register(&mut analysis);
-        transformation::fn_params::transform(&mut analysis);
         registration::constants::register(&mut analysis);
+        registration::generic_fns::register(&mut analysis);
         registration::buffers::register(&mut analysis);
+        transformation::fn_params::transform(&mut analysis);
         registration::vars::register(&mut analysis);
         checks::constants::check(&mut analysis);
         checks::generics::check(&mut analysis);
@@ -117,7 +121,7 @@ impl Analysis {
 
     /// Returns the function corresponding to a function call.
     pub fn fn_(&self, call: &AstFnCall) -> Option<&Function> {
-        resolving::items::fn_(self, call)
+        resolving::items::fn_(self, call, false)
     }
 
     /// Returns the type ID corresponding to an identifier.

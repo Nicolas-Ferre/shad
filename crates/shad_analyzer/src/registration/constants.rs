@@ -1,5 +1,7 @@
 use crate::{errors, resolving, Analysis, TypeId};
 use shad_parser::{AstConstItem, AstExpr, AstExprRoot, AstItem, AstLiteralType};
+use std::fmt::{Display, Formatter};
+use std::hash::{Hash, Hasher};
 use std::mem;
 use std::str::FromStr;
 
@@ -38,6 +40,48 @@ pub enum ConstantValue {
     I32(i32),
     F32(f32),
     Bool(bool),
+}
+
+impl PartialEq for ConstantValue {
+    // coverage: off (simple logic)
+    fn eq(&self, other: &Self) -> bool {
+        match (self, other) {
+            (Self::U32(left), Self::U32(right)) => left == right,
+            (Self::I32(left), Self::I32(right)) => left == right,
+            (Self::F32(left), Self::F32(right)) => left.to_bits() == right.to_bits(),
+            (Self::Bool(left), Self::Bool(right)) => left == right,
+            _ => false,
+        }
+    }
+    // coverage: on
+}
+
+impl Eq for ConstantValue {}
+
+impl Hash for ConstantValue {
+    // coverage: off (simple logic)
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        match self {
+            Self::U32(value) => value.hash(state),
+            Self::I32(value) => value.hash(state),
+            Self::F32(value) => value.to_bits().hash(state),
+            Self::Bool(value) => value.hash(state),
+        }
+    }
+    // coverage: on
+}
+
+impl Display for ConstantValue {
+    // coverage: off (simple logic)
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::U32(value) => write!(f, "{value}"),
+            Self::I32(value) => write!(f, "{value}"),
+            Self::F32(value) => write!(f, "{value}"),
+            Self::Bool(value) => write!(f, "{value}"),
+        }
+    }
+    // coverage: on
 }
 
 impl ConstantValue {
@@ -106,7 +150,7 @@ fn register_values(analysis: &mut Analysis) {
     }
 }
 
-fn calculate_const_expr(analysis: &Analysis, expr: &AstExpr) -> Option<ConstantValue> {
+pub(crate) fn calculate_const_expr(analysis: &Analysis, expr: &AstExpr) -> Option<ConstantValue> {
     match &expr.root {
         AstExprRoot::Literal(literal) => {
             let value = &literal.cleaned_value;

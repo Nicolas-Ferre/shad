@@ -23,7 +23,7 @@ impl AstBufferItem {
         parse_token(lexer, TokenType::Buf)?;
         let name = AstIdent::parse(lexer)?;
         parse_token(lexer, TokenType::Assigment)?;
-        let value = AstExpr::parse(lexer)?;
+        let value = AstExpr::parse(lexer, false)?;
         parse_token(lexer, TokenType::SemiColon)?;
         Ok(Self {
             name,

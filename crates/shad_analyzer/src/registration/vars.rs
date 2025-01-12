@@ -38,6 +38,11 @@ fn register_fns(analysis: &mut Analysis) {
         register_fn(analysis, fn_);
     }
     analysis.fns = fns;
+    let mut fns = mem::take(&mut analysis.raw_fns);
+    for fn_ in fns.values_mut() {
+        register_fn(analysis, fn_);
+    }
+    analysis.raw_fns = fns;
 }
 
 pub(crate) fn register_fn(analysis: &mut Analysis, fn_: &mut Function) {

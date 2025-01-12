@@ -33,12 +33,16 @@ impl AstFnItem {
         parse_token(lexer, TokenType::Fn)?;
         let name = AstIdent::parse(lexer)?;
         let generics = AstItemGenerics::parse(lexer)?;
+        let open_parenthesis = parse_token(&mut lexer.clone(), TokenType::OpenParenthesis)?;
         let params = Self::parse_params(lexer)?;
         let return_type = AstReturnType::parse(lexer)?;
         let statements = super::parse_statement_block(lexer)?;
         Ok(Self {
             name,
-            generics,
+            generics: generics.unwrap_or_else(|| AstItemGenerics {
+                span: open_parenthesis.span,
+                params: vec![],
+            }),
             params,
             return_type,
             statements,
@@ -54,12 +58,16 @@ impl AstFnItem {
         parse_token(lexer, TokenType::Fn)?;
         let name = AstIdent::parse(lexer)?;
         let generics = AstItemGenerics::parse(lexer)?;
+        let open_parenthesis = parse_token(&mut lexer.clone(), TokenType::OpenParenthesis)?;
         let params = Self::parse_params(lexer)?;
         let return_type = AstReturnType::parse(lexer)?;
         parse_token(lexer, TokenType::SemiColon)?;
         Ok(Self {
             name,
-            generics,
+            generics: generics.unwrap_or_else(|| AstItemGenerics {
+                span: open_parenthesis.span,
+                params: vec![],
+            }),
             params,
             return_type,
             statements: vec![],
