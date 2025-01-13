@@ -3,7 +3,7 @@ use std::fs;
 use std::path::PathBuf;
 
 #[rstest::rstest]
-fn run_valid_code(#[files("./cases_valid/code/*")] path: PathBuf) {
+fn run_valid_code(#[files("./cases_valid/*")] path: PathBuf) {
     let mut runner = Runner::new(&path).unwrap();
     runner.run_step();
     let asg = runner.analysis();
@@ -26,19 +26,13 @@ fn run_valid_code(#[files("./cases_valid/code/*")] path: PathBuf) {
         .collect::<Vec<_>>();
     buffers.sort_unstable();
     let actual = buffers.join("\n");
-    let case_name = path.file_stem().unwrap();
-    let buffers_path = path
-        .parent()
-        .unwrap()
-        .parent()
-        .unwrap()
-        .join("expected/")
-        .join(case_name);
+    let buffers_path = path.join(".expected");
     if buffers_path.exists() {
         assert_eq!(
             fs::read_to_string(buffers_path).unwrap(),
             actual,
-            "mismatching result for valid {case_name:?} case",
+            "mismatching result for valid {:?} case",
+            path.file_stem().unwrap(),
         );
     } else {
         fs::write(buffers_path, actual).unwrap();

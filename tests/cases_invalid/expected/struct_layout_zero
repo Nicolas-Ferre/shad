@@ -1,6 +1,0 @@
-error: non-zero `u32` literal out of range
- --> ./cases_invalid/code/struct_layout_zero/main.shd:1:12
-  |
-1 | gpu layout(0, 16) struct vec2f {
-  |            ^ here
-  |

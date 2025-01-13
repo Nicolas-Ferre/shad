@@ -1,0 +1,6 @@
+error: could not find `undefined` value
+ --> ./cases_invalid/assignment_undefined_assigned_value/main.shd:3:13
+  |
+3 |     value = undefined;
+  |             ^^^^^^^^^ undefined identifier
+  |

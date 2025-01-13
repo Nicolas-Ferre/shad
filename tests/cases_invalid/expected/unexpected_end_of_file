@@ -1,6 +1,0 @@
-error: unexpected end of file
- --> ./cases_invalid/code/unexpected_end_of_file/main.shd:1:2
-  |
-1 | fn
-  |  ^ here
-  |
