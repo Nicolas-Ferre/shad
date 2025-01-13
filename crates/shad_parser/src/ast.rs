@@ -2,8 +2,11 @@ use crate::token::Lexer;
 use crate::AstItem;
 use fxhash::FxHashMap;
 use shad_error::{Error, SyntaxError};
+use std::ffi::OsStr;
 use std::path::Path;
 use std::{fs, io, iter};
+
+const ALLOWED_FILE_EXTENSION: &str = "shd";
 
 /// The Abstract Syntax Tree of a parsed Shad code.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -49,10 +52,12 @@ impl Ast {
                     let file_path = entry.path();
                     if file_path.is_dir() {
                         Self::parse_dir(&file_path, base_path)
-                    } else {
+                    } else if file_path.extension() == Some(OsStr::new(ALLOWED_FILE_EXTENSION)) {
                         let module = Self::path_to_module(base_path, &file_path);
                         Self::parse_file(&file_path, &module)
                             .map(|ast| iter::once((module, ast)).collect())
+                    } else {
+                        Ok(FxHashMap::default())
                     }
                 }
                 Err(err) => Err(Error::Io(err)), // no-coverage (difficult to test)

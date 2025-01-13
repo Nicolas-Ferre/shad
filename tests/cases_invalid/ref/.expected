@@ -1,0 +1,20 @@
+error: expression is not a reference
+ --> ./cases_invalid/ref/main.shd:2:16
+  |
+2 |     ref ref1 = 0;
+  |                ^ a valid reference is expected here
+  |
+
+error: expression of type `<no return>` is not allowed here
+ --> ./cases_invalid/ref/main.shd:3:16
+  |
+3 |     ref ref2 = no_return();
+  |                ^^^^^^^^^^^ expression with invalid type
+  |
+
+error: expression is not a reference
+ --> ./cases_invalid/ref/main.shd:4:16
+  |
+4 |     ref ref3 = copy_return();
+  |                ^^^^^^^^^^^^^ a valid reference is expected here
+  |

@@ -1,0 +1,6 @@
+error: expected identifier
+ --> ./cases_invalid/expr_invalid_underscore_f32_int_part/main.shd:1:18
+  |
+1 | buf value = _123.;
+  |                  ^ here
+  |

@@ -1,0 +1,31 @@
+error: invalid type for returned expression
+ --> ./cases_invalid/return/main.shd:2:12
+  |
+1 | fn invalid_return_type(param: f32) -> i32 {
+  |                                       --- info: expected type `i32`
+2 |     return param;
+  |            ^^^^^ expression of type `f32`
+  |
+
+error: statement found after `return` statement
+ --> ./cases_invalid/return/main.shd:7:5
+  |
+6 |     return 0;
+  |     --------- info: `return` statement defined here
+7 |     var a = 1.;
+  |     ^^^^^^^^^^^ this statement cannot be defined after a `return` statement
+  |
+
+error: `return` statement used outside function
+  --> ./cases_invalid/return/main.shd:12:5
+   |
+12 |     return 0;
+   |     ^^^^^^^^^ invalid statement
+   |
+
+error: use of `return` in a function with no return type
+  --> ./cases_invalid/return/main.shd:16:5
+   |
+16 |     return 0;
+   |     ^^^^^^^^^ invalid statement
+   |
