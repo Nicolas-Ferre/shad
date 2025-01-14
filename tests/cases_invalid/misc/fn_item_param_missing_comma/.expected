@@ -1,0 +1,6 @@
+error: expected `)`
+ --> ./cases_invalid/misc/fn_item_param_missing_comma/main.shd:1:14
+  |
+1 | fn f(p1: f32 p2: f32) {}
+  |              ^ here
+  |

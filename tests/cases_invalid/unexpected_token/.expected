@@ -1,6 +1,0 @@
-error: unexpected token
- --> ./cases_invalid/unexpected_token/main.shd:1:1
-  |
-1 | à
-  | ^ here
-  |

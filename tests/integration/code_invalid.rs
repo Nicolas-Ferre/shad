@@ -1,13 +1,17 @@
+use itertools::Itertools;
 use shad_runner::Runner;
 use std::fs;
 use std::path::PathBuf;
 
 #[rstest::rstest]
-fn run_invalid_code(#[files("./cases_invalid/*")] path: PathBuf) {
+fn run_invalid_code(#[files("./cases_invalid/*/*")] path: PathBuf) {
     let path = PathBuf::from(format!(
         // make error paths relative
         "./cases_invalid/{}",
-        path.file_name().unwrap().to_str().unwrap()
+        path.components()
+            .skip(path.components().count() - 2)
+            .map(|a| a.as_os_str().to_str().unwrap())
+            .join("/")
     ));
     let result = Runner::new(&path);
     let actual = String::from_utf8(strip_ansi_escapes::strip(format!(

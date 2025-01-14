@@ -1,0 +1,37 @@
+error: could not find `undefined` value
+ --> ./cases_invalid/misc/atom/main.shd:1:23
+  |
+1 | buf undefined_ident = undefined;
+  |                       ^^^^^^^^^ undefined identifier
+  |
+
+error: `f32` literal with too many digits in integer part
+ --> ./cases_invalid/misc/atom/main.shd:2:27
+  |
+2 | buf f32_too_many_digits = 123456789012345678901234567890123456_789.;
+  |                           -----------------------------------------
+  |                           |
+  |                           found 39 digits in integer part
+  |                           info: maximum 38 digits are expected
+  |
+
+error: `u32` literal out of range
+ --> ./cases_invalid/misc/atom/main.shd:3:19
+  |
+3 | buf u32_too_big = 4_294_967_296u;
+  |                   ^^^^^^^^^^^^^^ value is outside allowed range for `u32` type
+  |
+
+error: could not find `__neg__(u32)` function
+ --> ./cases_invalid/misc/atom/main.shd:4:20
+  |
+4 | buf u32_negative = -1u;
+  |                    ^^^ undefined function
+  |
+
+error: `i32` literal out of range
+ --> ./cases_invalid/misc/atom/main.shd:5:19
+  |
+5 | buf i32_too_big = 2_147_483_648;
+  |                   ^^^^^^^^^^^^^ value is outside allowed range for `i32` type
+  |
