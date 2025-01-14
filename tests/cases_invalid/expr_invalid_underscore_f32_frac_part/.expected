@@ -1,6 +1,0 @@
-error: could not find `_456` field in `i32` type
- --> ./cases_invalid/expr_invalid_underscore_f32_frac_part/main.shd:1:17
-  |
-1 | buf value = 123._456;
-  |                 ^^^^ undefined field
-  |

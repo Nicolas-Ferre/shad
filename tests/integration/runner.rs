@@ -18,7 +18,7 @@ fn run_missing_folder() {
 
 #[test]
 fn access_invalid_buffer() {
-    let runner = Runner::new("./cases_valid/atom/main.shd").unwrap();
+    let runner = Runner::new("./cases_valid/misc/atom/main.shd").unwrap();
     assert!(runner
         .buffer(&BufferId {
             module: "main".into(),
@@ -29,7 +29,7 @@ fn access_invalid_buffer() {
 
 #[test]
 fn retrieve_delta() {
-    let mut runner = Runner::new("./cases_valid/atom/main.shd").unwrap();
+    let mut runner = Runner::new("./cases_valid/misc/atom/main.shd").unwrap();
     let start = Instant::now();
     runner.run_step();
     let end = Instant::now();

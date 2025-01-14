@@ -1,0 +1,23 @@
+error: type `InnerRecursion` defined recursively
+ --> ./cases_invalid/misc/struct_recursive/main.shd:1:8
+  |
+1 | struct InnerRecursion {
+  |        ^^^^^^^^^^^^^^ recursive type `InnerRecursion` defined here
+2 |     inner: InnerRecursion,
+  |            -------------- info: `InnerRecursion` type used in `InnerRecursion` type
+  |
+
+error: type `Level3Recursive` defined recursively
+ --> ./cases_invalid/misc/struct_recursive/main.shd:6:8
+  |
+5 | struct Level1Recursive { inner: Level2Recursive }
+  |                                 --------------- info: `Level2Recursive` type used in `Level1Recursive` type
+6 | struct Level3Recursive { inner: Level4Recursive }
+  |        ^^^^^^^^^^^^^^^          --------------- info: `Level4Recursive` type used in `Level3Recursive` type
+  |        |
+  |        recursive type `Level3Recursive` defined here
+7 | struct Level4Recursive { inner: Level1Recursive }
+  |                                 --------------- info: `Level1Recursive` type used in `Level4Recursive` type
+8 | struct Level2Recursive { inner: Level3Recursive }
+  |                                 --------------- info: `Level3Recursive` type used in `Level2Recursive` type
+  |

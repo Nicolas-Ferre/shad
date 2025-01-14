@@ -1,6 +1,0 @@
-error: expected identifier
- --> ./cases_invalid/var_def_invalid_ident/main.shd:2:9
-  |
-2 |     var ref = 0;
-  |         ^ here
-  |

@@ -1,0 +1,27 @@
+error: `const` function `__add__(TestStruct, i32)` is not implemented in the compiler
+ --> ./cases_invalid/misc/fn_gpu_const/main.shd:1:14
+  |
+1 | gpu const fn __add__(unsupported_param_type: TestStruct, other: i32) -> i32;
+  |              ^^^^^^^ undefined `const` function
+  |
+
+error: `const` function `__add__(bool, i32)` is not implemented in the compiler
+ --> ./cases_invalid/misc/fn_gpu_const/main.shd:2:14
+  |
+2 | gpu const fn __add__(invalid_param_type: bool, other: i32) -> i32;
+  |              ^^^^^^^ undefined `const` function
+  |
+
+error: `const` function `__neg__(i32)` has invalid return type `u32`, expected `i32`
+ --> ./cases_invalid/misc/fn_gpu_const/main.shd:3:51
+  |
+3 | gpu const fn __neg__(invalid_return_type: i32) -> u32;
+  |                                                   ^^^ invalid return type
+  |
+
+error: could not find `undefined` type
+ --> ./cases_invalid/misc/fn_gpu_const/main.shd:4:53
+  |
+4 | gpu const fn __neg__(undefined_return_type: f32) -> undefined;
+  |                                                     ^^^^^^^^^ undefined type
+  |

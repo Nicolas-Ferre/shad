@@ -1,0 +1,6 @@
+error: `i32` literal out of range
+ --> ./cases_invalid/misc/run_block_priority_invalid/main.shd:1:15
+  |
+1 | run priority -789456123789 {
+  |               ^ here
+  |

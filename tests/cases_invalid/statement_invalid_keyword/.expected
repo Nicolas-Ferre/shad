@@ -1,6 +1,0 @@
-error: expected statement
- --> ./cases_invalid/statement_invalid_keyword/main.shd:2:5
-  |
-2 |     run
-  |     ^ here
-  |
