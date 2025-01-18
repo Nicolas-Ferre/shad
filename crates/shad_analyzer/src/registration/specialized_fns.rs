@@ -125,12 +125,6 @@ impl VisitMut for StatementSpecialization {
 
     fn exit_expr(&mut self, node: &mut AstExpr) {
         if let AstExprRoot::Ident(ident) = &node.root {
-            if matches!(
-                ident.kind,
-                AstIdentKind::VarDef | AstIdentKind::FnRef | AstIdentKind::FieldRef
-            ) {
-                return;
-            }
             if let (Some(value), false) = (
                 self.constants.get(&ident.label),
                 self.vars.contains(&ident.label),

@@ -113,9 +113,9 @@ impl ConstantValue {
 
     fn literal_str(&self) -> String {
         match self {
-            ConstantValue::U32(value) => format!("{value}u"),
-            ConstantValue::I32(value) => value.to_string(),
-            ConstantValue::F32(value) => {
+            Self::U32(value) => format!("{value}u"),
+            Self::I32(value) => value.to_string(),
+            Self::F32(value) => {
                 let value = value.to_string();
                 if value.contains('.') {
                     value
@@ -123,16 +123,16 @@ impl ConstantValue {
                     format!("{value}.0")
                 }
             }
-            ConstantValue::Bool(value) => value.to_string(),
+            Self::Bool(value) => value.to_string(),
         }
     }
 
     fn literal_type(&self) -> AstLiteralType {
         match self {
-            ConstantValue::U32(_) => AstLiteralType::U32,
-            ConstantValue::I32(_) => AstLiteralType::I32,
-            ConstantValue::F32(_) => AstLiteralType::F32,
-            ConstantValue::Bool(_) => AstLiteralType::Bool,
+            Self::U32(_) => AstLiteralType::U32,
+            Self::I32(_) => AstLiteralType::I32,
+            Self::F32(_) => AstLiteralType::F32,
+            Self::Bool(_) => AstLiteralType::Bool,
         }
     }
 }
