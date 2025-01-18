@@ -1,0 +1,15 @@
+error: expression is not a reference
+ --> ./cases_invalid/generics/const_params/main.shd:2:5
+  |
+2 |     C = 0u;
+  |     ^ a valid reference is expected here
+  |
+
+error: expression with invalid type
+ --> ./cases_invalid/generics/const_params/main.shd:7:13
+  |
+7 |     value = C;
+  |     -----   ^ invalid type `u32`
+  |     |
+  |     info: expected type `bool`
+  |

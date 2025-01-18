@@ -8,6 +8,8 @@ use std::mem;
 pub struct Var {
     /// The ID of the variable type.
     pub(crate) type_id: Option<TypeId>,
+    /// Whether the variable is a constant value.
+    pub(crate) is_const: bool,
 }
 
 pub(crate) fn register(analysis: &mut Analysis) {
@@ -47,8 +49,14 @@ fn register_fns(analysis: &mut Analysis) {
 
 pub(crate) fn register_fn(analysis: &mut Analysis, fn_: &mut Function) {
     let mut registration = VarRegistration::new(analysis);
+    for (param, param_ast) in fn_.generics.iter_mut().zip(&mut fn_.ast.generics.params) {
+        let type_id = param.constant_type_id();
+        let name = param.name_mut();
+        registration.register_var(name, type_id, true);
+        param_ast.name.var_id = name.var_id;
+    }
     for (param, param_ast) in fn_.params.iter_mut().zip(&mut fn_.ast.params) {
-        registration.register_var(&mut param.name, param.type_id.clone());
+        registration.register_var(&mut param.name, param.type_id.clone(), false);
         param_ast.name.var_id = param.name.var_id;
     }
     for statement in &mut fn_.ast.statements {
@@ -69,10 +77,12 @@ impl<'a> VarRegistration<'a> {
         }
     }
 
-    fn register_var(&mut self, node: &mut AstIdent, type_id: Option<TypeId>) {
+    fn register_var(&mut self, node: &mut AstIdent, type_id: Option<TypeId>, is_const: bool) {
         node.var_id = self.analysis.next_id();
         self.var_ids.insert(node.label.clone(), node.var_id);
-        self.analysis.vars.insert(node.var_id, Var { type_id });
+        self.analysis
+            .vars
+            .insert(node.var_id, Var { type_id, is_const });
     }
 }
 
@@ -81,6 +91,7 @@ impl VisitMut for VarRegistration<'_> {
         self.register_var(
             &mut node.name,
             resolving::types::expr(self.analysis, &node.expr),
+            false,
         );
     }
 

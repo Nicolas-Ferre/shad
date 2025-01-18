@@ -1,0 +1,18 @@
+buf generic1_value = 0;
+buf generic2_value = 0;
+buf variable_value = 0;
+buf param_value = 0;
+
+const B = 50;
+
+fn constant_param<A: i32, B: i32, C: i32>(C: i32) {
+    generic1_value = A;
+    var A = 60;
+    variable_value = A;
+    generic2_value = B;
+    param_value = C;
+}
+
+run {
+    constant_param<10, 20, 30>(40);
+}

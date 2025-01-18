@@ -5,7 +5,14 @@ pub(crate) fn semantic(analysis: &Analysis, expr: &AstExpr) -> ExprSemantic {
     match &expr.root {
         AstExprRoot::Ident(ident) => match analysis.item(ident) {
             Some(Item::Constant(_)) => ExprSemantic::Value,
-            Some(Item::Buffer(_) | Item::Var(_)) => ExprSemantic::Ref,
+            Some(Item::Var(var)) => {
+                if var.is_const {
+                    ExprSemantic::Value
+                } else {
+                    ExprSemantic::Ref
+                }
+            }
+            Some(Item::Buffer(_)) => ExprSemantic::Ref,
             None => ExprSemantic::None,
         },
         AstExprRoot::FnCall(call) => {

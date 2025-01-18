@@ -1,6 +1,5 @@
-use crate::registration::constants::ConstantValue;
 use crate::{Analysis, Item};
-use shad_parser::{AstExpr, AstExprRoot, AstLiteral, AstLiteralType, AstStatement, VisitMut};
+use shad_parser::{AstExpr, AstExprRoot, AstStatement, VisitMut};
 use std::mem;
 
 pub(crate) fn transform(analysis: &mut Analysis) {
@@ -29,31 +28,6 @@ impl<'a> ConstantTransform<'a> {
             statements: vec![],
         }
     }
-
-    fn literal_str(value: &ConstantValue) -> String {
-        match value {
-            ConstantValue::U32(value) => format!("{value}u"),
-            ConstantValue::I32(value) => value.to_string(),
-            ConstantValue::F32(value) => {
-                let value = value.to_string();
-                if value.contains('.') {
-                    value
-                } else {
-                    format!("{value}.0")
-                }
-            }
-            ConstantValue::Bool(value) => value.to_string(),
-        }
-    }
-
-    fn literal_type(value: &ConstantValue) -> AstLiteralType {
-        match value {
-            ConstantValue::U32(_) => AstLiteralType::U32,
-            ConstantValue::I32(_) => AstLiteralType::I32,
-            ConstantValue::F32(_) => AstLiteralType::F32,
-            ConstantValue::Bool(_) => AstLiteralType::Bool,
-        }
-    }
 }
 
 impl VisitMut for ConstantTransform<'_> {
@@ -64,12 +38,7 @@ impl VisitMut for ConstantTransform<'_> {
                     .value
                     .clone()
                     .expect("internal error: not calculated constant");
-                node.root = AstExprRoot::Literal(AstLiteral {
-                    span: node.root.span().clone(),
-                    raw_value: Self::literal_str(&value),
-                    cleaned_value: Self::literal_str(&value),
-                    type_: Self::literal_type(&value),
-                });
+                node.root = AstExprRoot::Literal(value.literal(&ident.span));
             }
         }
     }
