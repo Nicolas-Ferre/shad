@@ -1,0 +1,6 @@
+error: expected `)`
+ --> ./cases_invalid/fns/arg_missing_commas/main.shd:2:10
+  |
+2 |     f(0. 1.);
+  |          ^ here
+  |
