@@ -1,5 +1,6 @@
 use crate::{errors, resolving, Analysis, TypeId};
-use shad_parser::{AstConstItem, AstExpr, AstExprRoot, AstItem, AstLiteralType};
+use shad_error::Span;
+use shad_parser::{AstConstItem, AstExpr, AstExprRoot, AstItem, AstLiteral, AstLiteralType};
 use std::fmt::{Display, Formatter};
 use std::hash::{Hash, Hasher};
 use std::mem;
@@ -100,6 +101,40 @@ impl ConstantValue {
         }
     }
     // coverage: on
+
+    pub(crate) fn literal(&self, span: &Span) -> AstLiteral {
+        AstLiteral {
+            span: span.clone(),
+            raw_value: self.literal_str(),
+            cleaned_value: self.literal_str(),
+            type_: self.literal_type(),
+        }
+    }
+
+    fn literal_str(&self) -> String {
+        match self {
+            ConstantValue::U32(value) => format!("{value}u"),
+            ConstantValue::I32(value) => value.to_string(),
+            ConstantValue::F32(value) => {
+                let value = value.to_string();
+                if value.contains('.') {
+                    value
+                } else {
+                    format!("{value}.0")
+                }
+            }
+            ConstantValue::Bool(value) => value.to_string(),
+        }
+    }
+
+    fn literal_type(&self) -> AstLiteralType {
+        match self {
+            ConstantValue::U32(_) => AstLiteralType::U32,
+            ConstantValue::I32(_) => AstLiteralType::I32,
+            ConstantValue::F32(_) => AstLiteralType::F32,
+            ConstantValue::Bool(_) => AstLiteralType::Bool,
+        }
+    }
 }
 
 pub(crate) fn register(analysis: &mut Analysis) {

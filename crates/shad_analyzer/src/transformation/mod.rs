@@ -23,7 +23,11 @@ fn extract_in_variable(
     let type_id = resolving::types::expr(analysis, expr);
     let var_id = analysis.next_id();
     let var_name = format!("generated{SPECIAL_WGSL_IDENT_CHARACTER}{var_id}");
-    analysis.vars.insert(var_id, Var { type_id });
+    let var = Var {
+        type_id,
+        is_const: false,
+    };
+    analysis.vars.insert(var_id, var);
     (
         AstStatement::Var(AstVarDefinition {
             span: expr.span.clone(),

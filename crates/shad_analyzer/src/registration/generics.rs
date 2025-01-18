@@ -17,6 +17,20 @@ impl GenericParam {
             Self::Constant(param) => &param.name,
         }
     }
+
+    pub(crate) fn name_mut(&mut self) -> &mut AstIdent {
+        match self {
+            Self::Type(param) => &mut param.name,
+            Self::Constant(param) => &mut param.name,
+        }
+    }
+
+    pub(crate) fn constant_type_id(&self) -> Option<TypeId> {
+        match self {
+            Self::Type(_) => None,
+            Self::Constant(param) => param.type_id.clone(),
+        }
+    }
 }
 
 /// An analyzed type generic parameter.
