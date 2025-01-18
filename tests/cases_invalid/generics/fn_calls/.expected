@@ -12,13 +12,6 @@ error: could not find `undefined` value
   |                 ^^^^^^^^^ undefined identifier
   |
 
-error: could not find `undefined_generic_const_type<...>()` function
-  --> ./cases_invalid/generics/fn_calls/main.shd:10:5
-   |
-10 |     undefined_generic_const_type<2>();
-   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ undefined function
-   |
-
 error: could not find `generic_function<...>(bool)` function
   --> ./cases_invalid/generics/fn_calls/main.shd:12:5
    |

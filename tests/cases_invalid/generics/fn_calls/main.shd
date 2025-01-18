@@ -7,7 +7,7 @@ fn generic_function<T, U: u32>(param: u32) {
 const INVALID = undefined;
 
 run {
-    undefined_generic_const_type<2>();
+    invalid_function<2>();
     generic_function<u32, 1u>(INVALID);
     generic_function<u32, 1u>(true); // function param with invalid type
     generic_function<u32>(0u); // invalid number of generic params
