@@ -1,0 +1,12 @@
+buf result_add_operator = 0;
+buf result_add_same_name = 0;
+buf result_add_renamed = 0;
+
+run {
+    result_add_operator = 2 + 4;
+    result_add_same_name = __add__(2, 4);
+    result_add_renamed = gpu_add(2, 4);
+}
+
+gpu fn __add__(left: i32, right: i32) -> i32;
+gpu(__add__) fn gpu_add(left: i32, right: i32) -> i32;

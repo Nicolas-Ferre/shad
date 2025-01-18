@@ -1,6 +1,0 @@
-error: expected expression
- --> ./cases_invalid/misc/expr_empty/main.shd:1:13
-  |
-1 | buf value = ;
-  |             ^ here
-  |
