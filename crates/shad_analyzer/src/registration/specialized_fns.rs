@@ -1,8 +1,8 @@
 use crate::{resolving, Analysis, ConstantValue, Function, GenericParam, GenericValue};
 use fxhash::{FxHashMap, FxHashSet};
 use shad_parser::{
-    AstExpr, AstExprRoot, AstFnCall, AstIdentKind, AstItemGenerics, AstStatement, AstVarDefinition,
-    Visit, VisitMut,
+    AstExpr, AstExprRoot, AstFnCall, AstItemGenerics, AstStatement, AstVarDefinition, Visit,
+    VisitMut,
 };
 use std::mem;
 
