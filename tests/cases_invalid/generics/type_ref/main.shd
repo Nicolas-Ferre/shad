@@ -6,6 +6,7 @@ struct InvalidFieldTypes {
     invalid_generic_param_count: Generic<u32>,
     invalid_generic_type: Generic<1u, 1u>,
     invalid_generic_constant: Generic<u32, u32>,
+    invalid_generic_constant_with_inner_generic: Generic<u32, Generic<u32, 1>>,
     invalid_generic_constant_type: Generic<u32, 1>,
     undefined_generic_params: Generic<undefined, undefined>,
 }
