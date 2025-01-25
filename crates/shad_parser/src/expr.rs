@@ -62,7 +62,9 @@ impl AstExpr {
         let mut operators = vec![];
         loop {
             let token = lexer.clone().next_token()?;
-            if (!is_generic_arg || token.type_ != TokenType::CloseAngleBracket)
+            if (!is_generic_arg
+                || (token.type_ != TokenType::OpenAngleBracket
+                    && token.type_ != TokenType::CloseAngleBracket))
                 && BINARY_OPERATORS.contains(&token.type_)
             {
                 operators.push((token.type_, token.span));

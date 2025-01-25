@@ -57,7 +57,12 @@ impl AstGenericArg {
     }
 
     fn parse(lexer: &mut Lexer<'_>) -> Result<Self, SyntaxError> {
-        if AstExpr::parse(&mut lexer.clone(), true).is_ok() {
+        let mut tmp_lexer = lexer.clone();
+        if AstExpr::parse(&mut tmp_lexer, true).is_ok()
+            && tmp_lexer.next_token().map_or(false, |token| {
+                token.type_ == TokenType::Comma || token.type_ == TokenType::CloseAngleBracket
+            })
+        {
             Ok(Self::Expr(AstExpr::parse(lexer, true)?))
         } else {
             Ok(Self::Type(AstType::parse(lexer)?))

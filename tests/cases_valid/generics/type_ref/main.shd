@@ -7,7 +7,12 @@ struct GenericWrapper<T, U: u32> {
 }
 
 fn transform(param: GenericWrapper<u32, 1u>) -> GenericWrapper<u32, 1u> {
-    param.field.field = 42;
+    param.field.field = 10;
+    return param;
+}
+
+fn transform_inner_generic(param: GenericWrapper<Generic<u32, 1u>, 1u>) -> GenericWrapper<Generic<u32, 1u>, 1u> {
+    param.field.field = 20;
     return param;
 }
 
@@ -15,4 +20,5 @@ buf result = GenericWrapper(Generic(0));
 
 run {
     result = transform(result);
+    result = transform_inner_generic(result);
 }
