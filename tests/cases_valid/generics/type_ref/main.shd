@@ -1,0 +1,18 @@
+struct Generic<T, U: u32> {
+    field: i32,
+}
+
+struct GenericWrapper<T, U: u32> {
+    field: Generic<u32, 1u>,
+}
+
+fn transform(param: GenericWrapper<u32, 1u>) -> GenericWrapper<u32, 1u> {
+    param.field.field = 42;
+    return param;
+}
+
+buf result = GenericWrapper(Generic(0));
+
+run {
+    result = transform(result);
+}

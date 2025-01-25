@@ -1,4 +1,4 @@
-use crate::{resolving, Analysis, Function, TypeId};
+use crate::{resolving, Analysis, Function, GenericParam, TypeId};
 use fxhash::FxHashMap;
 use shad_parser::{AstIdent, AstIdentKind, AstVarDefinition, VisitMut};
 use std::mem;
@@ -50,13 +50,13 @@ fn register_fns(analysis: &mut Analysis) {
 pub(crate) fn register_fn(analysis: &mut Analysis, fn_: &mut Function) {
     let mut registration = VarRegistration::new(analysis);
     for (param, param_ast) in fn_.generics.iter_mut().zip(&mut fn_.ast.generics.params) {
-        let type_id = param.constant_type_id();
-        let name = param.name_mut();
-        registration.register_var(name, type_id, true);
-        param_ast.name.var_id = name.var_id;
+        if let GenericParam::Constant(constant) = param {
+            registration.register_var(&mut constant.name, constant.type_id.clone(), true);
+            param_ast.name.var_id = constant.name.var_id;
+        }
     }
     for (param, param_ast) in fn_.params.iter_mut().zip(&mut fn_.ast.params) {
-        registration.register_var(&mut param.name, param.type_id.clone(), false);
+        registration.register_var(&mut param.name, param.type_.id.clone(), false);
         param_ast.name.var_id = param.name.var_id;
     }
     for statement in &mut fn_.ast.statements {

@@ -1,0 +1,26 @@
+struct Generic<T, U: u32> {
+    field: f32,
+}
+
+struct InvalidFieldTypes {
+    invalid_generic_param_count: Generic<u32>,
+    invalid_generic_type: Generic<1u, 1u>,
+    invalid_generic_constant: Generic<u32, u32>,
+    invalid_generic_constant_type: Generic<u32, 1>,
+    undefined_generic_params: Generic<undefined, undefined>,
+}
+
+fn invalid_fn_param(
+    invalid_generic_param_count: Generic<u32>,
+    invalid_generic_type: Generic<1u, 1u>,
+    invalid_generic_constant: Generic<u32, u32>,
+    invalid_generic_constant_type: Generic<u32, 1>,
+    undefined_generic_params: Generic<undefined, undefined>,
+) {
+}
+
+fn return_invalid_generic_param_count() -> Generic<u32> { return Generic(0.); }
+fn return_invalid_generic_type() -> Generic<1u, 1u> { return Generic(0.); }
+fn return_invalid_generic_constant() -> Generic<u32, u32> { return Generic(0.); }
+fn return_invalid_generic_constant_type() -> Generic<u32, 1> { return Generic(0.); }
+fn return_undefined_generic_params() -> Generic<undefined, undefined> { return Generic(0.); }

@@ -19,13 +19,13 @@ pub(crate) fn check(analysis: &mut Analysis) {
 fn check_item_params(errors: &mut Vec<SemanticError>, generics: &[GenericParam]) {
     for param in generics {
         if let GenericParam::Constant(ConstantGenericParam {
-            type_name,
+            type_,
             type_id: Some(type_id),
             ..
         }) = param
         {
             if type_id.module.is_some() || !SUPPORTED_CONST_TYPES.contains(&type_id.name.as_str()) {
-                let error = errors::constants::unsupported_type(type_name);
+                let error = errors::constants::unsupported_type(type_);
                 errors.push(error);
             }
         }

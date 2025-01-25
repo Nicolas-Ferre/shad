@@ -2,7 +2,7 @@ use crate::checks::recursion::UsedItem;
 use crate::TypeId;
 use itertools::Itertools;
 use shad_error::{ErrorLevel, LocatedMessage, SemanticError};
-use shad_parser::{AstGpuQualifier, AstIdent, AstStructItem};
+use shad_parser::{AstGpuQualifier, AstIdent, AstStructItem, AstType};
 use std::iter;
 
 pub(crate) fn duplicated(
@@ -27,12 +27,12 @@ pub(crate) fn duplicated(
     )
 }
 
-pub(crate) fn not_found(ident: &AstIdent) -> SemanticError {
+pub(crate) fn not_found(type_: &AstType) -> SemanticError {
     SemanticError::new(
-        format!("could not find `{}` type", ident.label),
+        format!("could not find `{}` type", type_.name.label),
         vec![LocatedMessage {
             level: ErrorLevel::Error,
-            span: ident.span.clone(),
+            span: type_.span.clone(),
             text: "undefined type".into(),
         }],
     )

@@ -33,7 +33,7 @@ pub(crate) fn invalid_type(
                     .return_type
                     .as_ref()
                     .expect("internal error: no return type")
-                    .name
+                    .type_
                     .span
                     .clone(),
                 text: format!("expected type `{}`", expected.name),
@@ -86,7 +86,7 @@ pub(crate) fn missing_return(fn_: &AstFnItem, fn_id: &FnId) -> SemanticError {
                 .return_type
                 .as_ref()
                 .expect("internal error: missing return type")
-                .name
+                .type_
                 .span
                 .clone(),
             text: "the function should return a value".into(),

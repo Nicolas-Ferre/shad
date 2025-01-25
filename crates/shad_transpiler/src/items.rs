@@ -66,7 +66,8 @@ fn struct_item(analysis: &Analysis, type_id: &TypeId) -> String {
 
 fn struct_field(analysis: &Analysis, field: &StructField) -> String {
     let field_type = field
-        .type_id
+        .type_
+        .id
         .as_ref()
         .expect("internal error: invalid field type");
     format!(
@@ -96,7 +97,8 @@ fn fn_params(analysis: &Analysis, fn_: &Function) -> String {
 
 fn fn_param(analysis: &Analysis, param: &FnParam) -> String {
     let type_id = param
-        .type_id
+        .type_
+        .id
         .as_ref()
         .expect("internal error: invalid param type");
     format!(
@@ -108,7 +110,8 @@ fn fn_param(analysis: &Analysis, param: &FnParam) -> String {
 
 fn fn_return_type(analysis: &Analysis, type_: &Function) -> String {
     if let Some(type_) = type_
-        .return_type_id
+        .return_type
+        .id
         .as_ref()
         .filter(|type_id| analysis.types[type_id].size > 0)
     {

@@ -1,6 +1,6 @@
 use crate::atom::{parse_token, parse_token_option};
 use crate::token::{Lexer, TokenType};
-use crate::{AstGpuQualifier, AstIdent, AstItemGenerics, AstStatement};
+use crate::{AstGpuQualifier, AstIdent, AstItemGenerics, AstStatement, AstType};
 use shad_error::{Span, SyntaxError};
 
 /// A parsed GPU function definition.
@@ -96,8 +96,8 @@ impl AstFnItem {
 ///
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AstReturnType {
-    /// The type name.
-    pub name: AstIdent,
+    /// The type reference.
+    pub type_: AstType,
     /// Whether the return type is a reference.
     pub is_ref: bool,
 }
@@ -107,7 +107,7 @@ impl AstReturnType {
         if parse_token_option(lexer, TokenType::Arrow)?.is_some() {
             let ref_span = parse_token_option(lexer, TokenType::Ref)?.map(|ref_| ref_.span);
             Ok(Some(Self {
-                name: AstIdent::parse(lexer)?,
+                type_: AstType::parse(lexer)?,
                 is_ref: ref_span.is_some(),
             }))
         } else {
@@ -126,7 +126,7 @@ pub struct AstFnParam {
     /// The name of the parameter.
     pub name: AstIdent,
     /// The type of the parameter.
-    pub type_: AstIdent,
+    pub type_: AstType,
     /// Span of the `ref` keyword.
     pub ref_span: Option<Span>,
 }
@@ -136,7 +136,7 @@ impl AstFnParam {
         let name = AstIdent::parse(lexer)?;
         parse_token(lexer, TokenType::Colon)?;
         let ref_span = parse_token_option(lexer, TokenType::Ref)?.map(|ref_| ref_.span);
-        let type_ = AstIdent::parse(lexer)?;
+        let type_ = AstType::parse(lexer)?;
         Ok(Self {
             name,
             type_,

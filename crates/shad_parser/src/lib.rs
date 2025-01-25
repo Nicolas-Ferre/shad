@@ -24,6 +24,7 @@ mod generics;
 mod item;
 mod statement;
 mod token;
+mod type_;
 mod visit;
 
 pub use ast::*;
@@ -41,4 +42,5 @@ pub use item::run_block::*;
 pub use item::struct_::*;
 pub use item::*;
 pub use statement::*;
+pub use type_::*;
 pub use visit::*;

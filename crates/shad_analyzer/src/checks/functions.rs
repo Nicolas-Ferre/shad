@@ -73,7 +73,7 @@ fn check_gpu_const_fn(analysis: &Analysis, fn_: &Function) -> Option<SemanticErr
                 .map(|const_fn| (id, const_fn))
         }) {
             if let (Some(return_type), Some(actual_return_type_id)) =
-                (&fn_.ast.return_type, &fn_.return_type_id)
+                (&fn_.ast.return_type, &fn_.return_type.id)
             {
                 let expected_return_type_id =
                     expected_const_fn_return_type_id(const_fn_id, const_fn);

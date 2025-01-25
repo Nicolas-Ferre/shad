@@ -1,6 +1,6 @@
 use crate::atom::{parse_token, parse_token_option};
 use crate::token::{Lexer, TokenType};
-use crate::{AstGpuQualifier, AstIdent, AstItemGenerics};
+use crate::{AstGpuQualifier, AstIdent, AstItemGenerics, AstType};
 use shad_error::{Span, SyntaxError};
 use std::num::NonZeroU32;
 use std::str::FromStr;
@@ -80,7 +80,7 @@ pub struct AstStructField {
     /// The field name.
     pub name: AstIdent,
     /// The field type.
-    pub type_: AstIdent,
+    pub type_: AstType,
     /// Whether the item is public.
     pub is_pub: bool,
 }
@@ -90,7 +90,7 @@ impl AstStructField {
         let is_pub = parse_token_option(lexer, TokenType::Pub)?.is_some();
         let name = AstIdent::parse(lexer)?;
         parse_token(lexer, TokenType::Colon)?;
-        let type_ = AstIdent::parse(lexer)?;
+        let type_ = AstType::parse(lexer)?;
         Ok(Self {
             name,
             type_,

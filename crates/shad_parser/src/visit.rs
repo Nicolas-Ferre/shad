@@ -5,8 +5,8 @@ use crate::item::function::AstFnItem;
 use crate::item::import::AstImportItem;
 use crate::item::run_block::AstRunItem;
 use crate::{
-    Ast, AstAssignment, AstExpr, AstExprRoot, AstExprStatement, AstIdent, AstItem, AstLiteral,
-    AstReturn, AstStatement, AstStructItem, AstVarDefinition,
+    Ast, AstAssignment, AstExpr, AstExprRoot, AstExprStatement, AstGenericArg, AstIdent, AstItem,
+    AstLiteral, AstReturn, AstStatement, AstStructItem, AstType, AstVarDefinition,
 };
 
 // coverage: off (not all functions are used by other crates)
@@ -63,6 +63,9 @@ macro_rules! visit_trait {
             /// Runs logic when entering in an expression.
             fn enter_expr(&mut self, node: &$($mut_keyword)? AstExpr) {}
 
+            /// Runs logic when entering in a type reference.
+            fn enter_type(&mut self, node: &$($mut_keyword)? AstType) {}
+
             /// Runs logic when entering in an identifier.
             fn enter_ident(&mut self, node: &$($mut_keyword)? AstIdent) {}
 
@@ -114,6 +117,9 @@ macro_rules! visit_trait {
             /// Runs logic when exiting an expression.
             fn exit_expr(&mut self, node: &$($mut_keyword)? AstExpr) {}
 
+            /// Runs logic when exiting a type reference.
+            fn exit_type(&mut self, node: &$($mut_keyword)? AstType) {}
+
             /// Runs logic when exiting an identifier.
             fn exit_ident(&mut self, node: &$($mut_keyword)? AstIdent) {}
 
@@ -146,7 +152,7 @@ macro_rules! visit_trait {
                 self.visit_ident(&$($mut_keyword)? node.name);
                 for field in &$($mut_keyword)? node.fields {
                     self.visit_ident(&$($mut_keyword)? field.name);
-                    self.visit_ident(&$($mut_keyword)? field.type_);
+                    self.visit_type(&$($mut_keyword)? field.type_);
                 }
                 self.exit_struct_item(node);
             }
@@ -171,6 +177,13 @@ macro_rules! visit_trait {
             fn visit_fn_item(&mut self, node: &$($mut_keyword)? AstFnItem) {
                 self.enter_fn_item(node);
                 self.visit_ident(&$($mut_keyword)? node.name);
+                for node in &$($mut_keyword)? node.params {
+                     self.visit_ident(&$($mut_keyword)? node.name);
+                     self.visit_type(&$($mut_keyword)? node.type_);
+                }
+                if let Some(node) = &$($mut_keyword)? node.return_type {
+                    self.visit_type(&$($mut_keyword)? node.type_);
+                }
                 for node in &$($mut_keyword)? node.statements {
                     self.visit_statement(node);
                 }
@@ -242,7 +255,10 @@ macro_rules! visit_trait {
                 self.enter_fn_call(node);
                 self.visit_ident(&$($mut_keyword)? node.name);
                 for node in &$($mut_keyword)? node.generics.args {
-                    self.visit_expr(node);
+                    match node {
+                        AstGenericArg::Expr(node) => self.visit_expr(node),
+                        AstGenericArg::Type(node) => self.visit_type(node),
+                    }
                 }
                 for node in &$($mut_keyword)? node.args {
                     if let Some(node) = &$($mut_keyword)? node.name {
@@ -271,6 +287,19 @@ macro_rules! visit_trait {
                     self.visit_ident(node);
                 }
                 self.exit_expr(node);
+            }
+
+            /// Visit an identifier.
+            fn visit_type(&mut self, node: &$($mut_keyword)? AstType) {
+                self.enter_type(node);
+                self.visit_ident(&$($mut_keyword)? node.name);
+                for param in &$($mut_keyword)? node.generics.args {
+                    match param {
+                        AstGenericArg::Expr(node) => self.visit_expr(node),
+                        AstGenericArg::Type(node) => self.visit_type(node),
+                    }
+                }
+                self.exit_type(node);
             }
 
             /// Visit an identifier.

@@ -1,5 +1,5 @@
 use crate::{resolving, Analysis, TypeId};
-use shad_parser::{AstIdent, AstItemGenerics};
+use shad_parser::{AstIdent, AstItemGenerics, AstType};
 
 /// An analyzed generic parameter.
 #[derive(Debug, Clone)]
@@ -17,20 +17,6 @@ impl GenericParam {
             Self::Constant(param) => &param.name,
         }
     }
-
-    pub(crate) fn name_mut(&mut self) -> &mut AstIdent {
-        match self {
-            Self::Type(param) => &mut param.name,
-            Self::Constant(param) => &mut param.name,
-        }
-    }
-
-    pub(crate) fn constant_type_id(&self) -> Option<TypeId> {
-        match self {
-            Self::Type(_) => None,
-            Self::Constant(param) => param.type_id.clone(),
-        }
-    }
 }
 
 /// An analyzed type generic parameter.
@@ -45,8 +31,8 @@ pub struct TypeGenericParam {
 pub struct ConstantGenericParam {
     /// The parameter name.
     pub name: AstIdent,
-    /// The parameter type name.
-    pub type_name: AstIdent,
+    /// The parameter type.
+    pub type_: AstType,
     /// The parameter type identifier.
     pub type_id: Option<TypeId>,
 }
@@ -63,7 +49,7 @@ pub(crate) fn register_for_item(
             if let Some(type_) = &param.type_ {
                 GenericParam::Constant(ConstantGenericParam {
                     name,
-                    type_name: type_.clone(),
+                    type_: type_.clone(),
                     type_id: resolving::items::type_id_or_add_error(analysis, type_),
                 })
             } else {

@@ -38,7 +38,7 @@ pub(crate) fn to_wgsl(analysis: &Analysis, call: &AstFnCall) -> String {
 }
 
 fn cast_fn_call(fn_: &Function, call: String) -> String {
-    if fn_.return_type_id == Some(TypeId::from_builtin("bool")) {
+    if fn_.return_type.id == Some(TypeId::from_builtin("bool")) {
         format!("u32({call})")
     } else {
         call
@@ -48,7 +48,8 @@ fn cast_fn_call(fn_: &Function, call: String) -> String {
 fn cast_fn_arg(analysis: &Analysis, fn_: &Function, param: &FnParam, arg: &AstExpr) -> String {
     let expr = atoms::to_expr_wgsl(analysis, arg);
     let type_ = &analysis.types[param
-        .type_id
+        .type_
+        .id
         .as_ref()
         .expect("internal error: invalid param type")];
     if fn_.ast.gpu_qualifier.is_some()
