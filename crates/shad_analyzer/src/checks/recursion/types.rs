@@ -25,7 +25,8 @@ pub(crate) fn check(analysis: &mut Analysis) {
 fn visit(checker: &mut ItemRecursionCheck<'_, TypeId>, type_: &Type, ast: &AstStructItem) {
     for (ast_field, field) in ast.fields.iter().zip(&type_.fields) {
         let field_type = &checker.analysis.types[field
-            .type_id
+            .type_
+            .id
             .as_ref()
             .expect("internal error: missing field type")];
         if let Some(field_type_ast) = &field_type.ast {

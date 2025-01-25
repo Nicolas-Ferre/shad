@@ -1,5 +1,5 @@
 use crate::{registration, resolving, Analysis, GenericValue, Item, TypeId};
-use shad_parser::{AstExpr, AstExprRoot, AstFnCall};
+use shad_parser::{AstExpr, AstExprRoot, AstGenericArg, AstGenerics};
 
 pub(crate) fn semantic(analysis: &Analysis, expr: &AstExpr) -> ExprSemantic {
     match &expr.root {
@@ -39,29 +39,34 @@ pub(crate) fn semantic(analysis: &Analysis, expr: &AstExpr) -> ExprSemantic {
     }
 }
 
-pub(crate) fn fn_call_generic_values(
+pub(crate) fn generic_values(
     analysis: &Analysis,
-    call: &AstFnCall,
-) -> Option<Vec<GenericValue>> {
-    call.generics
+    generics: &AstGenerics,
+) -> Vec<Option<GenericValue>> {
+    generics
         .args
         .iter()
         .map(|arg| generic_value(analysis, arg))
         .collect()
 }
 
-fn generic_value(analysis: &Analysis, expr: &AstExpr) -> Option<GenericValue> {
-    generic_type_id(analysis, expr)
-        .map(GenericValue::Type)
-        .or_else(|| {
-            registration::constants::calculate_const_expr(analysis, expr)
-                .map(GenericValue::Constant)
-        })
+fn generic_value(analysis: &Analysis, arg: &AstGenericArg) -> Option<GenericValue> {
+    match arg {
+        AstGenericArg::Expr(expr) => generic_type_id(analysis, expr)
+            .map(GenericValue::Type)
+            .or_else(|| {
+                registration::constants::calculate_const_expr(analysis, expr)
+                    .map(GenericValue::Constant)
+            }),
+        AstGenericArg::Type(type_) => resolving::items::type_id(analysis, type_)
+            .ok()
+            .map(GenericValue::Type),
+    }
 }
 
 fn generic_type_id(analysis: &Analysis, expr: &AstExpr) -> Option<TypeId> {
     if let (AstExprRoot::Ident(ident), true) = (&expr.root, expr.fields.is_empty()) {
-        resolving::items::type_id(analysis, ident).ok()
+        resolving::items::type_id(analysis, &ident.clone().into()).ok()
     } else {
         None
     }

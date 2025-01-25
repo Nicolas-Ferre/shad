@@ -1,6 +1,6 @@
 use crate::GenericParam;
 use shad_error::{ErrorLevel, LocatedMessage, SemanticError};
-use shad_parser::{AstExpr, AstGenerics, AstIdent, AstItemGenerics};
+use shad_parser::{AstGenericArg, AstGenerics, AstIdent, AstItemGenerics};
 
 pub(crate) fn duplicated_param(
     duplicated_param: &GenericParam,
@@ -52,7 +52,7 @@ pub(crate) fn invalid_generic_count(
 }
 
 pub(crate) fn invalid_generic_type(
-    generic_value: &AstExpr,
+    generic_value: &AstGenericArg,
     generic_param_name: &AstIdent,
 ) -> SemanticError {
     SemanticError::new(
@@ -60,7 +60,7 @@ pub(crate) fn invalid_generic_type(
         vec![
             LocatedMessage {
                 level: ErrorLevel::Error,
-                span: generic_value.span.clone(),
+                span: generic_value.span().clone(),
                 text: "invalid type".into(),
             },
             LocatedMessage {
@@ -73,7 +73,7 @@ pub(crate) fn invalid_generic_type(
 }
 
 pub(crate) fn invalid_generic_constant(
-    generic_value: &AstExpr,
+    generic_value: &AstGenericArg,
     generic_param_name: &AstIdent,
 ) -> SemanticError {
     SemanticError::new(
@@ -81,7 +81,7 @@ pub(crate) fn invalid_generic_constant(
         vec![
             LocatedMessage {
                 level: ErrorLevel::Error,
-                span: generic_value.span.clone(),
+                span: generic_value.span().clone(),
                 text: "invalid constant expression".into(),
             },
             LocatedMessage {

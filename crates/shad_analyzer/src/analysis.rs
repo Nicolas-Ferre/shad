@@ -9,7 +9,7 @@ use crate::{
 };
 use fxhash::FxHashMap;
 use shad_error::SemanticError;
-use shad_parser::{Ast, AstFnCall, AstIdent};
+use shad_parser::{Ast, AstFnCall, AstIdent, AstType};
 
 /// The semantic analysis of an AST.
 #[derive(Debug, Clone)]
@@ -125,8 +125,8 @@ impl Analysis {
     }
 
     /// Returns the type ID corresponding to an identifier.
-    pub fn type_id(&self, ident: &AstIdent) -> Option<TypeId> {
-        resolving::items::type_id(self, ident).ok()
+    pub fn type_id(&self, type_: &AstType) -> Option<TypeId> {
+        resolving::items::type_id(self, type_).ok()
     }
 
     pub(crate) fn next_id(&mut self) -> u64 {

@@ -21,8 +21,8 @@ pub(crate) fn list_in_block(analysis: &Analysis, block: &AstRunItem) -> Vec<Type
 }
 
 fn fn_type_ids(fn_: &Function) -> impl Iterator<Item = TypeId> + '_ {
-    let param_types = fn_.params.iter().filter_map(|param| param.type_id.clone());
-    let return_type = fn_.return_type_id.iter().map(Clone::clone);
+    let param_types = fn_.params.iter().filter_map(|param| param.type_.id.clone());
+    let return_type = fn_.return_type.id.iter().map(Clone::clone);
     param_types.chain(return_type)
 }
 
@@ -34,7 +34,7 @@ fn all_recursive_type_ids(analysis: &Analysis, type_id: TypeId) -> Vec<TypeId> {
         let child_type_ids = type_
             .fields
             .iter()
-            .filter_map(|field| field.type_id.clone())
+            .filter_map(|field| field.type_.id.clone())
             .flat_map(|type_id| all_recursive_type_ids(analysis, type_id));
         iter::once(type_id).chain(child_type_ids).collect()
     }

@@ -16,7 +16,7 @@ pub(crate) fn expr(analysis: &Analysis, expr: &AstExpr) -> Option<TypeId> {
     for field in &expr.fields {
         if let Some(type_id) = &last_type_id {
             last_type_id = resolving::items::field(analysis, type_id, field)
-                .and_then(|field| field.type_id.clone());
+                .and_then(|field| field.type_.id.clone());
         } else {
             return None;
         }
@@ -51,7 +51,8 @@ pub(crate) fn buffer<'a>(analysis: &'a Analysis, buffer_id: &BufferId) -> Option
 
 fn fn_call(analysis: &Analysis, call: &AstFnCall) -> Option<TypeId> {
     resolving::items::fn_(analysis, call, true)?
-        .return_type_id
+        .return_type
+        .id
         .clone()
 }
 

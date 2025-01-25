@@ -1,13 +1,14 @@
 use crate::registration::constants::ConstantValue;
 use crate::registration::generics;
 use crate::registration::generics::GenericParam;
+use crate::registration::types::TypeRef;
 use crate::{
     errors, resolving, Analysis, ConstFnId, ConstFnParamType, Type, TypeId, NO_RETURN_TYPE,
 };
 use itertools::Itertools;
 use shad_parser::{
-    AstFnItem, AstFnParam, AstGpuQualifier, AstIdent, AstItem, AstItemGenerics, AstReturnType,
-    AstStructItem,
+    AstFnItem, AstFnParam, AstGenerics, AstGpuQualifier, AstIdent, AstItem, AstItemGenerics,
+    AstReturnType, AstStructItem,
 };
 use std::mem;
 
@@ -21,7 +22,7 @@ pub struct Function {
     /// Whether the function will be inlined.
     pub is_inlined: bool,
     /// The return type ID.
-    pub return_type_id: Option<TypeId>,
+    pub return_type: TypeRef,
     /// The analyzed function parameters.
     pub params: Vec<FnParam>,
     /// The type from which the function has been generated.
@@ -39,7 +40,8 @@ impl Function {
                 .iter()
                 .map(|param| {
                     param
-                        .type_id
+                        .type_
+                        .id
                         .as_ref()
                         .and_then(ConstFnParamType::from_type_id)
                 })
@@ -53,8 +55,8 @@ impl Function {
 pub struct FnParam {
     /// The parameter name.
     pub name: AstIdent,
-    /// The parameter type ID.
-    pub type_id: Option<TypeId>,
+    /// The parameter type.
+    pub type_: TypeRef,
 }
 
 /// The unique identifier of a function.
@@ -128,7 +130,7 @@ impl FnId {
             param_types: type_
                 .fields
                 .iter()
-                .map(|field| field.type_id.clone())
+                .map(|field| field.type_.id.clone())
                 .collect(),
             generic_values: vec![],
             param_count: type_.fields.len(),
@@ -163,13 +165,27 @@ fn register_initializers(analysis: &mut Analysis) {
                 ast: fn_.clone(),
                 id: id.clone(),
                 is_inlined: is_inlined(&fn_),
-                return_type_id: Some(type_id.clone()),
+                return_type: TypeRef {
+                    id: Some(type_id.clone()),
+                    generics: AstGenerics {
+                        span: ast.name.span.clone(),
+                        args: vec![],
+                    },
+                    generic_values: vec![],
+                },
                 params: type_
                     .fields
                     .iter()
                     .map(|field| FnParam {
                         name: field.name.clone(),
-                        type_id: field.type_id.clone(),
+                        type_: TypeRef {
+                            id: field.type_.id.clone(),
+                            generics: AstGenerics {
+                                span: ast.name.span.clone(),
+                                args: vec![],
+                            },
+                            generic_values: vec![],
+                        },
                     })
                     .collect(),
                 source_type: Some(type_id.clone()),
@@ -190,17 +206,24 @@ fn register_ast(analysis: &mut Analysis) {
                     ast: fn_ast.clone(),
                     id: id.clone(),
                     is_inlined: is_inlined(fn_ast),
-                    return_type_id: if let Some(return_type) = &fn_ast.return_type {
-                        resolving::items::type_id_or_add_error(analysis, &return_type.name)
+                    return_type: if let Some(return_type) = &fn_ast.return_type {
+                        TypeRef::register(analysis, &return_type.type_)
                     } else {
-                        Some(TypeId::from_builtin(NO_RETURN_TYPE))
+                        TypeRef {
+                            id: Some(TypeId::from_builtin(NO_RETURN_TYPE)),
+                            generics: AstGenerics {
+                                span: fn_ast.name.span.clone(),
+                                args: vec![],
+                            },
+                            generic_values: vec![],
+                        }
                     },
                     params: fn_ast
                         .params
                         .iter()
                         .map(|param| FnParam {
                             name: param.name.clone(),
-                            type_id: resolving::items::type_id_or_add_error(analysis, &param.type_),
+                            type_: TypeRef::register(analysis, &param.type_),
                         })
                         .collect(),
                     source_type: None,
@@ -236,7 +259,7 @@ fn struct_initializer_fn(ast: &AstStructItem) -> AstFnItem {
             })
             .collect(),
         return_type: Some(AstReturnType {
-            name: ast.name.clone(),
+            type_: ast.name.clone().into(),
             is_ref: false,
         }),
         statements: vec![],

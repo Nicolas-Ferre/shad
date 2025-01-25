@@ -66,7 +66,9 @@ impl<'a> GenericFnRegistration<'a> {
             .map(Some)
             .collect();
         specialized_fn.id.generic_values =
-            resolving::expressions::fn_call_generic_values(self.analysis, call)?;
+            resolving::expressions::generic_values(self.analysis, &call.generics)
+                .into_iter()
+                .collect::<Option<Vec<_>>>()?;
         StatementSpecialization::apply(&mut specialized_fn, generics);
         Some(specialized_fn)
     }

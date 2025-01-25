@@ -1,6 +1,6 @@
 use crate::atom::{parse_token, parse_token_option};
 use crate::token::{Lexer, TokenType};
-use crate::AstIdent;
+use crate::{AstIdent, AstType};
 use shad_error::{Span, SyntaxError};
 
 /// The parsed generic parameters of an item.
@@ -39,14 +39,14 @@ pub struct AstItemGenericParam {
     /// The parameter name.
     pub name: AstIdent,
     /// The parameter type.
-    pub type_: Option<AstIdent>,
+    pub type_: Option<AstType>,
 }
 
 impl AstItemGenericParam {
     fn parse(lexer: &mut Lexer<'_>) -> Result<Self, SyntaxError> {
         let name = AstIdent::parse(lexer)?;
         let type_ = if parse_token_option(lexer, TokenType::Colon)?.is_some() {
-            Some(AstIdent::parse(lexer)?)
+            Some(AstType::parse(lexer)?)
         } else {
             None
         };

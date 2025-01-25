@@ -27,7 +27,7 @@ pub(crate) fn check(analysis: &mut Analysis) {
 fn check_name(analysis: &mut Analysis, name: &AstGpuName) {
     for param in &name.generics {
         if let AstGpuGenericParam::Ident(param) = param {
-            resolving::items::type_id_or_add_error(analysis, param);
+            resolving::items::type_id_or_add_error(analysis, &param.clone().into());
         }
     }
 }

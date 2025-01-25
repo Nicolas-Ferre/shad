@@ -1,0 +1,197 @@
+error: expected 2 generic parameters, got 1 parameters
+ --> ./cases_invalid/generics/type_ref/main.shd:6:41
+  |
+1 | struct Generic<T, U: u32> {
+  |               ----------- info: expected generic parameters
+2 |     field: f32,
+...
+5 | struct InvalidFieldTypes {
+6 |     invalid_generic_param_count: Generic<u32>,
+  |                                         ^^^^^ invalid number of generic parameters
+  |
+
+error: expected type, got constant expression
+ --> ./cases_invalid/generics/type_ref/main.shd:7:35
+  |
+1 | struct Generic<T, U: u32> {
+  |                - info: type is expected
+2 |     field: f32,
+...
+6 |     invalid_generic_param_count: Generic<u32>,
+7 |     invalid_generic_type: Generic<1u, 1u>,
+  |                                   ^^ invalid type
+  |
+
+error: expected constant expression, got type
+ --> ./cases_invalid/generics/type_ref/main.shd:8:44
+  |
+1 | struct Generic<T, U: u32> {
+  |                   - info: constant expression is expected
+2 |     field: f32,
+...
+7 |     invalid_generic_type: Generic<1u, 1u>,
+8 |     invalid_generic_constant: Generic<u32, u32>,
+  |                                            ^^^ invalid constant expression
+  |
+
+error: expected constant expression, got type
+ --> ./cases_invalid/generics/type_ref/main.shd:9:63
+  |
+1 | struct Generic<T, U: u32> {
+  |                   - info: constant expression is expected
+2 |     field: f32,
+...
+8 |     invalid_generic_constant: Generic<u32, u32>,
+9 |     invalid_generic_constant_with_inner_generic: Generic<u32, Generic<u32, 1>>,
+  |                                                               ^^^^^^^^^^^^^^^ invalid constant expression
+  |
+
+error: expression with invalid type
+  --> ./cases_invalid/generics/type_ref/main.shd:10:49
+   |
+ 1 | struct Generic<T, U: u32> {
+   |                      --- info: expected type `u32`
+ 2 |     field: f32,
+...
+ 9 |     invalid_generic_constant_with_inner_generic: Generic<u32, Generic<u32, 1>>,
+10 |     invalid_generic_constant_type: Generic<u32, 1>,
+   |                                                 ^ invalid type `i32`
+   |
+
+error: could not find `undefined` value
+  --> ./cases_invalid/generics/type_ref/main.shd:11:39
+   |
+11 |     undefined_generic_params: Generic<undefined, undefined>,
+   |                                       ^^^^^^^^^ undefined identifier
+   |
+
+error: could not find `undefined` value
+  --> ./cases_invalid/generics/type_ref/main.shd:11:50
+   |
+11 |     undefined_generic_params: Generic<undefined, undefined>,
+   |                                                  ^^^^^^^^^ undefined identifier
+   |
+
+error: expected 2 generic parameters, got 1 parameters
+  --> ./cases_invalid/generics/type_ref/main.shd:15:41
+   |
+ 1 | struct Generic<T, U: u32> {
+   |               ----------- info: expected generic parameters
+ 2 |     field: f32,
+...
+14 | fn invalid_fn_param(
+15 |     invalid_generic_param_count: Generic<u32>,
+   |                                         ^^^^^ invalid number of generic parameters
+   |
+
+error: expected type, got constant expression
+  --> ./cases_invalid/generics/type_ref/main.shd:16:35
+   |
+ 1 | struct Generic<T, U: u32> {
+   |                - info: type is expected
+ 2 |     field: f32,
+...
+15 |     invalid_generic_param_count: Generic<u32>,
+16 |     invalid_generic_type: Generic<1u, 1u>,
+   |                                   ^^ invalid type
+   |
+
+error: expected constant expression, got type
+  --> ./cases_invalid/generics/type_ref/main.shd:17:44
+   |
+ 1 | struct Generic<T, U: u32> {
+   |                   - info: constant expression is expected
+ 2 |     field: f32,
+...
+16 |     invalid_generic_type: Generic<1u, 1u>,
+17 |     invalid_generic_constant: Generic<u32, u32>,
+   |                                            ^^^ invalid constant expression
+   |
+
+error: expression with invalid type
+  --> ./cases_invalid/generics/type_ref/main.shd:18:49
+   |
+ 1 | struct Generic<T, U: u32> {
+   |                      --- info: expected type `u32`
+ 2 |     field: f32,
+...
+17 |     invalid_generic_constant: Generic<u32, u32>,
+18 |     invalid_generic_constant_type: Generic<u32, 1>,
+   |                                                 ^ invalid type `i32`
+   |
+
+error: could not find `undefined` value
+  --> ./cases_invalid/generics/type_ref/main.shd:19:39
+   |
+19 |     undefined_generic_params: Generic<undefined, undefined>,
+   |                                       ^^^^^^^^^ undefined identifier
+   |
+
+error: could not find `undefined` value
+  --> ./cases_invalid/generics/type_ref/main.shd:19:50
+   |
+19 |     undefined_generic_params: Generic<undefined, undefined>,
+   |                                                  ^^^^^^^^^ undefined identifier
+   |
+
+error: expected 2 generic parameters, got 1 parameters
+  --> ./cases_invalid/generics/type_ref/main.shd:23:51
+   |
+ 1 | struct Generic<T, U: u32> {
+   |               ----------- info: expected generic parameters
+ 2 |     field: f32,
+...
+22 |
+23 | fn return_invalid_generic_param_count() -> Generic<u32> { return Generic(0.); }
+   |                                                   ^^^^^ invalid number of generic parameters
+   |
+
+error: expected type, got constant expression
+  --> ./cases_invalid/generics/type_ref/main.shd:24:45
+   |
+ 1 | struct Generic<T, U: u32> {
+   |                - info: type is expected
+ 2 |     field: f32,
+...
+23 | fn return_invalid_generic_param_count() -> Generic<u32> { return Generic(0.); }
+24 | fn return_invalid_generic_type() -> Generic<1u, 1u> { return Generic(0.); }
+   |                                             ^^ invalid type
+   |
+
+error: expected constant expression, got type
+  --> ./cases_invalid/generics/type_ref/main.shd:25:54
+   |
+ 1 | struct Generic<T, U: u32> {
+   |                   - info: constant expression is expected
+ 2 |     field: f32,
+...
+24 | fn return_invalid_generic_type() -> Generic<1u, 1u> { return Generic(0.); }
+25 | fn return_invalid_generic_constant() -> Generic<u32, u32> { return Generic(0.); }
+   |                                                      ^^^ invalid constant expression
+   |
+
+error: expression with invalid type
+  --> ./cases_invalid/generics/type_ref/main.shd:26:59
+   |
+ 1 | struct Generic<T, U: u32> {
+   |                      --- info: expected type `u32`
+ 2 |     field: f32,
+...
+25 | fn return_invalid_generic_constant() -> Generic<u32, u32> { return Generic(0.); }
+26 | fn return_invalid_generic_constant_type() -> Generic<u32, 1> { return Generic(0.); }
+   |                                                           ^ invalid type `i32`
+   |
+
+error: could not find `undefined` value
+  --> ./cases_invalid/generics/type_ref/main.shd:27:49
+   |
+27 | fn return_undefined_generic_params() -> Generic<undefined, undefined> { return Generic(0.); }
+   |                                                 ^^^^^^^^^ undefined identifier
+   |
+
+error: could not find `undefined` value
+  --> ./cases_invalid/generics/type_ref/main.shd:27:60
+   |
+27 | fn return_undefined_generic_params() -> Generic<undefined, undefined> { return Generic(0.); }
+   |                                                            ^^^^^^^^^ undefined identifier
+   |

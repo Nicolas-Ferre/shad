@@ -1,8 +1,10 @@
 use crate::registration::generics;
 use crate::registration::generics::GenericParam;
-use crate::{errors, resolving, Analysis};
+use crate::{errors, resolving, Analysis, GenericValue};
 use shad_error::SemanticError;
-use shad_parser::{AstGpuGenericParam, AstGpuQualifier, AstIdent, AstItem, AstStructItem};
+use shad_parser::{
+    AstGenerics, AstGpuGenericParam, AstGpuQualifier, AstIdent, AstItem, AstStructItem, AstType,
+};
 use std::mem;
 use std::num::NonZeroU32;
 use std::str::FromStr;
@@ -55,7 +57,7 @@ pub struct StructField {
     /// The field name.
     pub name: AstIdent,
     /// The field type ID.
-    pub type_id: Option<TypeId>,
+    pub type_: TypeRef,
     /// Whether the item is public.
     pub is_pub: bool,
 }
@@ -73,6 +75,27 @@ impl TypeId {
         Self {
             module: Some(fn_.name.span.module.name.clone()),
             name: fn_.name.label.clone(),
+        }
+    }
+}
+
+/// An analyzed type reference.
+#[derive(Debug, Clone)]
+pub struct TypeRef {
+    /// The type ID.
+    pub id: Option<TypeId>,
+    /// The generic arguments.
+    pub generics: AstGenerics,
+    /// The generic argument values.
+    pub generic_values: Vec<Option<GenericValue>>,
+}
+
+impl TypeRef {
+    pub(crate) fn register(analysis: &mut Analysis, type_: &AstType) -> Self {
+        Self {
+            id: resolving::items::type_id_or_add_error(analysis, type_),
+            generics: type_.generics.clone(),
+            generic_values: resolving::expressions::generic_values(analysis, &type_.generics),
         }
     }
 }
@@ -204,10 +227,11 @@ fn parse_array_generic_args(
     if let (Some(AstGpuGenericParam::Ident(item_type)), Some(AstGpuGenericParam::Literal(length))) =
         (generics.first(), generics.get(1))
     {
-        let item_type = resolving::items::type_id(analysis, item_type).map_err(|_| None)?;
+        let item_type = item_type.clone().into();
+        let item_type_id = resolving::items::type_id(analysis, &item_type).map_err(|_| None)?;
         let length = NonZeroU32::from_str(&length.cleaned_value)
             .map_err(|_| errors::types::invalid_gpu_array_args(gpu))?;
-        Ok((item_type, length.into()))
+        Ok((item_type_id, length.into()))
     } else {
         Err(Some(errors::types::invalid_gpu_array_args(gpu)))
     }
@@ -224,7 +248,7 @@ fn calculate_type_details(analysis: &mut Analysis, type_: &mut Type) {
         let are_fields_registered = type_
             .fields
             .iter()
-            .flat_map(|field| &field.type_id)
+            .flat_map(|field| &field.type_.id)
             .all(|type_id| analysis.types[type_id].size > 0);
         if are_fields_registered {
             if let Some((size, alignment)) = calculate_layout(analysis, type_, ast) {
@@ -240,7 +264,7 @@ fn analyze_fields(analysis: &mut Analysis, ast: &AstStructItem) -> Vec<StructFie
         .iter()
         .map(|field| StructField {
             name: field.name.clone(),
-            type_id: resolving::items::type_id_or_add_error(analysis, &field.type_),
+            type_: TypeRef::register(analysis, &field.type_),
             is_pub: field.is_pub,
         })
         .collect()
@@ -262,11 +286,11 @@ fn calculate_layout(analysis: &Analysis, type_: &Type, ast: &AstStructItem) -> O
         let alignment = type_
             .fields
             .iter()
-            .flat_map(|field| &field.type_id)
+            .flat_map(|field| &field.type_.id)
             .map(|type_id| analysis.types[type_id].alignment)
             .max()
             .unwrap_or(0);
-        let last_field_type_id = type_.fields[type_.fields.len() - 1].type_id.as_ref()?;
+        let last_field_type_id = type_.fields[type_.fields.len() - 1].type_.id.as_ref()?;
         let last_field_size = analysis.types[last_field_type_id].size;
         Some((
             round_up(
@@ -284,8 +308,8 @@ fn struct_offset(analysis: &Analysis, fields: &[StructField]) -> Option<u32> {
     Some(if fields.len() == 1 {
         0
     } else {
-        let last_field_type_id = fields[fields.len() - 1].type_id.as_ref()?;
-        let before_last_field_type_id = fields[fields.len() - 2].type_id.as_ref()?;
+        let last_field_type_id = fields[fields.len() - 1].type_.id.as_ref()?;
+        let before_last_field_type_id = fields[fields.len() - 2].type_.id.as_ref()?;
         let last_field_alignment = analysis.types[last_field_type_id].alignment;
         let before_last_field_size = analysis.types[before_last_field_type_id].size;
         round_up(

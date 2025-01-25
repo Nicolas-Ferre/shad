@@ -5,11 +5,11 @@ use crate::{
     TypeId,
 };
 use shad_error::SemanticError;
-use shad_parser::{AstFnCall, AstIdent};
+use shad_parser::{AstFnCall, AstIdent, AstType};
 use std::iter;
 
-pub(crate) fn type_id_or_add_error(analysis: &mut Analysis, name: &AstIdent) -> Option<TypeId> {
-    match type_id(analysis, name) {
+pub(crate) fn type_id_or_add_error(analysis: &mut Analysis, type_: &AstType) -> Option<TypeId> {
+    match type_id(analysis, type_) {
         Ok(type_id) => Some(type_id),
         Err(error) => {
             analysis.errors.push(error);
@@ -18,8 +18,8 @@ pub(crate) fn type_id_or_add_error(analysis: &mut Analysis, name: &AstIdent) -> 
     }
 }
 
-pub(crate) fn type_id(analysis: &Analysis, name: &AstIdent) -> Result<TypeId, SemanticError> {
-    let module = &name.span.module.name;
+pub(crate) fn type_id(analysis: &Analysis, type_: &AstType) -> Result<TypeId, SemanticError> {
+    let module = &type_.span.module.name;
     analysis
         .visible_modules
         .get(module)
@@ -30,7 +30,7 @@ pub(crate) fn type_id(analysis: &Analysis, name: &AstIdent) -> Result<TypeId, Se
         .filter_map(|module| {
             let id = TypeId {
                 module: module.cloned(),
-                name: name.label.clone(),
+                name: type_.name.label.clone(),
             };
             analysis.types.get(&id).map(|type_| (id, type_))
         })
@@ -39,7 +39,7 @@ pub(crate) fn type_id(analysis: &Analysis, name: &AstIdent) -> Result<TypeId, Se
                 || type_id.module.as_deref() == Some(module)
         })
         .map(|(type_id, _)| type_id)
-        .ok_or_else(|| errors::types::not_found(name))
+        .ok_or_else(|| errors::types::not_found(type_))
 }
 
 pub(crate) fn buffer<'a>(analysis: &'a Analysis, name: &AstIdent) -> Option<&'a Buffer> {
@@ -78,7 +78,9 @@ pub(crate) fn constant<'a>(analysis: &'a Analysis, name: &AstIdent) -> Option<&'
 
 pub(crate) fn fn_<'a>(analysis: &'a Analysis, call: &AstFnCall, raw: bool) -> Option<&'a Function> {
     let arg_types = fn_args(analysis, call)?;
-    let generic_args = resolving::expressions::fn_call_generic_values(analysis, call)?;
+    let generic_args = resolving::expressions::generic_values(analysis, &call.generics)
+        .into_iter()
+        .collect::<Option<Vec<_>>>()?;
     fn_with_genericity(analysis, call, raw, &arg_types, &generic_args, false)
         .or_else(|| fn_with_genericity(analysis, call, raw, &arg_types, &generic_args, true))
 }
@@ -135,7 +137,7 @@ fn have_same_param_types(analysis: &Analysis, call: &AstFnCall, fn_: &Function) 
         fn_args(analysis, call),
         fn_.params
             .iter()
-            .map(|param| param.type_id.clone())
+            .map(|param| param.type_.id.clone())
             .collect::<Option<Vec<_>>>(),
     ) {
         arg_type_ids == param_type_ids

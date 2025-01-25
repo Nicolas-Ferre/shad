@@ -63,7 +63,7 @@ pub(crate) fn to_fn_ident_wgsl(analysis: &Analysis, fn_: &Function) -> String {
                 .join(sep),
             fn_.params
                 .iter()
-                .filter_map(|param| param.type_id.as_ref())
+                .filter_map(|param| param.type_.id.as_ref())
                 .map(|type_id| to_type_wgsl(analysis, type_id))
                 .join(sep),
         )
@@ -113,7 +113,7 @@ fn to_gpu_name_wgsl(analysis: &Analysis, name: &AstGpuName) -> String {
                 .map(|param| match param {
                     AstGpuGenericParam::Ident(ident) => {
                         let type_id = analysis
-                            .type_id(ident)
+                            .type_id(&ident.clone().into())
                             .expect("internal error: missing type");
                         to_type_wgsl(analysis, &type_id)
                     }

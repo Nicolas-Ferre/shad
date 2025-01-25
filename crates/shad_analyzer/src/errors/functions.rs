@@ -149,7 +149,7 @@ pub(crate) fn invalid_const_fn_return_type(
         ),
         vec![LocatedMessage {
             level: ErrorLevel::Error,
-            span: return_type.name.span.clone(),
+            span: return_type.type_.span.clone(),
             text: "invalid return type".into(),
         }],
     )
