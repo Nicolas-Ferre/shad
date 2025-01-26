@@ -11,7 +11,8 @@ pub enum GenericParam {
 }
 
 impl GenericParam {
-    pub(crate) fn name(&self) -> &AstIdent {
+    /// Returns the name of the generic parameter.
+    pub fn name(&self) -> &AstIdent {
         match self {
             Self::Type(param) => &param.name,
             Self::Constant(param) => &param.name,

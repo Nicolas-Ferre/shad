@@ -20,7 +20,7 @@ pub fn generate_wgsl_compute_shader(analysis: &Analysis, shader: &ComputeShader)
     format!(
         "{}\n\n@compute @workgroup_size(1, 1, 1)\nfn main() {{\n{}\n}}\n\n{}\n\n{}",
         items::to_buffer_wgsl(analysis, shader),
-        statements::to_wgsl(analysis, &shader.statements),
+        statements::to_wgsl(analysis, &shader.statements, vec![]),
         items::to_struct_wgsl(analysis, shader),
         items::to_fn_wgsl(analysis, shader),
     )

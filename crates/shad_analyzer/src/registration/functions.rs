@@ -178,14 +178,7 @@ fn register_initializers(analysis: &mut Analysis) {
                     .iter()
                     .map(|field| FnParam {
                         name: field.name.clone(),
-                        type_: TypeRef {
-                            id: field.type_.id.clone(),
-                            generics: AstGenerics {
-                                span: ast.name.span.clone(),
-                                args: vec![],
-                            },
-                            generic_values: vec![],
-                        },
+                        type_: field.type_.clone(),
                     })
                     .collect(),
                 source_type: Some(type_id.clone()),

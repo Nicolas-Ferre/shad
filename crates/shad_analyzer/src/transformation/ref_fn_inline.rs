@@ -42,7 +42,7 @@ fn are_all_dependent_fns_inlined(
         .statements
         .iter()
         .flat_map(|s| listing::functions::list_in_statement(analysis, s))
-        .all(|id| are_fns_inlined[&id])
+        .all(|fn_| are_fns_inlined[&fn_.id])
 }
 
 fn visit_statements(analysis: &mut Analysis, statements: &mut Vec<AstStatement>) {

@@ -1,4 +1,4 @@
-use crate::{listing, Analysis, BufferId, FnId, TypeId};
+use crate::{listing, Analysis, BufferId, SpecializedFn, TypeId};
 use fxhash::{FxHashMap, FxHashSet};
 use itertools::Itertools;
 use shad_parser::{AstRunItem, AstStatement};
@@ -8,8 +8,8 @@ use shad_parser::{AstRunItem, AstStatement};
 pub struct ComputeShader {
     /// The buffers IDs used by the shader.
     pub buffer_ids: Vec<BufferId>,
-    /// The function IDs used by the shader.
-    pub fn_ids: Vec<FnId>,
+    /// The function used by the shader.
+    pub fns: Vec<SpecializedFn>,
     /// The type IDs used by the shader.
     pub type_ids: Vec<TypeId>,
     /// The statements of the shader.
@@ -20,7 +20,7 @@ impl ComputeShader {
     fn new(analysis: &Analysis, block: &AstRunItem) -> Self {
         Self {
             buffer_ids: listing::buffers::list_in_block(analysis, block),
-            fn_ids: listing::functions::list_in_block(analysis, block),
+            fns: listing::functions::list_in_block(analysis, block),
             type_ids: listing::types::list_in_block(analysis, block),
             statements: block.statements.clone(),
         }

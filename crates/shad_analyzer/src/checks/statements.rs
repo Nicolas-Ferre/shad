@@ -1,8 +1,5 @@
-use crate::resolving::expressions::ExprSemantic;
-use crate::{
-    errors, resolving, Analysis, FnId, Function, GenericParam, GenericValue, TypeRef,
-    NO_RETURN_TYPE,
-};
+use crate::resolving::expressions::{ExprSemantic, GenericValueType};
+use crate::{errors, resolving, Analysis, FnId, Function, GenericParam, TypeRef, NO_RETURN_TYPE};
 use shad_error::SemanticError;
 use shad_parser::{
     AstAssignment, AstExpr, AstExprRoot, AstFnCall, AstFnItem, AstGenerics, AstItemGenerics,
@@ -53,23 +50,25 @@ fn check_type_generic_args(
 ) {
     if let Some(type_) = type_ref.id.as_ref().map(|type_id| &analysis.types[type_id]) {
         if let Some(ast) = &type_.ast {
+            let generic_values =
+                resolving::expressions::generic_value_types(analysis, &type_ref.generics);
             check_generic_args(
                 errors,
                 &type_ref.generics,
                 &ast.generics,
                 &type_.generics,
-                type_ref.generic_values.iter().map(|v| v.as_ref()),
+                &generic_values,
             );
         }
     }
 }
 
-fn check_generic_args<'b>(
+fn check_generic_args(
     errors: &mut Vec<SemanticError>,
     generics: &AstGenerics,
     item_generics: &AstItemGenerics,
     generic_params: &[GenericParam],
-    generic_values: impl Iterator<Item = Option<&'b GenericValue>>,
+    generic_value_types: &[GenericValueType],
 ) {
     if item_generics.params.len() != generics.args.len() {
         errors.push(errors::generics::invalid_generic_count(
@@ -77,38 +76,37 @@ fn check_generic_args<'b>(
             generics,
         ));
     }
-    for ((param, arg), arg_ast) in generic_params
+    for ((param, value_type), arg_ast) in generic_params
         .iter()
-        .zip(generic_values)
+        .zip(generic_value_types)
         .zip(&generics.args)
     {
-        match (param, arg) {
-            (GenericParam::Constant(_), Some(GenericValue::Type(_))) => {
+        match (param, value_type) {
+            (GenericParam::Constant(_), GenericValueType::Type) => {
                 errors.push(errors::generics::invalid_generic_constant(
                     arg_ast,
                     param.name(),
                 ));
             }
-            (GenericParam::Type(_), Some(GenericValue::Constant(_))) => {
+            (GenericParam::Type(_), GenericValueType::Constant(_)) => {
                 errors.push(errors::generics::invalid_generic_type(
                     arg_ast,
                     param.name(),
                 ));
             }
-            (GenericParam::Constant(param), Some(GenericValue::Constant(arg))) => {
+            (GenericParam::Constant(param), GenericValueType::Constant(type_id)) => {
                 if let Some(expected_type) = &param.type_id {
-                    let actual_type = arg.type_id();
-                    if expected_type != &actual_type {
+                    if expected_type != type_id {
                         errors.push(errors::expressions::invalid_type(
                             &param.type_.span,
                             arg_ast.span(),
                             expected_type,
-                            &actual_type,
+                            type_id,
                         ));
                     }
                 }
             }
-            (GenericParam::Type(_), Some(GenericValue::Type(_))) | (_, None) => (),
+            (GenericParam::Type(_), GenericValueType::Type) | (_, GenericValueType::None) => (),
         }
     }
 }
@@ -217,10 +215,7 @@ impl Visit for StatementCheck<'_> {
     }
 
     fn enter_fn_call(&mut self, node: &AstFnCall) {
-        let (Some(fn_), Some(specialized_fn)) = (
-            resolving::items::fn_(self.analysis, node, true),
-            resolving::items::fn_(self.analysis, node, false),
-        ) else {
+        let Some(fn_) = resolving::items::fn_(self.analysis, node, true) else {
             return;
         };
         for (arg, param) in node.args.iter().zip(&fn_.ast.params) {
@@ -231,12 +226,14 @@ impl Visit for StatementCheck<'_> {
                 }
             }
         }
+        let generic_values =
+            resolving::expressions::generic_value_types(self.analysis, &node.generics);
         check_generic_args(
             &mut self.errors,
             &node.generics,
             &fn_.ast.generics,
             &fn_.generics,
-            specialized_fn.id.generic_values.iter().map(Some),
+            &generic_values,
         );
     }
 

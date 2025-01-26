@@ -5,11 +5,14 @@ use crate::registration::shaders::ComputeShader;
 use crate::registration::vars::Var;
 use crate::{
     checks, registration, resolving, transformation, Buffer, BufferId, BufferInitRunBlock, FnId,
-    RunBlock, Type, TypeId,
+    GenericValue, RunBlock, Type, TypeId,
 };
 use fxhash::FxHashMap;
 use shad_error::SemanticError;
 use shad_parser::{Ast, AstFnCall, AstIdent, AstType};
+
+// TODO: remove all specializations from analyzer
+// TODO: test generic constants passed as generic argument of function call (and params/ return types ?)
 
 /// The semantic analysis of an AST.
 #[derive(Debug, Clone)]
@@ -73,8 +76,8 @@ impl Analysis {
         registration::modules::register(&mut analysis);
         registration::types::register(&mut analysis);
         registration::functions::register(&mut analysis);
+        analysis.raw_fns.clone_from(&analysis.fns); // TODO: remove
         registration::constants::register(&mut analysis);
-        registration::specialized_fns::register(&mut analysis);
         registration::buffers::register(&mut analysis);
         transformation::fn_params::transform(&mut analysis);
         registration::vars::register(&mut analysis);
@@ -121,12 +124,21 @@ impl Analysis {
 
     /// Returns the function corresponding to a function call.
     pub fn fn_(&self, call: &AstFnCall) -> Option<&Function> {
-        resolving::items::fn_(self, call, false)
+        resolving::items::fn_(self, call, true)
     }
 
     /// Returns the type ID corresponding to an identifier.
     pub fn type_id(&self, type_: &AstType) -> Option<TypeId> {
         resolving::items::type_id(self, type_).ok()
+    }
+
+    /// Returns the resolved generic arguments of a function call.
+    pub fn fn_call_generic_args(
+        &self,
+        call: &AstFnCall,
+        generic_values: &[(String, GenericValue)],
+    ) -> Vec<GenericValue> {
+        resolving::expressions::fn_call_generic_values(self, call, generic_values)
     }
 
     pub(crate) fn next_id(&mut self) -> u64 {

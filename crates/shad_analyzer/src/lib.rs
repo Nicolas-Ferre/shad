@@ -31,6 +31,7 @@ mod resolving;
 mod transformation;
 
 pub use analysis::*;
+pub use listing::functions::*;
 pub use registration::buffers::*;
 pub use registration::const_fns::*;
 pub use registration::constants::*;

@@ -40,7 +40,7 @@ fn register_fns(analysis: &mut Analysis) {
         register_fn(analysis, fn_);
     }
     analysis.fns = fns;
-    let mut fns = mem::take(&mut analysis.raw_fns);
+    let mut fns = analysis.raw_fns.clone();
     for fn_ in fns.values_mut() {
         register_fn(analysis, fn_);
     }

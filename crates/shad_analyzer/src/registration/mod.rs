@@ -6,6 +6,5 @@ pub(crate) mod generics;
 pub(crate) mod modules;
 pub(crate) mod run_blocks;
 pub(crate) mod shaders;
-pub(crate) mod specialized_fns;
 pub(crate) mod types;
 pub(crate) mod vars;

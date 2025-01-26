@@ -1,7 +1,7 @@
 use crate::{atoms, statements};
 use itertools::Itertools;
 use shad_analyzer::{
-    Analysis, BufferId, ComputeShader, FnId, FnParam, Function, StructField, TypeId,
+    Analysis, BufferId, ComputeShader, FnParam, Function, SpecializedFn, StructField, TypeId,
 };
 
 pub(crate) fn to_buffer_wgsl(analysis: &Analysis, shader: &ComputeShader) -> String {
@@ -29,13 +29,13 @@ pub(crate) fn to_struct_wgsl(analysis: &Analysis, shader: &ComputeShader) -> Str
 
 pub(crate) fn to_fn_wgsl(analysis: &Analysis, shader: &ComputeShader) -> String {
     shader
-        .fn_ids
+        .fns
         .iter()
-        .filter(|id| {
-            let fn_ = &analysis.fns[id];
+        .filter(|fn_| {
+            let fn_ = &analysis.fns[&fn_.id];
             !fn_.is_inlined && fn_.ast.gpu_qualifier.is_none()
         })
-        .map(|id| fn_item(analysis, id))
+        .map(|fn_| fn_item(analysis, fn_))
         .join("\n")
 }
 
@@ -77,14 +77,18 @@ fn struct_field(analysis: &Analysis, field: &StructField) -> String {
     )
 }
 
-fn fn_item(analysis: &Analysis, fn_id: &FnId) -> String {
-    let fn_ = &analysis.fns[fn_id];
+fn fn_item(analysis: &Analysis, specialized_fn: &SpecializedFn) -> String {
+    let fn_ = &analysis.fns[&specialized_fn.id];
     format!(
         "fn {}({}){} {{\n{}\n}}",
-        atoms::to_fn_ident_wgsl(analysis, fn_),
+        atoms::to_fn_ident_wgsl(analysis, fn_, &specialized_fn.generic_args),
         fn_params(analysis, fn_),
         fn_return_type(analysis, fn_),
-        statements::to_wgsl(analysis, &fn_.ast.statements)
+        statements::to_wgsl(
+            analysis,
+            &fn_.ast.statements,
+            specialized_fn.generic_args.clone()
+        )
     )
 }
 
@@ -103,7 +107,7 @@ fn fn_param(analysis: &Analysis, param: &FnParam) -> String {
         .expect("internal error: invalid param type");
     format!(
         "{}: {}",
-        atoms::to_var_ident_wgsl(analysis, &param.name),
+        atoms::to_var_ident_wgsl(analysis, &param.name, &[]),
         atoms::to_type_wgsl(analysis, type_id)
     )
 }
