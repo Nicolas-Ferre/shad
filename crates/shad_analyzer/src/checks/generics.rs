@@ -10,7 +10,7 @@ pub(crate) fn check(analysis: &mut Analysis) {
     for type_ in analysis.types.values() {
         check_item_params(&mut errors, &type_.generics);
     }
-    for fn_ in analysis.raw_fns.values() {
+    for fn_ in analysis.fns.values() {
         check_item_params(&mut errors, &fn_.generics);
     }
     analysis.errors.extend(errors);

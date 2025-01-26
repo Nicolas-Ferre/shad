@@ -13,6 +13,7 @@ use shad_parser::{Ast, AstFnCall, AstIdent, AstType};
 
 // TODO: remove all specializations from analyzer
 // TODO: test generic constants passed as generic argument of function call (and params/ return types ?)
+// TODO: test also fn inline with generic constants
 
 /// The semantic analysis of an AST.
 #[derive(Debug, Clone)]
@@ -27,10 +28,8 @@ pub struct Analysis {
     pub visible_modules: FxHashMap<String, Vec<String>>,
     /// The analyzed types.
     pub types: FxHashMap<TypeId, Type>,
-    /// The analyzed functions obtained after specialization.
+    /// The analyzed functions.
     pub fns: FxHashMap<FnId, Function>,
-    /// The initial analyzed functions, without generics resolution.
-    pub raw_fns: FxHashMap<FnId, Function>,
     /// The analyzed constants.
     pub constants: FxHashMap<ConstantId, Constant>,
     /// The analyzed buffers.
@@ -59,7 +58,6 @@ impl Analysis {
             module_ids: FxHashMap::default(),
             visible_modules: FxHashMap::default(),
             types: FxHashMap::default(),
-            raw_fns: FxHashMap::default(),
             fns: FxHashMap::default(),
             constants: FxHashMap::default(),
             buffers: FxHashMap::default(),
@@ -76,7 +74,6 @@ impl Analysis {
         registration::modules::register(&mut analysis);
         registration::types::register(&mut analysis);
         registration::functions::register(&mut analysis);
-        analysis.raw_fns.clone_from(&analysis.fns); // TODO: remove
         registration::constants::register(&mut analysis);
         registration::buffers::register(&mut analysis);
         transformation::fn_params::transform(&mut analysis);
@@ -124,7 +121,7 @@ impl Analysis {
 
     /// Returns the function corresponding to a function call.
     pub fn fn_(&self, call: &AstFnCall) -> Option<&Function> {
-        resolving::items::fn_(self, call, true)
+        resolving::items::fn_(self, call)
     }
 
     /// Returns the type ID corresponding to an identifier.

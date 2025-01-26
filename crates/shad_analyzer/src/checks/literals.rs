@@ -14,7 +14,7 @@ pub(crate) fn check(analysis: &mut Analysis) {
     for block in &analysis.run_blocks {
         checker.visit_run_item(&block.ast);
     }
-    for fn_ in analysis.raw_fns.values() {
+    for fn_ in analysis.fns.values() {
         checker.visit_fn_item(&fn_.ast);
     }
     analysis.errors.extend(checker.errors);

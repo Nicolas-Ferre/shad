@@ -74,7 +74,7 @@ impl<'a> RefFnInlineTransform<'a> {
 impl VisitMut for RefFnInlineTransform<'_> {
     fn exit_expr_statement(&mut self, node: &mut AstExprStatement) {
         if let AstExprRoot::FnCall(call) = &node.expr.root {
-            if let Some(fn_) = resolving::items::fn_(self.analysis, call, false) {
+            if let Some(fn_) = resolving::items::fn_(self.analysis, call) {
                 if fn_.is_inlined {
                     node.expr = AstLiteral {
                         span: node.span.clone(),
@@ -110,7 +110,7 @@ impl VisitMut for RefFnInlineTransform<'_> {
 }
 
 fn inlined_fn_statements(analysis: &mut Analysis, call: &AstFnCall) -> Vec<AstStatement> {
-    if let Some(fn_) = resolving::items::fn_(analysis, call, false) {
+    if let Some(fn_) = resolving::items::fn_(analysis, call) {
         let mut fn_ = fn_.clone();
         if fn_.is_inlined {
             registration::vars::register_fn(analysis, &mut fn_);

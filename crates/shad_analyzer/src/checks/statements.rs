@@ -29,7 +29,7 @@ pub(crate) fn check(analysis: &mut Analysis) {
             }
         }
     }
-    for fn_ in analysis.raw_fns.values() {
+    for fn_ in analysis.fns.values() {
         if fn_.source_type.is_none() {
             checker.module = &fn_.ast.name.span.module.name;
             checker.fn_ = Some(fn_);
@@ -70,7 +70,7 @@ fn check_generic_args(
     generic_params: &[GenericParam],
     generic_value_types: &[GenericValueType],
 ) {
-    if item_generics.params.len() != generics.args.len() {
+    if dbg!(item_generics.params.len()) != dbg!(generics.args.len()) {
         errors.push(errors::generics::invalid_generic_count(
             item_generics,
             generics,
@@ -215,7 +215,7 @@ impl Visit for StatementCheck<'_> {
     }
 
     fn enter_fn_call(&mut self, node: &AstFnCall) {
-        let Some(fn_) = resolving::items::fn_(self.analysis, node, true) else {
+        let Some(fn_) = resolving::items::fn_(self.analysis, node) else {
             return;
         };
         for (arg, param) in node.args.iter().zip(&fn_.ast.params) {
@@ -254,7 +254,7 @@ impl Visit for StatementCheck<'_> {
                 }
             }
             AstExprRoot::FnCall(call) => {
-                if resolving::items::fn_(self.analysis, call, true).is_none() {
+                if resolving::items::fn_(self.analysis, call).is_none() {
                     if let Some(arg_type_ids) = resolving::types::fn_args(self.analysis, call) {
                         if let Some(generic_args) =
                             resolving::expressions::generic_values(self.analysis, &call.generics)

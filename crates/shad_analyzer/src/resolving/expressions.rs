@@ -17,7 +17,7 @@ pub(crate) fn semantic(analysis: &Analysis, expr: &AstExpr) -> ExprSemantic {
         },
         AstExprRoot::FnCall(call) => {
             if expr.fields.is_empty() {
-                if let Some(fn_) = resolving::items::fn_(analysis, call, true) {
+                if let Some(fn_) = resolving::items::fn_(analysis, call) {
                     fn_.ast
                         .return_type
                         .as_ref()

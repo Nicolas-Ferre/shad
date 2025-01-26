@@ -44,7 +44,7 @@ impl<'a> FunctionListing<'a> {
 
 impl Visit for FunctionListing<'_> {
     fn enter_fn_call(&mut self, node: &AstFnCall) {
-        if let Some(fn_) = resolving::items::fn_(self.analysis, node, true) {
+        if let Some(fn_) = resolving::items::fn_(self.analysis, node) {
             let generic_values = &self.generic_values[self.generic_values.len() - 1];
             let generic_args =
                 resolving::expressions::fn_call_generic_values(self.analysis, node, generic_values)
