@@ -10,6 +10,8 @@ pub struct Var {
     pub(crate) type_id: Option<TypeId>,
     /// Whether the variable is a constant value.
     pub(crate) is_const: bool,
+    /// Whether the variable is a function parameter.
+    pub(crate) is_param: bool,
 }
 
 pub(crate) fn register(analysis: &mut Analysis) {
@@ -46,12 +48,12 @@ pub(crate) fn register_fn(analysis: &mut Analysis, fn_: &mut Function) {
     let mut registration = VarRegistration::new(analysis);
     for (param, param_ast) in fn_.generics.iter_mut().zip(&mut fn_.ast.generics.params) {
         if let GenericParam::Constant(constant) = param {
-            registration.register_var(&mut constant.name, constant.type_id.clone(), true);
+            registration.register_var(&mut constant.name, constant.type_id.clone(), true, true);
             param_ast.name.var_id = constant.name.var_id;
         }
     }
     for (param, param_ast) in fn_.params.iter_mut().zip(&mut fn_.ast.params) {
-        registration.register_var(&mut param.name, param.type_.id.clone(), false);
+        registration.register_var(&mut param.name, param.type_.id.clone(), false, true);
         param_ast.name.var_id = param.name.var_id;
     }
     for statement in &mut fn_.ast.statements {
@@ -72,12 +74,23 @@ impl<'a> VarRegistration<'a> {
         }
     }
 
-    fn register_var(&mut self, node: &mut AstIdent, type_id: Option<TypeId>, is_const: bool) {
+    fn register_var(
+        &mut self,
+        node: &mut AstIdent,
+        type_id: Option<TypeId>,
+        is_const: bool,
+        is_param: bool,
+    ) {
         node.var_id = self.analysis.next_id();
         self.var_ids.insert(node.label.clone(), node.var_id);
-        self.analysis
-            .vars
-            .insert(node.var_id, Var { type_id, is_const });
+        self.analysis.vars.insert(
+            node.var_id,
+            Var {
+                type_id,
+                is_const,
+                is_param,
+            },
+        );
     }
 }
 
@@ -86,6 +99,7 @@ impl VisitMut for VarRegistration<'_> {
         self.register_var(
             &mut node.name,
             resolving::types::expr(self.analysis, &node.expr),
+            false,
             false,
         );
     }

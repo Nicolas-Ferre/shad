@@ -1,6 +1,6 @@
 use crate::{
-    errors, resolving, Analysis, ConstFnId, ConstFnParamType, GenericParam, GenericValue, TypeId,
-    BOOL_TYPE, F32_TYPE, I32_TYPE, U32_TYPE,
+    errors, resolving, Analysis, ConstFnId, ConstFnParamType, TypeId, BOOL_TYPE, F32_TYPE,
+    I32_TYPE, U32_TYPE,
 };
 use shad_error::Span;
 use shad_parser::{AstConstItem, AstExpr, AstExprRoot, AstItem, AstLiteral, AstLiteralType};
@@ -183,7 +183,7 @@ fn register_values(analysis: &mut Analysis) {
                     .constants
                     .get_mut(&id)
                     .expect("internal error: missing constant")
-                    .value = calculate_const_expr_value(analysis, &constant.ast.value, &[]);
+                    .value = calculate_const_expr_value(analysis, &constant.ast.value);
             }
         }
         let calculated_constant_value = calculated_constant_count(analysis);
@@ -197,7 +197,6 @@ fn register_values(analysis: &mut Analysis) {
 pub(crate) fn calculate_const_expr_value(
     analysis: &Analysis,
     expr: &AstExpr,
-    generic_values: &[(String, GenericValue)],
 ) -> Option<ConstantValue> {
     match &expr.root {
         AstExprRoot::Literal(literal) => {
@@ -212,27 +211,13 @@ pub(crate) fn calculate_const_expr_value(
             }
         }
         AstExprRoot::Ident(ident) => {
-            if let Some(value) = generic_values.iter().find_map(|(name, value)| {
-                if name == &ident.label {
-                    match value {
-                        GenericValue::Type(_) => None,
-                        GenericValue::Constant(value) => Some(value),
-                    }
-                } else {
-                    None
-                }
-            }) {
-                Some(value.clone())
-            } else {
-                resolving::items::constant(analysis, ident)
-                    .and_then(|constant| constant.value.clone())
-            }
+            resolving::items::constant(analysis, ident).and_then(|constant| constant.value.clone())
         }
         AstExprRoot::FnCall(call) => {
             let args: Vec<_> = call
                 .args
                 .iter()
-                .map(|arg| calculate_const_expr_value(analysis, &arg.value, generic_values))
+                .map(|arg| calculate_const_expr_value(analysis, &arg.value))
                 .collect::<Option<_>>()?;
             if let Some(fn_) = resolving::items::const_fn(analysis, call, &args) {
                 let const_fn_id = fn_.const_fn_id()?;
@@ -247,11 +232,7 @@ pub(crate) fn calculate_const_expr_value(
     }
 }
 
-pub(crate) fn calculate_const_expr_type(
-    analysis: &Analysis,
-    expr: &AstExpr,
-    generic_params: &[GenericParam],
-) -> Option<TypeId> {
+pub(crate) fn calculate_const_expr_type(analysis: &Analysis, expr: &AstExpr) -> Option<TypeId> {
     match &expr.root {
         AstExprRoot::Literal(literal) => match literal.type_ {
             AstLiteralType::F32 => Some(TypeId::from_builtin(F32_TYPE)),
@@ -259,30 +240,15 @@ pub(crate) fn calculate_const_expr_type(
             AstLiteralType::I32 => Some(TypeId::from_builtin(I32_TYPE)),
             AstLiteralType::Bool => Some(TypeId::from_builtin(BOOL_TYPE)),
         },
-        AstExprRoot::Ident(ident) => {
-            if let Some(value) = generic_params.iter().find_map(|param| {
-                if param.name().label == ident.label {
-                    match param {
-                        GenericParam::Type(_) => None,
-                        GenericParam::Constant(param) => param.type_id.clone(),
-                    }
-                } else {
-                    None
-                }
-            }) {
-                Some(value)
-            } else {
-                resolving::items::constant(analysis, ident)
-                    .and_then(|constant| constant.value.as_ref())
-                    .map(ConstantValue::type_id)
-            }
-        }
+        AstExprRoot::Ident(ident) => resolving::items::constant(analysis, ident)
+            .and_then(|constant| constant.value.as_ref())
+            .map(ConstantValue::type_id),
         AstExprRoot::FnCall(call) => {
             let const_fn_param_types = call
                 .args
                 .iter()
                 .map(|arg| {
-                    calculate_const_expr_type(analysis, &arg.value, generic_params)
+                    calculate_const_expr_type(analysis, &arg.value)
                         .as_ref()
                         .and_then(ConstFnParamType::from_type_id)
                 })

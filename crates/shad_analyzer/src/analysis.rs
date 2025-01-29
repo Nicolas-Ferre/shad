@@ -11,10 +11,6 @@ use fxhash::FxHashMap;
 use shad_error::SemanticError;
 use shad_parser::{Ast, AstFnCall, AstIdent, AstType};
 
-// TODO: remove all specializations from analyzer
-// TODO: test generic constants passed as generic argument of function call (and params/ return types ?)
-// TODO: test also fn inline with generic constants
-
 /// The semantic analysis of an AST.
 #[derive(Debug, Clone)]
 pub struct Analysis {
@@ -95,7 +91,6 @@ impl Analysis {
             return analysis;
         }
         checks::recursion::types::check(&mut analysis);
-        transformation::constants::transform(&mut analysis);
         transformation::left_values::transform(&mut analysis);
         transformation::ref_split::transform(&mut analysis);
         transformation::ref_fn_inline::transform(&mut analysis);

@@ -70,7 +70,7 @@ fn check_generic_args(
     generic_params: &[GenericParam],
     generic_value_types: &[GenericValueType],
 ) {
-    if dbg!(item_generics.params.len()) != dbg!(generics.args.len()) {
+    if item_generics.params.len() != generics.args.len() {
         errors.push(errors::generics::invalid_generic_count(
             item_generics,
             generics,

@@ -1,8 +1,8 @@
 use crate::{listing, registration, resolving, Analysis, FnId};
 use fxhash::FxHashMap;
 use shad_parser::{
-    AstExpr, AstExprRoot, AstExprStatement, AstFnCall, AstFnItem, AstLiteral, AstLiteralType,
-    AstStatement, VisitMut,
+    AstExpr, AstExprRoot, AstExprStatement, AstFnCall, AstFnItem, AstGenericArg, AstLiteral,
+    AstLiteralType, AstStatement, VisitMut,
 };
 use std::mem;
 
@@ -110,11 +110,10 @@ impl VisitMut for RefFnInlineTransform<'_> {
 }
 
 fn inlined_fn_statements(analysis: &mut Analysis, call: &AstFnCall) -> Vec<AstStatement> {
-    if let Some(fn_) = resolving::items::fn_(analysis, call) {
-        let mut fn_ = fn_.clone();
+    if let Some(mut fn_) = resolving::items::fn_(analysis, call).cloned() {
         if fn_.is_inlined {
             registration::vars::register_fn(analysis, &mut fn_);
-            let mut transform = RefFnStatementsTransform::new(&fn_.ast, call);
+            let mut transform = RefFnStatementsTransform::new(analysis, &fn_.ast, call);
             fn_.ast
                 .statements
                 .into_iter()
@@ -131,28 +130,55 @@ fn inlined_fn_statements(analysis: &mut Analysis, call: &AstFnCall) -> Vec<AstSt
     }
 }
 
-struct RefFnStatementsTransform {
+struct RefFnStatementsTransform<'a> {
+    analysis: &'a Analysis,
     param_args: FxHashMap<String, AstExpr>,
+    generic_constants: FxHashMap<String, AstExpr>,
 }
 
-impl RefFnStatementsTransform {
-    fn new(fn_: &AstFnItem, call: &AstFnCall) -> Self {
+impl<'a> RefFnStatementsTransform<'a> {
+    fn new(analysis: &'a Analysis, fn_: &AstFnItem, call: &AstFnCall) -> Self {
         Self {
+            analysis,
             param_args: fn_
                 .params
                 .iter()
                 .zip(&call.args)
                 .map(|(param, arg)| (param.name.label.clone(), arg.value.clone()))
                 .collect(),
+            generic_constants: call
+                .generics
+                .args
+                .iter()
+                .zip(&fn_.generics.params)
+                .filter_map(|(arg, param)| {
+                    if param.type_.is_some() {
+                        match arg {
+                            AstGenericArg::Expr(expr) => {
+                                Some((param.name.label.clone(), expr.clone()))
+                            }
+                            AstGenericArg::Type(_) => None,
+                        }
+                    } else {
+                        None
+                    }
+                })
+                .collect(),
         }
     }
 }
 
-impl VisitMut for RefFnStatementsTransform {
+impl VisitMut for RefFnStatementsTransform<'_> {
     fn enter_expr(&mut self, node: &mut AstExpr) {
         if let AstExprRoot::Ident(ident) = &node.root {
-            if let Some(new_root) = self.param_args.get(&ident.label) {
-                node.replace_root(new_root.clone());
+            if let Some(var) = self.analysis.vars.get(&ident.var_id) {
+                if let (true, Some(new_root)) = (var.is_param, self.param_args.get(&ident.label)) {
+                    node.replace_root(new_root.clone());
+                } else if let (true, Some(new_root)) =
+                    (var.is_const, self.generic_constants.get(&ident.label))
+                {
+                    node.replace_root(new_root.clone());
+                }
             }
         }
     }

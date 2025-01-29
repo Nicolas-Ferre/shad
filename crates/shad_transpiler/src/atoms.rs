@@ -42,7 +42,13 @@ pub(crate) fn to_var_ident_wgsl(
         to_literal_wgsl(&value.literal(&name.span))
     } else {
         match analysis.item(name) {
-            Some(Item::Constant(_)) => unreachable!("internal error: not inlined constant"),
+            Some(Item::Constant(constant)) => to_literal_wgsl(
+                &constant
+                    .value
+                    .as_ref()
+                    .expect("internal error: invalid constant")
+                    .literal(&name.span),
+            ),
             Some(Item::Buffer(buffer)) => to_buffer_ident_wgsl(analysis, &buffer.id),
             Some(Item::Var(_)) | None => format!("v{}_{}", name.var_id, name.label),
         }

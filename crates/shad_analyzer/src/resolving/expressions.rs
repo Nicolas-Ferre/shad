@@ -1,4 +1,4 @@
-use crate::{registration, resolving, Analysis, GenericParam, GenericValue, Item, TypeId};
+use crate::{registration, resolving, Analysis, GenericValue, Item, TypeId};
 use shad_parser::{AstExpr, AstExprRoot, AstFnCall, AstGenericArg, AstGenerics};
 
 pub(crate) fn semantic(analysis: &Analysis, expr: &AstExpr) -> ExprSemantic {
@@ -42,12 +42,12 @@ pub(crate) fn semantic(analysis: &Analysis, expr: &AstExpr) -> ExprSemantic {
 pub(crate) fn fn_call_generic_values(
     analysis: &Analysis,
     call: &AstFnCall,
-    generic_values: &[(String, GenericValue)],
+    _generic_values: &[(String, GenericValue)],
 ) -> Vec<GenericValue> {
     call.generics
         .args
         .iter()
-        .filter_map(|arg| generic_value(analysis, arg, generic_values))
+        .filter_map(|arg| generic_value(analysis, arg))
         .collect()
 }
 
@@ -58,20 +58,16 @@ pub(crate) fn generic_value_types(
     generics
         .args
         .iter()
-        .map(|arg| generic_value_type(analysis, arg, &[]))
+        .map(|arg| generic_value_type(analysis, arg))
         .collect()
 }
 
-fn generic_value_type(
-    analysis: &Analysis,
-    arg: &AstGenericArg,
-    generic_params: &[GenericParam],
-) -> GenericValueType {
+fn generic_value_type(analysis: &Analysis, arg: &AstGenericArg) -> GenericValueType {
     match arg {
         AstGenericArg::Expr(expr) => generic_type_id(analysis, expr)
             .map(|_| GenericValueType::Type)
             .or_else(|| {
-                registration::constants::calculate_const_expr_type(analysis, expr, generic_params)
+                registration::constants::calculate_const_expr_type(analysis, expr)
                     .map(GenericValueType::Constant)
             })
             .unwrap_or(GenericValueType::None),
@@ -88,20 +84,16 @@ pub(crate) fn generic_values(
     generics
         .args
         .iter()
-        .map(|arg| generic_value(analysis, arg, &[]))
+        .map(|arg| generic_value(analysis, arg))
         .collect()
 }
 
-fn generic_value(
-    analysis: &Analysis,
-    arg: &AstGenericArg,
-    generic_values: &[(String, GenericValue)],
-) -> Option<GenericValue> {
+fn generic_value(analysis: &Analysis, arg: &AstGenericArg) -> Option<GenericValue> {
     match arg {
         AstGenericArg::Expr(expr) => generic_type_id(analysis, expr)
             .map(GenericValue::Type)
             .or_else(|| {
-                registration::constants::calculate_const_expr_value(analysis, expr, generic_values)
+                registration::constants::calculate_const_expr_value(analysis, expr)
                     .map(GenericValue::Constant)
             }),
         AstGenericArg::Type(type_) => resolving::items::type_id(analysis, type_)
