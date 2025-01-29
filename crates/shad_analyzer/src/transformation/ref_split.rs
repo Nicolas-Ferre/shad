@@ -33,7 +33,7 @@ impl<'a> RefSplitTransform<'a> {
 
 impl VisitMut for RefSplitTransform<'_> {
     fn exit_fn_call(&mut self, node: &mut AstFnCall) {
-        if let Some(fn_) = resolving::items::fn_(self.analysis, node, false) {
+        if let Some(fn_) = resolving::items::fn_(self.analysis, node) {
             if !fn_.is_inlined {
                 return;
             }

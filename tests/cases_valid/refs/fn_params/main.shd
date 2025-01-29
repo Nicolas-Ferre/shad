@@ -11,6 +11,7 @@ buf inlined_return_var_result = 0;
 buf inlined_fn_as_not_inlined_fn_param_result = 2;
 buf not_inlined_fn_as_inlined_fn_param_result = 2;
 buf call_count = 0;
+buf arg_override_result = 0;
 
 run {
     var value = 5;
@@ -32,6 +33,7 @@ run {
         not_inlined_fn_as_inlined_fn_param_result,
         value + value,
     );
+    arg_override_result = override_arg(20);
 }
 
 fn without_return_value(ref_: ref i32, copied: i32) {
@@ -51,3 +53,8 @@ fn with_return_inlined_value(ref_: ref i32, copied: i32) -> i32 {
 }
 
 fn not_inlined_fn() {}
+
+fn override_arg(v: ref i32) -> i32 {
+    var v = 1;
+    return v;
+}

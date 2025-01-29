@@ -33,7 +33,7 @@ impl<'a> ValueTransform<'a> {
 impl VisitMut for ValueTransform<'_> {
     fn enter_assignment(&mut self, node: &mut AstAssignment) {
         if let AstExprRoot::FnCall(call) = &mut node.left.root {
-            if let Some(fn_) = resolving::items::fn_(self.analysis, call, false) {
+            if let Some(fn_) = resolving::items::fn_(self.analysis, call) {
                 let is_ref = fn_
                     .ast
                     .return_type

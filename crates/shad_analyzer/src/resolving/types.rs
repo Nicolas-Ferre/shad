@@ -50,7 +50,7 @@ pub(crate) fn buffer<'a>(analysis: &'a Analysis, buffer_id: &BufferId) -> Option
 }
 
 fn fn_call(analysis: &Analysis, call: &AstFnCall) -> Option<TypeId> {
-    resolving::items::fn_(analysis, call, true)?
+    resolving::items::fn_(analysis, call)?
         .return_type
         .id
         .clone()

@@ -3,7 +3,6 @@ use crate::{resolving, Analysis};
 use shad_parser::{AstExpr, AstIdent, AstIdentKind, AstStatement, AstVarDefinition};
 use std::mem;
 
-pub(crate) mod constants;
 pub(crate) mod expr_statements;
 pub(crate) mod fn_params;
 pub(crate) mod left_values;
@@ -26,6 +25,7 @@ fn extract_in_variable(
     let var = Var {
         type_id,
         is_const: false,
+        is_param: false,
     };
     analysis.vars.insert(var_id, var);
     (

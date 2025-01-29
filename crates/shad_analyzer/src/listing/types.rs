@@ -7,7 +7,7 @@ use std::iter;
 pub(crate) fn list_in_block(analysis: &Analysis, block: &AstRunItem) -> Vec<TypeId> {
     let fn_types = listing::functions::list_in_block(analysis, block)
         .into_iter()
-        .map(|fn_id| &analysis.fns[&fn_id])
+        .map(|fn_| &analysis.fns[&fn_.id])
         .flat_map(fn_type_ids);
     let buffer_types = listing::buffers::list_in_block(analysis, block)
         .into_iter()

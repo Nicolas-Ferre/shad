@@ -1,4 +1,8 @@
 main.generic1_value=10
 main.generic2_value=20
+main.inlined_generic1_value=10
+main.inlined_generic2_value=20
+main.inlined_param_value=40
+main.inlined_variable_value=60
 main.param_value=40
 main.variable_value=60

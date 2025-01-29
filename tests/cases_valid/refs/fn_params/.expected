@@ -1,3 +1,4 @@
+main.arg_override_result=1
 main.call_count=5
 main.inlined_assignment_ref_result=7
 main.inlined_assignment_var_result=7

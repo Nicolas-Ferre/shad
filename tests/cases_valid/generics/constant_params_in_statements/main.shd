@@ -3,6 +3,11 @@ buf generic2_value = 0;
 buf variable_value = 0;
 buf param_value = 0;
 
+buf inlined_generic1_value = 0;
+buf inlined_generic2_value = 0;
+buf inlined_variable_value = 0;
+buf inlined_param_value = 0;
+
 const B = 50;
 
 fn constant_param<A: i32, B: i32, C: i32>(C: i32) {
@@ -13,6 +18,15 @@ fn constant_param<A: i32, B: i32, C: i32>(C: i32) {
     param_value = C;
 }
 
+fn constant_param_with_inlined_fn<A: i32, B: i32, C: i32>(C: ref i32) {
+    inlined_generic1_value = A;
+    var A = 60;
+    inlined_variable_value = A;
+    inlined_generic2_value = B;
+    inlined_param_value = C;
+}
+
 run {
     constant_param<10, 20, 30>(40);
+    constant_param_with_inlined_fn<10, 20, 30>(40);
 }

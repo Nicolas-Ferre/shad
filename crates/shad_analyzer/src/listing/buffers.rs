@@ -24,7 +24,7 @@ impl<'a> BufferListing<'a> {
 
 impl Visit for BufferListing<'_> {
     fn enter_fn_call(&mut self, node: &AstFnCall) {
-        if let Some(fn_) = resolving::items::fn_(self.analysis, node, false) {
+        if let Some(fn_) = resolving::items::fn_(self.analysis, node) {
             self.visit_fn_item(&fn_.ast);
         }
     }

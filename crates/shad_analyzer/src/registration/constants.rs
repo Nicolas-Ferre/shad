@@ -1,4 +1,7 @@
-use crate::{errors, resolving, Analysis, TypeId};
+use crate::{
+    errors, resolving, Analysis, ConstFnId, ConstFnParamType, TypeId, BOOL_TYPE, F32_TYPE,
+    I32_TYPE, U32_TYPE,
+};
 use shad_error::Span;
 use shad_parser::{AstConstItem, AstExpr, AstExprRoot, AstItem, AstLiteral, AstLiteralType};
 use std::fmt::{Display, Formatter};
@@ -102,7 +105,8 @@ impl ConstantValue {
     }
     // coverage: on
 
-    pub(crate) fn literal(&self, span: &Span) -> AstLiteral {
+    /// Creates an AST literal from the value.
+    pub fn literal(&self, span: &Span) -> AstLiteral {
         AstLiteral {
             span: span.clone(),
             raw_value: self.literal_str(),
@@ -179,7 +183,7 @@ fn register_values(analysis: &mut Analysis) {
                     .constants
                     .get_mut(&id)
                     .expect("internal error: missing constant")
-                    .value = calculate_const_expr(analysis, &constant.ast.value);
+                    .value = calculate_const_expr_value(analysis, &constant.ast.value);
             }
         }
         let calculated_constant_value = calculated_constant_count(analysis);
@@ -190,7 +194,10 @@ fn register_values(analysis: &mut Analysis) {
     }
 }
 
-pub(crate) fn calculate_const_expr(analysis: &Analysis, expr: &AstExpr) -> Option<ConstantValue> {
+pub(crate) fn calculate_const_expr_value(
+    analysis: &Analysis,
+    expr: &AstExpr,
+) -> Option<ConstantValue> {
     match &expr.root {
         AstExprRoot::Literal(literal) => {
             let value = &literal.cleaned_value;
@@ -210,7 +217,7 @@ pub(crate) fn calculate_const_expr(analysis: &Analysis, expr: &AstExpr) -> Optio
             let args: Vec<_> = call
                 .args
                 .iter()
-                .map(|arg| calculate_const_expr(analysis, &arg.value))
+                .map(|arg| calculate_const_expr_value(analysis, &arg.value))
                 .collect::<Option<_>>()?;
             if let Some(fn_) = resolving::items::const_fn(analysis, call, &args) {
                 let const_fn_id = fn_.const_fn_id()?;
@@ -221,6 +228,43 @@ pub(crate) fn calculate_const_expr(analysis: &Analysis, expr: &AstExpr) -> Optio
             } else {
                 None
             }
+        }
+    }
+}
+
+pub(crate) fn calculate_const_expr_type(analysis: &Analysis, expr: &AstExpr) -> Option<TypeId> {
+    match &expr.root {
+        AstExprRoot::Literal(literal) => match literal.type_ {
+            AstLiteralType::F32 => Some(TypeId::from_builtin(F32_TYPE)),
+            AstLiteralType::U32 => Some(TypeId::from_builtin(U32_TYPE)),
+            AstLiteralType::I32 => Some(TypeId::from_builtin(I32_TYPE)),
+            AstLiteralType::Bool => Some(TypeId::from_builtin(BOOL_TYPE)),
+        },
+        AstExprRoot::Ident(ident) => resolving::items::constant(analysis, ident)
+            .and_then(|constant| constant.value.as_ref())
+            .map(ConstantValue::type_id),
+        AstExprRoot::FnCall(call) => {
+            let const_fn_param_types = call
+                .args
+                .iter()
+                .map(|arg| {
+                    calculate_const_expr_type(analysis, &arg.value)
+                        .as_ref()
+                        .and_then(ConstFnParamType::from_type_id)
+                })
+                .collect::<Option<Vec<_>>>()?;
+            let const_fn_id = ConstFnId {
+                name: call.name.label.clone(),
+                param_types: const_fn_param_types.clone(),
+            };
+            let args = const_fn_param_types
+                .iter()
+                .map(|type_| type_.zero_value())
+                .collect::<Vec<_>>();
+            analysis
+                .const_functions
+                .get(&const_fn_id)
+                .map(|const_fn| const_fn(&args).type_id())
         }
     }
 }

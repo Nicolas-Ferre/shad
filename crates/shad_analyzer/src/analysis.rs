@@ -5,7 +5,7 @@ use crate::registration::shaders::ComputeShader;
 use crate::registration::vars::Var;
 use crate::{
     checks, registration, resolving, transformation, Buffer, BufferId, BufferInitRunBlock, FnId,
-    RunBlock, Type, TypeId,
+    GenericValue, RunBlock, Type, TypeId,
 };
 use fxhash::FxHashMap;
 use shad_error::SemanticError;
@@ -24,10 +24,8 @@ pub struct Analysis {
     pub visible_modules: FxHashMap<String, Vec<String>>,
     /// The analyzed types.
     pub types: FxHashMap<TypeId, Type>,
-    /// The analyzed functions obtained after specialization.
+    /// The analyzed functions.
     pub fns: FxHashMap<FnId, Function>,
-    /// The initial analyzed functions, without generics resolution.
-    pub raw_fns: FxHashMap<FnId, Function>,
     /// The analyzed constants.
     pub constants: FxHashMap<ConstantId, Constant>,
     /// The analyzed buffers.
@@ -56,7 +54,6 @@ impl Analysis {
             module_ids: FxHashMap::default(),
             visible_modules: FxHashMap::default(),
             types: FxHashMap::default(),
-            raw_fns: FxHashMap::default(),
             fns: FxHashMap::default(),
             constants: FxHashMap::default(),
             buffers: FxHashMap::default(),
@@ -74,7 +71,6 @@ impl Analysis {
         registration::types::register(&mut analysis);
         registration::functions::register(&mut analysis);
         registration::constants::register(&mut analysis);
-        registration::specialized_fns::register(&mut analysis);
         registration::buffers::register(&mut analysis);
         transformation::fn_params::transform(&mut analysis);
         registration::vars::register(&mut analysis);
@@ -95,7 +91,6 @@ impl Analysis {
             return analysis;
         }
         checks::recursion::types::check(&mut analysis);
-        transformation::constants::transform(&mut analysis);
         transformation::left_values::transform(&mut analysis);
         transformation::ref_split::transform(&mut analysis);
         transformation::ref_fn_inline::transform(&mut analysis);
@@ -121,12 +116,21 @@ impl Analysis {
 
     /// Returns the function corresponding to a function call.
     pub fn fn_(&self, call: &AstFnCall) -> Option<&Function> {
-        resolving::items::fn_(self, call, false)
+        resolving::items::fn_(self, call)
     }
 
     /// Returns the type ID corresponding to an identifier.
     pub fn type_id(&self, type_: &AstType) -> Option<TypeId> {
         resolving::items::type_id(self, type_).ok()
+    }
+
+    /// Returns the resolved generic arguments of a function call.
+    pub fn fn_call_generic_args(
+        &self,
+        call: &AstFnCall,
+        generic_values: &[(String, GenericValue)],
+    ) -> Vec<GenericValue> {
+        resolving::expressions::fn_call_generic_values(self, call, generic_values)
     }
 
     pub(crate) fn next_id(&mut self) -> u64 {
