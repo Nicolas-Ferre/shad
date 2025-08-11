@@ -6,7 +6,7 @@ pub(crate) fn run(ctx: &mut Context<'_>, node: &AstNode, placeholder: &KindPlace
     match placeholder.name.as_str() {
         "static" => static_(placeholder),
         "binding" => binding(ctx),
-        "slice" => slice(node),
+        "number_slice" => number_slice(node),
         "self" => self_(ctx, node),
         "child" => child(ctx, node, placeholder),
         "nested_sources" => nested_sources(ctx, node, placeholder),
@@ -25,8 +25,8 @@ fn binding(ctx: &mut Context<'_>) -> String {
     ctx.generate_binding().to_string()
 }
 
-fn slice(node: &AstNode) -> String {
-    node.slice.clone()
+fn number_slice(node: &AstNode) -> String {
+    node.slice.replace("_", "")
 }
 
 fn self_(ctx: &mut Context<'_>, node: &AstNode) -> String {

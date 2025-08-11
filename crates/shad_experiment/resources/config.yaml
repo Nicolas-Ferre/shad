@@ -7,9 +7,6 @@ root_expected_first_tokens:
   - '`run`'
 import_index_key: &import_index_key '@import'
 
-# TODO: add support for underscore for number literals
-
-
 kinds:
   root:
     min_repeat: 0
@@ -140,6 +137,11 @@ kinds:
       - char_ranges:
           - { start: '0', end: '9' }
         min_length: 1
+        max_length: 1
+      - char_ranges:
+          - { start: '0', end: '9' }
+          - { start: '_', end: '_' }
+        min_length: 0
         max_length: *max_u32
       - char_ranges:
           - { start: '.', end: '.' }
@@ -147,6 +149,11 @@ kinds:
         max_length: 1
       - char_ranges:
           - { start: '0', end: '9' }
+        min_length: 1
+        max_length: 1
+      - char_ranges:
+          - { start: '0', end: '9' }
+          - { start: '_', end: '_' }
         min_length: 0
         max_length: *max_u32
     display_name: '`f32` literal'
@@ -155,13 +162,18 @@ kinds:
         params: { type: f32 }
     type_resolution:
       name: f32
-    transpilation: 'f32({{slice}})'
+    transpilation: 'f32({{number_slice}})'
 
   u32_expr:
     pattern_parts:
       - char_ranges:
           - { start: '0', end: '9' }
         min_length: 1
+        max_length: 1
+      - char_ranges:
+          - { start: '0', end: '9' }
+          - { start: '_', end: '_' }
+        min_length: 0
         max_length: *max_u32
       - char_ranges:
           - { start: 'u', end: 'u' }
@@ -173,7 +185,7 @@ kinds:
         params: { type: u32 }
     type_resolution:
       name: u32
-    transpilation: 'u32({{slice}})'
+    transpilation: 'u32({{number_slice}})'
 
   i32_expr:
     pattern_parts:
@@ -184,6 +196,11 @@ kinds:
       - char_ranges:
           - { start: '0', end: '9' }
         min_length: 1
+        max_length: 1
+      - char_ranges:
+          - { start: '0', end: '9' }
+          - { start: '_', end: '_' }
+        min_length: 0
         max_length: *max_u32
     display_name: '`i32` literal'
     validation:
@@ -191,7 +208,7 @@ kinds:
         params: { type: i32 }
     type_resolution:
       name: i32
-    transpilation: 'i32({{slice}})'
+    transpilation: 'i32({{number_slice}})'
 
   true_expr:
     string: 'true'

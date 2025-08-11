@@ -9,10 +9,11 @@ pub(crate) fn check_number_range(
     node: &AstNode,
 ) {
     let type_ = &validation.params["type"];
+    let slice = node.slice.replace("_", "").replace("u", "");
     let is_invalid_range = match type_.as_str() {
-        "i32" => i32::from_str(&node.slice).is_err(),
-        "u32" => u32::from_str(&node.slice[..node.slice.len() - 1]).is_err(),
-        "f32" => match f32::from_str(&node.slice) {
+        "i32" => i32::from_str(&slice).is_err(),
+        "u32" => u32::from_str(&slice).is_err(),
+        "f32" => match f32::from_str(&slice) {
             Ok(value) => value.is_infinite(),
             Err(_) => true,
         },
