@@ -11,11 +11,11 @@ use std::slice::Iter;
 pub struct AstNode {
     pub id: u32,
     pub parent_ids: Vec<u32>,
+    pub children: AstNodeInner,
     pub kind_name: String,
     pub kind_config: Rc<KindConfig>,
     pub slice: String,
     pub offset: usize,
-    pub inner: AstNodeInner,
 }
 
 impl AstNode {
@@ -24,7 +24,7 @@ impl AstNode {
     }
 
     pub(crate) fn children(&self) -> NodeChildIterator<'_> {
-        match &self.inner {
+        match &self.children {
             AstNodeInner::Sequence(children) => {
                 NodeChildIterator::Sequence(self.kind_config.sequence.iter(), children)
             }
@@ -34,7 +34,7 @@ impl AstNode {
     }
 
     pub(crate) fn child(&self, child_name: &str) -> &Self {
-        match &self.inner {
+        match &self.children {
             AstNodeInner::Sequence(children) => &children[child_name],
             AstNodeInner::Repeated(_) | AstNodeInner::Terminal => {
                 unreachable!("cannot retrieve child for non-sequence node")
@@ -69,14 +69,24 @@ impl AstNode {
             .index
             .indexed_lookup_paths
             .iter()
-            .filter_map(|current_path| asts[current_path].index.indexed_nodes.get(&self.slice))
-            .flat_map(|nodes| nodes.iter().rev())
-            .find(|node| {
-                let node_parent_id = node.parent_ids.last().copied().unwrap_or(0);
-                node.id < parent_id
-                    && source_node_config.parents.contains(&node.kind_name)
-                    && self.parent_ids.contains(&node_parent_id)
+            .filter_map(|current_path| {
+                asts[current_path]
+                    .index
+                    .indexed_nodes
+                    .get(&self.slice)
+                    .map(|nodes| (nodes, current_path))
             })
+            .flat_map(|(nodes, current_path)| {
+                nodes.iter().map(move |node| (node, current_path)).rev()
+            })
+            .find(|(node, current_path)| {
+                let node_parent_id = node.parent_ids.last().copied().unwrap_or(0);
+                let is_node_root_child = node.parent_ids.len() == 1;
+                (node.id < parent_id || &path != current_path)
+                    && source_node_config.parents.contains(&node.kind_name)
+                    && (is_node_root_child || self.parent_ids.contains(&node_parent_id))
+            })
+            .map(|(node, _)| node)
     }
 
     pub(crate) fn nested_sources<'a>(

@@ -6,7 +6,6 @@ use regex::Regex;
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 
-// TODO: add path index to var names -> add path into each node and refactor
 pub(crate) fn transpile_asts(config: &Config, asts: &HashMap<PathBuf, FileAst>) -> Vec<String> {
     asts.keys()
         .sorted_unstable()
@@ -15,7 +14,7 @@ pub(crate) fn transpile_asts(config: &Config, asts: &HashMap<PathBuf, FileAst>) 
 }
 
 fn transpile(config: &Config, path: &Path, asts: &HashMap<PathBuf, FileAst>) -> Vec<String> {
-    let root_nodes = match &asts[path].root.inner {
+    let root_nodes = match &asts[path].root.children {
         AstNodeInner::Repeated(children) => children,
         AstNodeInner::Sequence(_) | AstNodeInner::Terminal => {
             unreachable!("root node should be repeated")
@@ -57,7 +56,7 @@ fn run_shader_code(
 }
 
 pub(crate) fn node_code(ctx: &mut Context<'_>, node: &AstNode) -> String {
-    if let AstNodeInner::Repeated(children) = &node.inner {
+    if let AstNodeInner::Repeated(children) = &node.children {
         children
             .iter()
             .map(|child| template_code(ctx, child, &child.kind_config.transpilation))

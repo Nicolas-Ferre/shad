@@ -7,6 +7,9 @@ root_expected_first_tokens:
   - '`run`'
 import_index_key: &import_index_key '@import'
 
+# TODO: add support for underscore for number literals
+
+
 kinds:
   root:
     min_repeat: 0
@@ -114,7 +117,7 @@ kinds:
     transpilation: '{{child:var_ident_expr}} = {{child:expr}};'
 
   expr:
-    choice: [ f32_expr, u32_expr, i32_expr, true_expr, false_expr, var_ident_expr ]
+    choice: [ true_expr, false_expr, var_ident_expr, f32_expr, u32_expr, i32_expr ]
 
   var_ident_expr:
     sequence: [ ident ]
@@ -128,9 +131,24 @@ kinds:
       source_child: expr
     transpilation: '_{{source_id}}'
 
-  # TODO: add support for underscore
   f32_expr:
-    pattern: '-?[0-9]+\.[0-9]*'
+    pattern_parts:
+      - char_ranges:
+          - { start: '-', end: '-' }
+        min_length: 0
+        max_length: 1
+      - char_ranges:
+          - { start: '0', end: '9' }
+        min_length: 1
+        max_length: *max_u32
+      - char_ranges:
+          - { start: '.', end: '.' }
+        min_length: 1
+        max_length: 1
+      - char_ranges:
+          - { start: '0', end: '9' }
+        min_length: 0
+        max_length: *max_u32
     display_name: '`f32` literal'
     validation:
       - name: check_number_range
@@ -139,9 +157,16 @@ kinds:
       name: f32
     transpilation: 'f32({{slice}})'
 
-  # TODO: add support for underscore
   u32_expr:
-    pattern: '[0-9]+u'
+    pattern_parts:
+      - char_ranges:
+          - { start: '0', end: '9' }
+        min_length: 1
+        max_length: *max_u32
+      - char_ranges:
+          - { start: 'u', end: 'u' }
+        min_length: 1
+        max_length: 1
     display_name: '`u32` literal'
     validation:
       - name: check_number_range
@@ -150,9 +175,16 @@ kinds:
       name: u32
     transpilation: 'u32({{slice}})'
 
-  # TODO: add support for underscore
   i32_expr:
-    pattern: '-?[0-9]+'
+    pattern_parts:
+      - char_ranges:
+          - { start: '-', end: '-' }
+        min_length: 0
+        max_length: 1
+      - char_ranges:
+          - { start: '0', end: '9' }
+        min_length: 1
+        max_length: *max_u32
     display_name: '`i32` literal'
     validation:
       - name: check_number_range
@@ -162,28 +194,44 @@ kinds:
     transpilation: 'i32({{slice}})'
 
   true_expr:
-    pattern: 'true'
+    string: 'true'
     display_name: '`true`'
     type_resolution:
       name: bool
     transpilation: 'u32(true)'
 
   false_expr:
-    pattern: 'false'
+    string: 'false'
     display_name: '`false`'
     type_resolution:
       name: bool
     transpilation: 'u32(false)'
 
-  ident: { pattern: '[_a-zA-Z][_a-zA-Z0-9]*',      display_name: identifier }
-  parent_kw: { pattern: '~' }
-  dot_kw: { pattern: '\.', display_name: '`.`' }
-  eq_kw: { pattern: '=' }
-  semicolon_kw: { pattern: ';' }
-  open_braces_kw: { pattern: '\{' }
-  close_braces_kw: { pattern: '\}' }
-  import_kw: { pattern: 'import' }
-  buf_kw: { pattern: 'buf' }
-  init_kw: { pattern: 'init' }
-  run_kw: { pattern: 'run' }
-  var_kw: { pattern: 'var' }
+  ident:
+    pattern_parts:
+      - char_ranges:
+          - { start: 'a', end: 'z' }
+          - { start: 'A', end: 'Z' }
+          - { start: '_', end: '_' }
+        min_length: 1
+        max_length: 1
+      - char_ranges:
+          - { start: 'a', end: 'z' }
+          - { start: 'A', end: 'Z' }
+          - { start: '0', end: '9' }
+          - { start: '_', end: '_' }
+        min_length: 0
+        max_length: *max_u32
+    display_name: identifier
+
+  parent_kw: { string: '~' }
+  dot_kw: { string: '.' }
+  eq_kw: { string: '=' }
+  semicolon_kw: { string: ';' }
+  open_braces_kw: { string: '{' }
+  close_braces_kw: { string: '}' }
+  import_kw: { string: 'import' }
+  buf_kw: { string: 'buf' }
+  init_kw: { string: 'init' }
+  run_kw: { string: 'run' }
+  var_kw: { string: 'var' }

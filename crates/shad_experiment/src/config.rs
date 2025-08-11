@@ -1,8 +1,8 @@
-use regex::Regex;
 use serde::Deserialize;
 use serde_valid::{validation, Validate};
 use std::collections::HashMap;
 use std::error::Error;
+use std::ops::RangeInclusive;
 use std::rc::Rc;
 
 pub(crate) fn load_config() -> Result<Config, Box<dyn Error>> {
@@ -33,20 +33,20 @@ pub(crate) struct Config {
 }
 
 fn validate_kinds(kinds: &HashMap<String, Rc<KindConfig>>) -> Result<(), validation::Error> {
-    // kinds
-    //     .values()
-    //     .map(|kind| kind.validate())
-    //     .collect::<Result<Vec<_>, _>>()
-    //     .map(|_| ())
-    //     .map_err(|err| err.into())
+    for kind in kinds.values() {
+        kind.validate()
+            .map_err(|err| validation::Error::Custom(err.to_string()))?;
+    }
     Ok(())
 }
 
 #[derive(Debug, Clone, Deserialize, Validate)]
 #[serde(deny_unknown_fields)]
 pub struct KindConfig {
-    #[serde(default, with = "serde_regex")]
-    pub pattern: Option<Regex>,
+    pub string: Option<String>,
+    #[serde(default)]
+    #[validate]
+    pub pattern_parts: Vec<PatternPartConfig>,
     #[serde(default)]
     #[validate(min_length = 1)]
     pub choice: Vec<String>,
@@ -77,6 +77,14 @@ pub struct KindConfig {
     pub init_shader: Option<ShaderConfig>,
     #[validate]
     pub run_shader: Option<ShaderConfig>,
+}
+
+#[derive(Debug, Clone, Deserialize, Validate)]
+#[serde(deny_unknown_fields)]
+pub struct PatternPartConfig {
+    pub char_ranges: Vec<RangeInclusive<char>>,
+    pub min_length: usize,
+    pub max_length: usize,
 }
 
 #[derive(Debug, Clone, Deserialize, Validate)]

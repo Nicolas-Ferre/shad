@@ -42,7 +42,7 @@ fn validate_ast(
 }
 
 fn validate_ast_node(ctx: &mut ValidationContext<'_>, node: &AstNode) {
-    match &node.inner {
+    match &node.children {
         AstNodeInner::Sequence(children) => {
             for child in children.values() {
                 validate_ast_node(ctx, child);

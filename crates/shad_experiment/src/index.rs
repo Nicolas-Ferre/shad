@@ -79,7 +79,6 @@ impl AstNodeIndex {
 }
 
 fn fill_index(node: &Rc<AstNode>, index: &mut HashMap<String, Vec<Rc<AstNode>>>) {
-    // TODO: use scan
     if let Some(index_key) = &node.kind_config.index_key {
         let key = if let Some(child) = &index_key.child {
             node.child(child).slice.clone()
@@ -90,7 +89,7 @@ fn fill_index(node: &Rc<AstNode>, index: &mut HashMap<String, Vec<Rc<AstNode>>>)
         };
         index.entry(key).or_default().push(node.clone());
     }
-    match &node.inner {
+    match &node.children {
         AstNodeInner::Sequence(children) => {
             for child in children.values() {
                 fill_index(child, index);
