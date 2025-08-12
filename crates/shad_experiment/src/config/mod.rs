@@ -1,5 +1,8 @@
+pub(crate) mod transpilation;
+pub(crate) mod validation;
+
 use serde::Deserialize;
-use serde_valid::{validation, Validate};
+use serde_valid::Validate;
 use std::collections::HashMap;
 use std::error::Error;
 use std::ops::RangeInclusive;
@@ -32,10 +35,12 @@ pub(crate) struct Config {
     pub(crate) kinds: HashMap<String, Rc<KindConfig>>,
 }
 
-fn validate_kinds(kinds: &HashMap<String, Rc<KindConfig>>) -> Result<(), validation::Error> {
+fn validate_kinds(
+    kinds: &HashMap<String, Rc<KindConfig>>,
+) -> Result<(), serde_valid::validation::Error> {
     for kind in kinds.values() {
         kind.validate()
-            .map_err(|err| validation::Error::Custom(err.to_string()))?;
+            .map_err(|err| serde_valid::validation::Error::Custom(err.to_string()))?;
     }
     Ok(())
 }
@@ -61,6 +66,8 @@ pub struct KindConfig {
     pub display_name: Option<String>,
     #[validate]
     pub import_path: Option<ImportPathConfig>,
+    #[validate]
+    pub buffer: Option<BufferConfig>,
     #[validate]
     pub index_key: Option<IndexKeyConfig>,
     #[validate]
@@ -94,6 +101,13 @@ pub struct ImportPathConfig {
     pub parent: String,
     #[validate(min_length = 1)]
     pub segment: String,
+}
+
+#[derive(Debug, Clone, Deserialize, Validate)]
+#[serde(deny_unknown_fields)]
+pub struct BufferConfig {
+    #[validate(min_length = 1)]
+    pub ident: String,
 }
 
 #[derive(Debug, Clone, Deserialize, Validate)]

@@ -1,4 +1,4 @@
-use crate::transpilation::{node_code, Context, KindPlaceholder};
+use crate::compilation::transpilation::{node_code, Context, KindPlaceholder};
 use crate::AstNode;
 use itertools::Itertools;
 
@@ -6,7 +6,7 @@ pub(crate) fn run(ctx: &mut Context<'_>, node: &AstNode, placeholder: &KindPlace
     match placeholder.name.as_str() {
         "static" => static_(placeholder),
         "binding" => binding(ctx),
-        "number_slice" => number_slice(node),
+        "slice_without_chars" => slice_without_chars(node, placeholder),
         "self" => self_(ctx, node),
         "child" => child(ctx, node, placeholder),
         "nested_sources" => nested_sources(ctx, node, placeholder),
@@ -25,8 +25,14 @@ fn binding(ctx: &mut Context<'_>) -> String {
     ctx.generate_binding().to_string()
 }
 
-fn number_slice(node: &AstNode) -> String {
-    node.slice.replace("_", "")
+fn slice_without_chars(node: &AstNode, placeholder: &KindPlaceholder) -> String {
+    let removed_chars: Vec<_> = placeholder
+        .params
+        .first()
+        .map_or("", |param| param)
+        .chars()
+        .collect();
+    node.slice.replace(removed_chars.as_slice(), "")
 }
 
 fn self_(ctx: &mut Context<'_>, node: &AstNode) -> String {

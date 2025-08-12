@@ -43,6 +43,8 @@ kinds:
     sequence_error_after: buf_kw
     index_key:
       child: buffer_ident
+    buffer:
+      ident: buffer_ident
     transpilation: |-
       @group(0) @binding({{binding}})
       var<storage, read_write> _{{self_id}}: {{expr_type:expr}};
@@ -159,10 +161,10 @@ kinds:
     display_name: '`f32` literal'
     validation:
       - name: check_number_range
-        params: { type: f32 }
+        params: { type: f32, removed_chars: '_' }
     type_resolution:
       name: f32
-    transpilation: 'f32({{number_slice}})'
+    transpilation: 'f32({{slice_without_chars:_}})'
 
   u32_expr:
     pattern_parts:
@@ -182,10 +184,10 @@ kinds:
     display_name: '`u32` literal'
     validation:
       - name: check_number_range
-        params: { type: u32 }
+        params: { type: u32, removed_chars: '_u' }
     type_resolution:
       name: u32
-    transpilation: 'u32({{number_slice}})'
+    transpilation: 'u32({{slice_without_chars:_}})'
 
   i32_expr:
     pattern_parts:
@@ -205,10 +207,10 @@ kinds:
     display_name: '`i32` literal'
     validation:
       - name: check_number_range
-        params: { type: i32 }
+        params: { type: i32, removed_chars: '_' }
     type_resolution:
       name: i32
-    transpilation: 'i32({{number_slice}})'
+    transpilation: 'i32({{slice_without_chars:_}})'
 
   true_expr:
     string: 'true'

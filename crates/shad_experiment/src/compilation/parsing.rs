@@ -1,6 +1,6 @@
 #![allow(missing_docs)]
 
-use crate::ast::{AstNode, AstNodeInner};
+use crate::compilation::ast::{AstNode, AstNodeInner};
 use crate::config::{Config, KindConfig, PatternPartConfig};
 use itertools::Itertools;
 use std::collections::HashMap;

@@ -1,4 +1,4 @@
-use crate::FILE_EXT;
+use crate::compilation::FILE_EXT;
 use std::collections::HashMap;
 use std::ffi::OsStr;
 use std::path::{Path, PathBuf};

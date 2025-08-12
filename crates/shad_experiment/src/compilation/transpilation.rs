@@ -1,58 +1,94 @@
-use crate::config::Config;
-use crate::functions::transpilation;
+use crate::config::{Config, ShaderConfig};
+use crate::config::transpilation;
 use crate::{AstNode, AstNodeInner, FileAst};
 use itertools::Itertools;
 use regex::Regex;
 use std::collections::HashMap;
+use std::ops::Deref;
 use std::path::{Path, PathBuf};
 
-pub(crate) fn transpile_asts(config: &Config, asts: &HashMap<PathBuf, FileAst>) -> Vec<String> {
-    asts.keys()
-        .sorted_unstable()
-        .flat_map(|path| transpile(config, path, asts))
-        .collect()
-}
-
-fn transpile(config: &Config, path: &Path, asts: &HashMap<PathBuf, FileAst>) -> Vec<String> {
-    let root_nodes = match &asts[path].root.children {
-        AstNodeInner::Repeated(children) => children,
-        AstNodeInner::Sequence(_) | AstNodeInner::Terminal => {
-            unreachable!("root node should be repeated")
-        }
-    };
-    let init_shaders = root_nodes
-        .iter()
-        .filter_map(|node| init_shader_code(config, path, asts, node));
-    let run_shaders = root_nodes
-        .iter()
-        .filter_map(|node| run_shader_code(config, path, asts, node));
-    init_shaders.chain(run_shaders).collect()
-}
-
-fn init_shader_code(
+pub(crate) fn transpile_asts(
     config: &Config,
-    path: &Path,
     asts: &HashMap<PathBuf, FileAst>,
-    node: &AstNode,
-) -> Option<String> {
-    let ctx = &mut Context::new(asts, config, path);
-    node.kind_config
-        .init_shader
-        .as_ref()
-        .map(|shader| template_code(ctx, node, &shader.transpilation))
+    root_path: &Path,
+) -> Program {
+    Program {
+        buffers: asts
+            .iter()
+            .flat_map(|(path, ast)| ast.root.children().map(move |node| (node, path)))
+            .filter_map(|(node, path)| {
+                node.kind_config
+                    .buffer
+                    .as_ref()
+                    .map(|config| (node, path, config))
+            })
+            .map(|(node, path, config)| {
+                (
+                    node.item_path(&config.ident, path, root_path),
+                    Buffer { size_bytes: 4 },
+                )
+            })
+            .collect(),
+        init_shaders: asts
+            .keys()
+            .sorted_unstable()
+            .flat_map(|path| {
+                asts[path].root.children().filter_map(|node| {
+                    Some(transpile_shader(
+                        config,
+                        asts,
+                        root_path,
+                        node,
+                        path,
+                        node.kind_config.init_shader.as_ref()?,
+                    ))
+                })
+            })
+            .collect(),
+        run_shaders: asts
+            .keys()
+            .sorted_unstable()
+            .flat_map(|path| {
+                asts[path].root.children().filter_map(|node| {
+                    Some(transpile_shader(
+                        config,
+                        asts,
+                        root_path,
+                        node,
+                        path,
+                        node.kind_config.run_shader.as_ref()?,
+                    ))
+                })
+            })
+            .collect(),
+    }
 }
 
-fn run_shader_code(
+pub(crate) fn transpile_shader(
     config: &Config,
-    path: &Path,
     asts: &HashMap<PathBuf, FileAst>,
+    root_path: &Path,
     node: &AstNode,
-) -> Option<String> {
+    path: &Path,
+    shader_config: &ShaderConfig,
+) -> Shader {
     let ctx = &mut Context::new(asts, config, path);
-    node.kind_config
-        .run_shader
-        .as_ref()
-        .map(|shader| template_code(ctx, node, &shader.transpilation))
+    Shader {
+        code: template_code(ctx, node, &shader_config.transpilation),
+        buffers: node
+            .nested_sources(asts, path)
+            .into_iter()
+            .map(Deref::deref)
+            .chain([node])
+            .filter_map(|node| {
+                node.kind_config
+                    .buffer
+                    .as_ref()
+                    .map(|buffer| (node, buffer))
+            })
+            .map(|(node, config)| node.item_path(&config.ident, path, root_path))
+            .collect(),
+    }
 }
 
 pub(crate) fn node_code(ctx: &mut Context<'_>, node: &AstNode) -> String {
@@ -76,6 +112,24 @@ fn template_code(ctx: &mut Context<'_>, node: &AstNode, template: &str) -> Strin
         }
     }
     code
+}
+
+#[derive(Debug)]
+pub struct Program {
+    pub buffers: HashMap<String, Buffer>,
+    pub init_shaders: Vec<Shader>,
+    pub run_shaders: Vec<Shader>,
+}
+
+#[derive(Debug)]
+pub struct Buffer {
+    pub size_bytes: u64,
+}
+
+#[derive(Debug)]
+pub struct Shader {
+    pub code: String,
+    pub buffers: Vec<String>,
 }
 
 pub(crate) struct Context<'a> {

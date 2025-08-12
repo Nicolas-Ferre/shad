@@ -1,5 +1,6 @@
+use crate::compilation::FILE_EXT;
 use crate::config::KindConfig;
-use crate::{FileAst, FILE_EXT};
+use crate::FileAst;
 use itertools::Itertools;
 use std::collections::HashMap;
 use std::ops::Range;
@@ -130,6 +131,19 @@ impl AstNode {
         }
         path.set_extension(FILE_EXT);
         path
+    }
+
+    pub(crate) fn item_path(&self, child_ident: &str, path: &Path, root_path: &Path) -> String {
+        format!(
+            "{}.{}",
+            path.strip_prefix(root_path)
+                .expect("internal error: invalid root path")
+                .with_extension("")
+                .components()
+                .map(|component| component.as_os_str().to_string_lossy())
+                .join("."),
+            self.child(child_ident).slice
+        )
     }
 
     #[allow(clippy::needless_lifetimes)]

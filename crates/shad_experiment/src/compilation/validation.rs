@@ -1,5 +1,5 @@
-use crate::ast::{AstNode, AstNodeInner};
-use crate::functions::validation;
+use crate::compilation::ast::{AstNode, AstNodeInner};
+use crate::config::validation;
 use crate::FileAst;
 use std::collections::HashMap;
 use std::ops::Range;

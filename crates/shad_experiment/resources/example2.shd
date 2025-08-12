@@ -1,5 +1,5 @@
-import example1;
-import ~.example1;
+import inner.example1;
+import ~.inner.example1;
 
 buf val_i32 = -123;
 buf val_u32 = 456u;
