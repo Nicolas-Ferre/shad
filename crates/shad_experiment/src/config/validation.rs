@@ -1,6 +1,7 @@
+use crate::compilation::ast::AstNode;
+use crate::compilation::error::{ValidationError, ValidationErrorLevel};
 use crate::compilation::validation::ValidationContext;
 use crate::config::ValidationConfig;
-use crate::{AstNode, ValidationError, ValidationErrorLevel};
 use std::str::FromStr;
 
 pub(crate) fn run(ctx: &mut ValidationContext<'_>, validation: &ValidationConfig, node: &AstNode) {

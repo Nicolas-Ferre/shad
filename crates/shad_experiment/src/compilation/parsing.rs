@@ -1,7 +1,9 @@
 #![allow(missing_docs)]
 
 use crate::compilation::ast::{AstNode, AstNodeInner};
+use crate::compilation::error::ParsingError;
 use crate::config::{Config, KindConfig, PatternPartConfig};
+use crate::Error;
 use itertools::Itertools;
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
@@ -10,7 +12,7 @@ use std::rc::Rc;
 pub(crate) fn parse_files(
     config: &Config,
     files: &HashMap<PathBuf, String>,
-) -> Result<HashMap<PathBuf, (String, Rc<AstNode>)>, Vec<ParsingError>> {
+) -> Result<HashMap<PathBuf, (String, Rc<AstNode>)>, Error> {
     let mut asts = HashMap::new();
     let mut errors = vec![];
     let mut next_node_id = 0;
@@ -26,7 +28,7 @@ pub(crate) fn parse_files(
     if errors.is_empty() {
         Ok(asts)
     } else {
-        Err(errors)
+        Err(Error::Parsing(errors))
     }
 }
 
@@ -328,15 +330,6 @@ fn clean_code_prefix(ctx: &mut Context<'_>) {
 
 fn is_ident_char(char: char) -> bool {
     char.is_ascii_alphanumeric() || char == '_'
-}
-
-#[derive(Debug)]
-pub struct ParsingError {
-    pub expected_tokens: Vec<String>,
-    pub offset: usize,
-    pub code: String,
-    pub path: PathBuf,
-    forced: bool,
 }
 
 #[derive(Debug, Clone)]

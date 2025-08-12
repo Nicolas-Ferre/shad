@@ -9,7 +9,7 @@ use std::rc::Rc;
 use std::slice::Iter;
 
 #[derive(Debug)]
-pub struct AstNode {
+pub(crate) struct AstNode {
     pub id: u32,
     pub parent_ids: Vec<u32>,
     pub children: AstNodeInner,
@@ -158,7 +158,7 @@ impl AstNode {
 }
 
 #[derive(Debug)]
-pub enum AstNodeInner {
+pub(crate) enum AstNodeInner {
     Sequence(HashMap<String, Rc<AstNode>>),
     Repeated(Vec<Rc<AstNode>>),
     Terminal,

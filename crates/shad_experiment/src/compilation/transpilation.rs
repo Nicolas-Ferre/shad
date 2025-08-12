@@ -1,6 +1,7 @@
-use crate::config::{Config, ShaderConfig};
+use crate::compilation::ast::{AstNode, AstNodeInner};
 use crate::config::transpilation;
-use crate::{AstNode, AstNodeInner, FileAst};
+use crate::config::{Config, ShaderConfig};
+use crate::FileAst;
 use itertools::Itertools;
 use regex::Regex;
 use std::collections::HashMap;

@@ -1,14 +1,14 @@
 use crate::compilation::ast::{AstNode, AstNodeInner};
+use crate::compilation::error::ValidationError;
 use crate::config::validation;
-use crate::FileAst;
+use crate::{Error, FileAst};
 use std::collections::HashMap;
-use std::ops::Range;
 use std::path::{Path, PathBuf};
 
 pub(crate) fn validate_asts(
     asts: &HashMap<PathBuf, FileAst>,
     root_path: &Path,
-) -> Result<(), Vec<ValidationError>> {
+) -> Result<(), Error> {
     let mut errors = vec![];
     for path in asts.keys() {
         if let Err(err) = validate_ast(asts, root_path, path) {
@@ -18,7 +18,7 @@ pub(crate) fn validate_asts(
     if errors.is_empty() {
         Ok(())
     } else {
-        Err(errors)
+        Err(Error::Validation(errors))
     }
 }
 
@@ -58,22 +58,6 @@ fn validate_ast_node(ctx: &mut ValidationContext<'_>, node: &AstNode) {
     for validation in &node.kind_config.validation {
         validation::run(ctx, validation, node);
     }
-}
-
-#[derive(Debug)]
-pub struct ValidationError {
-    pub level: ValidationErrorLevel,
-    pub message: String,
-    pub span: Range<usize>,
-    pub code: String,
-    pub path: PathBuf,
-    pub inner: Vec<ValidationError>,
-}
-
-#[derive(Debug)]
-pub enum ValidationErrorLevel {
-    Error,
-    Info,
 }
 
 #[derive(Debug)]

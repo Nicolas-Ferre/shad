@@ -1,5 +1,6 @@
+use crate::compilation::ast::{AstNode, AstNodeInner};
 use crate::config::Config;
-use crate::{AstNode, AstNodeInner, FileAst};
+use crate::FileAst;
 use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
 use std::rc::Rc;
