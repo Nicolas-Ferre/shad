@@ -156,7 +156,7 @@ impl RunArgs {
 struct WindowRunner {
     args: RunArgs,
     #[allow(clippy::type_complexity)]
-    create_runner_fn: Box<dyn Fn(&ActiveEventLoop, Sender<Runner>)>,
+    create_runner_fn: Option<Box<dyn FnOnce(&ActiveEventLoop, Sender<Runner>)>>,
     runner: Option<Runner>,
     runner_receiver: Option<Receiver<Runner>>,
 }
@@ -199,11 +199,11 @@ impl ApplicationHandler for WindowRunner {
 impl WindowRunner {
     fn new(
         args: RunArgs,
-        create_runner_fn: impl Fn(&ActiveEventLoop, Sender<Runner>) + 'static,
+        create_runner_fn: impl FnOnce(&ActiveEventLoop, Sender<Runner>) + 'static,
     ) -> Self {
         Self {
             args,
-            create_runner_fn: Box::new(create_runner_fn),
+            create_runner_fn: Some(Box::new(create_runner_fn)),
             runner: None,
             runner_receiver: None,
         }
@@ -214,8 +214,12 @@ impl WindowRunner {
             runner.refresh_surface();
         } else {
             let (sender, receiver) = futures::channel::oneshot::channel();
+            let create_runner_id = self
+                .create_runner_fn
+                .take()
+                .expect("internal error: missing runner init closure");
             self.runner_receiver = Some(receiver);
-            (self.create_runner_fn)(event_loop, sender);
+            create_runner_id(event_loop, sender);
         }
     }
 

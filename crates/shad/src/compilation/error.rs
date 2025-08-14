@@ -98,9 +98,9 @@ impl Error {
             .fold(true)
             .origin(&path)
             .annotations(annotations)];
+        // coverage: off (unused for now)
         for inner in &error.inner {
             if inner.path != error.path {
-                // coverage: off (unused for now)
                 snippets.push(
                     Snippet::source(&error.code)
                         .fold(true)
@@ -111,9 +111,9 @@ impl Error {
                                 .label(&inner.message),
                         ),
                 );
-                // coverage: on
             }
         }
+        // coverage: on
         let content = renderer.render(level.title(&error.message).snippets(snippets));
         content.to_string()
     }

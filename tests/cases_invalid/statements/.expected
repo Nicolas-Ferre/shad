@@ -19,6 +19,13 @@ error: undefined identifier
   |                 ^^^^^^^^^^^^
   |
 
+error: undefined identifier
+ --> ./cases_invalid/statements/expr_var_missing_source.shd:9:5
+  |
+9 |     missing = var_value;
+  |     ^^^^^^^
+  |
+
 error: invalid expression type
  --> ./cases_invalid/statements/invalid_assigned_type.shd:9:20
   |

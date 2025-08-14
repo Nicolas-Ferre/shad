@@ -6,4 +6,5 @@ run {
     var var_value = missing;
     var_value = missing;
     var_value = unused_value;
+    missing = var_value;
 }
