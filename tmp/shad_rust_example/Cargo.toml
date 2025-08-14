@@ -29,14 +29,14 @@ winit = { workspace = true, features = ["android-native-activity", "rwh_05"] }
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 pretty_env_logger.workspace = true
-wgpu.workspace = true
+wgpu = "23.0"
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 console_error_panic_hook.workspace = true
 console_log.workspace = true
 wasm-bindgen-test.workspace = true
 web-sys.workspace = true
-wgpu = { workspace = true, features = ["webgl", "wgsl"] }
+wgpu = { version = "23.0", features = ["webgl", "wgsl"] }
 
 [lints]
 workspace = true

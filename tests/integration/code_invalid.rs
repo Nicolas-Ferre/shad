@@ -1,23 +1,27 @@
 use itertools::Itertools;
-use shad_runner::Runner;
 use std::fs;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 #[rstest::rstest]
-fn run_invalid_code(#[files("./cases_invalid/*/*")] path: PathBuf) {
+fn run_invalid_code(
+    #[dirs]
+    #[files("./cases_invalid/*")]
+    path: PathBuf,
+) {
     let path = PathBuf::from(format!(
         // make error paths relative
         "./cases_invalid/{}",
         path.components()
-            .skip(path.components().count() - 2)
+            .skip(path.components().count() - 1)
             .map(|a| a.as_os_str().to_str().unwrap())
             .join("/")
     ));
-    let result = Runner::new(&path);
-    let actual = String::from_utf8(strip_ansi_escapes::strip(format!(
-        "{}",
-        result.expect_err("invalid code has successfully compiled")
-    )))
+    let result = shad::compile(Path::new(&path));
+    let actual = String::from_utf8(strip_ansi_escapes::strip(
+        result
+            .expect_err("invalid code has successfully compiled")
+            .render(),
+    ))
     .unwrap();
     let error_path = path.join(".expected");
     if error_path.exists() {

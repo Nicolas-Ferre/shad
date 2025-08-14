@@ -1,0 +1,13 @@
+buf assigned_buf = 0;
+buf buf_value = true;
+
+run {
+    var assigned_var = 0;
+    var var_value = 0u;
+    assigned_var = 1.0;
+    assigned_var = buf_value;
+    assigned_var = var_value;
+    assigned_buf = 1.0;
+    assigned_buf = buf_value;
+    assigned_buf = var_value;
+}

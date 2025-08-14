@@ -1,4 +1,0 @@
-gpu layout(0, 16) struct vec2f {
-    x: f32,
-    y: f32,
-}

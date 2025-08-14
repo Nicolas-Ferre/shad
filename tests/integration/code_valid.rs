@@ -1,25 +1,29 @@
-use shad_runner::Runner;
+use shad::Runner;
 use std::fs;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 #[rstest::rstest]
-fn run_valid_code(#[files("./cases_valid/*/*")] path: PathBuf) {
-    let mut runner = Runner::new(&path).unwrap();
+fn run_valid_code(
+    #[dirs]
+    #[files("./cases_valid/*")]
+    path: PathBuf,
+) {
+    let program = shad::compile(Path::new(&path)).unwrap();
+    let mut runner = Runner::new(program, None, Some((4, 4)));
     runner.run_step();
-    let asg = runner.analysis();
-    let mut buffers = asg
+    let mut buffers = runner
+        .program()
         .buffers
-        .keys()
-        .map(|buffer| {
+        .iter()
+        .map(|(name, props)| {
             format!(
-                "{}.{}={}",
-                buffer.module,
-                buffer.name,
-                match runner.analysis().buffer_type(buffer).unwrap().name.as_str() {
-                    "i32" => format!("{}", to_i32(&runner.buffer(buffer))),
-                    "u32" | "bool" => format!("{}", to_u32(&runner.buffer(buffer))),
-                    "f32" => format!("{}", to_f32(&runner.buffer(buffer))),
-                    _ => format!("{:?}", runner.buffer(buffer)),
+                "{}={}",
+                name,
+                match props.type_name.as_str() {
+                    "i32" => format!("{}", to_i32(&runner.read(name))),
+                    "u32" | "bool" => format!("{}", to_u32(&runner.read(name))),
+                    "f32" => format!("{}", to_f32(&runner.read(name))),
+                    _ => format!("{:?}", runner.read(name)),
                 }
             )
         })

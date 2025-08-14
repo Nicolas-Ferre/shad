@@ -1,8 +1,0 @@
-struct InnerRecursion {
-    inner: InnerRecursion,
-}
-
-struct Level1Recursive { inner: Level2Recursive }
-struct Level3Recursive { inner: Level4Recursive }
-struct Level4Recursive { inner: Level1Recursive }
-struct Level2Recursive { inner: Level3Recursive }

@@ -68,11 +68,11 @@ pub(crate) fn create_render_pipeline(
 
 pub(crate) fn create_compute_pipeline(device: &Device, code: &str) -> ComputePipeline {
     let module = device.create_shader_module(ShaderModuleDescriptor {
-        label: Some("shad_shader"),
+        label: Some("shad:shader_module"),
         source: wgpu::ShaderSource::Wgsl(code.into()),
     });
     device.create_compute_pipeline(&ComputePipelineDescriptor {
-        label: None,
+        label: Some("shad:compute_pipeline"),
         layout: None,
         module: &module,
         entry_point: None,

@@ -1,8 +1,0 @@
-gpu const fn __add__(unsupported_param_type: TestStruct, other: i32) -> i32;
-gpu const fn __add__(invalid_param_type: bool, other: i32) -> i32;
-gpu const fn __neg__(invalid_return_type: i32) -> u32;
-gpu const fn __neg__(undefined_return_type: f32) -> undefined;
-
-struct TestStruct {
-    field: i32
-}

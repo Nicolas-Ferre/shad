@@ -1,0 +1,256 @@
+comment_prefix: '//'
+root_kind: root
+root_expected_first_tokens:
+  - '`import`'
+  - '`buf`'
+  - '`init`'
+  - '`run`'
+import_index_key: &import_index_key '@import'
+type_transpilation:
+  bool: u32
+
+kinds:
+  root:
+    min_repeat: 0
+    max_repeat: &max_u32 4294967295
+    choice:
+      - import_item
+      - buffer_item
+      - init_item
+      - run_item
+
+  import_item:
+    sequence: [ import_kw, import_path_prefix, ident, semicolon_kw ]
+    sequence_error_after: import_kw
+    index_key:
+      string: *import_index_key
+    import_path:
+      parent: parent_kw
+      segment: ident
+    validation:
+      - name: check_import_path
+        params: { }
+
+  import_path_prefix:
+    min_repeat: 0
+    max_repeat: *max_u32
+    sequence: [ import_path_segment, dot_kw ]
+    sequence_error_after: dot_kw
+
+  import_path_segment:
+    choice: [ parent_kw, ident ]
+
+  buffer_item:
+    sequence: [ buf_kw, buffer_ident, eq_kw, expr, semicolon_kw ]
+    sequence_error_after: buf_kw
+    index_key:
+      child: buffer_ident
+    buffer:
+      ident: buffer_ident
+    transpilation: |-
+      @group(0) @binding({{binding}})
+      var<storage, read_write> _{{self_id}}: {{expr_type:expr}};
+    init_shader:
+      transpilation: |-
+        {{nested_sources:buffer_item}}
+        {{self}}
+        @compute
+        @workgroup_size(1, 1, 1)
+        fn main() {
+            _{{self_id}} = {{child:expr}};
+        }
+
+  buffer_ident:
+    sequence: [ ident ]
+    sequence_error_after: ident
+    validation:
+      - name: check_ident_uniqueness
+        params: { parents: buffer_item, ident: buffer_ident }
+
+  init_item:
+    sequence: [ init_kw, block ]
+    sequence_error_after: init_kw
+    init_shader:
+      transpilation: |-
+        {{nested_sources:buffer_item}}
+        @compute
+        @workgroup_size(1, 1, 1)
+        fn main() {{child:block}}
+
+  run_item:
+    sequence: [ run_kw, block ]
+    sequence_error_after: run_kw
+    run_shader:
+      transpilation: |-
+        {{nested_sources:buffer_item}}
+        @compute
+        @workgroup_size(1, 1, 1)
+        fn main() {{child:block}}
+
+  block:
+    sequence: [ open_braces_kw, stmts, close_braces_kw ]
+    sequence_error_after: open_braces_kw
+    transpilation: |-
+      {
+      {{child:stmts}}
+      }
+
+  stmts:
+    min_repeat: 0
+    max_repeat: *max_u32
+    choice:
+      - local_var_def_stmt
+      - assignment_stmt
+
+  local_var_def_stmt:
+    sequence: [ var_kw, ident, eq_kw, expr, semicolon_kw ]
+    sequence_error_after: var_kw
+    index_key:
+      child: ident
+    transpilation: var _{{self_id}} = {{child:expr}};
+
+  assignment_stmt:
+    sequence: [ var_ident_expr, eq_kw, expr, semicolon_kw ]
+    sequence_error_after: eq_kw
+    validation:
+      - name: check_expr_type
+        params: { expr: expr, expected: var_ident_expr }
+    transpilation: '{{child:var_ident_expr}} = {{child:expr}};'
+
+  expr:
+    choice: [ true_expr, false_expr, var_ident_expr, f32_expr, u32_expr, i32_expr ]
+
+  var_ident_expr:
+    sequence: [ ident ]
+    sequence_error_after: ident
+    index_key_source:
+      parents: [ local_var_def_stmt, buffer_item ]
+    validation:
+      - name: check_existing_source
+        params: { }
+    type_resolution:
+      source_child: expr
+    transpilation: '_{{source_id}}'
+
+  f32_expr:
+    pattern_parts:
+      - char_ranges:
+          - { start: '-', end: '-' }
+        min_length: 0
+        max_length: 1
+      - char_ranges:
+          - { start: '0', end: '9' }
+        min_length: 1
+        max_length: 1
+      - char_ranges:
+          - { start: '0', end: '9' }
+          - { start: '_', end: '_' }
+        min_length: 0
+        max_length: *max_u32
+      - char_ranges:
+          - { start: '.', end: '.' }
+        min_length: 1
+        max_length: 1
+      - char_ranges:
+          - { start: '0', end: '9' }
+        min_length: 1
+        max_length: 1
+      - char_ranges:
+          - { start: '0', end: '9' }
+          - { start: '_', end: '_' }
+        min_length: 0
+        max_length: *max_u32
+    display_name: '`f32` literal'
+    validation:
+      - name: check_number_range
+        params: { type: f32, removed_chars: '_' }
+    type_resolution:
+      name: f32
+    transpilation: 'f32({{slice_without_chars:_}})'
+
+  u32_expr:
+    pattern_parts:
+      - char_ranges:
+          - { start: '0', end: '9' }
+        min_length: 1
+        max_length: 1
+      - char_ranges:
+          - { start: '0', end: '9' }
+          - { start: '_', end: '_' }
+        min_length: 0
+        max_length: *max_u32
+      - char_ranges:
+          - { start: 'u', end: 'u' }
+        min_length: 1
+        max_length: 1
+    display_name: '`u32` literal'
+    validation:
+      - name: check_number_range
+        params: { type: u32, removed_chars: '_u' }
+    type_resolution:
+      name: u32
+    transpilation: 'u32({{slice_without_chars:_}})'
+
+  i32_expr:
+    pattern_parts:
+      - char_ranges:
+          - { start: '-', end: '-' }
+        min_length: 0
+        max_length: 1
+      - char_ranges:
+          - { start: '0', end: '9' }
+        min_length: 1
+        max_length: 1
+      - char_ranges:
+          - { start: '0', end: '9' }
+          - { start: '_', end: '_' }
+        min_length: 0
+        max_length: *max_u32
+    display_name: '`i32` literal'
+    validation:
+      - name: check_number_range
+        params: { type: i32, removed_chars: '_' }
+    type_resolution:
+      name: i32
+    transpilation: 'i32({{slice_without_chars:_}})'
+
+  true_expr:
+    string: 'true'
+    type_resolution:
+      name: bool
+    transpilation: 'u32(true)'
+
+  false_expr:
+    string: 'false'
+    type_resolution:
+      name: bool
+    transpilation: 'u32(false)'
+
+  ident:
+    pattern_parts:
+      - char_ranges:
+          - { start: 'a', end: 'z' }
+          - { start: 'A', end: 'Z' }
+          - { start: '_', end: '_' }
+        min_length: 1
+        max_length: 1
+      - char_ranges:
+          - { start: 'a', end: 'z' }
+          - { start: 'A', end: 'Z' }
+          - { start: '0', end: '9' }
+          - { start: '_', end: '_' }
+        min_length: 0
+        max_length: *max_u32
+    display_name: identifier
+
+  parent_kw: { string: '~' }
+  dot_kw: { string: '.' }
+  eq_kw: { string: '=' }
+  semicolon_kw: { string: ';' }
+  open_braces_kw: { string: '{' }
+  close_braces_kw: { string: '}' }
+  import_kw: { string: 'import' }
+  buf_kw: { string: 'buf' }
+  init_kw: { string: 'init' }
+  run_kw: { string: 'run' }
+  var_kw: { string: 'var' }

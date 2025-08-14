@@ -1,0 +1,41 @@
+error: expected `true`, `false`, identifier, `f32` literal, `u32` literal or `i32` literal
+ --> ./cases_invalid/syntax/inner_next_token.shd:5:16
+  |
+5 |     assigned = ;
+  |                ^ here
+  |
+
+error: expected identifier
+ --> ./cases_invalid/syntax/invalid_ident.shd:1:5
+  |
+1 | buf 123 = 0;
+  |     ^ here
+  |
+
+error: expected `true`, `false`, identifier, `f32` literal, `u32` literal or `i32` literal
+ --> ./cases_invalid/syntax/many_possible_next_tokens.shd:1:13
+  |
+1 | buf buffer =
+  |             ^ here
+  |
+
+error: expected `true`, `false`, identifier, `f32` literal, `u32` literal or `i32` literal
+ --> ./cases_invalid/syntax/missing_f32_prefix.shd:1:14
+  |
+1 | buf buffer = .3;
+  |              ^ here
+  |
+
+error: expected `;`
+ --> ./cases_invalid/syntax/missing_f32_suffix.shd:1:15
+  |
+1 | buf buffer = 3.;
+  |               ^ here
+  |
+
+error: expected `;`
+ --> ./cases_invalid/syntax/one_possible_next_token.shd:1:15
+  |
+1 | buf buffer = 0
+  |               ^ here
+  |

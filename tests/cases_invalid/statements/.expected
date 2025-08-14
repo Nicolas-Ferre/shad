@@ -1,0 +1,80 @@
+error: undefined identifier
+ --> ./cases_invalid/statements/expr_var_missing_source.shd:6:21
+  |
+6 |     var var_value = missing;
+  |                     ^^^^^^^
+  |
+
+error: undefined identifier
+ --> ./cases_invalid/statements/expr_var_missing_source.shd:7:17
+  |
+7 |     var_value = missing;
+  |                 ^^^^^^^
+  |
+
+error: undefined identifier
+ --> ./cases_invalid/statements/expr_var_missing_source.shd:8:17
+  |
+8 |     var_value = unused_value;
+  |                 ^^^^^^^^^^^^
+  |
+
+error: invalid expression type
+ --> ./cases_invalid/statements/invalid_assigned_type.shd:7:20
+  |
+7 |     assigned_var = 1.0;
+  |     ------------   ^^^
+  |     |              |
+  |     |              expression type is `f32`
+  |     info: expected type is `i32`
+  |
+
+error: invalid expression type
+ --> ./cases_invalid/statements/invalid_assigned_type.shd:8:20
+  |
+8 |     assigned_var = buf_value;
+  |     ------------   ^^^^^^^^^
+  |     |              |
+  |     |              expression type is `bool`
+  |     info: expected type is `i32`
+  |
+
+error: invalid expression type
+ --> ./cases_invalid/statements/invalid_assigned_type.shd:9:20
+  |
+9 |     assigned_var = var_value;
+  |     ------------   ^^^^^^^^^
+  |     |              |
+  |     |              expression type is `u32`
+  |     info: expected type is `i32`
+  |
+
+error: invalid expression type
+  --> ./cases_invalid/statements/invalid_assigned_type.shd:10:20
+   |
+10 |     assigned_buf = 1.0;
+   |     ------------   ^^^
+   |     |              |
+   |     |              expression type is `f32`
+   |     info: expected type is `i32`
+   |
+
+error: invalid expression type
+  --> ./cases_invalid/statements/invalid_assigned_type.shd:11:20
+   |
+11 |     assigned_buf = buf_value;
+   |     ------------   ^^^^^^^^^
+   |     |              |
+   |     |              expression type is `bool`
+   |     info: expected type is `i32`
+   |
+
+error: invalid expression type
+  --> ./cases_invalid/statements/invalid_assigned_type.shd:12:20
+   |
+12 |     assigned_buf = var_value;
+   |     ------------   ^^^^^^^^^
+   |     |              |
+   |     |              expression type is `u32`
+   |     info: expected type is `i32`
+   |

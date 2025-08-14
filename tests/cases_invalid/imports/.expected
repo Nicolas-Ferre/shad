@@ -1,0 +1,35 @@
+error: imported file not found
+ --> ./cases_invalid/imports/not_found.shd:1:1
+  |
+1 | import unknown;
+  | ^^^^^^^^^^^^^^^
+  | |
+  | no file found at `./cases_invalid/imports/unknown.shd`
+  |
+
+error: imported file not found
+ --> ./cases_invalid/imports/not_found.shd:2:1
+  |
+2 | import inner.unknown;
+  | ^^^^^^^^^^^^^^^^^^^^^
+  | |
+  | no file found at `./cases_invalid/imports/inner/unknown.shd`
+  |
+
+error: imported file not found
+ --> ./cases_invalid/imports/not_found.shd:3:1
+  |
+3 | import ~.unknown;
+  | ^^^^^^^^^^^^^^^^^
+  | |
+  | no file found at `./cases_invalid/imports/unknown.shd`
+  |
+
+error: imported file not found
+ --> ./cases_invalid/imports/not_found.shd:4:1
+  |
+4 | import ~.inner.unknown;
+  | ^^^^^^^^^^^^^^^^^^^^^^^
+  | |
+  | no file found at `./cases_invalid/imports/inner/unknown.shd`
+  |

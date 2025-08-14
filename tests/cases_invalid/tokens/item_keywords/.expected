@@ -1,6 +1,0 @@
-error: expected item
- --> ./cases_invalid/tokens/item_keywords/main.shd:1:1
-  |
-1 | buffer buffer_name = 42.;
-  | ^ here
-  |

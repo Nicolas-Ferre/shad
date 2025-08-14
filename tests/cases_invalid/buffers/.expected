@@ -1,0 +1,18 @@
+error: undefined identifier
+ --> ./cases_invalid/buffers/expr_var_missing_source.shd:1:14
+  |
+1 | buf buffer = missing;
+  |              ^^^^^^^
+  |
+
+error: identifier defined multiple times
+ --> ./cases_invalid/buffers/not_unique.shd:3:5
+  |
+1 | buf buffer1 = 0;
+  |     ------- info: same identifier defined here
+2 | buf buffer2 = 0;
+3 | buf buffer1 = 0;
+  |     ^^^^^^^
+  |     |
+  |     duplicated identifier
+  |

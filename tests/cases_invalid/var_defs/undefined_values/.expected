@@ -1,6 +1,0 @@
-error: could not find `undefined` value
- --> ./cases_invalid/var_defs/undefined_values/main.shd:2:17
-  |
-2 |     var value = undefined;
-  |                 ^^^^^^^^^ undefined identifier
-  |
