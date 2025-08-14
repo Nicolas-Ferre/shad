@@ -1,31 +1,3 @@
-error: undefined identifier
- --> ./cases_invalid/statements/unknown_var_ident.shd:6:21
-  |
-6 |     var var_value = missing;
-  |                     ^^^^^^^
-  |
-
-error: undefined identifier
- --> ./cases_invalid/statements/unknown_var_ident.shd:7:17
-  |
-7 |     var_value = missing;
-  |                 ^^^^^^^
-  |
-
-error: undefined identifier
- --> ./cases_invalid/statements/unknown_var_ident.shd:8:17
-  |
-8 |     var_value = unused_value;
-  |                 ^^^^^^^^^^^^
-  |
-
-error: undefined identifier
- --> ./cases_invalid/statements/unknown_var_ident.shd:9:5
-  |
-9 |     missing = 10;
-  |     ^^^^^^^
-  |
-
 error: invalid expression type
  --> ./cases_invalid/statements/invalid_assigned_type.shd:9:20
   |
@@ -95,3 +67,31 @@ error: invalid expression type
    |     |              expression type is `u32`
    |     info: expected type is `i32`
    |
+
+error: undefined identifier
+ --> ./cases_invalid/statements/unknown_var_ident.shd:6:21
+  |
+6 |     var var_value = missing;
+  |                     ^^^^^^^
+  |
+
+error: undefined identifier
+ --> ./cases_invalid/statements/unknown_var_ident.shd:7:17
+  |
+7 |     var_value = missing;
+  |                 ^^^^^^^
+  |
+
+error: undefined identifier
+ --> ./cases_invalid/statements/unknown_var_ident.shd:8:17
+  |
+8 |     var_value = unused_value;
+  |                 ^^^^^^^^^^^^
+  |
+
+error: undefined identifier
+ --> ./cases_invalid/statements/unknown_var_ident.shd:9:5
+  |
+9 |     missing = 10;
+  |     ^^^^^^^
+  |
