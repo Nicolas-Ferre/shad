@@ -1,4 +1,4 @@
-#![allow(missing_docs)] // TODO: remove
+//! Compiler and runner of Shad programming language.
 
 mod cli;
 mod compilation;
@@ -10,5 +10,4 @@ pub use compilation::error::*;
 pub use compilation::reading::*;
 pub use compilation::transpilation::*;
 pub use compilation::*;
-pub use config::*;
 pub use exec::runner::*;

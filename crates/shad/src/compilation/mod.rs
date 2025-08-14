@@ -19,6 +19,11 @@ use std::rc::Rc;
 
 const FILE_EXT: &str = "shd";
 
+/// Compiles Shad files in a given folder.
+///
+/// # Errors
+///
+/// An error is returned if the files cannot be compiled.
 pub fn compile(folder: impl SourceFolder) -> Result<Program, Error> {
     let config = config::load_config().expect("internal error: config should be valid");
     let root_path = folder.path();

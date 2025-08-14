@@ -117,22 +117,32 @@ fn template_code(ctx: &mut Context<'_>, node: &AstNode, template: &str) -> Strin
     code
 }
 
+/// A compiled Shad program.
 #[derive(Debug)]
 pub struct Program {
+    /// The program GPU buffers.
     pub buffers: HashMap<String, Buffer>,
+    /// The program `init` shaders, run only once at module creation.
     pub init_shaders: Vec<Shader>,
+    /// The program `run` shaders, run at each frame.
     pub run_shaders: Vec<Shader>,
 }
 
+/// A buffer definition.
 #[derive(Debug)]
 pub struct Buffer {
+    /// The buffer size in bytes.
     pub size_bytes: u64,
+    /// The buffer type name in Shad.
     pub type_name: String,
 }
 
+/// A shader definition.
 #[derive(Debug)]
 pub struct Shader {
+    /// The shader WGSL code.
     pub code: String,
+    /// The buffers used by the shader.
     pub buffers: Vec<String>,
 }
 

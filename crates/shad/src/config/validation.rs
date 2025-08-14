@@ -1,5 +1,5 @@
 use crate::compilation::ast::AstNode;
-use crate::compilation::error::{ValidationError, ValidationErrorLevel};
+use crate::compilation::error::{ValidationError, ValidationMessageLevel};
 use crate::compilation::validation::ValidationContext;
 use crate::config::ValidationConfig;
 use std::str::FromStr;
@@ -34,7 +34,7 @@ fn check_number_range(
     };
     if is_invalid_range {
         ctx.errors.push(ValidationError {
-            level: ValidationErrorLevel::Error,
+            level: ValidationMessageLevel::Error,
             message: format!("out of bound `{type_}` literal"),
             span: node.span(),
             code: ctx.asts[&node.path].code.clone(),
@@ -61,14 +61,14 @@ fn check_ident_uniqueness(
         .filter(|node| node.id < parent_id && parents.contains(&node.kind_name.as_str()))
     {
         ctx.errors.push(ValidationError {
-            level: ValidationErrorLevel::Error,
+            level: ValidationMessageLevel::Error,
             message: "identifier defined multiple times".into(),
             span: node.span(),
             code: ctx.asts[&node.path].code.clone(),
             path: node.path.clone(),
             inner: vec![
                 ValidationError {
-                    level: ValidationErrorLevel::Error,
+                    level: ValidationMessageLevel::Error,
                     message: "duplicated identifier".into(),
                     span: node.span(),
                     code: ctx.asts[&node.path].code.clone(),
@@ -76,7 +76,7 @@ fn check_ident_uniqueness(
                     inner: vec![],
                 },
                 ValidationError {
-                    level: ValidationErrorLevel::Info,
+                    level: ValidationMessageLevel::Info,
                     message: "same identifier defined here".into(),
                     span: duplicated.child(ident).span(),
                     code: ctx.asts[&node.path].code.clone(),
@@ -91,7 +91,7 @@ fn check_ident_uniqueness(
 fn check_existing_source(ctx: &mut ValidationContext<'_>, node: &AstNode) {
     if node.source(ctx.asts).is_none() {
         ctx.errors.push(ValidationError {
-            level: ValidationErrorLevel::Error,
+            level: ValidationMessageLevel::Error,
             message: "undefined identifier".into(),
             span: node.span(),
             code: ctx.asts[&node.path].code.clone(),
@@ -112,14 +112,14 @@ fn check_expr_type(ctx: &mut ValidationContext<'_>, validation: &ValidationConfi
     };
     if expr_type != expected_type {
         ctx.errors.push(ValidationError {
-            level: ValidationErrorLevel::Error,
+            level: ValidationMessageLevel::Error,
             message: "invalid expression type".into(),
             span: expr.span(),
             code: ctx.asts[&node.path].code.clone(),
             path: node.path.clone(),
             inner: vec![
                 ValidationError {
-                    level: ValidationErrorLevel::Info,
+                    level: ValidationMessageLevel::Info,
                     message: format!("expected type is `{expected_type}`"),
                     span: expected.span(),
                     code: ctx.asts[&node.path].code.clone(),
@@ -127,7 +127,7 @@ fn check_expr_type(ctx: &mut ValidationContext<'_>, validation: &ValidationConfi
                     inner: vec![],
                 },
                 ValidationError {
-                    level: ValidationErrorLevel::Error,
+                    level: ValidationMessageLevel::Error,
                     message: format!("expression type is `{expr_type}`"),
                     span: expr.span(),
                     code: ctx.asts[&node.path].code.clone(),
@@ -143,13 +143,13 @@ fn check_import_path(ctx: &mut ValidationContext<'_>, node: &AstNode) {
     let path = node.import_path(ctx.root_path);
     if !ctx.asts.contains_key(&path) {
         ctx.errors.push(ValidationError {
-            level: ValidationErrorLevel::Error,
+            level: ValidationMessageLevel::Error,
             message: "imported file not found".into(),
             span: node.span(),
             code: ctx.asts[&node.path].code.clone(),
             path: node.path.clone(),
             inner: vec![ValidationError {
-                level: ValidationErrorLevel::Error,
+                level: ValidationMessageLevel::Error,
                 message: format!("no file found at `{}`", path.display()),
                 span: node.span(),
                 code: ctx.asts[&node.path].code.clone(),

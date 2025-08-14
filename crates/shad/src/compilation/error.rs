@@ -4,14 +4,19 @@ use std::io;
 use std::ops::Range;
 use std::path::{Path, PathBuf};
 
+/// A Shad compilation error.
 #[derive(Debug)]
 pub enum Error {
+    /// An I/O error.
     Io(Vec<(PathBuf, io::Error)>),
+    /// A parsing error.
     Parsing(Vec<ParsingError>),
+    /// A validation error.
     Validation(Vec<ValidationError>),
 }
 
 impl Error {
+    /// Renders the error.
     #[allow(suspicious_double_ref_op)]
     pub fn render(&self) -> String {
         match self {
@@ -111,35 +116,50 @@ impl Error {
         content.to_string()
     }
 
-    fn convert_level(level: &ValidationErrorLevel) -> Level {
+    fn convert_level(level: &ValidationMessageLevel) -> Level {
         match level {
-            ValidationErrorLevel::Error => Level::Error,
-            ValidationErrorLevel::Info => Level::Info,
+            ValidationMessageLevel::Error => Level::Error,
+            ValidationMessageLevel::Info => Level::Info,
         }
     }
 }
 
+/// A parsing error.
 #[derive(Debug)]
 pub struct ParsingError {
+    /// The tokens that are expected at the location of the error.
     pub expected_tokens: Vec<String>,
+    /// The offset of the error in the file.
     pub offset: usize,
+    /// The file content.
     pub code: String,
+    /// The file path.
     pub path: PathBuf,
     pub(crate) forced: bool,
 }
 
+/// A validation error.
 #[derive(Debug)]
 pub struct ValidationError {
-    pub level: ValidationErrorLevel,
+    /// The validation message level.
+    pub level: ValidationMessageLevel,
+    /// The validation message.
     pub message: String,
+    /// The span where the error is located.
     pub span: Range<usize>,
+    /// The file content.
     pub code: String,
+    /// The file path.
     pub path: PathBuf,
+    /// Inner errors providing more details.
     pub inner: Vec<ValidationError>,
 }
 
+/// A validation message level.
 #[derive(Debug)]
-pub enum ValidationErrorLevel {
+pub enum ValidationMessageLevel {
+    /// An error.
     Error,
+    /// An information.
     Info,
 }

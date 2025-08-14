@@ -9,6 +9,7 @@ use wgpu::{Adapter, Device, Instance, Queue, TextureViewDescriptor};
 use winit::dpi::PhysicalSize;
 use winit::window::Window;
 
+/// A runner to execute a Shad program.
 #[derive(Debug)]
 pub struct Runner {
     target: Target,

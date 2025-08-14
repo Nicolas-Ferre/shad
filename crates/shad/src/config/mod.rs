@@ -48,102 +48,102 @@ fn validate_kinds(
 
 #[derive(Debug, Clone, Deserialize, Validate)]
 #[serde(deny_unknown_fields)]
-pub struct KindConfig {
-    pub string: Option<String>,
+pub(crate) struct KindConfig {
+    pub(crate) string: Option<String>,
     #[serde(default)]
     #[validate]
-    pub pattern_parts: Vec<PatternPartConfig>,
+    pub(crate) pattern_parts: Vec<PatternPartConfig>,
     #[serde(default)]
     #[validate(min_length = 1)]
-    pub choice: Vec<String>,
+    pub(crate) choice: Vec<String>,
     #[serde(default)]
     #[validate(min_length = 1)]
-    pub sequence: Vec<String>,
-    pub sequence_error_after: Option<String>,
+    pub(crate) sequence: Vec<String>,
+    pub(crate) sequence_error_after: Option<String>,
     #[serde(default = "default_repeat")]
-    pub min_repeat: u32,
+    pub(crate) min_repeat: u32,
     #[serde(default = "default_repeat")]
-    pub max_repeat: u32,
-    pub display_name: Option<String>,
+    pub(crate) max_repeat: u32,
+    pub(crate) display_name: Option<String>,
     #[validate]
-    pub import_path: Option<ImportPathConfig>,
+    pub(crate) import_path: Option<ImportPathConfig>,
     #[validate]
-    pub buffer: Option<BufferConfig>,
+    pub(crate) buffer: Option<BufferConfig>,
     #[validate]
-    pub index_key: Option<IndexKeyConfig>,
+    pub(crate) index_key: Option<IndexKeyConfig>,
     #[validate]
-    pub index_key_source: Option<IndexKeySourceConfig>,
+    pub(crate) index_key_source: Option<IndexKeySourceConfig>,
     #[serde(default)]
     #[validate]
-    pub validation: Vec<ValidationConfig>,
+    pub(crate) validation: Vec<ValidationConfig>,
     #[serde(default)]
     #[validate]
-    pub type_resolution: TypeResolutionConfig,
+    pub(crate) type_resolution: TypeResolutionConfig,
     #[serde(default)]
-    pub transpilation: String,
+    pub(crate) transpilation: String,
     #[validate]
-    pub init_shader: Option<ShaderConfig>,
+    pub(crate) init_shader: Option<ShaderConfig>,
     #[validate]
-    pub run_shader: Option<ShaderConfig>,
+    pub(crate) run_shader: Option<ShaderConfig>,
 }
 
 #[derive(Debug, Clone, Deserialize, Validate)]
 #[serde(deny_unknown_fields)]
-pub struct PatternPartConfig {
-    pub char_ranges: Vec<RangeInclusive<char>>,
-    pub min_length: usize,
-    pub max_length: usize,
+pub(crate) struct PatternPartConfig {
+    pub(crate) char_ranges: Vec<RangeInclusive<char>>,
+    pub(crate) min_length: usize,
+    pub(crate) max_length: usize,
 }
 
 #[derive(Debug, Clone, Deserialize, Validate)]
 #[serde(deny_unknown_fields)]
-pub struct ImportPathConfig {
+pub(crate) struct ImportPathConfig {
     #[validate(min_length = 1)]
-    pub parent: String,
+    pub(crate) parent: String,
     #[validate(min_length = 1)]
-    pub segment: String,
+    pub(crate) segment: String,
 }
 
 #[derive(Debug, Clone, Deserialize, Validate)]
 #[serde(deny_unknown_fields)]
-pub struct BufferConfig {
+pub(crate) struct BufferConfig {
     #[validate(min_length = 1)]
-    pub ident: String,
+    pub(crate) ident: String,
 }
 
 #[derive(Debug, Clone, Deserialize, Validate)]
 #[serde(deny_unknown_fields)]
-pub struct IndexKeyConfig {
+pub(crate) struct IndexKeyConfig {
     #[validate(min_length = 1)]
-    pub child: Option<String>,
+    pub(crate) child: Option<String>,
     #[validate(min_length = 1)]
-    pub string: Option<String>,
+    pub(crate) string: Option<String>,
 }
 
 #[derive(Debug, Clone, Deserialize, Validate)]
 #[serde(deny_unknown_fields)]
-pub struct IndexKeySourceConfig {
+pub(crate) struct IndexKeySourceConfig {
     #[validate(min_length = 1)]
-    pub parents: Vec<String>,
+    pub(crate) parents: Vec<String>,
 }
 
 #[derive(Debug, Clone, Deserialize, Validate)]
 #[serde(deny_unknown_fields)]
-pub struct ValidationConfig {
+pub(crate) struct ValidationConfig {
     #[validate(min_length = 1)]
-    pub name: String,
-    pub params: HashMap<String, String>,
+    pub(crate) name: String,
+    pub(crate) params: HashMap<String, String>,
 }
 
 #[derive(Default, Debug, Clone, Deserialize, Validate)]
 #[serde(deny_unknown_fields)]
-pub struct TypeResolutionConfig {
-    pub name: Option<String>,
-    pub source_child: Option<String>,
+pub(crate) struct TypeResolutionConfig {
+    pub(crate) name: Option<String>,
+    pub(crate) source_child: Option<String>,
 }
 
 #[derive(Default, Debug, Clone, Deserialize, Validate)]
 #[serde(deny_unknown_fields)]
-pub struct ShaderConfig {
-    pub transpilation: String,
+pub(crate) struct ShaderConfig {
+    pub(crate) transpilation: String,
 }
