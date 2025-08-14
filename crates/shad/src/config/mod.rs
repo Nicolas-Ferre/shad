@@ -4,17 +4,19 @@ pub(crate) mod validation;
 use serde::Deserialize;
 use serde_valid::Validate;
 use std::collections::HashMap;
-use std::error::Error;
 use std::ops::RangeInclusive;
 use std::rc::Rc;
 
-pub(crate) fn load_config() -> Result<Config, Box<dyn Error>> {
+pub(crate) fn load_config() -> Config {
     let config: Config = serde_yml::from_slice(include_bytes!(concat!(
         env!("CARGO_MANIFEST_DIR"),
         "/resources/config.yaml"
-    )))?;
-    config.validate()?;
-    Ok(config)
+    )))
+    .expect("internal error: config should be valid");
+    config
+        .validate()
+        .expect("internal error: config should be valid");
+    config
 }
 
 fn default_repeat() -> u32 {

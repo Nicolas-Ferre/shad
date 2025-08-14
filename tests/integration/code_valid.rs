@@ -9,7 +9,7 @@ fn run_valid_code(
     path: PathBuf,
 ) {
     let program = shad::compile(Path::new(&path)).unwrap();
-    let mut runner = Runner::new(program, None, Some((4, 4)));
+    let mut runner = Runner::new(program, None, Some((4, 3)));
     runner.run_step();
     let mut buffers = runner
         .program()

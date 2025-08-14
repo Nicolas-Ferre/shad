@@ -80,7 +80,7 @@ impl RunArgs {
         use winit::platform::web::{EventLoopExtWebSys, WindowExtWebSys};
         std::panic::set_hook(Box::new(console_error_panic_hook::hook));
         let _ = console_log::init_with_level(log::Level::Info);
-        let program = match compilation::compile(path.as_path()) {
+        let program = match compilation::compile(source) {
             Ok(program) => program,
             Err(err) => {
                 log::error!("{}", err.render());
@@ -88,7 +88,7 @@ impl RunArgs {
             }
         };
         let runner = WindowRunner::new(self, move |event_loop, sender| {
-            let window = gpu::create_window(event_loop, Self::DEFAULT_SIZE);
+            let window = Self::create_window(event_loop, Self::DEFAULT_SIZE);
             if let Some(canvas) = window.canvas() {
                 canvas.set_id("shad");
                 web_sys::window()
@@ -126,7 +126,7 @@ impl RunArgs {
             }
         };
         let mut runner = WindowRunner::new(self, move |event_loop, sender| {
-            let window = gpu::create_window(event_loop, Self::DEFAULT_SIZE);
+            let window = Self::create_window(event_loop, Self::DEFAULT_SIZE);
             sender
                 .send(Runner::new(program, Some(window), None))
                 .expect("Cannot send created runner");

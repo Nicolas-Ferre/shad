@@ -26,10 +26,9 @@ fn check_number_range(
     let is_invalid_range = match type_.as_str() {
         "i32" => i32::from_str(&slice).is_err(),
         "u32" => u32::from_str(&slice).is_err(),
-        "f32" => match f32::from_str(&slice) {
-            Ok(value) => value.is_infinite(),
-            Err(_) => true,
-        },
+        "f32" => f32::from_str(&slice)
+            .expect("internal error: invalid `f32` literal")
+            .is_infinite(),
         _ => unreachable!("undefined `{type_}` number type"),
     };
     if is_invalid_range {

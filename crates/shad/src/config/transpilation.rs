@@ -4,7 +4,6 @@ use itertools::Itertools;
 
 pub(crate) fn run(ctx: &mut Context<'_>, node: &AstNode, placeholder: &KindPlaceholder) -> String {
     match placeholder.name.as_str() {
-        "static" => static_(placeholder),
         "binding" => binding(ctx),
         "slice_without_chars" => slice_without_chars(node, placeholder),
         "self" => self_(ctx, node),
@@ -13,12 +12,8 @@ pub(crate) fn run(ctx: &mut Context<'_>, node: &AstNode, placeholder: &KindPlace
         "self_id" => self_id(node),
         "source_id" => source_id(ctx, node),
         "expr_type" => expr_type(ctx, node, placeholder),
-        _ => unreachable!("undefined `{}` transpilation step", placeholder.name),
+        transpilation => unreachable!("undefined `{transpilation}` transpilation step"),
     }
-}
-
-fn static_(placeholder: &KindPlaceholder) -> String {
-    placeholder.params[0].clone()
 }
 
 fn binding(ctx: &mut Context<'_>) -> String {

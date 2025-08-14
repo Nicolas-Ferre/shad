@@ -33,9 +33,23 @@ error: expected `;`
   |               ^ here
   |
 
+error: expected `true`, `false`, identifier, `f32` literal, `u32` literal or `i32` literal
+ --> ./cases_invalid/syntax/missing_whitespace.shd:1:14
+  |
+1 | buf buffer = 0uv;
+  |              ^ here
+  |
+
 error: expected `;`
  --> ./cases_invalid/syntax/one_possible_next_token.shd:1:15
   |
 1 | buf buffer = 0
   |               ^ here
+  |
+
+error: expected `import`, `buf`, `init` or `run`
+ --> ./cases_invalid/syntax/repeated_root_item.shd:2:1
+  |
+2 | var
+  | ^ here
   |

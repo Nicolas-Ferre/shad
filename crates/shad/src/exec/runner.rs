@@ -39,21 +39,23 @@ impl Runner {
             size: size.unwrap_or((800, 600)),
         };
         let instance = utils::create_instance();
+        // coverage: off (window cannot be tested)
         let window_surface = window.map(|window| {
-            // coverage: off (window cannot be tested)
             let surface = utils::create_surface(&instance, window.clone());
             (window, surface)
-        }); // coverage: on
+        });
+        // coverage: on
         let adapter = utils::create_adapter(
             &instance,
             window_surface.as_ref().map(|(_, surface)| surface),
         )
         .await;
         let (device, queue) = utils::create_device(&adapter).await;
+        // coverage: off (window cannot be tested)
         let surface_config = window_surface.as_ref().map(|(_, surface)| {
-            // coverage: off (window cannot be tested)
             utils::create_surface_config(&adapter, &device, surface, target.size)
-        }); // coverage: on
+        });
+        // coverage: on
         let depth_buffer = utils::create_depth_buffer(&device, target.size);
         let target = if let (Some((window, surface)), Some(surface_config)) =
             (window_surface, surface_config)
@@ -101,11 +103,6 @@ impl Runner {
         self.frame_delta_secs
     }
 
-    /// Lists all GPU buffer names.
-    pub fn buffers(&self) -> impl Iterator<Item = &String> {
-        self.resources.program.buffers.keys()
-    }
-
     /// Writes GPU buffer data.
     ///
     /// Buffer name includes the module path in which the module is defined
@@ -120,11 +117,8 @@ impl Runner {
             self.resources.program.buffers.get(buffer_name),
             self.resources.buffers.get(buffer_name),
         ) {
-            assert_eq!(
-                data.len(),
-                buffer_props.size_bytes as usize,
-                "incorrect data size"
-            );
+            let expected_size = buffer_props.size_bytes as usize;
+            assert_eq!(data.len(), expected_size, "incorrect data size");
             self.queue.write_buffer(buffer, 0, data);
         }
     }

@@ -20,39 +20,19 @@ error: undefined identifier
   |
 
 error: invalid expression type
- --> ./cases_invalid/statements/invalid_assigned_type.shd:7:20
+ --> ./cases_invalid/statements/invalid_assigned_type.shd:9:20
   |
-7 |     assigned_var = 1.0;
-  |     ------------   ^^^
-  |     |              |
-  |     |              expression type is `f32`
-  |     info: expected type is `i32`
-  |
-
-error: invalid expression type
- --> ./cases_invalid/statements/invalid_assigned_type.shd:8:20
-  |
-8 |     assigned_var = buf_value;
-  |     ------------   ^^^^^^^^^
+9 |     assigned_var = imported;
+  |     ------------   ^^^^^^^^
   |     |              |
   |     |              expression type is `bool`
   |     info: expected type is `i32`
   |
 
 error: invalid expression type
- --> ./cases_invalid/statements/invalid_assigned_type.shd:9:20
-  |
-9 |     assigned_var = var_value;
-  |     ------------   ^^^^^^^^^
-  |     |              |
-  |     |              expression type is `u32`
-  |     info: expected type is `i32`
-  |
-
-error: invalid expression type
   --> ./cases_invalid/statements/invalid_assigned_type.shd:10:20
    |
-10 |     assigned_buf = 1.0;
+10 |     assigned_var = 1.0;
    |     ------------   ^^^
    |     |              |
    |     |              expression type is `f32`
@@ -62,7 +42,7 @@ error: invalid expression type
 error: invalid expression type
   --> ./cases_invalid/statements/invalid_assigned_type.shd:11:20
    |
-11 |     assigned_buf = buf_value;
+11 |     assigned_var = buf_value;
    |     ------------   ^^^^^^^^^
    |     |              |
    |     |              expression type is `bool`
@@ -72,7 +52,37 @@ error: invalid expression type
 error: invalid expression type
   --> ./cases_invalid/statements/invalid_assigned_type.shd:12:20
    |
-12 |     assigned_buf = var_value;
+12 |     assigned_var = var_value;
+   |     ------------   ^^^^^^^^^
+   |     |              |
+   |     |              expression type is `u32`
+   |     info: expected type is `i32`
+   |
+
+error: invalid expression type
+  --> ./cases_invalid/statements/invalid_assigned_type.shd:13:20
+   |
+13 |     assigned_buf = 1.0;
+   |     ------------   ^^^
+   |     |              |
+   |     |              expression type is `f32`
+   |     info: expected type is `i32`
+   |
+
+error: invalid expression type
+  --> ./cases_invalid/statements/invalid_assigned_type.shd:14:20
+   |
+14 |     assigned_buf = buf_value;
+   |     ------------   ^^^^^^^^^
+   |     |              |
+   |     |              expression type is `bool`
+   |     info: expected type is `i32`
+   |
+
+error: invalid expression type
+  --> ./cases_invalid/statements/invalid_assigned_type.shd:15:20
+   |
+15 |     assigned_buf = var_value;
    |     ------------   ^^^^^^^^^
    |     |              |
    |     |              expression type is `u32`
