@@ -1,28 +1,28 @@
 error: undefined identifier
- --> ./cases_invalid/statements/expr_var_missing_source.shd:6:21
+ --> ./cases_invalid/statements/unknown_var_ident.shd:6:21
   |
 6 |     var var_value = missing;
   |                     ^^^^^^^
   |
 
 error: undefined identifier
- --> ./cases_invalid/statements/expr_var_missing_source.shd:7:17
+ --> ./cases_invalid/statements/unknown_var_ident.shd:7:17
   |
 7 |     var_value = missing;
   |                 ^^^^^^^
   |
 
 error: undefined identifier
- --> ./cases_invalid/statements/expr_var_missing_source.shd:8:17
+ --> ./cases_invalid/statements/unknown_var_ident.shd:8:17
   |
 8 |     var_value = unused_value;
   |                 ^^^^^^^^^^^^
   |
 
 error: undefined identifier
- --> ./cases_invalid/statements/expr_var_missing_source.shd:9:5
+ --> ./cases_invalid/statements/unknown_var_ident.shd:9:5
   |
-9 |     missing = var_value;
+9 |     missing = 10;
   |     ^^^^^^^
   |
 

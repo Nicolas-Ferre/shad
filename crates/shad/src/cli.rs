@@ -97,7 +97,6 @@ impl RunArgs {
                     .and_then(|body| body.append_child(&web_sys::Element::from(canvas)).ok())
                     .expect("cannot append canvas to document body");
             }
-            let source = source.clone();
             wasm_bindgen_futures::spawn_local(async move {
                 sender
                     .send(Runner::new_async(program, Some(window), None).await)
