@@ -4,23 +4,60 @@ pub(crate) mod validation;
 use serde::Deserialize;
 use serde_valid::Validate;
 use std::collections::HashMap;
+use std::fs;
+use std::fs::DirEntry;
 use std::ops::RangeInclusive;
 use std::rc::Rc;
 
 pub(crate) fn load_config() -> Config {
-    let config: Config = serde_yml::from_slice(include_bytes!(concat!(
+    let mut config: Config = serde_yml::from_slice(include_bytes!(concat!(
         env!("CARGO_MANIFEST_DIR"),
         "/resources/config.yaml"
     )))
     .expect("internal error: config should be valid");
+    let additional_kinds = fs::read_dir(concat!(env!("CARGO_MANIFEST_DIR"), "/resources"))
+        .expect("internal error: config folder should be valid")
+        .filter_map(Result::ok)
+        .filter(is_kind_config_file)
+        .flat_map(load_kind_config);
+    config.kinds.extend(additional_kinds);
     config
         .validate()
         .expect("internal error: config should be valid");
     config
 }
 
+fn is_kind_config_file(entry: &DirEntry) -> bool {
+    entry.path().extension().is_some_and(|ext| ext == "yaml")
+        && entry
+            .file_name()
+            .as_os_str()
+            .to_str()
+            .is_some_and(|filename| filename.starts_with("kinds_"))
+}
+
+fn load_kind_config(entry: DirEntry) -> HashMap<String, Rc<KindConfig>> {
+    serde_yml::from_str::<KindsConfig>(
+        fs::read_to_string(entry.path())
+            .expect("internal error: kind config file should exist")
+            .as_str(),
+    )
+    .expect("internal error: kind config should be valid")
+    .kinds
+}
+
 fn default_repeat() -> u32 {
     1
+}
+
+fn validate_kinds(
+    kinds: &HashMap<String, Rc<KindConfig>>,
+) -> Result<(), serde_valid::validation::Error> {
+    for kind in kinds.values() {
+        kind.validate()
+            .map_err(|err| serde_valid::validation::Error::Custom(err.to_string()))?;
+    }
+    Ok(())
 }
 
 #[derive(Debug, Clone, Deserialize, Validate)]
@@ -38,14 +75,10 @@ pub(crate) struct Config {
     pub(crate) kinds: HashMap<String, Rc<KindConfig>>,
 }
 
-fn validate_kinds(
-    kinds: &HashMap<String, Rc<KindConfig>>,
-) -> Result<(), serde_valid::validation::Error> {
-    for kind in kinds.values() {
-        kind.validate()
-            .map_err(|err| serde_valid::validation::Error::Custom(err.to_string()))?;
-    }
-    Ok(())
+#[derive(Debug, Clone, Deserialize, Validate)]
+pub(crate) struct KindsConfig {
+    #[validate(custom(validate_kinds))]
+    pub(crate) kinds: HashMap<String, Rc<KindConfig>>,
 }
 
 #[derive(Debug, Clone, Deserialize, Validate)]

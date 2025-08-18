@@ -1,0 +1,79 @@
+max_u32: &max_u32 4294967295
+import_index_key: &import_index_key '@import'
+
+kinds:
+  import_item:
+    sequence: [ import_kw, import_path_prefix, ident, semicolon_kw ]
+    sequence_error_after: import_kw
+    index_key:
+      string: *import_index_key
+    import_path:
+      parent: parent_kw
+      segment: ident
+    validation:
+      - name: check_import_path
+        params: { }
+
+  import_path_prefix:
+    min_repeat: 0
+    max_repeat: *max_u32
+    sequence: [ import_path_segment, dot_kw ]
+    sequence_error_after: dot_kw
+
+  import_path_segment:
+    choice: [ parent_kw, ident ]
+
+  buffer_item:
+    sequence: [ buf_kw, buffer_ident, eq_kw, expr, semicolon_kw ]
+    sequence_error_after: buf_kw
+    index_key:
+      child: buffer_ident
+    buffer:
+      ident: buffer_ident
+    transpilation: |-
+      @group(0) @binding({{binding}})
+      var<storage, read_write> _{{self_id}}: {{expr_type:expr}};
+    init_shader:
+      transpilation: |-
+        {{nested_sources:buffer_item}}
+        {{self}}
+        @compute
+        @workgroup_size(1, 1, 1)
+        fn main() {
+            _{{self_id}} = {{child:expr}};
+        }
+
+  buffer_ident:
+    sequence: [ ident ]
+    sequence_error_after: ident
+    validation:
+      - name: check_ident_uniqueness
+        params: { parents: buffer_item, ident: buffer_ident }
+
+  init_item:
+    sequence: [ init_kw, block ]
+    sequence_error_after: init_kw
+    init_shader:
+      transpilation: |-
+        {{nested_sources:buffer_item}}
+        @compute
+        @workgroup_size(1, 1, 1)
+        fn main() {{child:block}}
+
+  run_item:
+    sequence: [ run_kw, block ]
+    sequence_error_after: run_kw
+    run_shader:
+      transpilation: |-
+        {{nested_sources:buffer_item}}
+        @compute
+        @workgroup_size(1, 1, 1)
+        fn main() {{child:block}}
+
+  block:
+    sequence: [ open_braces_kw, stmts, close_braces_kw ]
+    sequence_error_after: open_braces_kw
+    transpilation: |-
+      {
+      {{child:stmts}}
+      }

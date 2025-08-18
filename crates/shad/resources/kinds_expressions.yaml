@@ -1,0 +1,111 @@
+max_u32: &max_u32 4294967295
+
+kinds:
+  expr:
+    choice: [ true_expr, false_expr, var_ident_expr, f32_expr, u32_expr, i32_expr ]
+
+  var_ident_expr:
+    sequence: [ ident ]
+    sequence_error_after: ident
+    index_key_source:
+      parents: [ local_var_def_stmt, buffer_item ]
+    validation:
+      - name: check_existing_source
+        params: { }
+    type_resolution:
+      source_child: expr
+    transpilation: '_{{source_id}}'
+
+  f32_expr:
+    pattern_parts:
+      - char_ranges:
+          - { start: '-', end: '-' }
+        min_length: 0
+        max_length: 1
+      - char_ranges:
+          - { start: '0', end: '9' }
+        min_length: 1
+        max_length: 1
+      - char_ranges:
+          - { start: '0', end: '9' }
+          - { start: '_', end: '_' }
+        min_length: 0
+        max_length: *max_u32
+      - char_ranges:
+          - { start: '.', end: '.' }
+        min_length: 1
+        max_length: 1
+      - char_ranges:
+          - { start: '0', end: '9' }
+        min_length: 1
+        max_length: 1
+      - char_ranges:
+          - { start: '0', end: '9' }
+          - { start: '_', end: '_' }
+        min_length: 0
+        max_length: *max_u32
+    display_name: '`f32` literal'
+    validation:
+      - name: check_number_range
+        params: { type: f32, removed_chars: '_' }
+    type_resolution:
+      name: f32
+    transpilation: 'f32({{slice_without_chars:_}})'
+
+  u32_expr:
+    pattern_parts:
+      - char_ranges:
+          - { start: '0', end: '9' }
+        min_length: 1
+        max_length: 1
+      - char_ranges:
+          - { start: '0', end: '9' }
+          - { start: '_', end: '_' }
+        min_length: 0
+        max_length: *max_u32
+      - char_ranges:
+          - { start: 'u', end: 'u' }
+        min_length: 1
+        max_length: 1
+    display_name: '`u32` literal'
+    validation:
+      - name: check_number_range
+        params: { type: u32, removed_chars: '_u' }
+    type_resolution:
+      name: u32
+    transpilation: 'u32({{slice_without_chars:_}})'
+
+  i32_expr:
+    pattern_parts:
+      - char_ranges:
+          - { start: '-', end: '-' }
+        min_length: 0
+        max_length: 1
+      - char_ranges:
+          - { start: '0', end: '9' }
+        min_length: 1
+        max_length: 1
+      - char_ranges:
+          - { start: '0', end: '9' }
+          - { start: '_', end: '_' }
+        min_length: 0
+        max_length: *max_u32
+    display_name: '`i32` literal'
+    validation:
+      - name: check_number_range
+        params: { type: i32, removed_chars: '_' }
+    type_resolution:
+      name: i32
+    transpilation: 'i32({{slice_without_chars:_}})'
+
+  true_expr:
+    string: 'true'
+    type_resolution:
+      name: bool
+    transpilation: 'u32(true)'
+
+  false_expr:
+    string: 'false'
+    type_resolution:
+      name: bool
+    transpilation: 'u32(false)'
