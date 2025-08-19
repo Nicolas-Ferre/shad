@@ -1,6 +1,7 @@
 use crate::compilation::{FileAst, FILE_EXT};
 use crate::config::KindConfig;
 use itertools::Itertools;
+use std::borrow::Cow;
 use std::collections::HashMap;
 use std::ops::Range;
 use std::path::{Path, PathBuf};
@@ -35,66 +36,187 @@ impl AstNode {
     }
 
     pub(crate) fn child(&self, child_name: &str) -> &Self {
+        self.child_option(child_name)
+            .expect("internal error: node child not found")
+    }
+
+    pub(crate) fn child_option(&self, child_name: &str) -> Option<&Rc<Self>> {
         match &self.children {
-            AstNodeInner::Sequence(children) => &children[child_name],
+            AstNodeInner::Sequence(children) => children.get(child_name),
             AstNodeInner::Repeated(_) | AstNodeInner::Terminal => {
                 unreachable!("cannot retrieve child for non-sequence node")
             }
         }
     }
 
+    #[allow(clippy::needless_lifetimes)]
+    pub(crate) fn scan<'a>(&'a self, f: &mut impl FnMut(&'a Self) -> bool) {
+        if f(self) {
+            return;
+        }
+        for child in self.children() {
+            child.scan(f);
+        }
+    }
+
     pub(crate) fn type_(&self, asts: &HashMap<PathBuf, FileAst>) -> Option<String> {
-        if let Some(name) = &self.kind_config.type_resolution.name {
+        let type_ = if let Some(name) = &self.kind_config.type_resolution.name {
             Some(name.clone())
-        } else if let Some(source_child) = &self.kind_config.type_resolution.source_child {
+        } else if let Some(child_kind) = &self.kind_config.type_resolution.child_slice {
+            Some(self.child(child_kind).slice.clone())
+        } else if !self.kind_config.type_resolution.source_children.is_empty() {
             if let Some(source_source) = self.source(asts) {
-                source_source.child(source_child).type_(asts)
+                self.kind_config
+                    .type_resolution
+                    .source_children
+                    .iter()
+                    .find_map(|source_child| source_source.child_option(source_child)?.type_(asts))
             } else {
                 None
             }
         } else {
             self.children().find_map(|child| child.type_(asts))
-        }
+        };
+        type_.or_else(|| self.kind_config.type_resolution.default_name.clone())
+    }
+
+    pub(crate) fn key(&self) -> String {
+        self.kind_config
+            .index_key
+            .iter()
+            .map(|key_part| {
+                if let Some(child_kind) = &key_part.child {
+                    self.child(child_kind).slice.clone()
+                } else if let Some(nested_kind) = &key_part.nested {
+                    let mut key_parts = vec![];
+                    self.scan(&mut |scanned| {
+                        if &scanned.kind_name == nested_kind {
+                            key_parts.push(scanned.slice.clone());
+                            true
+                        } else {
+                            false
+                        }
+                    });
+                    key_parts.join(
+                        key_part
+                            .separator
+                            .as_ref()
+                            .expect("internal error: missing separator for `nested`"),
+                    )
+                } else if let Some(string) = &key_part.string {
+                    string.clone()
+                } else {
+                    unreachable!("index key config should be valid");
+                }
+            })
+            .join("")
+    }
+
+    pub(crate) fn source_key(&self, asts: &HashMap<PathBuf, FileAst>) -> Option<String> {
+        let source_config = self.kind_config.index_key_source.as_ref()?;
+        Some(
+            source_config
+                .key
+                .iter()
+                .map(|key_part| {
+                    if key_part.slice {
+                        Cow::from(&self.slice)
+                    } else if let Some(string) = &key_part.string {
+                        Cow::from(string)
+                    } else if let Some(child_kind) = &key_part.slice_child {
+                        Cow::from(&self.child(child_kind).slice)
+                    } else if let Some(child_kind) = &key_part.type_nested_child {
+                        let mut key_parts = vec![];
+                        self.scan(&mut |scanned| {
+                            if &scanned.kind_name == child_kind {
+                                key_parts.push(
+                                    scanned.type_(asts).unwrap_or_else(|| "<unknown>".into()),
+                                );
+                                true
+                            } else {
+                                false
+                            }
+                        });
+                        Cow::from(key_parts.join(
+                            key_part.separator.as_ref().expect(
+                                "internal error: missing separator for `type_nested_child`",
+                            ),
+                        ))
+                    } else {
+                        unreachable!("index key source config should be valid");
+                    }
+                })
+                .join(""),
+        )
     }
 
     pub(crate) fn source<'a>(&self, asts: &'a HashMap<PathBuf, FileAst>) -> Option<&'a Rc<Self>> {
-        let Some(source_node_config) = &self.kind_config.index_key_source else {
-            return None;
-        };
-        let parent_id = self.parent_ids.last().copied().unwrap_or(0);
-        asts[&self.path]
-            .index
-            .indexed_lookup_paths
-            .iter()
-            .filter_map(|current_path| {
-                asts.get(current_path)?
-                    .index
-                    .indexed_nodes
-                    .get(&self.slice)
-                    .map(|nodes| (nodes, current_path))
-            })
-            .flat_map(|(nodes, current_path)| {
-                nodes.iter().map(move |node| (node, current_path)).rev()
-            })
-            .find(|(node, current_path)| {
-                let node_parent_id = node.parent_ids.last().copied().unwrap_or(0);
-                let is_node_root_child = node.parent_ids.len() == 1;
-                (node.id < parent_id || &&self.path != current_path)
-                    && source_node_config.parents.contains(&node.kind_name)
-                    && (is_node_root_child || self.parent_ids.contains(&node_parent_id))
-            })
-            .map(|(node, _)| node)
+        let key = self.source_key(asts)?;
+        for criteria in &self.kind_config.index_key_source.as_ref()?.criteria {
+            let parent_id = self.parent_ids.last().copied().unwrap_or(0);
+            let found_source = asts[&self.path]
+                .index
+                .indexed_lookup_paths
+                .iter()
+                .filter_map(|current_path| {
+                    asts.get(current_path)?
+                        .index
+                        .indexed_nodes
+                        .get(&key)
+                        .map(|nodes| (nodes, current_path))
+                })
+                .flat_map(|(nodes, current_path)| {
+                    nodes.iter().map(move |node| (node, current_path)).rev()
+                })
+                .find(|(node, current_path)| {
+                    let node_parent_id = node.parent_ids.last().copied().unwrap_or(0);
+                    let is_node_root_child = node.parent_ids.len() == 1;
+                    let is_in_allowed_sibling = criteria.allowed_siblings.iter().any(|sibling| {
+                        self.parent_ids.get(sibling.parent_index).is_some_and(|id| {
+                            node.parent_ids.contains(&(id + sibling.child_offset))
+                        })
+                    });
+                    (criteria.can_be_after || node.id < parent_id || &&self.path != current_path)
+                        && node.kind_name == criteria.kind
+                        && (is_in_allowed_sibling
+                            || is_node_root_child
+                            || self.parent_ids.contains(&node_parent_id))
+                })
+                .map(|(node, _)| node);
+            if found_source.is_some() {
+                return found_source;
+            }
+        }
+        None
     }
 
     pub(crate) fn nested_sources<'a>(
         &self,
         asts: &'a HashMap<PathBuf, FileAst>,
     ) -> Vec<&'a Rc<Self>> {
-        self.children()
-            .flat_map(|child| child.nested_sources(asts))
-            .chain(self.source(asts))
-            .unique_by(|node| node.id)
-            .collect_vec()
+        let mut sources = HashMap::new();
+        let mut previous_source_count = usize::MAX;
+        while sources.len() != previous_source_count {
+            previous_source_count = sources.len();
+            self.scan(&mut |scanned| {
+                if let Some(source) = scanned.source(asts) {
+                    sources.entry(source.id).or_insert(source);
+                    sources.extend(
+                        source
+                            .nested_sources(asts)
+                            .into_iter()
+                            .map(|node| (node.id, node)),
+                    );
+                    true
+                } else {
+                    false
+                }
+            });
+        }
+        sources
+            .into_values()
+            .sorted_by_key(|node| node.id)
+            .collect()
     }
 
     pub(crate) fn import_path(&self, root_path: &Path) -> PathBuf {
@@ -140,16 +262,6 @@ impl AstNode {
                 .join("."),
             self.child(child_ident).slice
         )
-    }
-
-    #[allow(clippy::needless_lifetimes)]
-    fn scan<'a>(&'a self, f: &mut impl FnMut(&'a Self) -> bool) {
-        if f(self) {
-            return;
-        }
-        for child in self.children() {
-            child.scan(f);
-        }
     }
 }
 

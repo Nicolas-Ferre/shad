@@ -1,4 +1,5 @@
 max_u32: &max_u32 4294967295
+no_return_type_name: &no_return_type_name '<no return>'
 
 kinds:
   stmts:
@@ -7,18 +8,32 @@ kinds:
     choice:
       - local_var_def_stmt
       - assignment_stmt
+      - fn_call_stmt
+      - return_stmt
 
   local_var_def_stmt:
-    sequence: [ var_kw, ident, eq_kw, expr, semicolon_kw ]
+    sequence: [ var_kw, ident, eq, expr, semicolon ]
     sequence_error_after: var_kw
     index_key:
-      child: ident
-    transpilation: var _{{self_id}} = {{child:expr}};
+      - string: '`'
+      - child: ident
+      - string: '` variable'
+    transpilation: 'var _{{self_id}} = {{child:expr}};'
 
   assignment_stmt:
-    sequence: [ var_ident_expr, eq_kw, expr, semicolon_kw ]
-    sequence_error_after: eq_kw
+    sequence: [ var_ident_expr, eq, expr, semicolon ]
+    sequence_error_after: eq
     validation:
       - name: check_expr_type
-        params: { expr: expr, expected: var_ident_expr }
+        params: { expr: expr, expected: var_ident_expr, skipped_type: *no_return_type_name }
     transpilation: '{{child:var_ident_expr}} = {{child:expr}};'
+
+  fn_call_stmt:
+    sequence: [ fn_call_expr, semicolon ]
+    sequence_error_after: fn_call_expr
+    transpilation: '{{child:fn_call_expr}};'
+
+  return_stmt:
+    sequence: [ return_kw, expr, semicolon ]
+    sequence_error_after: return_kw
+    transpilation: 'return {{child:expr}};'

@@ -1,20 +1,88 @@
 max_u32: &max_u32 4294967295
+no_return_type_name: &no_return_type_name '<no return>'
 
 kinds:
   expr:
-    choice: [ true_expr, false_expr, var_ident_expr, f32_expr, u32_expr, i32_expr ]
+    sequence: [ expr_choice ]
+    sequence_error_after: expr_choice
+    validation:
+      - name: check_invalid_expr_type
+        params: { type: *no_return_type_name }
+    transpilation: '{{child:expr_choice}}'
+
+  expr_choice:
+    choice: [ true_expr, false_expr, fn_call_expr, var_ident_expr, f32_expr, u32_expr, i32_expr ]
 
   var_ident_expr:
     sequence: [ ident ]
     sequence_error_after: ident
     index_key_source:
-      parents: [ local_var_def_stmt, buffer_item ]
+      key:
+        - string: '`'
+        - slice: true
+        - string: '` variable'
+      criteria:
+        - kind: local_var_def_stmt
+          can_be_after: false
+        - kind: fn_param
+          can_be_after: false
+          allowed_siblings:
+            - parent_index: 1 # `fn_item` node
+              child_offset: 4 # `fn_param_group` child node
+        - kind: buffer_item
+          can_be_after: false
     validation:
       - name: check_existing_source
         params: { }
     type_resolution:
-      source_child: expr
+      source_children: [ expr, param_type ]
     transpilation: '_{{source_id}}'
+
+  fn_call_expr:
+    sequence: [ ident, open_parenthesis, fn_arg_group, close_parenthesis ]
+    sequence_error_after: open_parenthesis
+    index_key_source:
+      key:
+        - string: '`'
+        - slice_child: ident
+        - string: '('
+        - type_nested_child: fn_arg
+          separator: ', '
+        - string: ')` function'
+      criteria:
+        - kind: fn_item
+          can_be_after: true
+    validation:
+      - name: check_existing_source
+        params: { }
+    transpilation: '_{{source_id}}({{child:fn_arg_group}})'
+    type_resolution:
+      source_children: [ fn_return_type ]
+
+  fn_arg_group:
+    min_repeat: 0
+    max_repeat: 1
+    sequence: [ fn_arg, fn_other_args, fn_args_final_comma ]
+    sequence_error_after: fn_arg
+    transpilation: '{{child:fn_arg}}{{child:fn_other_args}}'
+
+  fn_arg:
+    sequence: [ expr ]
+    sequence_error_after: expr
+    transpilation: '{{child:expr}}'
+
+  fn_other_args:
+    min_repeat: 0
+    max_repeat: *max_u32
+    sequence: [ comma, fn_arg ]
+    sequence_error_after: fn_arg
+    transpilation: ', {{child:fn_arg}}'
+
+  fn_args_final_comma:
+    min_repeat: 0
+    max_repeat: 1
+    sequence: [ comma ]
+    sequence_error_after: comma
 
   f32_expr:
     pattern_parts:

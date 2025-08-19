@@ -1,17 +1,20 @@
 use crate::compilation::ast::AstNode;
 use crate::compilation::transpilation::{node_code, Context, KindPlaceholder};
 use itertools::Itertools;
+use std::fmt::Write as _;
 
 pub(crate) fn run(ctx: &mut Context<'_>, node: &AstNode, placeholder: &KindPlaceholder) -> String {
     match placeholder.name.as_str() {
         "binding" => binding(ctx),
         "slice_without_chars" => slice_without_chars(node, placeholder),
+        "slice_as_type" => slice_as_type(ctx, node),
         "self" => self_(ctx, node),
         "child" => child(ctx, node, placeholder),
         "nested_sources" => nested_sources(ctx, node, placeholder),
         "self_id" => self_id(node),
         "source_id" => source_id(ctx, node),
         "expr_type" => expr_type(ctx, node, placeholder),
+        "fn_param_vars" => fn_param_vars(node, placeholder),
         transpilation => unreachable!("undefined `{transpilation}` transpilation step"),
     }
 }
@@ -28,6 +31,14 @@ fn slice_without_chars(node: &AstNode, placeholder: &KindPlaceholder) -> String 
         .chars()
         .collect();
     node.slice.replace(removed_chars.as_slice(), "")
+}
+
+fn slice_as_type(ctx: &Context<'_>, node: &AstNode) -> String {
+    ctx.config
+        .type_transpilation
+        .get(&node.slice)
+        .cloned()
+        .unwrap_or_else(|| node.slice.clone())
 }
 
 fn self_(ctx: &mut Context<'_>, node: &AstNode) -> String {
@@ -69,4 +80,19 @@ fn expr_type(ctx: &Context<'_>, node: &AstNode, placeholder: &KindPlaceholder) -
         .get(&type_name)
         .cloned()
         .unwrap_or(type_name)
+}
+
+fn fn_param_vars(node: &AstNode, placeholder: &KindPlaceholder) -> String {
+    let param_kind = &placeholder.params[0];
+    let mut code = String::new();
+    node.scan(&mut |scanned| {
+        if &scanned.kind_name == param_kind {
+            writeln!(code, "var _{id} = _p{id};", id = scanned.id)
+                .expect("internal error: cannot transpile function parameter vars");
+            true
+        } else {
+            false
+        }
+    });
+    code
 }

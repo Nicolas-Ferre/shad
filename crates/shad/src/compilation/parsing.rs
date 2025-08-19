@@ -168,7 +168,7 @@ fn parse_sequence(ctx: &mut Context<'_>) -> Result<AstNode, ParsingError> {
         })
         .collect::<Result<HashMap<String, _>, _>>()
         .map_err(|mut err| {
-            err.forced = forced_error;
+            err.forced |= forced_error;
             err
         })?;
     *ctx = local_ctx;
@@ -209,6 +209,7 @@ fn parse_choice(ctx: &mut Context<'_>) -> Result<AstNode, ParsingError> {
         expected_tokens: errors
             .iter()
             .flat_map(|err| err.expected_tokens.iter().cloned())
+            .unique()
             .collect(),
         offset: errors[0].offset,
         code: String::new(),

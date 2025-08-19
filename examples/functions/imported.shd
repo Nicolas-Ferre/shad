@@ -1,0 +1,6 @@
+buf a = false;
+
+fn imported_func(p: bool) -> bool {
+    a = p;
+    return true;
+}

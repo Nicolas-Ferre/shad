@@ -18,14 +18,21 @@ kinds:
         max_length: *max_u32
     display_name: identifier
 
-  parent_kw: { string: '~' }
-  dot_kw: { string: '.' }
-  eq_kw: { string: '=' }
-  semicolon_kw: { string: ';' }
-  open_braces_kw: { string: '{' }
-  close_braces_kw: { string: '}' }
+  tilde: { string: '~' }
+  dot: { string: '.' }
+  comma: { string: ',' }
+  eq: { string: '=' }
+  colon: { string: ':' }
+  semicolon: { string: ';' }
+  open_bracket: { string: '{' }
+  close_bracket: { string: '}' }
+  open_parenthesis: { string: '(' }
+  close_parenthesis: { string: ')' }
+  arrow: { string: '->' }
   import_kw: { string: 'import' }
   buf_kw: { string: 'buf' }
   init_kw: { string: 'init' }
   run_kw: { string: 'run' }
   var_kw: { string: 'var' }
+  fn_kw: { string: 'fn' }
+  return_kw: { string: 'return' }

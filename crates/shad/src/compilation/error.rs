@@ -1,3 +1,5 @@
+use crate::compilation::ast::AstNode;
+use crate::compilation::validation::ValidationContext;
 use annotate_snippets::{Level, Renderer, Snippet};
 use itertools::Itertools;
 use std::io;
@@ -83,12 +85,12 @@ impl Error {
     fn render_validation(error: &ValidationError) -> String {
         let path = error.path.display().to_string();
         let renderer = Renderer::styled();
-        let level = Self::convert_level(&error.level);
+        let level = Self::convert_level(error.level);
         let mut annotations = vec![level.span(error.span.clone())];
         for inner in &error.inner {
             if inner.path == error.path {
                 annotations.push(
-                    Self::convert_level(&inner.level)
+                    Self::convert_level(inner.level)
                         .span(inner.span.clone())
                         .label(&inner.message),
                 );
@@ -106,7 +108,7 @@ impl Error {
                         .fold(true)
                         .origin(&path)
                         .annotation(
-                            Self::convert_level(&inner.level)
+                            Self::convert_level(inner.level)
                                 .span(inner.span.clone())
                                 .label(&inner.message),
                         ),
@@ -118,7 +120,7 @@ impl Error {
         content.to_string()
     }
 
-    fn convert_level(level: &ValidationMessageLevel) -> Level {
+    fn convert_level(level: ValidationMessageLevel) -> Level {
         match level {
             ValidationMessageLevel::Error => Level::Error,
             ValidationMessageLevel::Info => Level::Info,
@@ -157,8 +159,39 @@ pub struct ValidationError {
     pub inner: Vec<ValidationError>,
 }
 
+impl ValidationError {
+    pub(crate) fn new(
+        ctx: &ValidationContext<'_>,
+        level: ValidationMessageLevel,
+        node: &AstNode,
+        primary_message: impl Into<String>,
+        secondary_message: Option<String>,
+        inner_messages: Vec<Self>,
+    ) -> Self {
+        Self {
+            level,
+            message: primary_message.into(),
+            span: node.span(),
+            code: ctx.asts[&node.path].code.clone(),
+            path: node.path.clone(),
+            inner: secondary_message
+                .map(|message| Self {
+                    level,
+                    message,
+                    span: node.span(),
+                    code: ctx.asts[&node.path].code.clone(),
+                    path: node.path.clone(),
+                    inner: vec![],
+                })
+                .into_iter()
+                .chain(inner_messages)
+                .collect(),
+        }
+    }
+}
+
 /// A validation message level.
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub enum ValidationMessageLevel {
     /// An error.
     Error,

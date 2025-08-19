@@ -1,14 +1,15 @@
 max_u32: &max_u32 4294967295
 import_index_key: &import_index_key '@import'
+no_return_type_name: &no_return_type_name '<no return>'
 
 kinds:
   import_item:
-    sequence: [ import_kw, import_path_prefix, ident, semicolon_kw ]
+    sequence: [ import_kw, import_path_prefix, ident, semicolon ]
     sequence_error_after: import_kw
     index_key:
-      string: *import_index_key
+      - string: *import_index_key
     import_path:
-      parent: parent_kw
+      parent: tilde
       segment: ident
     validation:
       - name: check_import_path
@@ -17,25 +18,30 @@ kinds:
   import_path_prefix:
     min_repeat: 0
     max_repeat: *max_u32
-    sequence: [ import_path_segment, dot_kw ]
-    sequence_error_after: dot_kw
+    sequence: [ import_path_segment, dot ]
+    sequence_error_after: dot
 
   import_path_segment:
-    choice: [ parent_kw, ident ]
+    choice: [ tilde, ident ]
 
   buffer_item:
-    sequence: [ buf_kw, buffer_ident, eq_kw, expr, semicolon_kw ]
+    sequence: [ buf_kw, ident, eq, expr, semicolon ]
     sequence_error_after: buf_kw
     index_key:
-      child: buffer_ident
+      - string: '`'
+      - child: ident
+      - string: '` variable'
     buffer:
-      ident: buffer_ident
+      ident: ident
+    validation:
+      - name: check_root_index_key_uniqueness
+        params: { }
     transpilation: |-
       @group(0) @binding({{binding}})
       var<storage, read_write> _{{self_id}}: {{expr_type:expr}};
     init_shader:
       transpilation: |-
-        {{nested_sources:buffer_item}}
+        {{nested_sources:buffer_item;fn_item}}
         {{self}}
         @compute
         @workgroup_size(1, 1, 1)
@@ -43,36 +49,116 @@ kinds:
             _{{self_id}} = {{child:expr}};
         }
 
-  buffer_ident:
-    sequence: [ ident ]
-    sequence_error_after: ident
-    validation:
-      - name: check_ident_uniqueness
-        params: { parents: buffer_item, ident: buffer_ident }
-
   init_item:
     sequence: [ init_kw, block ]
     sequence_error_after: init_kw
     init_shader:
       transpilation: |-
-        {{nested_sources:buffer_item}}
+        {{nested_sources:buffer_item;fn_item}}
         @compute
         @workgroup_size(1, 1, 1)
-        fn main() {{child:block}}
+        fn main() {
+        {{child:block}}
+        }
 
   run_item:
     sequence: [ run_kw, block ]
     sequence_error_after: run_kw
     run_shader:
       transpilation: |-
-        {{nested_sources:buffer_item}}
+        {{nested_sources:buffer_item;fn_item}}
         @compute
         @workgroup_size(1, 1, 1)
-        fn main() {{child:block}}
+        fn main() {
+        {{child:block}}
+        }
+
+  fn_item:
+    sequence: [ fn_kw, ident, open_parenthesis, fn_param_group, close_parenthesis, fn_return_type, block ]
+    sequence_error_after: fn_kw
+    index_key:
+      - string: '`'
+      - child: ident
+      - string: '('
+      - nested: param_type
+        separator: ', '
+      - string: ')` function'
+    validation:
+      - name: check_root_index_key_uniqueness
+        params: { }
+      - name: check_missing_return_stmt
+        params:
+          return_type: fn_return_type
+          body: block
+          body_inner: stmts
+          return_stmt: return_stmt
+          no_return_type: *no_return_type_name
+      - name: check_invalid_return_type
+        params:
+          return_type: fn_return_type
+          body: block
+          body_inner: stmts
+          return_stmt: return_stmt
+          no_return_type: *no_return_type_name
+    transpilation: |-
+      fn _{{self_id}}({{child:fn_param_group}}) {{child:fn_return_type}} {
+      {{fn_param_vars:fn_param}}
+      {{child:block}}
+      }
+
+  fn_return_type:
+    min_repeat: 0
+    max_repeat: 1
+    sequence: [ arrow, type ]
+    sequence_error_after: arrow
+    transpilation: '-> {{child:type}}'
+    type_resolution:
+      default_name: *no_return_type_name
+
+  fn_param_group:
+    min_repeat: 0
+    max_repeat: 1
+    sequence: [ fn_param, fn_other_params, fn_params_final_comma ]
+    sequence_error_after: fn_param
+    transpilation: '{{child:fn_param}}{{child:fn_other_params}}'
+
+  fn_other_params:
+    min_repeat: 0
+    max_repeat: *max_u32
+    sequence: [ comma, fn_param ]
+    sequence_error_after: fn_param
+    transpilation: ', {{child:fn_param}}'
+
+  fn_params_final_comma:
+    min_repeat: 0
+    max_repeat: 1
+    sequence: [ comma ]
+    sequence_error_after: comma
+
+  fn_param:
+    sequence: [ ident, colon, param_type ]
+    sequence_error_after: ident
+    index_key:
+      - string: '`'
+      - child: ident
+      - string: '` variable'
+    transpilation: '_p{{self_id}}: {{child:param_type}}'
+
+  param_type:
+    sequence: [ type ]
+    sequence_error_after: type
+    transpilation: '{{child:type}}'
+
+  type:
+    sequence: [ ident ]
+    sequence_error_after: ident
+    transpilation: '{{slice_as_type}}'
+    type_resolution:
+      child_slice: ident
 
   block:
-    sequence: [ open_braces_kw, stmts, close_braces_kw ]
-    sequence_error_after: open_braces_kw
+    sequence: [ open_bracket, stmts, close_bracket ]
+    sequence_error_after: open_bracket
     transpilation: |-
       {
       {{child:stmts}}

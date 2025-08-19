@@ -47,7 +47,7 @@ error: expected `;`
   |               ^ here
   |
 
-error: expected `import`, `buf`, `init` or `run`
+error: expected `buf`, `fn`, `import`, `init` or `run`
  --> ./cases_invalid/syntax/repeated_root_item.shd:2:1
   |
 2 | var

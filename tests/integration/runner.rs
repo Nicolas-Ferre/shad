@@ -46,7 +46,7 @@ fn write_non_existing_buffer() {
 #[test]
 fn execute_init_shaders_only_once() {
     let buffer_name = "init.value";
-    let program = shad::compile(Path::new("./cases_valid/blocks")).unwrap();
+    let program = shad::compile(Path::new("./cases_valid/items")).unwrap();
     let mut runner = Runner::new(program, None, Some((4, 3)));
     runner.run_step();
     assert_eq!(runner.read(buffer_name), &[2, 0, 0, 0]);
@@ -58,7 +58,7 @@ fn execute_init_shaders_only_once() {
 #[test]
 fn execute_run_shaders_at_each_frame() {
     let buffer_name = "run.value1";
-    let program = shad::compile(Path::new("./cases_valid/blocks")).unwrap();
+    let program = shad::compile(Path::new("./cases_valid/items")).unwrap();
     let mut runner = Runner::new(program, None, Some((4, 3)));
     runner.run_step();
     assert_eq!(runner.read(buffer_name), &[2, 0, 0, 0]);

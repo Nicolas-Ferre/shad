@@ -104,8 +104,9 @@ pub(crate) struct KindConfig {
     pub(crate) import_path: Option<ImportPathConfig>,
     #[validate]
     pub(crate) buffer: Option<BufferConfig>,
+    #[serde(default)]
     #[validate]
-    pub(crate) index_key: Option<IndexKeyConfig>,
+    pub(crate) index_key: Vec<IndexKeyConfig>,
     #[validate]
     pub(crate) index_key_source: Option<IndexKeySourceConfig>,
     #[serde(default)]
@@ -152,14 +153,55 @@ pub(crate) struct IndexKeyConfig {
     #[validate(min_length = 1)]
     pub(crate) child: Option<String>,
     #[validate(min_length = 1)]
+    pub(crate) nested: Option<String>,
+    #[validate(min_length = 1)]
     pub(crate) string: Option<String>,
+    #[validate(min_length = 1)]
+    pub(crate) separator: Option<String>,
 }
 
 #[derive(Debug, Clone, Deserialize, Validate)]
 #[serde(deny_unknown_fields)]
 pub(crate) struct IndexKeySourceConfig {
+    #[validate(min_items = 1)]
+    #[validate]
+    pub(crate) key: Vec<IndexKeyPartConfig>,
+    #[validate(min_items = 1)]
+    #[validate]
+    pub(crate) criteria: Vec<IndexKeySourceCriteriaConfig>,
+}
+
+#[derive(Debug, Clone, Deserialize, Validate)]
+#[serde(deny_unknown_fields)]
+pub(crate) struct IndexKeyPartConfig {
     #[validate(min_length = 1)]
-    pub(crate) parents: Vec<String>,
+    pub(crate) string: Option<String>,
+    #[serde(default)]
+    pub(crate) slice: bool,
+    #[validate(min_length = 1)]
+    pub(crate) slice_child: Option<String>,
+    #[validate(min_length = 1)]
+    pub(crate) type_nested_child: Option<String>,
+    #[validate(min_length = 1)]
+    pub(crate) separator: Option<String>,
+}
+
+#[derive(Debug, Clone, Deserialize, Validate)]
+#[serde(deny_unknown_fields)]
+pub(crate) struct IndexKeySourceCriteriaConfig {
+    #[validate(min_length = 1)]
+    pub(crate) kind: String,
+    pub(crate) can_be_after: bool,
+    #[serde(default)]
+    #[validate]
+    pub(crate) allowed_siblings: Vec<IndexKeySourceSiblingConfig>,
+}
+
+#[derive(Debug, Clone, Deserialize, Validate)]
+#[serde(deny_unknown_fields)]
+pub(crate) struct IndexKeySourceSiblingConfig {
+    pub(crate) parent_index: usize,
+    pub(crate) child_offset: u32,
 }
 
 #[derive(Debug, Clone, Deserialize, Validate)]
@@ -173,8 +215,11 @@ pub(crate) struct ValidationConfig {
 #[derive(Default, Debug, Clone, Deserialize, Validate)]
 #[serde(deny_unknown_fields)]
 pub(crate) struct TypeResolutionConfig {
+    pub(crate) default_name: Option<String>,
     pub(crate) name: Option<String>,
-    pub(crate) source_child: Option<String>,
+    pub(crate) child_slice: Option<String>,
+    #[serde(default)]
+    pub(crate) source_children: Vec<String>,
 }
 
 #[derive(Default, Debug, Clone, Deserialize, Validate)]

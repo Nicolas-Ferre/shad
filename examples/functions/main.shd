@@ -1,0 +1,25 @@
+import imported;
+
+buf result = 0;
+
+run {
+    result = 2;
+    var arg = 42;
+    var returned = my_func(arg, 42u);
+    imported_func(true);
+    // TODO: check return statement is only present in functions
+}
+
+fn my_func(param1: i32, param2: u32) -> u32 {
+    var variable = param1;
+    result = variable;
+    param1 = 10;
+    my_func_2();
+    // TODO: check return statements are only at the end of the function
+    // TODO: check returned value has correct type
+    return param2;
+}
+
+fn my_func_2() {
+    result = 3;
+}

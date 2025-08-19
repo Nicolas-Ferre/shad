@@ -79,15 +79,8 @@ impl AstNodeIndex {
 }
 
 fn fill_index(node: &Rc<AstNode>, index: &mut HashMap<String, Vec<Rc<AstNode>>>) {
-    if let Some(index_key) = &node.kind_config.index_key {
-        let key = if let Some(child) = &index_key.child {
-            node.child(child).slice.clone()
-        } else if let Some(string) = &index_key.string {
-            string.clone()
-        } else {
-            unreachable!("index key config should be valid");
-        };
-        index.entry(key).or_default().push(node.clone());
+    if !node.kind_config.index_key.is_empty() {
+        index.entry(node.key()).or_default().push(node.clone());
     }
     match &node.children {
         AstNodeInner::Sequence(children) => {
