@@ -1,5 +1,5 @@
+pub(crate) mod scripts;
 pub(crate) mod transpilation;
-pub(crate) mod validation;
 
 use serde::Deserialize;
 use serde_valid::Validate;
@@ -208,8 +208,18 @@ pub(crate) struct IndexKeySourceSiblingConfig {
 #[serde(deny_unknown_fields)]
 pub(crate) struct ValidationConfig {
     #[validate(min_length = 1)]
-    pub(crate) name: String,
-    pub(crate) params: HashMap<String, String>,
+    pub(crate) assertion: String,
+    pub(crate) error: ValidationMessageConfig,
+}
+
+#[derive(Debug, Clone, Deserialize, Validate)]
+#[serde(deny_unknown_fields)]
+pub(crate) struct ValidationMessageConfig {
+    pub(crate) node: String,
+    pub(crate) title: String,
+    pub(crate) label: Option<String>,
+    #[serde(default)]
+    pub(crate) info: Vec<ValidationMessageConfig>,
 }
 
 #[derive(Default, Debug, Clone, Deserialize, Validate)]

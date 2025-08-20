@@ -42,7 +42,8 @@ pub fn compile(folder: impl SourceFolder) -> Result<Program, Error> {
         })
         .collect::<HashMap<_, _>>();
     AstNodeIndex::generate_lookup_paths(&config, &mut asts, &root_path);
-    validate_asts(&asts, &root_path)?;
+    let asts = Rc::new(asts);
+    validate_asts(&config, &asts, &root_path)?;
     Ok(transpile_asts(&config, &asts, &root_path))
 }
 

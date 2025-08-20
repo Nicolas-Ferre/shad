@@ -1,16 +1,25 @@
 max_u32: &max_u32 4294967295
-no_return_type_name: &no_return_type_name '<no return>'
+
+missing_source_check: &missing_source_check
+  assertion: 'node.source().is_some()'
+  error:
+    node: 'node'
+    title: '"undefined item"'
+    label: '`${node.source_key().req()} is undefined`'
 
 kinds:
-  expr:
-    sequence: [ expr_choice ]
-    sequence_error_after: expr_choice
+  typed_expr:
+    sequence: [ expr ]
+    sequence_error_after: expr
     validation:
-      - name: check_invalid_expr_type
-        params: { type: *no_return_type_name }
-    transpilation: '{{child:expr_choice}}'
+      - assertion: 'node.type().req() != "<no return>"'
+        error:
+          node: 'node'
+          title: '"invalid expression type"'
+          label: '"this function does not return a value"'
+    transpilation: '{{child:expr}}'
 
-  expr_choice:
+  expr:
     choice: [ true_expr, false_expr, fn_call_expr, var_ident_expr, f32_expr, u32_expr, i32_expr ]
 
   var_ident_expr:
@@ -32,10 +41,9 @@ kinds:
         - kind: buffer_item
           can_be_after: false
     validation:
-      - name: check_existing_source
-        params: { }
+      - *missing_source_check
     type_resolution:
-      source_children: [ expr, param_type ]
+      source_children: [ typed_expr, param_type ]
     transpilation: '_{{source_id}}'
 
   fn_call_expr:
@@ -53,8 +61,7 @@ kinds:
         - kind: fn_item
           can_be_after: true
     validation:
-      - name: check_existing_source
-        params: { }
+      - *missing_source_check
     transpilation: '_{{source_id}}({{child:fn_arg_group}})'
     type_resolution:
       source_children: [ fn_return_type ]
@@ -114,8 +121,13 @@ kinds:
         max_length: *max_u32
     display_name: '`f32` literal'
     validation:
-      - name: check_number_range
-        params: { type: f32, removed_chars: '_' }
+      - assertion: |-
+          let slice = node.slice();
+          slice.replace("_", "");
+          parse_f32(slice).is_some()
+        error:
+          node: 'node'
+          title: '"out of bound `f32` literal"'
     type_resolution:
       name: f32
     transpilation: 'f32({{slice_without_chars:_}})'
@@ -137,8 +149,14 @@ kinds:
         max_length: 1
     display_name: '`u32` literal'
     validation:
-      - name: check_number_range
-        params: { type: u32, removed_chars: '_u' }
+      - assertion: |-
+          let slice = node.slice();
+          slice.replace("_", "");
+          slice.replace("u", "");
+          parse_u32(slice).is_some()
+        error:
+          node: 'node'
+          title: '"out of bound `u32` literal"'
     type_resolution:
       name: u32
     transpilation: 'u32({{slice_without_chars:_}})'
@@ -160,8 +178,13 @@ kinds:
         max_length: *max_u32
     display_name: '`i32` literal'
     validation:
-      - name: check_number_range
-        params: { type: i32, removed_chars: '_' }
+      - assertion: |-
+          let slice = node.slice();
+          slice.replace("_", "");
+          parse_i32(slice).is_some()
+        error:
+          node: 'node'
+          title: '"out of bound `i32` literal"'
     type_resolution:
       name: i32
     transpilation: 'i32({{slice_without_chars:_}})'

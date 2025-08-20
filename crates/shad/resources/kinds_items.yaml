@@ -2,6 +2,27 @@ max_u32: &max_u32 4294967295
 import_index_key: &import_index_key '@import'
 no_return_type_name: &no_return_type_name '<no return>'
 
+duplicated_item_check: &duplicated_item_check
+  assertion: |-
+    for other_node in root.children() {
+      if other_node.id() < node.id() && other_node.key() == node.key() {
+        return false;
+      }
+    }
+    true
+  error:
+    node: 'node'
+    title: '`${node.key()} defined multiple times`'
+    label: '"duplicated item"'
+    info:
+      - node: |-
+          for other_node in root.children() {
+            if other_node.key() == node.key() {
+              return other_node;
+            }
+          }
+        title: '"same item defined here"'
+
 kinds:
   import_item:
     sequence: [ import_kw, import_path_prefix, ident, semicolon ]
@@ -12,8 +33,11 @@ kinds:
       parent: tilde
       segment: ident
     validation:
-      - name: check_import_path
-        params: { }
+      - assertion: 'node.import_path().exists()'
+        error:
+          node: 'node'
+          title: '"imported file not found"'
+          label: '`no file found at ``${node.import_path().to_str()}```'
 
   import_path_prefix:
     min_repeat: 0
@@ -25,7 +49,7 @@ kinds:
     choice: [ tilde, ident ]
 
   buffer_item:
-    sequence: [ buf_kw, ident, eq, expr, semicolon ]
+    sequence: [ buf_kw, ident, eq, typed_expr, semicolon ]
     sequence_error_after: buf_kw
     index_key:
       - string: '`'
@@ -34,11 +58,10 @@ kinds:
     buffer:
       ident: ident
     validation:
-      - name: check_root_index_key_uniqueness
-        params: { }
+      - *duplicated_item_check
     transpilation: |-
       @group(0) @binding({{binding}})
-      var<storage, read_write> _{{self_id}}: {{expr_type:expr}};
+      var<storage, read_write> _{{self_id}}: {{expr_type:typed_expr}};
     init_shader:
       transpilation: |-
         {{nested_sources:buffer_item;fn_item}}
@@ -46,7 +69,7 @@ kinds:
         @compute
         @workgroup_size(1, 1, 1)
         fn main() {
-            _{{self_id}} = {{child:expr}};
+            _{{self_id}} = {{child:typed_expr}};
         }
 
   init_item:
@@ -84,22 +107,30 @@ kinds:
         separator: ', '
       - string: ')` function'
     validation:
-      - name: check_root_index_key_uniqueness
-        params: { }
-      - name: check_missing_return_stmt
-        params:
-          return_type: fn_return_type
-          body: block
-          body_inner: stmts
-          return_stmt: return_stmt
-          no_return_type: *no_return_type_name
-      - name: check_invalid_return_type
-        params:
-          return_type: fn_return_type
-          body: block
-          body_inner: stmts
-          return_stmt: return_stmt
-          no_return_type: *no_return_type_name
+      - *duplicated_item_check
+      - assertion: |-
+          let last_stmt = node.child("block").req().child("stmts").req().last_child();
+          let has_return_stmt = last_stmt.is_some() && last_stmt.req().kind() == "return_stmt";
+          let has_return_type = node.child("fn_return_type").req().children().len() > 0;
+          has_return_stmt || !has_return_type
+        error:
+          node: 'node.child("block").req().child("stmts").req().last_child().or(node.child("block")).req()'
+          title: '"missing return statement"'
+          label: '"last statement should be a `return` statement"'
+          info:
+            - node: 'node.child("fn_return_type").req()'
+              title: '"the function has a return type"'
+      - assertion: |-
+          let expected_type = node.child("fn_return_type").req().type().req();
+          let returned_type = node.child("block").req().child("stmts").req().last_child().req().type().req();
+          returned_type == "<no return>" || expected_type == "<no return>" || returned_type == expected_type
+        error:
+          node: 'node.child("block").req().child("stmts").req().last_child().req()'
+          title: '"invalid returned type"'
+          label: '`returned type is ``${node.child("block").req().child("stmts").req().last_child().req().type().req()}```'
+          info:
+            - node: 'node.child("fn_return_type").req()'
+              title: '`expected type is ``${node.child("fn_return_type").req().type().req()}```'
     transpilation: |-
       fn _{{self_id}}({{child:fn_param_group}}) {{child:fn_return_type}} {
       {{fn_param_vars:fn_param}}

@@ -1,10 +1,12 @@
 use crate::compilation::ast::AstNode;
 use crate::compilation::validation::ValidationContext;
+use crate::config::{scripts, ValidationMessageConfig};
 use annotate_snippets::{Level, Renderer, Snippet};
 use itertools::Itertools;
 use std::io;
 use std::ops::Range;
 use std::path::{Path, PathBuf};
+use std::rc::Rc;
 
 /// A Shad compilation error.
 #[derive(Debug)]
@@ -160,31 +162,41 @@ pub struct ValidationError {
 }
 
 impl ValidationError {
-    pub(crate) fn new(
+    pub(crate) fn from_config(
         ctx: &ValidationContext<'_>,
+        node: &Rc<AstNode>,
         level: ValidationMessageLevel,
-        node: &AstNode,
-        primary_message: impl Into<String>,
-        secondary_message: Option<String>,
-        inner_messages: Vec<Self>,
+        config: &ValidationMessageConfig,
     ) -> Self {
+        let span_node =
+            scripts::compile_and_run::<Rc<AstNode>>(&config.node, node, ctx.asts, ctx.root_path)
+                .expect("internal error: failed to calculate message node");
+        let title =
+            scripts::compile_and_run::<String>(&config.title, node, ctx.asts, ctx.root_path)
+                .expect("internal error: failed to calculate message title");
+        let label = config.label.as_ref().map(|label| {
+            scripts::compile_and_run::<String>(label, node, ctx.asts, ctx.root_path)
+                .expect("internal error: failed to calculate message label")
+        });
         Self {
             level,
-            message: primary_message.into(),
-            span: node.span(),
-            code: ctx.asts[&node.path].code.clone(),
-            path: node.path.clone(),
-            inner: secondary_message
+            message: title,
+            span: span_node.span(),
+            code: ctx.asts[&span_node.path].code.clone(),
+            path: span_node.path.clone(),
+            inner: label
                 .map(|message| Self {
                     level,
                     message,
-                    span: node.span(),
-                    code: ctx.asts[&node.path].code.clone(),
-                    path: node.path.clone(),
+                    span: span_node.span(),
+                    code: ctx.asts[&span_node.path].code.clone(),
+                    path: span_node.path.clone(),
                     inner: vec![],
                 })
                 .into_iter()
-                .chain(inner_messages)
+                .chain(config.info.iter().map(|config| {
+                    Self::from_config(ctx, node, ValidationMessageLevel::Info, config)
+                }))
                 .collect(),
         }
     }

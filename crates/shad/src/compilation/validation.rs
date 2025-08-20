@@ -1,18 +1,32 @@
 use crate::compilation::ast::{AstNode, AstNodeInner};
 use crate::compilation::error::ValidationError;
 use crate::compilation::FileAst;
-use crate::config::validation;
-use crate::Error;
+use crate::config::{scripts, Config};
+use crate::{Error, ValidationMessageLevel};
+use rhai::{Engine, AST};
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
+use std::rc::Rc;
 
 pub(crate) fn validate_asts(
-    asts: &HashMap<PathBuf, FileAst>,
+    config: &Config,
+    asts: &Rc<HashMap<PathBuf, FileAst>>,
     root_path: &Path,
 ) -> Result<(), Error> {
     let mut ctx = ValidationContext {
         root_path,
         asts,
+        scripts: config
+            .kinds
+            .values()
+            .flat_map(|kind| &kind.validation)
+            .map(|validation| {
+                (
+                    validation.assertion.clone(),
+                    scripts::compile(&validation.assertion, asts, root_path),
+                )
+            })
+            .collect(),
         errors: vec![],
     };
     for path in asts.keys() {
@@ -25,7 +39,7 @@ pub(crate) fn validate_asts(
     }
 }
 
-fn validate_ast_node(ctx: &mut ValidationContext<'_>, node: &AstNode) {
+fn validate_ast_node(ctx: &mut ValidationContext<'_>, node: &Rc<AstNode>) {
     match &node.children {
         AstNodeInner::Sequence(children) => {
             for child in children.values() {
@@ -40,13 +54,23 @@ fn validate_ast_node(ctx: &mut ValidationContext<'_>, node: &AstNode) {
         AstNodeInner::Terminal => {}
     }
     for validation in &node.kind_config.validation {
-        validation::run(ctx, validation, node);
+        let (script_ast, engine) = &ctx.scripts[&validation.assertion];
+        let is_valid = scripts::run::<bool>(node, ctx.asts, script_ast, engine).unwrap_or(true);
+        if !is_valid {
+            ctx.errors.push(ValidationError::from_config(
+                ctx,
+                node,
+                ValidationMessageLevel::Error,
+                &validation.error,
+            ));
+        }
     }
 }
 
 #[derive(Debug)]
 pub(crate) struct ValidationContext<'a> {
     pub(crate) root_path: &'a Path,
-    pub(crate) asts: &'a HashMap<PathBuf, FileAst>,
+    pub(crate) asts: &'a Rc<HashMap<PathBuf, FileAst>>,
+    pub(crate) scripts: HashMap<String, (AST, Engine)>,
     pub(crate) errors: Vec<ValidationError>,
 }

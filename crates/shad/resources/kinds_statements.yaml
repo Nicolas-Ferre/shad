@@ -12,21 +12,30 @@ kinds:
       - return_stmt
 
   local_var_def_stmt:
-    sequence: [ var_kw, ident, eq, expr, semicolon ]
+    sequence: [ var_kw, ident, eq, typed_expr, semicolon ]
     sequence_error_after: var_kw
     index_key:
       - string: '`'
       - child: ident
       - string: '` variable'
-    transpilation: 'var _{{self_id}} = {{child:expr}};'
+    transpilation: 'var _{{self_id}} = {{child:typed_expr}};'
 
   assignment_stmt:
-    sequence: [ var_ident_expr, eq, expr, semicolon ]
+    sequence: [ var_ident_expr, eq, typed_expr, semicolon ]
     sequence_error_after: eq
     validation:
-      - name: check_expr_type
-        params: { expr: expr, expected: var_ident_expr, skipped_type: *no_return_type_name }
-    transpilation: '{{child:var_ident_expr}} = {{child:expr}};'
+      - assertion: |-
+          let expr_type = node.child("typed_expr").req().type().req();
+          let expected_type = node.child("var_ident_expr").req().type().req();
+          expr_type == "<no return>" || expected_type == "<no return>" || expr_type == expected_type
+        error:
+          node: 'node.child("typed_expr").req()'
+          title: '"invalid expression type"'
+          label: '`expression type is ``${node.child("typed_expr").req().type().req()}```'
+          info:
+            - node: 'node.child("var_ident_expr").req()'
+              title: '`expected type is ``${node.child("var_ident_expr").req().type().req()}```'
+    transpilation: '{{child:var_ident_expr}} = {{child:typed_expr}};'
 
   fn_call_stmt:
     sequence: [ fn_call_expr, semicolon ]
@@ -34,6 +43,6 @@ kinds:
     transpilation: '{{child:fn_call_expr}};'
 
   return_stmt:
-    sequence: [ return_kw, expr, semicolon ]
+    sequence: [ return_kw, typed_expr, semicolon ]
     sequence_error_after: return_kw
-    transpilation: 'return {{child:expr}};'
+    transpilation: 'return {{child:typed_expr}};'
