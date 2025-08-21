@@ -1,0 +1,26 @@
+buf result = return_value_with_side_effect(5, 10);
+buf side_effect = 0; // TODO: should be initialized after
+
+fn return_value_with_side_effect(side_effect_value: i32, returned_value: i32) -> i32 {
+    returned_value = 2;
+    var result = returned_value;
+    side_effect = side_effect_value;
+    return result;
+}
+
+buf return_fn_run = false;
+buf no_return_fn_run = false;
+
+fn return_value() -> i32 {
+    return_fn_run = true;
+    return 2;
+}
+
+fn no_return_value() {
+    no_return_fn_run = true;
+}
+
+run {
+    return_value();
+    no_return_value();
+}

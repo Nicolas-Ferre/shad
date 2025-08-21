@@ -1,0 +1,29 @@
+fn missing_return_with_body() -> i32 {
+    var a = 0;
+}
+
+fn missing_return_without_body() -> i32 {
+}
+
+fn no_return_type_but_return_stmt() {
+    return 0;
+}
+
+fn return_type_and_invalid_returned_value() -> i32 {
+    return 0u;
+}
+
+fn return_before_end(param: u32) -> u32 {
+    var result = 0u;
+    return 0u;
+    result = param;
+    return result;
+}
+
+init {
+    return 0; // not allowed outside functions
+}
+
+run {
+    return 0; // not allowed outside functions
+}

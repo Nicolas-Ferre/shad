@@ -1,0 +1,9 @@
+fn func(a: i32, b: u32) {
+}
+
+run {
+    func(0, 0u);
+    func(0, 0);
+    func(0);
+    other_func();
+}

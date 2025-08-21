@@ -1,3 +1,7 @@
+fn_calls.no_return_fn_run=1
+fn_calls.result=2
+fn_calls.return_fn_run=1
+fn_calls.side_effect=0
 inner.imported1.imported=2
 inner.imported2.imported=1
 inner.not_imported.not_imported=3

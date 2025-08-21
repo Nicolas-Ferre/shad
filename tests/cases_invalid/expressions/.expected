@@ -1,0 +1,62 @@
+error: undefined item
+ --> ./cases_invalid/expressions/fn_call.shd:6:5
+  |
+6 |     func(0, 0);
+  |     ^^^^^^^^^^
+  |     |
+  |     `func(i32, i32)` function is undefined
+  |
+
+error: undefined item
+ --> ./cases_invalid/expressions/fn_call.shd:7:5
+  |
+7 |     func(0);
+  |     ^^^^^^^
+  |     |
+  |     `func(i32)` function is undefined
+  |
+
+error: undefined item
+ --> ./cases_invalid/expressions/fn_call.shd:8:5
+  |
+8 |     other_func();
+  |     ^^^^^^^^^^^^
+  |     |
+  |     `other_func()` function is undefined
+  |
+
+error: invalid expression type
+ --> ./cases_invalid/expressions/no_return_type.shd:1:14
+  |
+1 | buf buffer = no_return();
+  |              ^^^^^^^^^^^
+  |              |
+  |              this function does not return a value
+  |
+
+error: invalid expression type
+ --> ./cases_invalid/expressions/no_return_type.shd:4:13
+  |
+4 |     var a = no_return();
+  |             ^^^^^^^^^^^
+  |             |
+  |             this function does not return a value
+  |
+
+error: invalid expression type
+ --> ./cases_invalid/expressions/no_return_type.shd:5:9
+  |
+5 |     a = no_return();
+  |         ^^^^^^^^^^^
+  |         |
+  |         this function does not return a value
+  |
+
+error: invalid expression type
+ --> ./cases_invalid/expressions/no_return_type.shd:6:12
+  |
+6 |     return no_return();
+  |            ^^^^^^^^^^^
+  |            |
+  |            this function does not return a value
+  |

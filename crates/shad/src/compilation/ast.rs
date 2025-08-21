@@ -200,13 +200,19 @@ impl AstNode {
             previous_source_count = sources.len();
             self.scan(&mut |scanned| {
                 if let Some(source) = scanned.source(asts) {
-                    sources.entry(source.id).or_insert(source);
-                    sources.extend(
+                    let mut is_new = false;
+                    sources.entry(source.id).or_insert_with(|| {
+                        is_new = true;
                         source
-                            .nested_sources(asts)
-                            .into_iter()
-                            .map(|node| (node.id, node)),
-                    );
+                    });
+                    if is_new {
+                        sources.extend(
+                            source
+                                .nested_sources(asts)
+                                .into_iter()
+                                .map(|node| (node.id, node)),
+                        );
+                    }
                     true
                 } else {
                     false

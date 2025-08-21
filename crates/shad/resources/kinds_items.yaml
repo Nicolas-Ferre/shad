@@ -79,7 +79,7 @@ kinds:
         }`
 
   init_item:
-    sequence: [ init_kw, block ]
+    sequence: [ init_kw, non_return_block ]
     sequence_error_after: init_kw
     init_shader:
       transpilation: |-
@@ -93,11 +93,11 @@ kinds:
         @compute
         @workgroup_size(1, 1, 1)
         fn main() {
-        ${node.block.wgsl()}
+        ${node.non_return_block.wgsl()}
         }`
 
   run_item:
-    sequence: [ run_kw, block ]
+    sequence: [ run_kw, non_return_block ]
     sequence_error_after: run_kw
     run_shader:
       transpilation: |-
@@ -111,7 +111,7 @@ kinds:
         @compute
         @workgroup_size(1, 1, 1)
         fn main() {
-        ${node.block.wgsl()}
+        ${node.non_return_block.wgsl()}
         }`
 
   fn_item:
@@ -140,8 +140,12 @@ kinds:
               title: '"the function has a return type"'
       - assertion: |-
           let expected_type = node.fn_return_type.type();
-          let returned_type = node.block.stmts.children().last().unwrap_or_stop().type();
-          returned_type == "<no return>" || expected_type == "<no return>" || returned_type == expected_type
+          let last_stmt = node.block.stmts.children().last().unwrap_or_stop();
+          if last_stmt.kind() != "return_stmt" {
+            return true;
+          }
+          let returned_type = last_stmt.type();
+          returned_type == "<no return>" || returned_type == expected_type
         error:
           node: 'node.block.stmts.children().last().unwrap_or_stop()'
           title: '"invalid returned type"'
@@ -149,6 +153,45 @@ kinds:
           info:
             - node: 'node.fn_return_type'
               title: '`expected type is ``${node.fn_return_type.type()}```'
+      - assertion: |-
+          let params = [];
+          let group = node.fn_param_group.children().last().unwrap_or_stop();
+          params.push(group.fn_param);
+          for other_param in group.fn_other_params.children() {
+            if params.find(|| this.ident.slice() == other_param.fn_param.ident.slice()) != () {
+              return false;
+            }
+            params.push(other_param.fn_param);
+          }
+          true
+        error:
+          node: |-
+            let params = [];
+            let group = node.fn_param_group.children().last().unwrap_or_stop();
+            params.push(group.fn_param);
+            for other_param in group.fn_other_params.children() {
+              if params.find(|| this.ident.slice() == other_param.fn_param.ident.slice()) != () {
+                return other_param.fn_param;
+              }
+              params.push(other_param.fn_param);
+            }
+            true
+          title: '"function parameter defined multiple times"'
+          label: '"duplicated parameter name"'
+          info:
+            - node: |-
+                let params = [];
+                let group = node.fn_param_group.children().last().unwrap_or_stop();
+                params.push(group.fn_param);
+                for other_param in group.fn_other_params.children() {
+                  let found_param = params.find(|| this.ident.slice() == other_param.fn_param.ident.slice());
+                  if found_param != () {
+                    return found_param;
+                  }
+                  params.push(other_param.fn_param);
+                }
+                true
+              title: '"same parameter name defined here"'
     transpilation: |-
       let param_vars = "";
       for group in node.fn_param_group.children() {
@@ -214,9 +257,50 @@ kinds:
     type_resolution:
       child_slice: ident
 
+  non_return_block:
+    sequence: [ block ]
+    sequence_error_after: block
+    validation:
+      - assertion: |-
+          for stmt in node.block.stmts.children() {
+            if stmt.kind() == "return_stmt" {
+              return false;
+            }
+          }
+          true
+        error:
+          node: |-
+            for stmt in node.block.stmts.children() {
+              if stmt.kind() == "return_stmt" {
+                return stmt;
+              }
+            }
+          title: '"`return` statement used outside a function"'
+          label: '"not allowed statement"'
+    transpilation: 'node.block.wgsl()'
+
   block:
     sequence: [ open_bracket, stmts, close_bracket ]
     sequence_error_after: open_bracket
+    validation:
+      - assertion: |-
+          let stmts = node.stmts.children();
+          for (stmt, index) in stmts {
+            if stmt.kind() == "return_stmt" && index != stmts.len() - 1 {
+              return false;
+            }
+          }
+          true
+        error:
+          node: |-
+            let stmts = node.stmts.children();
+            for (stmt, index) in stmts {
+              if stmt.kind() == "return_stmt" && index != stmts.len() - 1 {
+                return stmt;
+              }
+            }
+          title: '"`return` statement before end of the block"'
+          label: '"only allowed at the end of a block"'
     transpilation: |-
       `{
       ${node.stmts.wgsl()}
