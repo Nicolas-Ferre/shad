@@ -1,27 +1,19 @@
 use crate::compilation::ast::{AstNode, AstNodeInner};
 use crate::compilation::FileAst;
-use crate::config::scripts::{compile_and_run, ScriptContext, NEXT_BINDING};
+use crate::config::scripts::{compile_and_run, ScriptContext};
 use crate::config::{Config, ShaderConfig};
 use itertools::Itertools;
 use std::collections::HashMap;
 use std::ops::Deref;
 use std::path::{Path, PathBuf};
 use std::rc::Rc;
-use std::sync::atomic::Ordering;
 
 pub(crate) fn transpile_asts(
     config: &Rc<Config>,
     asts: &Rc<HashMap<PathBuf, FileAst>>,
     root_path: &Path,
 ) -> Program {
-    let ctx = ScriptContext {
-        asts: asts.clone(),
-        config: config.clone(),
-        root_path: root_path.to_path_buf(),
-        engine: Rc::default(),
-        cache: Rc::default(),
-    };
-    ctx.init();
+    let ctx = ScriptContext::new(config, asts, root_path);
     Program {
         buffers: asts
             .values()
@@ -73,12 +65,23 @@ pub(crate) fn transpile_asts(
     }
 }
 
-pub(crate) fn transpile_shader(
+pub(crate) fn transpile_node(ctx: &ScriptContext, node: &Rc<AstNode>) -> String {
+    if let AstNodeInner::Repeated(children) = &node.children {
+        children
+            .iter()
+            .map(|child| transpile_from_script(ctx, child, &child.kind_config.transpilation))
+            .join("\n")
+    } else {
+        transpile_from_script(ctx, node, &node.kind_config.transpilation)
+    }
+}
+
+fn transpile_shader(
     ctx: &ScriptContext,
     node: &Rc<AstNode>,
     shader_config: &ShaderConfig,
 ) -> Shader {
-    NEXT_BINDING.store(0, Ordering::Relaxed);
+    ctx.next_binding.replace(0);
     Shader {
         code: transpile_from_script(ctx, node, &shader_config.transpilation),
         buffers: node
@@ -94,17 +97,6 @@ pub(crate) fn transpile_shader(
             })
             .map(|(node, config)| node.item_path(&config.ident, &ctx.root_path))
             .collect(),
-    }
-}
-
-pub(crate) fn transpile_node(ctx: &ScriptContext, node: &Rc<AstNode>) -> String {
-    if let AstNodeInner::Repeated(children) = &node.children {
-        children
-            .iter()
-            .map(|child| transpile_from_script(ctx, child, &child.kind_config.transpilation))
-            .join("\n")
-    } else {
-        transpile_from_script(ctx, node, &node.kind_config.transpilation)
     }
 }
 

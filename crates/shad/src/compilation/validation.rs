@@ -13,14 +13,7 @@ pub(crate) fn validate_asts(
     asts: &Rc<HashMap<PathBuf, FileAst>>,
     root_path: &Path,
 ) -> Result<(), Error> {
-    let ctx = ScriptContext {
-        asts: asts.clone(),
-        config: config.clone(),
-        root_path: root_path.to_path_buf(),
-        engine: Rc::default(),
-        cache: Rc::default(),
-    };
-    ctx.init();
+    let ctx = ScriptContext::new(config, asts, root_path);
     let mut errors = vec![];
     for path in asts.keys() {
         validate_ast_node(&mut errors, &ctx, &asts[path].root);

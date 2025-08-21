@@ -3,14 +3,11 @@ use crate::compilation::transpilation::transpile_node;
 use crate::compilation::FileAst;
 use crate::config::Config;
 use rhai::{Dynamic, Engine, EvalAltResult, Position, Scope, AST};
-use std::cell::RefCell;
+use std::cell::{Cell, RefCell};
 use std::collections::HashMap;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::rc::Rc;
 use std::str::FromStr;
-use std::sync::atomic::{AtomicU32, Ordering};
-
-pub(crate) static NEXT_BINDING: AtomicU32 = AtomicU32::new(0);
 
 #[derive(Clone)]
 pub(crate) struct ScriptContext {
@@ -18,12 +15,30 @@ pub(crate) struct ScriptContext {
     pub(crate) config: Rc<Config>,
     pub(crate) root_path: PathBuf,
     pub(crate) engine: Rc<RefCell<Option<Engine>>>,
+    pub(crate) next_binding: Rc<Cell<u32>>,
     pub(crate) cache: Rc<RefCell<HashMap<String, AST>>>,
 }
 
 impl ScriptContext {
+    pub(crate) fn new(
+        config: &Rc<Config>,
+        asts: &Rc<HashMap<PathBuf, FileAst>>,
+        root_path: &Path,
+    ) -> Self {
+        let ctx = Self {
+            asts: asts.clone(),
+            config: config.clone(),
+            root_path: root_path.to_path_buf(),
+            engine: Rc::default(),
+            next_binding: Rc::default(),
+            cache: Rc::default(),
+        };
+        ctx.init();
+        ctx
+    }
+
     #[allow(clippy::cast_possible_wrap)]
-    pub(crate) fn init(&self) {
+    fn init(&self) {
         let mut engine = Engine::new();
         engine.register_iterator::<Vec<Rc<AstNode>>>();
         engine.register_fn("req", or_stop::<Rc<AstNode>>);
@@ -39,7 +54,8 @@ impl ScriptContext {
         engine.register_fn("parse_i32", parse_i32);
         engine.register_fn("parse_u32", parse_u32);
         engine.register_fn("to_str", path_to_str);
-        engine.register_fn("next_binding", next_binding);
+        let ctx_clone = self.clone();
+        engine.register_fn("next_binding", move || next_binding(&ctx_clone));
         engine.register_fn("id", node_id);
         engine.register_fn("slice", node_slice);
         engine.register_fn("kind", node_kind);
@@ -158,8 +174,10 @@ fn path_to_str(path: &mut PathBuf) -> String {
     path.display().to_string()
 }
 
-fn next_binding() -> u32 {
-    NEXT_BINDING.fetch_add(1, Ordering::Relaxed)
+fn next_binding(ctx: &ScriptContext) -> u32 {
+    let binding = ctx.next_binding.get();
+    ctx.next_binding.replace(binding + 1);
+    binding
 }
 
 fn node_id(node: &mut Rc<AstNode>) -> u32 {
