@@ -60,41 +60,59 @@ kinds:
     validation:
       - *duplicated_item_check
     transpilation: |-
-      @group(0) @binding({{binding}})
-      var<storage, read_write> _{{self_id}}: {{expr_type:typed_expr}};
+      `@group(0) @binding(${next_binding()})
+      var<storage, read_write> _${node.id()}: ${node.child("typed_expr").req().type().req().transpile_type()};`
     init_shader:
       transpilation: |-
-        {{nested_sources:buffer_item;fn_item}}
-        {{self}}
+        let dependencies = "";
+        for source in node.nested_sources() {
+          if source.kind() == "buffer_item" || source.kind() == "fn_item" {
+            dependencies += source.transpile() + "\n";
+          }
+        }
+        `${dependencies}
+        ${node.transpile()}
         @compute
         @workgroup_size(1, 1, 1)
         fn main() {
-            _{{self_id}} = {{child:typed_expr}};
-        }
+            _${node.id()} = ${node.child("typed_expr").req().transpile()};
+        }`
 
   init_item:
     sequence: [ init_kw, block ]
     sequence_error_after: init_kw
     init_shader:
       transpilation: |-
-        {{nested_sources:buffer_item;fn_item}}
+        let dependencies = "";
+        for source in node.nested_sources() {
+          if source.kind() == "buffer_item" || source.kind() == "fn_item" {
+            dependencies += source.transpile() + "\n";
+          }
+        }
+        `${dependencies}
         @compute
         @workgroup_size(1, 1, 1)
         fn main() {
-        {{child:block}}
-        }
+        ${node.child("block").req().transpile()}
+        }`
 
   run_item:
     sequence: [ run_kw, block ]
     sequence_error_after: run_kw
     run_shader:
       transpilation: |-
-        {{nested_sources:buffer_item;fn_item}}
+        let dependencies = "";
+        for source in node.nested_sources() {
+          if source.kind() == "buffer_item" || source.kind() == "fn_item" {
+            dependencies += source.transpile() + "\n";
+          }
+        }
+        `${dependencies}
         @compute
         @workgroup_size(1, 1, 1)
         fn main() {
-        {{child:block}}
-        }
+        ${node.child("block").req().transpile()}
+        }`
 
   fn_item:
     sequence: [ fn_kw, ident, open_parenthesis, fn_param_group, close_parenthesis, fn_return_type, block ]
@@ -132,17 +150,26 @@ kinds:
             - node: 'node.child("fn_return_type").req()'
               title: '`expected type is ``${node.child("fn_return_type").req().type().req()}```'
     transpilation: |-
-      fn _{{self_id}}({{child:fn_param_group}}) {{child:fn_return_type}} {
-      {{fn_param_vars:fn_param}}
-      {{child:block}}
+      let param_vars = "";
+      for group in node.child("fn_param_group").req().children() {
+        let first_param_id = group.child("fn_param").req().id();
+        param_vars += `var _${first_param_id} = _p${first_param_id}; `;
+        for other_param in group.child("fn_other_params").req().children() {
+          let other_param_id = other_param.child("fn_param").req().id();
+          param_vars += `var _${other_param_id} = _p${other_param_id}; `;
+        } 
       }
+      `fn _${node.id()}(${node.child("fn_param_group").req().transpile()}) ${node.child("fn_return_type").req().transpile()} {
+      ${param_vars}
+      ${node.child("block").req().transpile()}
+      }`
 
   fn_return_type:
     min_repeat: 0
     max_repeat: 1
     sequence: [ arrow, type ]
     sequence_error_after: arrow
-    transpilation: '-> {{child:type}}'
+    transpilation: '"-> " + node.child("type").req().transpile()'
     type_resolution:
       default_name: *no_return_type_name
 
@@ -151,14 +178,14 @@ kinds:
     max_repeat: 1
     sequence: [ fn_param, fn_other_params, fn_params_final_comma ]
     sequence_error_after: fn_param
-    transpilation: '{{child:fn_param}}{{child:fn_other_params}}'
+    transpilation: 'node.child("fn_param").req().transpile() + node.child("fn_other_params").req().transpile()'
 
   fn_other_params:
     min_repeat: 0
     max_repeat: *max_u32
     sequence: [ comma, fn_param ]
     sequence_error_after: fn_param
-    transpilation: ', {{child:fn_param}}'
+    transpilation: '", " + node.child("fn_param").req().transpile()'
 
   fn_params_final_comma:
     min_repeat: 0
@@ -173,17 +200,17 @@ kinds:
       - string: '`'
       - child: ident
       - string: '` variable'
-    transpilation: '_p{{self_id}}: {{child:param_type}}'
+    transpilation: '`_p${node.id()}: ${node.child("param_type").req().transpile()}`'
 
   param_type:
     sequence: [ type ]
     sequence_error_after: type
-    transpilation: '{{child:type}}'
+    transpilation: 'node.child("type").req().transpile()'
 
   type:
     sequence: [ ident ]
     sequence_error_after: ident
-    transpilation: '{{slice_as_type}}'
+    transpilation: 'node.slice().transpile_type()'
     type_resolution:
       child_slice: ident
 
@@ -191,6 +218,6 @@ kinds:
     sequence: [ open_bracket, stmts, close_bracket ]
     sequence_error_after: open_bracket
     transpilation: |-
-      {
-      {{child:stmts}}
-      }
+      `{
+      ${node.child("stmts").req().transpile()}
+      }`

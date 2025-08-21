@@ -25,7 +25,7 @@ const FILE_EXT: &str = "shd";
 ///
 /// An error is returned if the files cannot be compiled.
 pub fn compile(folder: impl SourceFolder) -> Result<Program, Error> {
-    let config = config::load_config();
+    let config = Rc::new(config::load_config());
     let root_path = folder.path();
     let files = reading::read_files(folder).map_err(Error::Io)?;
     let mut asts = parse_files(&config, &files)?

@@ -1,5 +1,5 @@
 use crate::compilation::ast::AstNode;
-use crate::compilation::validation::ValidationContext;
+use crate::config::scripts::ScriptContext;
 use crate::config::{scripts, ValidationMessageConfig};
 use annotate_snippets::{Level, Renderer, Snippet};
 use itertools::Itertools;
@@ -163,19 +163,17 @@ pub struct ValidationError {
 
 impl ValidationError {
     pub(crate) fn from_config(
-        ctx: &ValidationContext<'_>,
+        ctx: &ScriptContext,
         node: &Rc<AstNode>,
         level: ValidationMessageLevel,
         config: &ValidationMessageConfig,
     ) -> Self {
-        let span_node =
-            scripts::compile_and_run::<Rc<AstNode>>(&config.node, node, ctx.asts, ctx.root_path)
-                .expect("internal error: failed to calculate message node");
-        let title =
-            scripts::compile_and_run::<String>(&config.title, node, ctx.asts, ctx.root_path)
-                .expect("internal error: failed to calculate message title");
+        let span_node = scripts::compile_and_run::<Rc<AstNode>>(&config.node, node, ctx)
+            .expect("internal error: failed to calculate message node");
+        let title = scripts::compile_and_run::<String>(&config.title, node, ctx)
+            .expect("internal error: failed to calculate message title");
         let label = config.label.as_ref().map(|label| {
-            scripts::compile_and_run::<String>(label, node, ctx.asts, ctx.root_path)
+            scripts::compile_and_run::<String>(label, node, ctx)
                 .expect("internal error: failed to calculate message label")
         });
         Self {

@@ -17,7 +17,7 @@ kinds:
           node: 'node'
           title: '"invalid expression type"'
           label: '"this function does not return a value"'
-    transpilation: '{{child:expr}}'
+    transpilation: 'node.child("expr").req().transpile()'
 
   expr:
     choice: [ true_expr, false_expr, fn_call_expr, var_ident_expr, f32_expr, u32_expr, i32_expr ]
@@ -44,7 +44,7 @@ kinds:
       - *missing_source_check
     type_resolution:
       source_children: [ typed_expr, param_type ]
-    transpilation: '_{{source_id}}'
+    transpilation: '`_${node.source().req().id()}`'
 
   fn_call_expr:
     sequence: [ ident, open_parenthesis, fn_arg_group, close_parenthesis ]
@@ -62,7 +62,7 @@ kinds:
           can_be_after: true
     validation:
       - *missing_source_check
-    transpilation: '_{{source_id}}({{child:fn_arg_group}})'
+    transpilation: '`_${node.source().req().id()}(${node.child("fn_arg_group").req().transpile()})`'
     type_resolution:
       source_children: [ fn_return_type ]
 
@@ -71,19 +71,19 @@ kinds:
     max_repeat: 1
     sequence: [ fn_arg, fn_other_args, fn_args_final_comma ]
     sequence_error_after: fn_arg
-    transpilation: '{{child:fn_arg}}{{child:fn_other_args}}'
+    transpilation: 'node.child("fn_arg").req().transpile() + node.child("fn_other_args").req().transpile()'
 
   fn_arg:
     sequence: [ expr ]
     sequence_error_after: expr
-    transpilation: '{{child:expr}}'
+    transpilation: 'node.child("expr").req().transpile()'
 
   fn_other_args:
     min_repeat: 0
     max_repeat: *max_u32
     sequence: [ comma, fn_arg ]
     sequence_error_after: fn_arg
-    transpilation: ', {{child:fn_arg}}'
+    transpilation: '", " + node.child("fn_arg").req().transpile()'
 
   fn_args_final_comma:
     min_repeat: 0
@@ -121,16 +121,13 @@ kinds:
         max_length: *max_u32
     display_name: '`f32` literal'
     validation:
-      - assertion: |-
-          let slice = node.slice();
-          slice.replace("_", "");
-          parse_f32(slice).is_some()
+      - assertion: 'parse_f32(node.slice().replaced("_", "")).is_some()'
         error:
           node: 'node'
           title: '"out of bound `f32` literal"'
     type_resolution:
       name: f32
-    transpilation: 'f32({{slice_without_chars:_}})'
+    transpilation: '`f32(${node.slice().replaced("_", "")})`'
 
   u32_expr:
     pattern_parts:
@@ -149,17 +146,13 @@ kinds:
         max_length: 1
     display_name: '`u32` literal'
     validation:
-      - assertion: |-
-          let slice = node.slice();
-          slice.replace("_", "");
-          slice.replace("u", "");
-          parse_u32(slice).is_some()
+      - assertion: 'parse_u32(node.slice().replaced("_", "").replaced("u", "")).is_some()'
         error:
           node: 'node'
           title: '"out of bound `u32` literal"'
     type_resolution:
       name: u32
-    transpilation: 'u32({{slice_without_chars:_}})'
+    transpilation: '`u32(${node.slice().replaced("_", "")})`'
 
   i32_expr:
     pattern_parts:
@@ -178,25 +171,22 @@ kinds:
         max_length: *max_u32
     display_name: '`i32` literal'
     validation:
-      - assertion: |-
-          let slice = node.slice();
-          slice.replace("_", "");
-          parse_i32(slice).is_some()
+      - assertion: 'parse_i32(node.slice().replaced("_", "")).is_some()'
         error:
           node: 'node'
           title: '"out of bound `i32` literal"'
     type_resolution:
       name: i32
-    transpilation: 'i32({{slice_without_chars:_}})'
+    transpilation: '`i32(${node.slice().replaced("_", "")})`'
 
   true_expr:
     string: 'true'
     type_resolution:
       name: bool
-    transpilation: 'u32(true)'
+    transpilation: '"u32(true)"'
 
   false_expr:
     string: 'false'
     type_resolution:
       name: bool
-    transpilation: 'u32(false)'
+    transpilation: '"u32(false)"'

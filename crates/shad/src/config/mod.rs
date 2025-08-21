@@ -1,5 +1,4 @@
 pub(crate) mod scripts;
-pub(crate) mod transpilation;
 
 use serde::Deserialize;
 use serde_valid::Validate;
@@ -42,7 +41,7 @@ fn load_kind_config(entry: DirEntry) -> HashMap<String, Rc<KindConfig>> {
             .expect("internal error: kind config file should exist")
             .as_str(),
     )
-    .expect("internal error: kind config should be valid")
+    .expect("internal error: `` kind config should be valid")
     .kinds
 }
 

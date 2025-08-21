@@ -18,7 +18,7 @@ kinds:
       - string: '`'
       - child: ident
       - string: '` variable'
-    transpilation: 'var _{{self_id}} = {{child:typed_expr}};'
+    transpilation: '`var _${node.id()} = ${node.child("typed_expr").req().transpile()};`'
 
   assignment_stmt:
     sequence: [ var_ident_expr, eq, typed_expr, semicolon ]
@@ -35,14 +35,14 @@ kinds:
           info:
             - node: 'node.child("var_ident_expr").req()'
               title: '`expected type is ``${node.child("var_ident_expr").req().type().req()}```'
-    transpilation: '{{child:var_ident_expr}} = {{child:typed_expr}};'
+    transpilation: '`${node.child("var_ident_expr").req().transpile()} = ${node.child("typed_expr").req().transpile()};`'
 
   fn_call_stmt:
     sequence: [ fn_call_expr, semicolon ]
     sequence_error_after: fn_call_expr
-    transpilation: '{{child:fn_call_expr}};'
+    transpilation: '`${node.child("fn_call_expr").req().transpile()};`'
 
   return_stmt:
     sequence: [ return_kw, typed_expr, semicolon ]
     sequence_error_after: return_kw
-    transpilation: 'return {{child:typed_expr}};'
+    transpilation: '`return ${node.child("typed_expr").req().transpile()};`'
