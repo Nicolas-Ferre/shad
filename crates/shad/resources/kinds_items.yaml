@@ -3,24 +3,13 @@ import_index_key: &import_index_key '@import'
 no_return_type_name: &no_return_type_name '<no return>'
 
 duplicated_item_check: &duplicated_item_check
-  assertion: |-
-    for other_node in root.children() {
-      if other_node.id() < node.id() && other_node.key() == node.key() {
-        return false;
-      }
-    }
-    true
+  assertion: '!root.children().some(|| this.id() < node.id() && this.key() == node.key())'
   error:
     node: 'node'
     title: '`${node.key()} defined multiple times`'
     label: '"duplicated item"'
     info:
-      - node: |-
-          for other_node in root.children() {
-            if other_node.key() == node.key() {
-              return other_node;
-            }
-          }
+      - node: 'root.children().find(|| this.key() == node.key())'
         title: '"same item defined here"'
 
 kinds:
@@ -64,13 +53,10 @@ kinds:
       var<storage, read_write> _${node.id()}: ${node.typed_expr.type().type_wgsl()};`
     init_shader:
       transpilation: |-
-        let dependencies = "";
-        for source in node.nested_sources() {
-          if source.kind() == "buffer_item" || source.kind() == "fn_item" {
-            dependencies += source.wgsl() + "\n";
-          }
-        }
-        `${dependencies}
+        `${node.nested_sources()
+          .filter(|| this.kind() == "buffer_item" || this.kind() == "fn_item")
+          .map(|| this.wgsl())
+          .join("\n")}
         ${node.wgsl()}
         @compute
         @workgroup_size(1, 1, 1)
@@ -83,13 +69,10 @@ kinds:
     sequence_error_after: init_kw
     init_shader:
       transpilation: |-
-        let dependencies = "";
-        for source in node.nested_sources() {
-          if source.kind() == "buffer_item" || source.kind() == "fn_item" {
-            dependencies += source.wgsl() + "\n";
-          }
-        }
-        `${dependencies}
+        `${node.nested_sources()
+          .filter(|| this.kind() == "buffer_item" || this.kind() == "fn_item")
+          .map(|| this.wgsl())
+          .join("\n")}
         @compute
         @workgroup_size(1, 1, 1)
         fn main() {
@@ -101,13 +84,10 @@ kinds:
     sequence_error_after: run_kw
     run_shader:
       transpilation: |-
-        let dependencies = "";
-        for source in node.nested_sources() {
-          if source.kind() == "buffer_item" || source.kind() == "fn_item" {
-            dependencies += source.wgsl() + "\n";
-          }
-        }
-        `${dependencies}
+        `${node.nested_sources()
+          .filter(|| this.kind() == "buffer_item" || this.kind() == "fn_item")
+          .map(|| this.wgsl())
+          .join("\n")}
         @compute
         @workgroup_size(1, 1, 1)
         fn main() {
@@ -141,11 +121,8 @@ kinds:
       - assertion: |-
           let expected_type = node.fn_return_type.type();
           let last_stmt = node.block.stmts.children().last().unwrap_or_stop();
-          if last_stmt.kind() != "return_stmt" {
-            return true;
-          }
           let returned_type = last_stmt.type();
-          returned_type == "<no return>" || returned_type == expected_type
+          last_stmt.kind() != "return_stmt" || returned_type == "<no return>" || returned_type == expected_type
         error:
           node: 'node.block.stmts.children().last().unwrap_or_stop()'
           title: '"invalid returned type"'
@@ -154,56 +131,28 @@ kinds:
             - node: 'node.fn_return_type'
               title: '`expected type is ``${node.fn_return_type.type()}```'
       - assertion: |-
-          let params = [];
-          let group = node.fn_param_group.children().last().unwrap_or_stop();
-          params.push(group.fn_param);
-          for other_param in group.fn_other_params.children() {
-            if params.find(|| this.ident.slice() == other_param.fn_param.ident.slice()) != () {
-              return false;
-            }
-            params.push(other_param.fn_param);
-          }
-          true
+          let params = node.nested_children("fn_param");
+          let _params = params; // to avoid data race
+          !params.some(|param, i| _params.index_of(|| this.ident.slice() == param.ident.slice()) < i)
         error:
           node: |-
-            let params = [];
-            let group = node.fn_param_group.children().last().unwrap_or_stop();
-            params.push(group.fn_param);
-            for other_param in group.fn_other_params.children() {
-              if params.find(|| this.ident.slice() == other_param.fn_param.ident.slice()) != () {
-                return other_param.fn_param;
-              }
-              params.push(other_param.fn_param);
-            }
-            true
+            let params = node.nested_children("fn_param");
+            let _params = params; // to avoid data race
+            params.find(|param, i| _params.index_of(|| this.ident.slice() == param.ident.slice()) < i)
           title: '"function parameter defined multiple times"'
           label: '"duplicated parameter name"'
           info:
             - node: |-
-                let params = [];
-                let group = node.fn_param_group.children().last().unwrap_or_stop();
-                params.push(group.fn_param);
-                for other_param in group.fn_other_params.children() {
-                  let found_param = params.find(|| this.ident.slice() == other_param.fn_param.ident.slice());
-                  if found_param != () {
-                    return found_param;
-                  }
-                  params.push(other_param.fn_param);
-                }
-                true
+                let params = node.nested_children("fn_param");
+                let _params = params; // to avoid data race
+                params.find_map(|param, i| {
+                  let index = _params.index_of(|| this.ident.slice() == param.ident.slice());
+                  if index < i { _params[index] } else { () }
+                })
               title: '"same parameter name defined here"'
     transpilation: |-
-      let param_vars = "";
-      for group in node.fn_param_group.children() {
-        let first_param_id = group.fn_param.id();
-        param_vars += `var _${first_param_id} = _p${first_param_id}; `;
-        for other_param in group.fn_other_params.children() {
-          let other_param_id = other_param.fn_param.id();
-          param_vars += `var _${other_param_id} = _p${other_param_id}; `;
-        } 
-      }
       `fn _${node.id()}(${node.fn_param_group.wgsl()}) ${node.fn_return_type.wgsl()} {
-      ${param_vars}
+      ${node.nested_children("fn_param").map(|| `var _${this.id()} = _p${this.id()};`).join("")}
       ${node.block.wgsl()}
       }`
 
@@ -261,20 +210,9 @@ kinds:
     sequence: [ block ]
     sequence_error_after: block
     validation:
-      - assertion: |-
-          for stmt in node.block.stmts.children() {
-            if stmt.kind() == "return_stmt" {
-              return false;
-            }
-          }
-          true
+      - assertion: '!node.block.stmts.children().some(|| this.kind() == "return_stmt")'
         error:
-          node: |-
-            for stmt in node.block.stmts.children() {
-              if stmt.kind() == "return_stmt" {
-                return stmt;
-              }
-            }
+          node: 'node.block.stmts.children().find(|| this.kind() == "return_stmt")'
           title: '"`return` statement used outside a function"'
           label: '"not allowed statement"'
     transpilation: 'node.block.wgsl()'
@@ -285,20 +223,13 @@ kinds:
     validation:
       - assertion: |-
           let stmts = node.stmts.children();
-          for (stmt, index) in stmts {
-            if stmt.kind() == "return_stmt" && index != stmts.len() - 1 {
-              return false;
-            }
-          }
-          true
+          let last_index = stmts.len() - 1;
+          !stmts.some(|stmt, i| stmt.kind() == "return_stmt" && i < last_index)
         error:
           node: |-
             let stmts = node.stmts.children();
-            for (stmt, index) in stmts {
-              if stmt.kind() == "return_stmt" && index != stmts.len() - 1 {
-                return stmt;
-              }
-            }
+            let last_index = stmts.len() - 1;
+            stmts.find(|stmt, i| stmt.kind() == "return_stmt" && i < last_index)
           title: '"`return` statement before end of the block"'
           label: '"only allowed at the end of a block"'
     transpilation: |-

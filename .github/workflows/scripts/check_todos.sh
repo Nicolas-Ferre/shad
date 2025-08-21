@@ -7,5 +7,5 @@ while IFS= read -r -d '' file; do
         echo "TODO found in $file"
         exit 1
     fi
-done < <(find . -type f \( -name '*.rs' -o -name '*.toml' -o -name '*.shd' \) -print0)
+done < <(find . -type f \( -name '*.rs' -o -name '*.toml' -o -name '*.shd' -o -name '*.yaml' -o -name '*.yml' \) -print0)
 echo "No TODO found in code"

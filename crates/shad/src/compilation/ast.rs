@@ -50,7 +50,7 @@ impl AstNode {
     }
 
     #[allow(clippy::needless_lifetimes)]
-    pub(crate) fn scan<'a>(&'a self, f: &mut impl FnMut(&'a Self) -> bool) {
+    pub(crate) fn scan<'a>(self: &'a Rc<Self>, f: &mut impl FnMut(&'a Rc<Self>) -> bool) {
         if f(self) {
             return;
         }
@@ -59,7 +59,7 @@ impl AstNode {
         }
     }
 
-    pub(crate) fn type_(&self, asts: &HashMap<PathBuf, FileAst>) -> Option<String> {
+    pub(crate) fn type_(self: &Rc<Self>, asts: &HashMap<PathBuf, FileAst>) -> Option<String> {
         let type_ = if let Some(name) = &self.kind_config.type_resolution.name {
             Some(name.clone())
         } else if let Some(child_kind) = &self.kind_config.type_resolution.child_slice {
@@ -80,7 +80,7 @@ impl AstNode {
         type_.or_else(|| self.kind_config.type_resolution.default_name.clone())
     }
 
-    pub(crate) fn key(&self) -> String {
+    pub(crate) fn key(self: &Rc<Self>) -> String {
         self.kind_config
             .index_key
             .iter()
@@ -112,7 +112,7 @@ impl AstNode {
             .join("")
     }
 
-    pub(crate) fn source_key(&self, asts: &HashMap<PathBuf, FileAst>) -> Option<String> {
+    pub(crate) fn source_key(self: &Rc<Self>, asts: &HashMap<PathBuf, FileAst>) -> Option<String> {
         let source_config = self.kind_config.index_key_source.as_ref()?;
         Some(
             source_config
@@ -150,7 +150,10 @@ impl AstNode {
         )
     }
 
-    pub(crate) fn source<'a>(&self, asts: &'a HashMap<PathBuf, FileAst>) -> Option<&'a Rc<Self>> {
+    pub(crate) fn source<'a>(
+        self: &Rc<Self>,
+        asts: &'a HashMap<PathBuf, FileAst>,
+    ) -> Option<&'a Rc<Self>> {
         let key = self.source_key(asts)?;
         for criteria in &self.kind_config.index_key_source.as_ref()?.criteria {
             let parent_id = self.parent_ids.last().copied().unwrap_or(0);
@@ -191,7 +194,7 @@ impl AstNode {
     }
 
     pub(crate) fn nested_sources<'a>(
-        &self,
+        self: &Rc<Self>,
         asts: &'a HashMap<PathBuf, FileAst>,
     ) -> Vec<&'a Rc<Self>> {
         let mut sources = HashMap::new();
@@ -225,7 +228,7 @@ impl AstNode {
             .collect()
     }
 
-    pub(crate) fn import_path(&self, root_path: &Path) -> PathBuf {
+    pub(crate) fn import_path(self: &Rc<Self>, root_path: &Path) -> PathBuf {
         let config = self
             .kind_config
             .import_path

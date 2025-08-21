@@ -2,6 +2,7 @@ use crate::compilation::ast::AstNode;
 use crate::compilation::transpilation::transpile_node;
 use crate::compilation::FileAst;
 use crate::config::Config;
+use itertools::Itertools;
 use rhai::{Dynamic, Engine, EvalAltResult, Position, Scope, AST};
 use std::cell::{Cell, RefCell};
 use std::collections::HashMap;
@@ -41,14 +42,17 @@ impl ScriptContext {
     fn init(&self) {
         let mut engine = Engine::new();
         engine.register_iterator::<Vec<Rc<AstNode>>>();
-        engine.register_fn("unwrap_or_stop", unwrap_or_stop::<Rc<AstNode>>);
-        engine.register_fn("unwrap_or", Option::<Rc<AstNode>>::unwrap_or);
-        engine.register_fn("is_some", |o: &mut Option<Rc<AstNode>>| o.is_some());
+        self.register_node_functions(&mut engine);
+        engine.register_fn("unwrap_or_stop", unwrap_or_stop::<Dynamic>);
+        engine.register_fn("unwrap_or", Option::<Dynamic>::unwrap_or);
+        engine.register_fn("is_some", |o: &mut Option<Dynamic>| o.is_some());
         engine.register_fn("is_some", |o: &mut Option<f32>| o.is_some());
         engine.register_fn("is_some", |o: &mut Option<i32>| o.is_some());
         engine.register_fn("is_some", |o: &mut Option<u32>| o.is_some());
-        engine.register_fn("len", |v: &mut Vec<Rc<AstNode>>| v.len() as i64);
-        engine.register_fn("last", |v: &mut Vec<Rc<AstNode>>| v.last().cloned());
+        engine.register_fn("last", |v: &mut Vec<Dynamic>| v.last().cloned());
+        engine.register_fn("join", |v: &mut Vec<Dynamic>, sep: &str| {
+            v.iter().map(ToString::to_string).join(sep)
+        });
         engine.register_fn("replaced", str::replace::<&str>);
         engine.register_fn("parse_f32", |string: &str| {
             f32::from_str(string)
@@ -64,6 +68,29 @@ impl ScriptContext {
             ctx_clone.next_binding.replace(binding + 1);
             binding
         });
+        let ctx_clone = self.clone();
+        engine.register_fn("exists", move |path: &mut PathBuf| {
+            ctx_clone.asts.contains_key(path)
+        });
+        let ctx_clone = self.clone();
+        engine.register_fn("type_wgsl", move |type_: &str| {
+            ctx_clone
+                .config
+                .type_transpilation
+                .get(type_)
+                .cloned()
+                .unwrap_or_else(|| type_.into())
+        });
+        for kind in self.config.kinds.keys() {
+            let kind_clone = kind.clone();
+            engine.register_get(kind, move |node: &mut Rc<AstNode>| {
+                node.child(&kind_clone).clone()
+            });
+        }
+        *self.engine.borrow_mut() = Some(engine);
+    }
+
+    fn register_node_functions(&self, engine: &mut Engine) {
         engine.register_fn("id", |node: &mut Rc<AstNode>| node.id);
         engine.register_fn("slice", |node: &mut Rc<AstNode>| node.slice.clone());
         engine.register_fn("kind", |node: &mut Rc<AstNode>| node.kind_name.clone());
@@ -72,7 +99,21 @@ impl ScriptContext {
             unwrap_or_stop(node.type_(&ctx_clone.asts))
         });
         engine.register_fn("children", |node: &mut Rc<AstNode>| {
-            node.children().cloned().collect::<Vec<_>>()
+            node.children()
+                .cloned()
+                .map(Dynamic::from)
+                .collect::<Vec<_>>()
+        });
+        engine.register_fn("nested_children", |node: &mut Rc<AstNode>, kind: &str| {
+            let mut children: Vec<Dynamic> = vec![];
+            node.scan(&mut |scanned| {
+                if scanned.kind_name == kind {
+                    children.push(Dynamic::from(scanned.clone()));
+                    return true;
+                }
+                false
+            });
+            children
         });
         engine.register_fn("key", |node: &mut Rc<AstNode>| node.key());
         let ctx_clone = self.clone();
@@ -98,32 +139,13 @@ impl ScriptContext {
             node.nested_sources(&ctx_clone.asts)
                 .into_iter()
                 .cloned()
+                .map(Dynamic::from)
                 .collect::<Vec<_>>()
-        });
-        let ctx_clone = self.clone();
-        engine.register_fn("exists", move |path: &mut PathBuf| {
-            ctx_clone.asts.contains_key(path)
         });
         let ctx_clone = self.clone();
         engine.register_fn("wgsl", move |node: &mut Rc<AstNode>| {
             transpile_node(&ctx_clone, node)
         });
-        let ctx_clone = self.clone();
-        engine.register_fn("type_wgsl", move |type_: &str| {
-            ctx_clone
-                .config
-                .type_transpilation
-                .get(type_)
-                .cloned()
-                .unwrap_or_else(|| type_.into())
-        });
-        for kind in self.config.kinds.keys() {
-            let kind_clone = kind.clone();
-            engine.register_get(kind, move |node: &mut Rc<AstNode>| {
-                node.child(&kind_clone).clone()
-            });
-        }
-        *self.engine.borrow_mut() = Some(engine);
     }
 }
 
