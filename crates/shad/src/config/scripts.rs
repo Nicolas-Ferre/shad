@@ -41,60 +41,88 @@ impl ScriptContext {
     fn init(&self) {
         let mut engine = Engine::new();
         engine.register_iterator::<Vec<Rc<AstNode>>>();
-        engine.register_fn("req", or_stop::<Rc<AstNode>>);
-        engine.register_fn("req", or_stop::<String>);
-        engine.register_fn("or", or::<Rc<AstNode>>);
+        engine.register_fn("unwrap_or_stop", unwrap_or_stop::<Rc<AstNode>>);
+        engine.register_fn("unwrap_or", Option::<Rc<AstNode>>::unwrap_or);
         engine.register_fn("is_some", |o: &mut Option<Rc<AstNode>>| o.is_some());
         engine.register_fn("is_some", |o: &mut Option<f32>| o.is_some());
         engine.register_fn("is_some", |o: &mut Option<i32>| o.is_some());
         engine.register_fn("is_some", |o: &mut Option<u32>| o.is_some());
         engine.register_fn("len", |v: &mut Vec<Rc<AstNode>>| v.len() as i64);
+        engine.register_fn("last", |v: &mut Vec<Rc<AstNode>>| v.last().cloned());
         engine.register_fn("replaced", str::replace::<&str>);
-        engine.register_fn("parse_f32", parse_f32);
-        engine.register_fn("parse_i32", parse_i32);
-        engine.register_fn("parse_u32", parse_u32);
-        engine.register_fn("to_str", path_to_str);
+        engine.register_fn("parse_f32", |string: &str| {
+            f32::from_str(string)
+                .ok()
+                .and_then(|value| (!value.is_infinite()).then_some(value))
+        });
+        engine.register_fn("parse_i32", |string: &str| i32::from_str(string).ok());
+        engine.register_fn("parse_u32", |string: &str| u32::from_str(string).ok());
+        engine.register_fn("to_str", |path: &mut PathBuf| path.display().to_string());
         let ctx_clone = self.clone();
-        engine.register_fn("next_binding", move || next_binding(&ctx_clone));
-        engine.register_fn("id", node_id);
-        engine.register_fn("slice", node_slice);
-        engine.register_fn("kind", node_kind);
+        engine.register_fn("next_binding", move || {
+            let binding = ctx_clone.next_binding.get();
+            ctx_clone.next_binding.replace(binding + 1);
+            binding
+        });
+        engine.register_fn("id", |node: &mut Rc<AstNode>| node.id);
+        engine.register_fn("slice", |node: &mut Rc<AstNode>| node.slice.clone());
+        engine.register_fn("kind", |node: &mut Rc<AstNode>| node.kind_name.clone());
         let ctx_clone = self.clone();
         engine.register_fn("type", move |node: &mut Rc<AstNode>| {
-            node_type(node, &ctx_clone)
+            unwrap_or_stop(node.type_(&ctx_clone.asts))
         });
-        engine.register_fn("child", node_child);
-        engine.register_fn("last_child", node_last_child);
-        engine.register_fn("children", node_children);
-        engine.register_fn("key", node_key);
+        engine.register_fn("children", |node: &mut Rc<AstNode>| {
+            node.children().cloned().collect::<Vec<_>>()
+        });
+        engine.register_fn("key", |node: &mut Rc<AstNode>| node.key());
         let ctx_clone = self.clone();
         engine.register_fn("source", move |node: &mut Rc<AstNode>| {
-            node_source(node, &ctx_clone)
+            node.source(&ctx_clone.asts)
+                .expect("internal error: source not found")
+                .clone()
+        });
+        let ctx_clone = self.clone();
+        engine.register_fn("has_source", move |node: &mut Rc<AstNode>| {
+            node.source(&ctx_clone.asts).is_some()
         });
         let ctx_clone = self.clone();
         engine.register_fn("source_key", move |node: &mut Rc<AstNode>| {
-            node_source_key(node, &ctx_clone)
+            unwrap_or_stop(node.source_key(&ctx_clone.asts))
         });
         let ctx_clone = self.clone();
         engine.register_fn("import_path", move |node: &mut Rc<AstNode>| {
-            node_import_path(node, &ctx_clone)
+            node.import_path(&ctx_clone.root_path)
         });
         let ctx_clone = self.clone();
         engine.register_fn("nested_sources", move |node: &mut Rc<AstNode>| {
-            node_nested_sources(node, &ctx_clone)
+            node.nested_sources(&ctx_clone.asts)
+                .into_iter()
+                .cloned()
+                .collect::<Vec<_>>()
         });
         let ctx_clone = self.clone();
         engine.register_fn("exists", move |path: &mut PathBuf| {
-            does_path_exist(path, &ctx_clone)
+            ctx_clone.asts.contains_key(path)
         });
         let ctx_clone = self.clone();
-        engine.register_fn("transpile", move |node: &mut Rc<AstNode>| {
+        engine.register_fn("wgsl", move |node: &mut Rc<AstNode>| {
             transpile_node(&ctx_clone, node)
         });
         let ctx_clone = self.clone();
-        engine.register_fn("transpile_type", move |type_: &str| {
-            transpile_type(type_, &ctx_clone)
+        engine.register_fn("type_wgsl", move |type_: &str| {
+            ctx_clone
+                .config
+                .type_transpilation
+                .get(type_)
+                .cloned()
+                .unwrap_or_else(|| type_.into())
         });
+        for kind in self.config.kinds.keys() {
+            let kind_clone = kind.clone();
+            engine.register_get(kind, move |node: &mut Rc<AstNode>| {
+                node.child(&kind_clone).clone()
+            });
+        }
         *self.engine.borrow_mut() = Some(engine);
     }
 }
@@ -147,98 +175,6 @@ fn early_stop_error() -> Box<EvalAltResult> {
     Box::new(EvalAltResult::Exit(Dynamic::from(()), Position::NONE))
 }
 
-fn or_stop<T>(value: Option<T>) -> Result<T, Box<EvalAltResult>> {
+fn unwrap_or_stop<T>(value: Option<T>) -> Result<T, Box<EvalAltResult>> {
     value.ok_or_else(early_stop_error)
-}
-
-fn or<T>(value: Option<T>, other: Option<T>) -> Option<T> {
-    value.or(other)
-}
-
-fn parse_f32(string: &str) -> Option<f32> {
-    f32::from_str(string)
-        .ok()
-        .and_then(|value| (!value.is_infinite()).then_some(value))
-}
-
-fn parse_i32(string: &str) -> Option<i32> {
-    i32::from_str(string).ok()
-}
-
-fn parse_u32(string: &str) -> Option<u32> {
-    u32::from_str(string).ok()
-}
-
-#[allow(clippy::ptr_arg)]
-fn path_to_str(path: &mut PathBuf) -> String {
-    path.display().to_string()
-}
-
-fn next_binding(ctx: &ScriptContext) -> u32 {
-    let binding = ctx.next_binding.get();
-    ctx.next_binding.replace(binding + 1);
-    binding
-}
-
-fn node_id(node: &mut Rc<AstNode>) -> u32 {
-    node.id
-}
-
-fn node_slice(node: &mut Rc<AstNode>) -> String {
-    node.slice.clone()
-}
-
-fn node_kind(node: &mut Rc<AstNode>) -> String {
-    node.kind_name.clone()
-}
-
-fn node_type(node: &Rc<AstNode>, ctx: &ScriptContext) -> Option<String> {
-    node.type_(&ctx.asts)
-}
-
-fn node_child(node: &mut Rc<AstNode>, child_kind: &str) -> Option<Rc<AstNode>> {
-    node.child_option(child_kind).cloned()
-}
-
-fn node_last_child(node: &mut Rc<AstNode>) -> Option<Rc<AstNode>> {
-    node.children().last().cloned()
-}
-
-fn node_children(node: &mut Rc<AstNode>) -> Vec<Rc<AstNode>> {
-    node.children().cloned().collect()
-}
-
-fn node_key(node: &mut Rc<AstNode>) -> String {
-    node.key()
-}
-
-fn node_import_path(node: &Rc<AstNode>, ctx: &ScriptContext) -> PathBuf {
-    node.import_path(&ctx.root_path)
-}
-
-fn does_path_exist(path: &PathBuf, ctx: &ScriptContext) -> bool {
-    ctx.asts.contains_key(path)
-}
-
-fn node_source(node: &Rc<AstNode>, ctx: &ScriptContext) -> Option<Rc<AstNode>> {
-    node.source(&ctx.asts).cloned()
-}
-
-fn node_source_key(node: &Rc<AstNode>, ctx: &ScriptContext) -> Option<String> {
-    node.source_key(&ctx.asts)
-}
-
-fn node_nested_sources(node: &Rc<AstNode>, ctx: &ScriptContext) -> Vec<Rc<AstNode>> {
-    node.nested_sources(&ctx.asts)
-        .into_iter()
-        .cloned()
-        .collect()
-}
-
-fn transpile_type(type_: &str, ctx: &ScriptContext) -> String {
-    ctx.config
-        .type_transpilation
-        .get(type_)
-        .cloned()
-        .unwrap_or_else(|| type_.into())
 }

@@ -35,7 +35,7 @@ impl AstNode {
         }
     }
 
-    pub(crate) fn child(&self, child_name: &str) -> &Self {
+    pub(crate) fn child(&self, child_name: &str) -> &Rc<Self> {
         self.child_option(child_name)
             .expect("internal error: node child not found")
     }

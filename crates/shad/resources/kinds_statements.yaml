@@ -18,31 +18,31 @@ kinds:
       - string: '`'
       - child: ident
       - string: '` variable'
-    transpilation: '`var _${node.id()} = ${node.child("typed_expr").req().transpile()};`'
+    transpilation: '`var _${node.id()} = ${node.typed_expr.wgsl()};`'
 
   assignment_stmt:
     sequence: [ var_ident_expr, eq, typed_expr, semicolon ]
     sequence_error_after: eq
     validation:
       - assertion: |-
-          let expr_type = node.child("typed_expr").req().type().req();
-          let expected_type = node.child("var_ident_expr").req().type().req();
+          let expr_type = node.typed_expr.type();
+          let expected_type = node.var_ident_expr.type();
           expr_type == "<no return>" || expected_type == "<no return>" || expr_type == expected_type
         error:
-          node: 'node.child("typed_expr").req()'
+          node: 'node.typed_expr'
           title: '"invalid expression type"'
-          label: '`expression type is ``${node.child("typed_expr").req().type().req()}```'
+          label: '`expression type is ``${node.typed_expr.type()}```'
           info:
-            - node: 'node.child("var_ident_expr").req()'
-              title: '`expected type is ``${node.child("var_ident_expr").req().type().req()}```'
-    transpilation: '`${node.child("var_ident_expr").req().transpile()} = ${node.child("typed_expr").req().transpile()};`'
+            - node: 'node.var_ident_expr'
+              title: '`expected type is ``${node.var_ident_expr.type()}```'
+    transpilation: '`${node.var_ident_expr.wgsl()} = ${node.typed_expr.wgsl()};`'
 
   fn_call_stmt:
     sequence: [ fn_call_expr, semicolon ]
     sequence_error_after: fn_call_expr
-    transpilation: '`${node.child("fn_call_expr").req().transpile()};`'
+    transpilation: '`${node.fn_call_expr.wgsl()};`'
 
   return_stmt:
     sequence: [ return_kw, typed_expr, semicolon ]
     sequence_error_after: return_kw
-    transpilation: '`return ${node.child("typed_expr").req().transpile()};`'
+    transpilation: '`return ${node.typed_expr.wgsl()};`'
