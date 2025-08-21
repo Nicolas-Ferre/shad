@@ -1,5 +1,6 @@
 pub(crate) mod scripts;
 
+use crate::config::scripts::ScriptContext;
 use serde::Deserialize;
 use serde_valid::Validate;
 use std::collections::HashMap;
@@ -59,6 +60,27 @@ fn validate_kinds(
     Ok(())
 }
 
+fn validate_script(script: &str) -> Result<(), serde_valid::validation::Error> {
+    let ctx = ScriptContext::dummy();
+    let engine = ctx.engine.borrow();
+    let engine = engine
+        .as_ref()
+        .expect("internal error: script engine not initialized");
+    engine
+        .compile(script)
+        .map_err(|err| serde_valid::validation::Error::Custom(err.to_string()))?;
+    Ok(())
+}
+
+#[allow(clippy::ref_option)]
+fn validate_script_option(script: &Option<String>) -> Result<(), serde_valid::validation::Error> {
+    if let Some(script) = script {
+        validate_script(script)
+    } else {
+        Ok(())
+    }
+}
+
 #[derive(Debug, Clone, Deserialize, Validate)]
 pub(crate) struct Config {
     #[validate(min_length = 1)]
@@ -115,6 +137,7 @@ pub(crate) struct KindConfig {
     #[validate]
     pub(crate) type_resolution: TypeResolutionConfig,
     #[serde(default)]
+    #[validate(custom(validate_script))]
     pub(crate) transpilation: String,
     #[validate]
     pub(crate) init_shader: Option<ShaderConfig>,
@@ -207,6 +230,7 @@ pub(crate) struct IndexKeySourceSiblingConfig {
 #[serde(deny_unknown_fields)]
 pub(crate) struct ValidationConfig {
     #[validate(min_length = 1)]
+    #[validate(custom(validate_script))]
     pub(crate) assertion: String,
     pub(crate) error: ValidationMessageConfig,
 }
@@ -214,8 +238,11 @@ pub(crate) struct ValidationConfig {
 #[derive(Debug, Clone, Deserialize, Validate)]
 #[serde(deny_unknown_fields)]
 pub(crate) struct ValidationMessageConfig {
+    #[validate(custom(validate_script))]
     pub(crate) node: String,
+    #[validate(custom(validate_script))]
     pub(crate) title: String,
+    #[validate(custom(validate_script_option))]
     pub(crate) label: Option<String>,
     #[serde(default)]
     pub(crate) info: Vec<ValidationMessageConfig>,
@@ -234,5 +261,6 @@ pub(crate) struct TypeResolutionConfig {
 #[derive(Default, Debug, Clone, Deserialize, Validate)]
 #[serde(deny_unknown_fields)]
 pub(crate) struct ShaderConfig {
+    #[validate(custom(validate_script))]
     pub(crate) transpilation: String,
 }

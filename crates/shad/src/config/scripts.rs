@@ -21,6 +21,26 @@ pub(crate) struct ScriptContext {
 }
 
 impl ScriptContext {
+    pub(crate) fn dummy() -> Self {
+        let ctx = Self {
+            asts: Rc::new(HashMap::default()),
+            config: Rc::new(Config {
+                root_kind: String::new(),
+                root_expected_first_tokens: vec![],
+                comment_prefix: String::new(),
+                import_index_key: String::new(),
+                type_transpilation: HashMap::default(),
+                kinds: HashMap::default(),
+            }),
+            root_path: PathBuf::default(),
+            engine: Rc::default(),
+            next_binding: Rc::default(),
+            cache: Rc::default(),
+        };
+        ctx.init();
+        ctx
+    }
+
     pub(crate) fn new(
         config: &Rc<Config>,
         asts: &Rc<HashMap<PathBuf, FileAst>>,
