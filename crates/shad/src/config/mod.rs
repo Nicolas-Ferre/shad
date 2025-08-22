@@ -140,6 +140,8 @@ pub(crate) struct KindConfig {
     #[validate(custom(validate_script))]
     pub(crate) transpilation: String,
     #[validate]
+    pub(crate) buffer_init_shader: Option<ShaderConfig>,
+    #[validate]
     pub(crate) init_shader: Option<ShaderConfig>,
     #[validate]
     pub(crate) run_shader: Option<ShaderConfig>,

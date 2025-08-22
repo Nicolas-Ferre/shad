@@ -1,3 +1,7 @@
+buffer_init.a=1
+buffer_init.b=1
+buffer_init.c=1
+buffer_init.d=1
 init.value=2
 run.value1=2
 run.value2=2

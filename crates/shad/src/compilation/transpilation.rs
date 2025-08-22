@@ -3,7 +3,9 @@ use crate::compilation::FileAst;
 use crate::config::scripts::{compile_and_run, ScriptContext};
 use crate::config::{Config, ShaderConfig};
 use itertools::Itertools;
+use petgraph::graphmap::DiGraphMap;
 use std::collections::HashMap;
+use std::hash::RandomState;
 use std::ops::Deref;
 use std::path::{Path, PathBuf};
 use std::rc::Rc;
@@ -36,18 +38,28 @@ pub(crate) fn transpile_asts(
                 )
             })
             .collect(),
-        init_shaders: asts
-            .values()
-            .sorted_unstable_by_key(|ast| &ast.root.path)
-            .flat_map(|ast| {
-                ast.root.children().filter_map(|node| {
-                    Some(transpile_shader(
-                        &ctx,
-                        node,
-                        node.kind_config.init_shader.as_ref()?,
-                    ))
-                })
+        init_shaders: sorted_buffers(&ctx)
+            .into_iter()
+            .filter_map(|node| {
+                Some(transpile_shader(
+                    &ctx,
+                    node,
+                    node.kind_config.buffer_init_shader.as_ref()?,
+                ))
             })
+            .chain(
+                asts.values()
+                    .sorted_unstable_by_key(|ast| &ast.root.path)
+                    .flat_map(|ast| {
+                        ast.root.children().filter_map(|node| {
+                            Some(transpile_shader(
+                                &ctx,
+                                node,
+                                node.kind_config.init_shader.as_ref()?,
+                            ))
+                        })
+                    }),
+            )
             .collect(),
         run_shaders: asts
             .values()
@@ -74,6 +86,22 @@ pub(crate) fn transpile_node(ctx: &ScriptContext, node: &Rc<AstNode>) -> String 
     } else {
         transpile_from_script(ctx, node, &node.kind_config.transpilation)
     }
+}
+
+fn sorted_buffers(ctx: &ScriptContext) -> Vec<&Rc<AstNode>> {
+    let mut graph = DiGraphMap::<&Rc<AstNode>, (), RandomState>::new();
+    let buffers = ctx.asts.values().flat_map(|ast| {
+        ast.root
+            .children()
+            .filter(|node| node.kind_config.buffer_init_shader.is_some())
+    });
+    for item in buffers {
+        graph.add_node(item);
+        for source in item.nested_sources(&ctx.asts) {
+            graph.add_edge(source, item, ());
+        }
+    }
+    petgraph::algo::toposort(&graph, None).expect("internal error: buffer cycle detected")
 }
 
 fn transpile_shader(

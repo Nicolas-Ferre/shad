@@ -39,7 +39,7 @@ kinds:
             - parent_index: 1 # `fn_item` node
               child_offset: 4 # `fn_param_group` child node
         - kind: buffer_item
-          can_be_after: false
+          can_be_after: true
     validation:
       - *missing_source_check
     type_resolution:

@@ -1,5 +1,5 @@
 buf result = return_value_with_side_effect(5, 10);
-buf side_effect = 0; // TODO: should be initialized after
+buf side_effect = 0;
 
 fn return_value_with_side_effect(side_effect_value: i32, returned_value: i32) -> i32 {
     returned_value = 2;

@@ -12,6 +12,13 @@ duplicated_item_check: &duplicated_item_check
       - node: 'root.children().find(|| this.key() == node.key())'
         title: '"same item defined here"'
 
+recursive_item_check: &recursive_item_check
+  assertion: 'let id = node.id(); !node.nested_sources().some(|| this.id() == id)'
+  error:
+    node: 'node'
+    title: '"item definition with circular dependency"'
+    label: '"this item is directly or indirectly referring to itself"'
+
 kinds:
   import_item:
     sequence: [ import_kw, import_path_prefix, ident, semicolon ]
@@ -48,10 +55,11 @@ kinds:
       ident: ident
     validation:
       - *duplicated_item_check
+      - *recursive_item_check
     transpilation: |-
       `@group(0) @binding(${next_binding()})
       var<storage, read_write> _${node.id()}: ${node.typed_expr.type().type_wgsl()};`
-    init_shader:
+    buffer_init_shader:
       transpilation: |-
         `${node.nested_sources()
           .filter(|| this.kind() == "buffer_item" || this.kind() == "fn_item")
@@ -106,6 +114,7 @@ kinds:
       - string: ')` function'
     validation:
       - *duplicated_item_check
+      - *recursive_item_check
       - assertion: |-
           let last_stmt = node.block.stmts.children().last();
           let has_return_stmt = last_stmt.is_some() && last_stmt.unwrap_or_stop().kind() == "return_stmt";

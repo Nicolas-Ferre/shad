@@ -2,11 +2,13 @@ use crate::compilation::{FileAst, FILE_EXT};
 use crate::config::KindConfig;
 use itertools::Itertools;
 use std::borrow::Cow;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
+use std::hash::{Hash, Hasher};
 use std::ops::Range;
 use std::path::{Path, PathBuf};
 use std::rc::Rc;
 use std::slice::Iter;
+use std::{iter, mem};
 
 #[derive(Debug)]
 pub(crate) struct AstNode {
@@ -18,6 +20,32 @@ pub(crate) struct AstNode {
     pub slice: String,
     pub offset: usize,
     pub path: PathBuf,
+}
+
+impl PartialEq for AstNode {
+    fn eq(&self, other: &Self) -> bool {
+        self.id == other.id
+    }
+}
+
+impl Eq for AstNode {}
+
+impl PartialOrd for AstNode {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Ord for AstNode {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        self.id.cmp(&other.id)
+    }
+}
+
+impl Hash for AstNode {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.id.hash(state);
+    }
 }
 
 impl AstNode {
@@ -60,24 +88,7 @@ impl AstNode {
     }
 
     pub(crate) fn type_(self: &Rc<Self>, asts: &HashMap<PathBuf, FileAst>) -> Option<String> {
-        let type_ = if let Some(name) = &self.kind_config.type_resolution.name {
-            Some(name.clone())
-        } else if let Some(child_kind) = &self.kind_config.type_resolution.child_slice {
-            Some(self.child(child_kind).slice.clone())
-        } else if !self.kind_config.type_resolution.source_children.is_empty() {
-            if let Some(source_source) = self.source(asts) {
-                self.kind_config
-                    .type_resolution
-                    .source_children
-                    .iter()
-                    .find_map(|source_child| source_source.child_option(source_child)?.type_(asts))
-            } else {
-                None
-            }
-        } else {
-            self.children().find_map(|child| child.type_(asts))
-        };
-        type_.or_else(|| self.kind_config.type_resolution.default_name.clone())
+        self.type_inner(asts, 0)
     }
 
     pub(crate) fn key(self: &Rc<Self>) -> String {
@@ -194,36 +205,27 @@ impl AstNode {
     }
 
     pub(crate) fn nested_sources<'a>(
-        self: &Rc<Self>,
+        self: &'a Rc<Self>,
         asts: &'a HashMap<PathBuf, FileAst>,
     ) -> Vec<&'a Rc<Self>> {
-        let mut sources = HashMap::new();
-        let mut previous_source_count = usize::MAX;
-        while sources.len() != previous_source_count {
-            previous_source_count = sources.len();
-            self.scan(&mut |scanned| {
-                if let Some(source) = scanned.source(asts) {
-                    let mut is_new = false;
-                    sources.entry(source.id).or_insert_with(|| {
-                        is_new = true;
-                        source
-                    });
-                    if is_new {
-                        sources.extend(
-                            source
-                                .nested_sources(asts)
-                                .into_iter()
-                                .map(|node| (node.id, node)),
-                        );
-                    }
-                    true
-                } else {
-                    false
+        let mut sources = vec![];
+        let mut registered_source_ids = HashSet::new();
+        let mut sources_to_process: HashMap<_, _> = iter::once((self.id, self)).collect();
+        while !sources_to_process.is_empty() {
+            for node in mem::take(&mut sources_to_process).into_values() {
+                if registered_source_ids.contains(&node.id) {
+                    continue;
                 }
-            });
+                registered_source_ids.insert(node.id);
+                for source in node.direct_nested_sources(asts) {
+                    sources.push(source);
+                    sources_to_process.insert(source.id, source);
+                }
+            }
         }
         sources
-            .into_values()
+            .into_iter()
+            .unique_by(|node| node.id)
             .sorted_by_key(|node| node.id)
             .collect()
     }
@@ -271,6 +273,52 @@ impl AstNode {
                 .join("."),
             self.child(child_ident).slice
         )
+    }
+
+    fn direct_nested_sources<'a>(
+        self: &Rc<Self>,
+        asts: &'a HashMap<PathBuf, FileAst>,
+    ) -> Vec<&'a Rc<Self>> {
+        let mut sources = vec![];
+        self.scan(&mut |scanned| {
+            if let Some(source) = scanned.source(asts) {
+                sources.push(source);
+                true
+            } else {
+                false
+            }
+        });
+        sources
+    }
+
+    fn type_inner(self: &Rc<Self>, asts: &HashMap<PathBuf, FileAst>, depth: u32) -> Option<String> {
+        if depth > 1000 {
+            // prevent stack overflow in case of circular dependency
+            return None;
+        }
+        let type_ = if let Some(name) = &self.kind_config.type_resolution.name {
+            Some(name.clone())
+        } else if let Some(child_kind) = &self.kind_config.type_resolution.child_slice {
+            Some(self.child(child_kind).slice.clone())
+        } else if !self.kind_config.type_resolution.source_children.is_empty() {
+            if let Some(source_source) = self.source(asts) {
+                self.kind_config
+                    .type_resolution
+                    .source_children
+                    .iter()
+                    .find_map(|source_child| {
+                        source_source
+                            .child_option(source_child)?
+                            .type_inner(asts, depth + 1)
+                    })
+            } else {
+                None
+            }
+        } else {
+            self.children()
+                .find_map(|child| child.type_inner(asts, depth + 1))
+        };
+        type_.or_else(|| self.kind_config.type_resolution.default_name.clone())
     }
 }
 

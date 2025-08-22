@@ -1,13 +1,5 @@
 import imported;
 
-// TODO: handle recursion between functions, but also with buffers
-// buf test = f();
-//
-// fn f() -> i32 {
-//     test = 0;
-//     return 0;
-// }
-
 buf result = 0;
 
 run {
