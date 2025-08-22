@@ -6,4 +6,6 @@ run {
     func(0, 0);
     func(0);
     other_func();
+    0.func(0u);
+    0.func();
 }

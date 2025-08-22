@@ -25,6 +25,15 @@ error: undefined item
   |     `other_func()` function is undefined
   |
 
+error: undefined item
+  --> ./cases_invalid/expressions/fn_call.shd:10:5
+   |
+10 |     0.func();
+   |     ^^^^^^^^
+   |     |
+   |     `func(i32)` function is undefined
+   |
+
 error: invalid expression type
  --> ./cases_invalid/expressions/no_return_type.shd:1:14
   |

@@ -20,7 +20,15 @@ kinds:
     transpilation: 'node.expr.wgsl()'
 
   expr:
-    choice: [ true_expr, false_expr, fn_call_expr, var_ident_expr, f32_expr, u32_expr, i32_expr ]
+    choice:
+      - true_expr
+      - false_expr
+      - associated_fn_call_expr
+      - fn_call_expr
+      - var_ident_expr
+      - f32_expr
+      - u32_expr
+      - i32_expr
 
   var_ident_expr:
     sequence: [ ident ]
@@ -63,6 +71,26 @@ kinds:
     validation:
       - *missing_source_check
     transpilation: '`_${node.source().id()}(${node.fn_arg_group.wgsl()})`'
+    type_resolution:
+      source_children: [ fn_return_type ]
+
+  associated_fn_call_expr:
+    sequence: [ fn_arg, dot, ident, open_parenthesis, fn_arg_group, close_parenthesis ]
+    sequence_error_after: dot
+    index_key_source:
+      key:
+        - string: '`'
+        - slice_child: ident
+        - string: '('
+        - type_nested_child: fn_arg
+          separator: ', '
+        - string: ')` function'
+      criteria:
+        - kind: fn_item
+          can_be_after: true
+    validation:
+      - *missing_source_check
+    transpilation: '`_${node.source().id()}(${node.fn_arg.wgsl()}, ${node.fn_arg_group.wgsl()})`'
     type_resolution:
       source_children: [ fn_return_type ]
 

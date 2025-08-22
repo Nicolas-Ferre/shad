@@ -11,6 +11,11 @@ fn return_value_with_side_effect(side_effect_value: i32, returned_value: i32) ->
 buf return_fn_run = false;
 buf no_return_fn_run = false;
 
+run {
+    return_value();
+    no_return_value();
+}
+
 fn return_value() -> i32 {
     return_fn_run = true;
     return 2;
@@ -20,7 +25,17 @@ fn no_return_value() {
     no_return_fn_run = true;
 }
 
+buf return_associated_fn_expr = 42.associated_return_value();
+buf no_return_associated_fn_run = false;
+
 run {
-    return_value();
-    no_return_value();
+    true.associated_no_return_value();
+}
+
+fn associated_return_value(value: i32) -> i32 {
+    return value;
+}
+
+fn associated_no_return_value(value: bool) {
+    no_return_associated_fn_run = value;
 }

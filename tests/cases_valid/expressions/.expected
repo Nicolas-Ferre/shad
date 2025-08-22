@@ -1,5 +1,7 @@
+fn_calls.no_return_associated_fn_run=1
 fn_calls.no_return_fn_run=1
 fn_calls.result=2
+fn_calls.return_associated_fn_expr=42
 fn_calls.return_fn_run=1
 fn_calls.side_effect=5
 inner.imported1.imported=2

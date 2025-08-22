@@ -26,11 +26,11 @@ error: expected `true`, `false`, identifier, `f32` literal, `u32` literal or `i3
   |              ^ here
   |
 
-error: expected `;`
- --> ./cases_invalid/syntax/missing_f32_suffix.shd:1:15
+error: expected identifier
+ --> ./cases_invalid/syntax/missing_f32_suffix.shd:1:16
   |
 1 | buf buffer = 3.;
-  |               ^ here
+  |                ^ here
   |
 
 error: expected `true`, `false`, identifier, `f32` literal, `u32` literal or `i32` literal

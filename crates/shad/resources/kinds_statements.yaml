@@ -8,6 +8,7 @@ kinds:
       - local_var_def_stmt
       - assignment_stmt
       - fn_call_stmt
+      - associated_fn_call_stmt
       - return_stmt
 
   local_var_def_stmt:
@@ -40,6 +41,11 @@ kinds:
     sequence: [ fn_call_expr, semicolon ]
     sequence_error_after: fn_call_expr
     transpilation: '`${node.fn_call_expr.wgsl()};`'
+
+  associated_fn_call_stmt:
+    sequence: [ associated_fn_call_expr, semicolon ]
+    sequence_error_after: associated_fn_call_expr
+    transpilation: '`${node.associated_fn_call_expr.wgsl()};`'
 
   return_stmt:
     sequence: [ return_kw, typed_expr, semicolon ]
