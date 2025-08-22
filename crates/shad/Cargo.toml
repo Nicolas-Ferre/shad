@@ -15,6 +15,7 @@ rust-version.workspace = true
 [dependencies]
 annotate-snippets.workspace = true
 clap.workspace = true
+derive-where.workspace = true
 futures.workspace = true
 include_dir.workspace = true
 itertools.workspace = true

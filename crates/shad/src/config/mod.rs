@@ -72,12 +72,11 @@ fn validate_script(script: &str) -> Result<(), serde_valid::validation::Error> {
     Ok(())
 }
 
-#[allow(clippy::ref_option)]
-fn validate_script_option(script: &Option<String>) -> Result<(), serde_valid::validation::Error> {
-    if let Some(script) = script {
-        validate_script(script)
-    } else {
+fn validate_script_option(script: &str) -> Result<(), serde_valid::validation::Error> {
+    if script.is_empty() {
         Ok(())
+    } else {
+        validate_script(script)
     }
 }
 
@@ -231,7 +230,6 @@ pub(crate) struct IndexKeySourceSiblingConfig {
 #[derive(Debug, Clone, Deserialize, Validate)]
 #[serde(deny_unknown_fields)]
 pub(crate) struct ValidationConfig {
-    #[validate(min_length = 1)]
     #[validate(custom(validate_script))]
     pub(crate) assertion: String,
     pub(crate) error: ValidationMessageConfig,
@@ -244,8 +242,9 @@ pub(crate) struct ValidationMessageConfig {
     pub(crate) node: String,
     #[validate(custom(validate_script))]
     pub(crate) title: String,
+    #[serde(default)]
     #[validate(custom(validate_script_option))]
-    pub(crate) label: Option<String>,
+    pub(crate) label: String,
     #[serde(default)]
     pub(crate) info: Vec<ValidationMessageConfig>,
 }

@@ -1,9 +1,9 @@
 use crate::compilation::{FileAst, FILE_EXT};
 use crate::config::KindConfig;
+use derive_where::derive_where;
 use itertools::Itertools;
 use std::borrow::Cow;
 use std::collections::{HashMap, HashSet};
-use std::hash::{Hash, Hasher};
 use std::ops::Range;
 use std::path::{Path, PathBuf};
 use std::rc::Rc;
@@ -11,41 +11,23 @@ use std::slice::Iter;
 use std::{iter, mem};
 
 #[derive(Debug)]
+#[derive_where(PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub(crate) struct AstNode {
     pub id: u32,
+    #[derive_where(skip)]
     pub parent_ids: Vec<u32>,
+    #[derive_where(skip)]
     pub children: AstNodeInner,
+    #[derive_where(skip)]
     pub kind_name: String,
+    #[derive_where(skip)]
     pub kind_config: Rc<KindConfig>,
+    #[derive_where(skip)]
     pub slice: String,
+    #[derive_where(skip)]
     pub offset: usize,
+    #[derive_where(skip)]
     pub path: PathBuf,
-}
-
-impl PartialEq for AstNode {
-    fn eq(&self, other: &Self) -> bool {
-        self.id == other.id
-    }
-}
-
-impl Eq for AstNode {}
-
-impl PartialOrd for AstNode {
-    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        Some(self.cmp(other))
-    }
-}
-
-impl Ord for AstNode {
-    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-        self.id.cmp(&other.id)
-    }
-}
-
-impl Hash for AstNode {
-    fn hash<H: Hasher>(&self, state: &mut H) {
-        self.id.hash(state);
-    }
 }
 
 impl AstNode {
