@@ -172,8 +172,8 @@ impl ValidationError {
             .expect("internal error: failed to calculate message node");
         let title = scripts::compile_and_run::<String>(&config.title, node, ctx)
             .expect("internal error: failed to calculate message title");
-        let label = (!config.label.is_empty()).then(|| {
-            scripts::compile_and_run::<String>(&config.label, node, ctx)
+        let label = config.label.as_ref().map(|label| {
+            scripts::compile_and_run::<String>(label, node, ctx)
                 .expect("internal error: failed to calculate message label")
         });
         Self {

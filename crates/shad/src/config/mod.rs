@@ -72,14 +72,6 @@ fn validate_script(script: &str) -> Result<(), serde_valid::validation::Error> {
     Ok(())
 }
 
-fn validate_script_option(script: &str) -> Result<(), serde_valid::validation::Error> {
-    if script.is_empty() {
-        Ok(())
-    } else {
-        validate_script(script)
-    }
-}
-
 #[derive(Debug, Clone, Deserialize, Validate)]
 pub(crate) struct Config {
     #[validate(min_length = 1)]
@@ -242,9 +234,9 @@ pub(crate) struct ValidationMessageConfig {
     pub(crate) node: String,
     #[validate(custom(validate_script))]
     pub(crate) title: String,
+    // this script isn't checked because the custom validator is not working on Option<> fields
     #[serde(default)]
-    #[validate(custom(validate_script_option))]
-    pub(crate) label: String,
+    pub(crate) label: Option<String>,
     #[serde(default)]
     pub(crate) info: Vec<ValidationMessageConfig>,
 }
