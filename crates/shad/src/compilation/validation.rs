@@ -1,4 +1,4 @@
-use crate::compilation::ast::{AstNode, AstNodeInner};
+use crate::compilation::ast::AstNode;
 use crate::compilation::error::ValidationError;
 use crate::compilation::FileAst;
 use crate::config::scripts::ScriptContext;
@@ -26,18 +26,8 @@ pub(crate) fn validate_asts(
 }
 
 fn validate_ast_node(errors: &mut Vec<ValidationError>, ctx: &ScriptContext, node: &Rc<AstNode>) {
-    match &node.children {
-        AstNodeInner::Sequence(children) => {
-            for child in children.values() {
-                validate_ast_node(errors, ctx, child);
-            }
-        }
-        AstNodeInner::Repeated(children) => {
-            for child in children {
-                validate_ast_node(errors, ctx, child);
-            }
-        }
-        AstNodeInner::Terminal => {}
+    for child in &node.children {
+        validate_ast_node(errors, ctx, child);
     }
     for validation in &node.kind_config.validation {
         let is_valid =

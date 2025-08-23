@@ -1,4 +1,4 @@
-error: expected `true`, `false`, identifier, `f32` literal, `u32` literal or `i32` literal
+error: expected `f32` literal, `false`, `i32` literal, `true`, `u32` literal or identifier
  --> ./cases_invalid/syntax/inner_next_token.shd:5:16
   |
 5 |     assigned = ;
@@ -12,14 +12,14 @@ error: expected identifier
   |     ^ here
   |
 
-error: expected `true`, `false`, identifier, `f32` literal, `u32` literal or `i32` literal
+error: expected `f32` literal, `false`, `i32` literal, `true`, `u32` literal or identifier
  --> ./cases_invalid/syntax/many_possible_next_tokens.shd:1:13
   |
 1 | buf buffer =
   |             ^ here
   |
 
-error: expected `true`, `false`, identifier, `f32` literal, `u32` literal or `i32` literal
+error: expected `f32` literal, `false`, `i32` literal, `true`, `u32` literal or identifier
  --> ./cases_invalid/syntax/missing_f32_prefix.shd:1:14
   |
 1 | buf buffer = .3;
@@ -33,7 +33,7 @@ error: expected identifier
   |                ^ here
   |
 
-error: expected `true`, `false`, identifier, `f32` literal, `u32` literal or `i32` literal
+error: expected `f32` literal, `false`, `i32` literal, `true`, `u32` literal or identifier
  --> ./cases_invalid/syntax/missing_whitespace.shd:1:14
   |
 1 | buf buffer = 0uv;

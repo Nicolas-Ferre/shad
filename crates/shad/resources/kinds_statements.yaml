@@ -10,6 +10,7 @@ kinds:
       - fn_call_stmt
       - associated_fn_call_stmt
       - return_stmt
+    transpilation: 'node.children()[0].wgsl()'
 
   local_var_def_stmt:
     sequence: [ var_kw, ident, eq, typed_expr, semicolon ]

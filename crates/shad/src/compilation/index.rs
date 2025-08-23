@@ -1,4 +1,4 @@
-use crate::compilation::ast::{AstNode, AstNodeInner};
+use crate::compilation::ast::AstNode;
 use crate::compilation::FileAst;
 use crate::config::Config;
 use std::collections::{HashMap, HashSet};
@@ -82,17 +82,7 @@ fn fill_index(node: &Rc<AstNode>, index: &mut HashMap<String, Vec<Rc<AstNode>>>)
     if !node.kind_config.index_key.is_empty() {
         index.entry(node.key()).or_default().push(node.clone());
     }
-    match &node.children {
-        AstNodeInner::Sequence(children) => {
-            for child in children.values() {
-                fill_index(child, index);
-            }
-        }
-        AstNodeInner::Repeated(children) => {
-            for child in children {
-                fill_index(child, index);
-            }
-        }
-        AstNodeInner::Terminal => {}
+    for child in &node.children {
+        fill_index(child, index);
     }
 }

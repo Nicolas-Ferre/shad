@@ -1,0 +1,9 @@
+buf operator = 200 - 2 * 3 - 5;
+
+fn __sub__(left: i32, right: i32) -> i32 {
+    return left;
+}
+
+fn __mul__(left: i32, right: i32) -> i32 {
+    return right;
+}

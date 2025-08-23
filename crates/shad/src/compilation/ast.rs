@@ -4,20 +4,20 @@ use derive_where::derive_where;
 use itertools::Itertools;
 use std::borrow::Cow;
 use std::collections::{HashMap, HashSet};
+use std::fmt::{Debug, Formatter};
 use std::ops::Range;
 use std::path::{Path, PathBuf};
 use std::rc::Rc;
-use std::slice::Iter;
 use std::{iter, mem};
 
-#[derive(Debug)]
+// #[derive(Debug)] // TODO: restore
 #[derive_where(PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub(crate) struct AstNode {
     pub id: u32,
     #[derive_where(skip)]
     pub parent_ids: Vec<u32>,
     #[derive_where(skip)]
-    pub children: AstNodeInner,
+    pub children: Vec<Rc<AstNode>>,
     #[derive_where(skip)]
     pub kind_name: String,
     #[derive_where(skip)]
@@ -30,19 +30,19 @@ pub(crate) struct AstNode {
     pub path: PathBuf,
 }
 
+impl Debug for AstNode {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("AstNode")
+            .field("kind_name", &self.kind_name)
+            .field("slice", &self.slice)
+            .field("children", &self.children)
+            .finish_non_exhaustive()
+    }
+}
+
 impl AstNode {
     pub(crate) fn span(&self) -> Range<usize> {
         self.offset..self.offset + self.slice.len()
-    }
-
-    pub(crate) fn children(&self) -> NodeChildIterator<'_> {
-        match &self.children {
-            AstNodeInner::Sequence(children) => {
-                NodeChildIterator::Sequence(self.kind_config.sequence.iter(), children)
-            }
-            AstNodeInner::Repeated(children) => NodeChildIterator::Repeated(children.iter()),
-            AstNodeInner::Terminal => NodeChildIterator::Terminal,
-        }
     }
 
     pub(crate) fn child(&self, child_name: &str) -> &Rc<Self> {
@@ -51,12 +51,9 @@ impl AstNode {
     }
 
     pub(crate) fn child_option(&self, child_name: &str) -> Option<&Rc<Self>> {
-        match &self.children {
-            AstNodeInner::Sequence(children) => children.get(child_name),
-            AstNodeInner::Repeated(_) | AstNodeInner::Terminal => {
-                unreachable!("cannot retrieve child for non-sequence node")
-            }
-        }
+        self.children
+            .iter()
+            .find(|child| child.kind_name == child_name)
     }
 
     #[allow(clippy::needless_lifetimes)]
@@ -64,7 +61,7 @@ impl AstNode {
         if f(self) {
             return;
         }
-        for child in self.children() {
+        for child in &self.children {
             child.scan(f);
         }
     }
@@ -297,34 +294,10 @@ impl AstNode {
                 None
             }
         } else {
-            self.children()
+            self.children
+                .iter()
                 .find_map(|child| child.type_inner(asts, depth + 1))
         };
         type_.or_else(|| self.kind_config.type_resolution.default_name.clone())
-    }
-}
-
-#[derive(Debug)]
-pub(crate) enum AstNodeInner {
-    Sequence(HashMap<String, Rc<AstNode>>),
-    Repeated(Vec<Rc<AstNode>>),
-    Terminal,
-}
-
-pub(crate) enum NodeChildIterator<'a> {
-    Sequence(Iter<'a, String>, &'a HashMap<String, Rc<AstNode>>),
-    Repeated(Iter<'a, Rc<AstNode>>),
-    Terminal,
-}
-
-impl<'a> Iterator for NodeChildIterator<'a> {
-    type Item = &'a Rc<AstNode>;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        match self {
-            NodeChildIterator::Sequence(keys, children) => keys.next().map(|key| &children[key]),
-            NodeChildIterator::Repeated(iter) => iter.next(),
-            NodeChildIterator::Terminal => None,
-        }
     }
 }

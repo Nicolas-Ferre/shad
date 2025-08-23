@@ -7,6 +7,32 @@ missing_source_check: &missing_source_check
     title: '"undefined item"'
     label: '`${node.source_key()} is undefined`'
 
+binary_expr_transpilation: &binary_expr_transpilation |-
+  fn operands(operator, fn_arg) {
+    let expr = fn_arg.expr.children()[0];
+    let binary_right_arg = expr.children().get(2);
+    if binary_right_arg != () && binary_right_arg.kind() == "binary_right_arg" && expr.children()[1].slice() == operator {
+      [expr.fn_arg] + operands(operator, binary_right_arg.fn_arg)
+    } else {
+      return [fn_arg]
+    }
+  }
+  fn transpile(operator_fn_name, operands) {
+    if operands.len() == 2 {
+      `${operator_fn_name}(${operands[0].wgsl()}, ${operands[1].wgsl()})`
+    } else {
+      let last_operand = operands.pop();
+      `${operator_fn_name}(${transpile(operator_fn_name, operands)}, ${last_operand.wgsl()})`
+    }
+  }
+  let operator = node.children()[1].slice();
+  let operator_fn_name = switch operator {
+    "-" => "__sub__",
+    "*" => "__mul__",
+  };
+  transpile(operator_fn_name, [node.fn_arg] + operands(operator, node.binary_right_arg.fn_arg))
+
+
 kinds:
   typed_expr:
     sequence: [ expr ]
@@ -21,14 +47,17 @@ kinds:
 
   expr:
     choice:
-      - true_expr
-      - false_expr
+      - binary_sub_expr
+      - binary_mul_expr
       - associated_fn_call_expr
       - fn_call_expr
+      - true_expr
+      - false_expr
       - var_ident_expr
       - f32_expr
       - u32_expr
       - i32_expr
+    transpilation: 'node.children()[0].wgsl()'
 
   var_ident_expr:
     sequence: [ ident ]
@@ -78,6 +107,7 @@ kinds:
     sequence: [ fn_arg, dot, ident, open_parenthesis, fn_arg_group, close_parenthesis ]
     sequence_error_after: dot
     index_key_source:
+      # TODO: convert to Rhai?
       key:
         - string: '`'
         - slice_child: ident
@@ -118,6 +148,20 @@ kinds:
     max_repeat: 1
     sequence: [ comma ]
     sequence_error_after: comma
+
+  binary_sub_expr:
+    sequence: [ fn_arg, hyphen, binary_right_arg ]
+    sequence_error_after: hyphen
+    transpilation: *binary_expr_transpilation
+
+  binary_mul_expr:
+    sequence: [ fn_arg, star, binary_right_arg ]
+    sequence_error_after: star
+    transpilation: *binary_expr_transpilation
+
+  binary_right_arg:
+    sequence: [ fn_arg ]
+    sequence_error_after: fn_arg
 
   f32_expr:
     pattern_parts:

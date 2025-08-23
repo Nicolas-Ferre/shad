@@ -22,6 +22,10 @@ kinds:
   dot: { string: '.' }
   comma: { string: ',' }
   eq: { string: '=' }
+  plus: { string: '+' }
+  hyphen: { string: '-' }
+  star: { string: '*' }
+  slash: { string: '/' }
   colon: { string: ':' }
   semicolon: { string: ';' }
   open_bracket: { string: '{' }

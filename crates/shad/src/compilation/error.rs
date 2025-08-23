@@ -59,6 +59,7 @@ impl Error {
         let expected_tokens = error
             .expected_tokens
             .iter()
+            .sorted_unstable()
             .enumerate()
             .map(|(index, token)| {
                 if index == 0 {

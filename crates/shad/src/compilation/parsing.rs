@@ -1,6 +1,6 @@
 #![allow(missing_docs)]
 
-use crate::compilation::ast::{AstNode, AstNodeInner};
+use crate::compilation::ast::AstNode;
 use crate::compilation::error::ParsingError;
 use crate::config::{Config, KindConfig, PatternPartConfig};
 use crate::Error;
@@ -81,14 +81,11 @@ fn remove_comments(config: &Config, code: &str) -> String {
 }
 
 fn parse_node(ctx: &mut Context<'_>) -> Result<AstNode, ParsingError> {
-    ctx.current_kinds_started.push((ctx.kind_name, false));
-    let result = if ctx.kind_config.min_repeat == 1 && ctx.kind_config.max_repeat == 1 {
+    if ctx.kind_config.min_repeat == 1 && ctx.kind_config.max_repeat == 1 {
         parse_not_repeated_node(ctx)
     } else {
         parse_repeated_node(ctx)
-    };
-    ctx.current_kinds_started.pop();
-    result
+    }
 }
 
 fn parse_repeated_node(ctx: &mut Context<'_>) -> Result<AstNode, ParsingError> {
@@ -97,14 +94,14 @@ fn parse_repeated_node(ctx: &mut Context<'_>) -> Result<AstNode, ParsingError> {
     let start = ctx.offset;
     let kind_name = ctx.kind_name.into();
     let kind_config = ctx.kind_config.clone();
-    let mut nodes: Vec<_> = vec![];
+    let mut children: Vec<_> = vec![];
     for repeat_index in 0..ctx.kind_config.max_repeat {
         let mut local_ctx = ctx.clone();
         let node = parse_not_repeated_node(&mut local_ctx);
         match node {
             Ok(node) => {
                 ctx.apply(&local_ctx);
-                nodes.push(Rc::new(node));
+                children.push(Rc::new(node));
             }
             Err(err) => {
                 if err.forced || repeat_index < local_ctx.kind_config.min_repeat {
@@ -118,7 +115,7 @@ fn parse_repeated_node(ctx: &mut Context<'_>) -> Result<AstNode, ParsingError> {
     Ok(AstNode {
         id,
         parent_ids: ctx.parent_ids.clone(),
-        children: AstNodeInner::Repeated(nodes),
+        children,
         kind_name,
         kind_config,
         slice: ctx.code[start..ctx.offset].into(),
@@ -146,8 +143,9 @@ fn parse_sequence(ctx: &mut Context<'_>) -> Result<AstNode, ParsingError> {
     let id = ctx.next_node_id();
     ctx.parent_ids.push(id);
     let mut local_ctx = ctx.clone();
+    local_ctx.current_kinds_started.push((ctx.kind_name, false));
     let start = local_ctx.offset;
-    let kind_name = local_ctx.kind_name.into();
+    let kind_name = local_ctx.kind_name.to_string();
     let kind_config = local_ctx.kind_config.clone();
     let mut forced_error = false;
     let mut is_started = false;
@@ -158,35 +156,34 @@ fn parse_sequence(ctx: &mut Context<'_>) -> Result<AstNode, ParsingError> {
         .map(|child_kind_name| {
             local_ctx.kind_name = child_kind_name;
             local_ctx.kind_config = &local_ctx.config.kinds[child_kind_name];
-            let result = parse_node(&mut local_ctx)
-                .map(|node| (child_kind_name.into(), node))
-                .map(|(child_kind_name, node)| {
-                    let sequence_error_after = kind_config
-                        .sequence_error_after
-                        .as_deref()
-                        .expect("internal error: missing `sequence_error_after` value");
-                    if child_kind_name == sequence_error_after {
-                        forced_error = true;
-                    }
-                    (child_kind_name, Rc::new(node))
-                });
+            let result = parse_node(&mut local_ctx).map(|node| {
+                let sequence_error_after = kind_config
+                    .sequence_error_after
+                    .as_deref()
+                    .expect("internal error: missing `sequence_error_after` value");
+                if child_kind_name == sequence_error_after {
+                    forced_error = true;
+                }
+                Rc::new(node)
+            });
             if !is_started {
-                local_ctx.start_current_kind(child_kind_name);
+                local_ctx.start_current_kind(&kind_name);
                 is_started = true;
             }
             result
         })
-        .collect::<Result<HashMap<String, _>, _>>()
+        .collect::<Result<Vec<_>, _>>()
         .map_err(|mut err| {
             err.forced |= forced_error;
             err
         })?;
+    local_ctx.current_kinds_started.pop();
     *ctx = local_ctx;
     ctx.parent_ids.pop();
     Ok(AstNode {
         id,
         parent_ids: ctx.parent_ids.clone(),
-        children: AstNodeInner::Sequence(children),
+        children,
         kind_name,
         kind_config,
         slice: ctx.code[start..ctx.offset].into(),
@@ -202,13 +199,29 @@ fn parse_choice(ctx: &mut Context<'_>) -> Result<AstNode, ParsingError> {
             continue;
         }
         let mut local_ctx = ctx.clone();
+        let id = local_ctx.next_node_id();
+        let kind_name = local_ctx.kind_name.to_string();
+        let kind_config = local_ctx.kind_config.clone();
         local_ctx.kind_name = child_kind_name;
-        local_ctx.kind_config = &local_ctx.config.kinds[child_kind_name];
+        local_ctx.kind_config = local_ctx
+            .config
+            .kinds
+            .get(child_kind_name)
+            .unwrap_or_else(|| panic!("internal error: not found `{child_kind_name}` kind"));
         let node = parse_node(&mut local_ctx);
         match node {
             Ok(node) => {
                 *ctx = local_ctx;
-                return Ok(node);
+                return Ok(AstNode {
+                    id,
+                    parent_ids: ctx.parent_ids.clone(),
+                    kind_name,
+                    kind_config,
+                    slice: node.slice.clone(),
+                    offset: node.offset,
+                    path: node.path.clone(),
+                    children: vec![Rc::new(node)],
+                });
             }
             Err(err) => {
                 if err.forced {
@@ -283,7 +296,7 @@ fn parse_slice(ctx: &mut Context<'_>, length: usize) -> Option<AstNode> {
     let node = AstNode {
         id: local_ctx.next_node_id(),
         parent_ids: ctx.parent_ids.clone(),
-        children: AstNodeInner::Terminal,
+        children: vec![],
         kind_name: local_ctx.kind_name.into(),
         kind_config: local_ctx.kind_config.clone(),
         slice: local_ctx.code[start..local_ctx.offset].into(),

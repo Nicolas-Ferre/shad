@@ -119,7 +119,8 @@ impl ScriptContext {
             unwrap_or_stop(node.type_(&ctx_clone.asts))
         });
         engine.register_fn("children", |node: &mut Rc<AstNode>| {
-            node.children()
+            node.children
+                .iter()
                 .cloned()
                 .map(Dynamic::from)
                 .collect::<Vec<_>>()
@@ -188,19 +189,10 @@ pub(crate) fn compile_and_run<T: Clone + 'static>(
                 .expect("internal error: invalid script")
         })
         .clone();
-    run(node, ctx, &ast, engine)
-}
-
-fn run<T: Clone + 'static>(
-    node: &Rc<AstNode>,
-    ctx: &ScriptContext,
-    script_ast: &AST,
-    engine: &Engine,
-) -> Option<T> {
     let mut scope = Scope::new();
     scope.push("node", node.clone());
     scope.push("root", ctx.asts[&node.path].root.clone());
-    match engine.eval_ast_with_scope::<T>(&mut scope, script_ast) {
+    match engine.eval_ast_with_scope::<T>(&mut scope, &ast) {
         Ok(result) => Some(result),
         Err(err) => {
             if let EvalAltResult::ErrorMismatchOutputType(_, _, _) = *err {

@@ -3,13 +3,13 @@ import_index_key: &import_index_key '@import'
 no_return_type_name: &no_return_type_name '<no return>'
 
 duplicated_item_check: &duplicated_item_check
-  assertion: '!root.children().some(|| this.id() < node.id() && this.key() == node.key())'
+  assertion: '!root.children().map(|| this.children()[0]).some(|| this.id() < node.id() && this.key() == node.key())'
   error:
     node: 'node'
     title: '`${node.key()} defined multiple times`'
     label: '"duplicated item"'
     info:
-      - node: 'root.children().find(|| this.key() == node.key())'
+      - node: 'root.children().map(|| this.children()[0]).find(|| this.key() == node.key())'
         title: '"same item defined here"'
 
 recursive_item_check: &recursive_item_check
@@ -23,6 +23,7 @@ kinds:
   import_item:
     sequence: [ import_kw, import_path_prefix, ident, semicolon ]
     sequence_error_after: import_kw
+    # TODO: convert to Rhai
     index_key:
       - string: *import_index_key
     import_path:
@@ -116,12 +117,12 @@ kinds:
       - *duplicated_item_check
       - *recursive_item_check
       - assertion: |-
-          let last_stmt = node.block.stmts.children().last();
+          let last_stmt = node.block.stmts.children().map(|| this.children()[0]).last();
           let has_return_stmt = last_stmt.is_some() && last_stmt.unwrap_or_stop().kind() == "return_stmt";
           let has_return_type = node.fn_return_type.children().len() > 0;
           has_return_stmt || !has_return_type
         error:
-          node: 'node.block.stmts.children().last().unwrap_or(node.block)'
+          node: 'node.block.stmts.children().map(|| this.children()[0]).last().unwrap_or(node.block)'
           title: '"missing return statement"'
           label: '"last statement should be a `return` statement"'
           info:
@@ -129,13 +130,13 @@ kinds:
               title: '"the function has a return type"'
       - assertion: |-
           let expected_type = node.fn_return_type.type();
-          let last_stmt = node.block.stmts.children().last().unwrap_or_stop();
+          let last_stmt = node.block.stmts.children().map(|| this.children()[0]).last().unwrap_or_stop();
           let returned_type = last_stmt.type();
           last_stmt.kind() != "return_stmt" || returned_type == "<no return>" || returned_type == expected_type
         error:
-          node: 'node.block.stmts.children().last().unwrap_or_stop()'
+          node: 'node.block.stmts.children().map(|| this.children()[0]).last().unwrap_or_stop()'
           title: '"invalid returned type"'
-          label: '`returned type is ``${node.block.stmts.children().last().unwrap_or_stop().type()}```'
+          label: '`returned type is ``${node.block.stmts.children().map(|| this.children()[0]).last().unwrap_or_stop().type()}```'
           info:
             - node: 'node.fn_return_type'
               title: '`expected type is ``${node.fn_return_type.type()}```'
@@ -219,9 +220,9 @@ kinds:
     sequence: [ block ]
     sequence_error_after: block
     validation:
-      - assertion: '!node.block.stmts.children().some(|| this.kind() == "return_stmt")'
+      - assertion: '!node.block.stmts.children().map(|| this.children()[0]).some(|| this.kind() == "return_stmt")'
         error:
-          node: 'node.block.stmts.children().find(|| this.kind() == "return_stmt")'
+          node: 'node.block.stmts.children().map(|| this.children()[0]).find(|| this.kind() == "return_stmt")'
           title: '"`return` statement used outside a function"'
           label: '"not allowed statement"'
     transpilation: 'node.block.wgsl()'
@@ -231,12 +232,12 @@ kinds:
     sequence_error_after: open_bracket
     validation:
       - assertion: |-
-          let stmts = node.stmts.children();
+          let stmts = node.stmts.children().map(|| this.children()[0]);
           let last_index = stmts.len() - 1;
           !stmts.some(|stmt, i| stmt.kind() == "return_stmt" && i < last_index)
         error:
           node: |-
-            let stmts = node.stmts.children();
+            let stmts = node.stmts.children().map(|| this.children()[0]);
             let last_index = stmts.len() - 1;
             stmts.find(|stmt, i| stmt.kind() == "return_stmt" && i < last_index)
           title: '"`return` statement before end of the block"'

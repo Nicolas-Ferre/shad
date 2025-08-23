@@ -44,7 +44,10 @@ pub fn compile(folder: impl SourceFolder) -> Result<Program, Error> {
     AstNodeIndex::generate_lookup_paths(&config, &mut asts, &root_path);
     let asts = Rc::new(asts);
     validate_asts(&config, &asts, &root_path)?;
-    Ok(transpile_asts(&config, &asts, &root_path))
+    let program = transpile_asts(&config, &asts, &root_path);
+    dbg!(program);
+    std::process::exit(0);
+    Ok(program)
 }
 
 #[derive(Debug)]

@@ -1,4 +1,4 @@
-use crate::compilation::ast::{AstNode, AstNodeInner};
+use crate::compilation::ast::AstNode;
 use crate::compilation::FileAst;
 use crate::config::scripts::{compile_and_run, ScriptContext};
 use crate::config::{Config, ShaderConfig};
@@ -19,7 +19,8 @@ pub(crate) fn transpile_asts(
     Program {
         buffers: asts
             .values()
-            .flat_map(|ast| ast.root.children())
+            .flat_map(|ast| &ast.root.children)
+            .flat_map(|node| &node.children)
             .filter_map(|node| {
                 node.kind_config
                     .buffer
@@ -51,13 +52,17 @@ pub(crate) fn transpile_asts(
                 asts.values()
                     .sorted_unstable_by_key(|ast| &ast.root.path)
                     .flat_map(|ast| {
-                        ast.root.children().filter_map(|node| {
-                            Some(transpile_shader(
-                                &ctx,
-                                node,
-                                node.kind_config.init_shader.as_ref()?,
-                            ))
-                        })
+                        ast.root
+                            .children
+                            .iter()
+                            .flat_map(|node| &node.children)
+                            .filter_map(|node| {
+                                Some(transpile_shader(
+                                    &ctx,
+                                    node,
+                                    node.kind_config.init_shader.as_ref()?,
+                                ))
+                            })
                     }),
             )
             .collect(),
@@ -65,26 +70,30 @@ pub(crate) fn transpile_asts(
             .values()
             .sorted_unstable_by_key(|ast| &ast.root.path)
             .flat_map(|ast| {
-                ast.root.children().filter_map(|node| {
-                    Some(transpile_shader(
-                        &ctx,
-                        node,
-                        node.kind_config.run_shader.as_ref()?,
-                    ))
-                })
+                ast.root
+                    .children
+                    .iter()
+                    .flat_map(|node| &node.children)
+                    .filter_map(|node| {
+                        Some(transpile_shader(
+                            &ctx,
+                            node,
+                            node.kind_config.run_shader.as_ref()?,
+                        ))
+                    })
             })
             .collect(),
     }
 }
 
 pub(crate) fn transpile_node(ctx: &ScriptContext, node: &Rc<AstNode>) -> String {
-    if let AstNodeInner::Repeated(children) = &node.children {
-        children
+    if node.kind_config.min_repeat == 1 && node.kind_config.max_repeat == 1 {
+        transpile_from_script(ctx, node, &node.kind_config.transpilation)
+    } else {
+        node.children
             .iter()
             .map(|child| transpile_from_script(ctx, child, &child.kind_config.transpilation))
             .join("\n")
-    } else {
-        transpile_from_script(ctx, node, &node.kind_config.transpilation)
     }
 }
 
@@ -92,7 +101,9 @@ fn sorted_buffers(ctx: &ScriptContext) -> Vec<&Rc<AstNode>> {
     let mut graph = DiGraphMap::<&Rc<AstNode>, (), RandomState>::new();
     let buffers = ctx.asts.values().flat_map(|ast| {
         ast.root
-            .children()
+            .children
+            .iter()
+            .flat_map(|node| &node.children)
             .filter(|node| node.kind_config.buffer_init_shader.is_some())
     });
     for item in buffers {
@@ -130,7 +141,7 @@ fn transpile_shader(
 
 fn transpile_from_script(ctx: &ScriptContext, node: &Rc<AstNode>, template: &str) -> String {
     compile_and_run::<String>(template, node, ctx)
-        .expect("internal error: invalid transpilation script")
+        .expect("internal error: invalid transpilation script output")
 }
 
 /// A compiled Shad program.
