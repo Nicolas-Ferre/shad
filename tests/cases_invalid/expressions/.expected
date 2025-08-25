@@ -1,4 +1,22 @@
 error: undefined item
+ --> ./cases_invalid/expressions/custom_operators.shd:2:28
+  |
+2 |     var not_found_binary = true + false;
+  |                            ^^^^^^^^^^^^
+  |                            |
+  |                            `__add__(bool, bool)` function is undefined
+  |
+
+error: undefined item
+ --> ./cases_invalid/expressions/custom_operators.shd:3:27
+  |
+3 |     var not_found_unary = !1.0;
+  |                           ^^^^
+  |                           |
+  |                           `__not__(f32)` function is undefined
+  |
+
+error: undefined item
   --> ./cases_invalid/expressions/fn_call.shd:10:5
    |
 10 |     func(0, 0);

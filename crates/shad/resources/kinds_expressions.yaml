@@ -33,6 +33,8 @@ kinds:
       - f32_expr
       - u32_expr
       - i32_expr
+      - neg_unary_expr
+      - not_unary_expr
     transpilation: 'node.children()[0].wgsl()'
 
   expr_without_binary:
@@ -46,6 +48,8 @@ kinds:
       - f32_expr
       - u32_expr
       - i32_expr
+      - neg_unary_expr
+      - not_unary_expr
     transpilation: 'node.children()[0].wgsl()'
 
   var_ident_expr:
@@ -121,6 +125,30 @@ kinds:
     sequence: [ open_parenthesis, expr, close_parenthesis ]
     sequence_error_after: open_parenthesis
     transpilation: '`(${node.expr.wgsl()})`'
+
+  neg_unary_expr:
+    sequence: [ hyphen, expr ]
+    sequence_error_after: hyphen
+    index_key_source:
+      key: '```__neg__(${node.expr.type()})`` function`'
+      criteria:
+        - kind: fn_item
+          can_be_after: true
+    validation:
+      - *missing_source_check
+    transpilation: '`_${node.source().id()}(${node.expr.wgsl()})`'
+
+  not_unary_expr:
+    sequence: [ excl_mark, expr ]
+    sequence_error_after: excl_mark
+    index_key_source:
+      key: '```__not__(${node.expr.type()})`` function`'
+      criteria:
+        - kind: fn_item
+          can_be_after: true
+    validation:
+      - *missing_source_check
+    transpilation: '`_${node.source().id()}(${node.expr.wgsl()})`'
 
   flat_binary_expr:
     sequence: [ expr_without_binary, binary_right ]

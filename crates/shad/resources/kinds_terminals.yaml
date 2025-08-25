@@ -27,6 +27,7 @@ kinds:
   star: { string: '*' }
   slash: { string: '/' }
   percent: { string: '%' }
+  excl_mark: { string: '!' }
   colon: { string: ':' }
   semicolon: { string: ';' }
   open_parenthesis: { string: '(' }
