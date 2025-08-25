@@ -26,12 +26,21 @@ kinds:
   hyphen: { string: '-' }
   star: { string: '*' }
   slash: { string: '/' }
+  percent: { string: '%' }
   colon: { string: ':' }
   semicolon: { string: ';' }
-  open_bracket: { string: '{' }
-  close_bracket: { string: '}' }
   open_parenthesis: { string: '(' }
   close_parenthesis: { string: ')' }
+  open_bracket: { string: '{' }
+  close_bracket: { string: '}' }
+  open_angle_bracket: { string: '<' }
+  close_angle_bracket: { string: '>' }
+  compare_le: { string: '<=' }
+  compare_ge: { string: '>=' }
+  compare_eq: { string: '==' }
+  compare_ne: { string: '!=' }
+  and: { string: '&&' }
+  or: { string: '||' }
   arrow: { string: '->' }
   import_kw: { string: 'import' }
   buf_kw: { string: 'buf' }

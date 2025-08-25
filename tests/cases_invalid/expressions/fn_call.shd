@@ -1,6 +1,10 @@
 fn func(a: i32, b: u32) {
 }
 
+fn func_call_in_func_call(v: i32) -> i32 {
+    return v;
+}
+
 run {
     func(0, 0u);
     func(0, 0);
@@ -8,4 +12,5 @@ run {
     other_func();
     0.func(0u);
     0.func();
+    func_call_in_func_call(func_call_in_func_call(func_call_in_func_call()));
 }

@@ -188,7 +188,7 @@ pub(crate) struct BinaryTransformationConfig {
     #[validate(min_length = 1)]
     pub(crate) operator: String,
     #[validate(min_items = 1)]
-    pub(crate) operator_priority: Vec<String>,
+    pub(crate) operator_priority: Vec<Vec<String>>,
 }
 
 #[derive(Debug, Clone, Deserialize, Validate)]

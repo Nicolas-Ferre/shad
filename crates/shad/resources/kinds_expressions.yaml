@@ -26,6 +26,7 @@ kinds:
       - flat_binary_expr
       - associated_fn_call_expr
       - fn_call_expr
+      - parenthesis_expr
       - true_expr
       - false_expr
       - var_ident_expr
@@ -38,6 +39,7 @@ kinds:
     choice:
       - associated_fn_call_expr
       - fn_call_expr
+      - parenthesis_expr
       - true_expr
       - false_expr
       - var_ident_expr
@@ -115,6 +117,11 @@ kinds:
     sequence: [ comma ]
     sequence_error_after: comma
 
+  parenthesis_expr:
+    sequence: [ open_parenthesis, expr, close_parenthesis ]
+    sequence_error_after: open_parenthesis
+    transpilation: '`(${node.expr.wgsl()})`'
+
   flat_binary_expr:
     sequence: [ expr_without_binary, binary_right ]
     sequence_error_after: binary_sub_right
@@ -123,8 +130,11 @@ kinds:
       operand: expr_without_binary
       operator: binary_operator
       operator_priority:
-        - '-'
-        - '*'
+        - [ '||' ]
+        - [ '&&' ]
+        - [ '<', '>', '<=', '>=', '==', '!=' ]
+        - [ '+', '-' ]
+        - [ '*', '/',  '%' ]
 
   binary_right:
     min_repeat: 1
@@ -134,16 +144,38 @@ kinds:
 
   binary_operator:
     choice:
+      - plus
       - hyphen
       - star
+      - slash
+      - percent
+      - compare_le
+      - compare_ge
+      - compare_eq
+      - compare_ne
+      - open_angle_bracket
+      - close_angle_bracket
+      - and
+      - or
     transpilation: 'node.children()[0].wgsl()'
 
   binary_expr:
     index_key_source:
       key: |-
         let fn_name = switch node.binary_operator.slice() {
+          "+" => "__add__",
           "-" => "__sub__",
           "*" => "__mul__",
+          "/" => "__div__",
+          "%" => "__mod__",
+          "<" => "__lt__",
+          ">" => "__gt__",
+          "<=" => "__le__",
+          ">=" => "__ge__",
+          "==" => "__eq__",
+          "!=" => "__ne__",
+          "&&" => "__and__",
+          "||" => "__or__",
         };
         ```${fn_name}(${node.children()[0].type()}, ${node.children()[2].type()})`` function`
       criteria:

@@ -46,9 +46,19 @@ impl AstNode {
     }
 
     pub(crate) fn nested_children(&self, child_name: &str) -> Vec<&Rc<Self>> {
+        self.nested_children_except(child_name, None)
+    }
+
+    pub(crate) fn nested_children_except(
+        &self,
+        child_name: &str,
+        stop_child_name: Option<&str>,
+    ) -> Vec<&Rc<Self>> {
         let mut children = vec![];
         self.scan(&mut |scanned| {
-            if scanned.kind_name == child_name {
+            if Some(scanned.kind_name.as_str()) == stop_child_name {
+                return true;
+            } else if scanned.kind_name == child_name {
                 children.push(scanned);
                 return true;
             }

@@ -1,37 +1,46 @@
 error: undefined item
- --> ./cases_invalid/expressions/fn_call.shd:6:5
-  |
-6 |     func(0, 0);
-  |     ^^^^^^^^^^
-  |     |
-  |     `func(i32, i32)` function is undefined
-  |
-
-error: undefined item
- --> ./cases_invalid/expressions/fn_call.shd:7:5
-  |
-7 |     func(0);
-  |     ^^^^^^^
-  |     |
-  |     `func(i32)` function is undefined
-  |
-
-error: undefined item
- --> ./cases_invalid/expressions/fn_call.shd:8:5
-  |
-8 |     other_func();
-  |     ^^^^^^^^^^^^
-  |     |
-  |     `other_func()` function is undefined
-  |
-
-error: undefined item
   --> ./cases_invalid/expressions/fn_call.shd:10:5
    |
-10 |     0.func();
+10 |     func(0, 0);
+   |     ^^^^^^^^^^
+   |     |
+   |     `func(i32, i32)` function is undefined
+   |
+
+error: undefined item
+  --> ./cases_invalid/expressions/fn_call.shd:11:5
+   |
+11 |     func(0);
+   |     ^^^^^^^
+   |     |
+   |     `func(i32)` function is undefined
+   |
+
+error: undefined item
+  --> ./cases_invalid/expressions/fn_call.shd:12:5
+   |
+12 |     other_func();
+   |     ^^^^^^^^^^^^
+   |     |
+   |     `other_func()` function is undefined
+   |
+
+error: undefined item
+  --> ./cases_invalid/expressions/fn_call.shd:14:5
+   |
+14 |     0.func();
    |     ^^^^^^^^
    |     |
    |     `func(i32)` function is undefined
+   |
+
+error: undefined item
+  --> ./cases_invalid/expressions/fn_call.shd:15:51
+   |
+15 |     func_call_in_func_call(func_call_in_func_call(func_call_in_func_call()));
+   |                                                   ^^^^^^^^^^^^^^^^^^^^^^^^
+   |                                                   |
+   |                                                   `func_call_in_func_call()` function is undefined
    |
 
 error: invalid expression type

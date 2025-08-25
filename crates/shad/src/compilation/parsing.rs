@@ -168,7 +168,7 @@ fn parse_sequence(ctx: &mut Context<'_>) -> Result<AstNode, ParsingError> {
                 Rc::new(node)
             });
             if !is_started {
-                local_ctx.start_current_kind(&kind_name);
+                local_ctx.start_kind();
                 is_started = true;
             }
             result
@@ -199,8 +199,8 @@ fn transform_binary_node(ctx: &Context<'_>, node: AstNode) -> AstNode {
     let Some(config) = &node.kind_config.binary_transformation else {
         return node;
     };
-    let operators = node.nested_children(&config.operator);
-    let operands = node.nested_children(&config.operand);
+    let operators = node.nested_children_except(&config.operator, Some(&config.operand));
+    let operands = node.nested_children_except(&config.operand, Some(&config.operator));
     transform_binary_node_inner(ctx, &operators, &operands, config)
 }
 
@@ -252,9 +252,9 @@ fn transform_binary_node_inner(
 }
 
 fn split_index(operators: &[&Rc<AstNode>], config: &BinaryTransformationConfig) -> usize {
-    for checked_operator in &config.operator_priority {
+    for checked_operators in &config.operator_priority {
         for (index, operator) in operators.iter().enumerate().rev() {
-            if &operator.slice == checked_operator {
+            if checked_operators.contains(&operator.slice) {
                 return index;
             }
         }
@@ -458,12 +458,9 @@ impl Context<'_> {
             .is_some_and(|(_, v)| !v)
     }
 
-    fn start_current_kind(&mut self, kind: &str) {
-        for (k, is_started) in self.current_kinds_started.iter_mut().rev() {
-            if k == &kind {
-                *is_started = true;
-                break;
-            }
+    fn start_kind(&mut self) {
+        for (_, is_started) in &mut self.current_kinds_started {
+            *is_started = true;
         }
     }
 }
