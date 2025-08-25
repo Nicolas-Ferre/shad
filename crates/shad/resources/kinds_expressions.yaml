@@ -37,7 +37,7 @@ kinds:
       - not_unary_expr
     transpilation: 'node.children()[0].wgsl()'
 
-  expr_without_binary:
+  simple_expr:
     choice:
       - associated_fn_call_expr
       - fn_call_expr
@@ -88,16 +88,16 @@ kinds:
       source_children: [ fn_return_type ]
 
   associated_fn_call_expr:
-    sequence: [ expr, dot, ident, open_parenthesis, fn_arg_group, close_parenthesis ]
+    sequence: [ simple_expr, dot, ident, open_parenthesis, fn_arg_group, close_parenthesis ]
     sequence_error_after: dot
     index_key_source:
-      key: '```${node.ident.slice()}(${node.nested_children("expr").map(|| this.type()).join(", ")})`` function`'
+      key: '```${node.ident.slice()}(${([node.simple_expr] + node.nested_children("expr")).map(|| this.type()).join(", ")})`` function`'
       criteria:
         - kind: fn_item
           can_be_after: true
     validation:
       - *missing_source_check
-    transpilation: '`_${node.source().id()}(${node.expr.wgsl()}, ${node.fn_arg_group.wgsl()})`'
+    transpilation: '`_${node.source().id()}(${node.simple_expr.wgsl()}, ${node.fn_arg_group.wgsl()})`'
     type_resolution:
       source_children: [ fn_return_type ]
 
@@ -127,35 +127,35 @@ kinds:
     transpilation: '`(${node.expr.wgsl()})`'
 
   neg_unary_expr:
-    sequence: [ hyphen, expr ]
+    sequence: [ hyphen, simple_expr ]
     sequence_error_after: hyphen
     index_key_source:
-      key: '```__neg__(${node.expr.type()})`` function`'
+      key: '```__neg__(${node.simple_expr.type()})`` function`'
       criteria:
         - kind: fn_item
           can_be_after: true
     validation:
       - *missing_source_check
-    transpilation: '`_${node.source().id()}(${node.expr.wgsl()})`'
+    transpilation: '`_${node.source().id()}(${node.simple_expr.wgsl()})`'
 
   not_unary_expr:
-    sequence: [ excl_mark, expr ]
+    sequence: [ excl_mark, simple_expr ]
     sequence_error_after: excl_mark
     index_key_source:
-      key: '```__not__(${node.expr.type()})`` function`'
+      key: '```__not__(${node.simple_expr.type()})`` function`'
       criteria:
         - kind: fn_item
           can_be_after: true
     validation:
       - *missing_source_check
-    transpilation: '`_${node.source().id()}(${node.expr.wgsl()})`'
+    transpilation: '`_${node.source().id()}(${node.simple_expr.wgsl()})`'
 
   flat_binary_expr:
-    sequence: [ expr_without_binary, binary_right ]
+    sequence: [ simple_expr, binary_right ]
     sequence_error_after: binary_sub_right
     binary_transformation:
       new_kind: binary_expr
-      operand: expr_without_binary
+      operand: simple_expr
       operator: binary_operator
       operator_priority:
         - [ '||' ]
@@ -167,7 +167,7 @@ kinds:
   binary_right:
     min_repeat: 1
     max_repeat: *max_u32
-    sequence: [ binary_operator, expr_without_binary ]
+    sequence: [ binary_operator, simple_expr ]
     sequence_error_after: binary_operator
 
   binary_operator:

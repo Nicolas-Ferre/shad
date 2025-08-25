@@ -53,12 +53,12 @@ error: undefined item
    |
 
 error: undefined item
-  --> ./cases_invalid/expressions/fn_call.shd:15:51
+  --> ./cases_invalid/expressions/fn_call.shd:15:17
    |
-15 |     func_call_in_func_call(func_call_in_func_call(func_call_in_func_call()));
-   |                                                   ^^^^^^^^^^^^^^^^^^^^^^^^
-   |                                                   |
-   |                                                   `func_call_in_func_call()` function is undefined
+15 |     func2(func2(func2()));
+   |                 ^^^^^^^
+   |                 |
+   |                 `func2()` function is undefined
    |
 
 error: invalid expression type
