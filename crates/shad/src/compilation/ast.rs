@@ -1,16 +1,15 @@
-use crate::compilation::{FileAst, FILE_EXT};
-use crate::config::KindConfig;
+use crate::compilation::FILE_EXT;
+use crate::config::scripts::ScriptContext;
+use crate::config::{scripts, KindConfig};
 use derive_where::derive_where;
 use itertools::Itertools;
-use std::borrow::Cow;
 use std::collections::{HashMap, HashSet};
-use std::fmt::{Debug, Formatter};
 use std::ops::Range;
 use std::path::{Path, PathBuf};
 use std::rc::Rc;
 use std::{iter, mem};
 
-// #[derive(Debug)] // TODO: restore
+#[derive(Debug)]
 #[derive_where(PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub(crate) struct AstNode {
     pub id: u32,
@@ -25,24 +24,14 @@ pub(crate) struct AstNode {
     #[derive_where(skip)]
     pub slice: String,
     #[derive_where(skip)]
-    pub offset: usize,
+    pub span: Range<usize>,
     #[derive_where(skip)]
     pub path: PathBuf,
 }
 
-impl Debug for AstNode {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("AstNode")
-            .field("kind_name", &self.kind_name)
-            .field("slice", &self.slice)
-            .field("children", &self.children)
-            .finish_non_exhaustive()
-    }
-}
-
 impl AstNode {
     pub(crate) fn span(&self) -> Range<usize> {
-        self.offset..self.offset + self.slice.len()
+        self.span.clone()
     }
 
     pub(crate) fn child(&self, child_name: &str) -> &Rc<Self> {
@@ -56,18 +45,35 @@ impl AstNode {
             .find(|child| child.kind_name == child_name)
     }
 
-    #[allow(clippy::needless_lifetimes)]
-    pub(crate) fn scan<'a>(self: &'a Rc<Self>, f: &mut impl FnMut(&'a Rc<Self>) -> bool) {
+    pub(crate) fn nested_children(&self, child_name: &str) -> Vec<&Rc<Self>> {
+        let mut children = vec![];
+        self.scan(&mut |scanned| {
+            if scanned.kind_name == child_name {
+                children.push(scanned);
+                return true;
+            }
+            false
+        });
+        children
+    }
+
+    pub(crate) fn scan<'a>(&'a self, f: &mut impl FnMut(&'a Rc<Self>) -> bool) {
+        for child in &self.children {
+            child.scan_inner(f);
+        }
+    }
+
+    fn scan_inner<'a>(self: &'a Rc<Self>, f: &mut impl FnMut(&'a Rc<Self>) -> bool) {
         if f(self) {
             return;
         }
         for child in &self.children {
-            child.scan(f);
+            child.scan_inner(f);
         }
     }
 
-    pub(crate) fn type_(self: &Rc<Self>, asts: &HashMap<PathBuf, FileAst>) -> Option<String> {
-        self.type_inner(asts, 0)
+    pub(crate) fn type_(self: &Rc<Self>, ctx: &ScriptContext) -> Option<String> {
+        self.type_inner(ctx, 0)
     }
 
     pub(crate) fn key(self: &Rc<Self>) -> String {
@@ -102,57 +108,22 @@ impl AstNode {
             .join("")
     }
 
-    pub(crate) fn source_key(self: &Rc<Self>, asts: &HashMap<PathBuf, FileAst>) -> Option<String> {
-        let source_config = self.kind_config.index_key_source.as_ref()?;
-        Some(
-            source_config
-                .key
-                .iter()
-                .map(|key_part| {
-                    if key_part.slice {
-                        Cow::from(&self.slice)
-                    } else if let Some(string) = &key_part.string {
-                        Cow::from(string)
-                    } else if let Some(child_kind) = &key_part.slice_child {
-                        Cow::from(&self.child(child_kind).slice)
-                    } else if let Some(child_kind) = &key_part.type_nested_child {
-                        let mut key_parts = vec![];
-                        self.scan(&mut |scanned| {
-                            if &scanned.kind_name == child_kind {
-                                key_parts.push(
-                                    scanned.type_(asts).unwrap_or_else(|| "<unknown>".into()),
-                                );
-                                true
-                            } else {
-                                false
-                            }
-                        });
-                        Cow::from(key_parts.join(
-                            key_part.separator.as_ref().expect(
-                                "internal error: missing separator for `type_nested_child`",
-                            ),
-                        ))
-                    } else {
-                        unreachable!("index key source config should be valid");
-                    }
-                })
-                .join(""),
-        )
+    pub(crate) fn source_key(self: &Rc<Self>, ctx: &ScriptContext) -> Option<String> {
+        let script = &self.kind_config.index_key_source.as_ref()?.key;
+        scripts::compile_and_run(script, self, ctx)
     }
 
-    pub(crate) fn source<'a>(
-        self: &Rc<Self>,
-        asts: &'a HashMap<PathBuf, FileAst>,
-    ) -> Option<&'a Rc<Self>> {
-        let key = self.source_key(asts)?;
+    pub(crate) fn source<'a>(self: &Rc<Self>, ctx: &'a ScriptContext) -> Option<&'a Rc<Self>> {
+        let key = self.source_key(ctx)?;
         for criteria in &self.kind_config.index_key_source.as_ref()?.criteria {
             let parent_id = self.parent_ids.last().copied().unwrap_or(0);
-            let found_source = asts[&self.path]
+            let found_source = ctx.asts[&self.path]
                 .index
                 .indexed_lookup_paths
                 .iter()
                 .filter_map(|current_path| {
-                    asts.get(current_path)?
+                    ctx.asts
+                        .get(current_path)?
                         .index
                         .indexed_nodes
                         .get(&key)
@@ -185,7 +156,7 @@ impl AstNode {
 
     pub(crate) fn nested_sources<'a>(
         self: &'a Rc<Self>,
-        asts: &'a HashMap<PathBuf, FileAst>,
+        ctx: &'a ScriptContext,
     ) -> Vec<&'a Rc<Self>> {
         let mut sources = vec![];
         let mut registered_source_ids = HashSet::new();
@@ -196,7 +167,7 @@ impl AstNode {
                     continue;
                 }
                 registered_source_ids.insert(node.id);
-                for source in node.direct_nested_sources(asts) {
+                for source in node.direct_nested_sources(ctx) {
                     sources.push(source);
                     sources_to_process.insert(source.id, source);
                 }
@@ -254,23 +225,18 @@ impl AstNode {
         )
     }
 
-    fn direct_nested_sources<'a>(
-        self: &Rc<Self>,
-        asts: &'a HashMap<PathBuf, FileAst>,
-    ) -> Vec<&'a Rc<Self>> {
+    fn direct_nested_sources<'a>(self: &Rc<Self>, ctx: &'a ScriptContext) -> Vec<&'a Rc<Self>> {
         let mut sources = vec![];
         self.scan(&mut |scanned| {
-            if let Some(source) = scanned.source(asts) {
+            if let Some(source) = scanned.source(ctx) {
                 sources.push(source);
-                true
-            } else {
-                false
             }
+            false
         });
         sources
     }
 
-    fn type_inner(self: &Rc<Self>, asts: &HashMap<PathBuf, FileAst>, depth: u32) -> Option<String> {
+    fn type_inner(self: &Rc<Self>, ctx: &ScriptContext, depth: u32) -> Option<String> {
         if depth > 1000 {
             // prevent stack overflow in case of circular dependency
             return None;
@@ -280,7 +246,7 @@ impl AstNode {
         } else if let Some(child_kind) = &self.kind_config.type_resolution.child_slice {
             Some(self.child(child_kind).slice.clone())
         } else if !self.kind_config.type_resolution.source_children.is_empty() {
-            if let Some(source_source) = self.source(asts) {
+            if let Some(source_source) = self.source(ctx) {
                 self.kind_config
                     .type_resolution
                     .source_children
@@ -288,7 +254,7 @@ impl AstNode {
                     .find_map(|source_child| {
                         source_source
                             .child_option(source_child)?
-                            .type_inner(asts, depth + 1)
+                            .type_inner(ctx, depth + 1)
                     })
             } else {
                 None
@@ -296,7 +262,7 @@ impl AstNode {
         } else {
             self.children
                 .iter()
-                .find_map(|child| child.type_inner(asts, depth + 1))
+                .find_map(|child| child.type_inner(ctx, depth + 1))
         };
         type_.or_else(|| self.kind_config.type_resolution.default_name.clone())
     }

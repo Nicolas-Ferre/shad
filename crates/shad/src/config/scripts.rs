@@ -116,7 +116,7 @@ impl ScriptContext {
         engine.register_fn("kind", |node: &mut Rc<AstNode>| node.kind_name.clone());
         let ctx_clone = self.clone();
         engine.register_fn("type", move |node: &mut Rc<AstNode>| {
-            unwrap_or_stop(node.type_(&ctx_clone.asts))
+            unwrap_or_stop(node.type_(&ctx_clone))
         });
         engine.register_fn("children", |node: &mut Rc<AstNode>| {
             node.children
@@ -126,30 +126,26 @@ impl ScriptContext {
                 .collect::<Vec<_>>()
         });
         engine.register_fn("nested_children", |node: &mut Rc<AstNode>, kind: &str| {
-            let mut children: Vec<Dynamic> = vec![];
-            node.scan(&mut |scanned| {
-                if scanned.kind_name == kind {
-                    children.push(Dynamic::from(scanned.clone()));
-                    return true;
-                }
-                false
-            });
-            children
+            node.nested_children(kind)
+                .into_iter()
+                .cloned()
+                .map(Dynamic::from)
+                .collect::<Vec<_>>()
         });
         engine.register_fn("key", |node: &mut Rc<AstNode>| node.key());
         let ctx_clone = self.clone();
         engine.register_fn("source", move |node: &mut Rc<AstNode>| {
-            node.source(&ctx_clone.asts)
+            node.source(&ctx_clone)
                 .expect("internal error: source not found")
                 .clone()
         });
         let ctx_clone = self.clone();
         engine.register_fn("has_source", move |node: &mut Rc<AstNode>| {
-            node.source(&ctx_clone.asts).is_some()
+            node.source(&ctx_clone).is_some()
         });
         let ctx_clone = self.clone();
         engine.register_fn("source_key", move |node: &mut Rc<AstNode>| {
-            unwrap_or_stop(node.source_key(&ctx_clone.asts))
+            unwrap_or_stop(node.source_key(&ctx_clone))
         });
         let ctx_clone = self.clone();
         engine.register_fn("import_path", move |node: &mut Rc<AstNode>| {
@@ -157,7 +153,7 @@ impl ScriptContext {
         });
         let ctx_clone = self.clone();
         engine.register_fn("nested_sources", move |node: &mut Rc<AstNode>| {
-            node.nested_sources(&ctx_clone.asts)
+            node.nested_sources(&ctx_clone)
                 .into_iter()
                 .cloned()
                 .map(Dynamic::from)

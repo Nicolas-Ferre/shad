@@ -23,7 +23,6 @@ kinds:
   import_item:
     sequence: [ import_kw, import_path_prefix, ident, semicolon ]
     sequence_error_after: import_kw
-    # TODO: convert to Rhai
     index_key:
       - string: *import_index_key
     import_path:

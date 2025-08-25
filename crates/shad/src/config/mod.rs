@@ -123,6 +123,9 @@ pub(crate) struct KindConfig {
     pub(crate) index_key_source: Option<IndexKeySourceConfig>,
     #[serde(default)]
     #[validate]
+    pub(crate) binary_transformation: Option<BinaryTransformationConfig>,
+    #[serde(default)]
+    #[validate]
     pub(crate) validation: Vec<ValidationConfig>,
     #[serde(default)]
     #[validate]
@@ -177,28 +180,25 @@ pub(crate) struct IndexKeyConfig {
 
 #[derive(Debug, Clone, Deserialize, Validate)]
 #[serde(deny_unknown_fields)]
-pub(crate) struct IndexKeySourceConfig {
+pub(crate) struct BinaryTransformationConfig {
+    #[validate(min_length = 1)]
+    pub(crate) new_kind: String,
+    #[validate(min_length = 1)]
+    pub(crate) operand: String,
+    #[validate(min_length = 1)]
+    pub(crate) operator: String,
     #[validate(min_items = 1)]
-    #[validate]
-    pub(crate) key: Vec<IndexKeyPartConfig>,
-    #[validate(min_items = 1)]
-    #[validate]
-    pub(crate) criteria: Vec<IndexKeySourceCriteriaConfig>,
+    pub(crate) operator_priority: Vec<String>,
 }
 
 #[derive(Debug, Clone, Deserialize, Validate)]
 #[serde(deny_unknown_fields)]
-pub(crate) struct IndexKeyPartConfig {
-    #[validate(min_length = 1)]
-    pub(crate) string: Option<String>,
-    #[serde(default)]
-    pub(crate) slice: bool,
-    #[validate(min_length = 1)]
-    pub(crate) slice_child: Option<String>,
-    #[validate(min_length = 1)]
-    pub(crate) type_nested_child: Option<String>,
-    #[validate(min_length = 1)]
-    pub(crate) separator: Option<String>,
+pub(crate) struct IndexKeySourceConfig {
+    #[validate(custom(validate_script))]
+    pub(crate) key: String,
+    #[validate(min_items = 1)]
+    #[validate]
+    pub(crate) criteria: Vec<IndexKeySourceCriteriaConfig>,
 }
 
 #[derive(Debug, Clone, Deserialize, Validate)]

@@ -45,8 +45,6 @@ pub fn compile(folder: impl SourceFolder) -> Result<Program, Error> {
     let asts = Rc::new(asts);
     validate_asts(&config, &asts, &root_path)?;
     let program = transpile_asts(&config, &asts, &root_path);
-    dbg!(program);
-    std::process::exit(0);
     Ok(program)
 }
 

@@ -1,37 +1,13 @@
 max_u32: &max_u32 4294967295
 
 missing_source_check: &missing_source_check
-  assertion: 'node.has_source()'
+  assertion: |-
+    node.source_key(); // to ensure the source key can be computed 
+    node.has_source()
   error:
     node: 'node'
     title: '"undefined item"'
     label: '`${node.source_key()} is undefined`'
-
-binary_expr_transpilation: &binary_expr_transpilation |-
-  fn operands(operator, fn_arg) {
-    let expr = fn_arg.expr.children()[0];
-    let binary_right_arg = expr.children().get(2);
-    if binary_right_arg != () && binary_right_arg.kind() == "binary_right_arg" && expr.children()[1].slice() == operator {
-      [expr.fn_arg] + operands(operator, binary_right_arg.fn_arg)
-    } else {
-      return [fn_arg]
-    }
-  }
-  fn transpile(operator_fn_name, operands) {
-    if operands.len() == 2 {
-      `${operator_fn_name}(${operands[0].wgsl()}, ${operands[1].wgsl()})`
-    } else {
-      let last_operand = operands.pop();
-      `${operator_fn_name}(${transpile(operator_fn_name, operands)}, ${last_operand.wgsl()})`
-    }
-  }
-  let operator = node.children()[1].slice();
-  let operator_fn_name = switch operator {
-    "-" => "__sub__",
-    "*" => "__mul__",
-  };
-  transpile(operator_fn_name, [node.fn_arg] + operands(operator, node.binary_right_arg.fn_arg))
-
 
 kinds:
   typed_expr:
@@ -47,8 +23,19 @@ kinds:
 
   expr:
     choice:
-      - binary_sub_expr
-      - binary_mul_expr
+      - flat_binary_expr
+      - associated_fn_call_expr
+      - fn_call_expr
+      - true_expr
+      - false_expr
+      - var_ident_expr
+      - f32_expr
+      - u32_expr
+      - i32_expr
+    transpilation: 'node.children()[0].wgsl()'
+
+  expr_without_binary:
+    choice:
       - associated_fn_call_expr
       - fn_call_expr
       - true_expr
@@ -63,10 +50,7 @@ kinds:
     sequence: [ ident ]
     sequence_error_after: ident
     index_key_source:
-      key:
-        - string: '`'
-        - slice: true
-        - string: '` variable'
+      key: '```${node.slice()}`` variable`'
       criteria:
         - kind: local_var_def_stmt
           can_be_after: false
@@ -87,13 +71,7 @@ kinds:
     sequence: [ ident, open_parenthesis, fn_arg_group, close_parenthesis ]
     sequence_error_after: open_parenthesis
     index_key_source:
-      key:
-        - string: '`'
-        - slice_child: ident
-        - string: '('
-        - type_nested_child: fn_arg
-          separator: ', '
-        - string: ')` function'
+      key: '```${node.ident.slice()}(${node.nested_children("expr").map(|| this.type()).join(", ")})`` function`'
       criteria:
         - kind: fn_item
           can_be_after: true
@@ -104,44 +82,32 @@ kinds:
       source_children: [ fn_return_type ]
 
   associated_fn_call_expr:
-    sequence: [ fn_arg, dot, ident, open_parenthesis, fn_arg_group, close_parenthesis ]
+    sequence: [ expr, dot, ident, open_parenthesis, fn_arg_group, close_parenthesis ]
     sequence_error_after: dot
     index_key_source:
-      # TODO: convert to Rhai?
-      key:
-        - string: '`'
-        - slice_child: ident
-        - string: '('
-        - type_nested_child: fn_arg
-          separator: ', '
-        - string: ')` function'
+      key: '```${node.ident.slice()}(${node.nested_children("expr").map(|| this.type()).join(", ")})`` function`'
       criteria:
         - kind: fn_item
           can_be_after: true
     validation:
       - *missing_source_check
-    transpilation: '`_${node.source().id()}(${node.fn_arg.wgsl()}, ${node.fn_arg_group.wgsl()})`'
+    transpilation: '`_${node.source().id()}(${node.expr.wgsl()}, ${node.fn_arg_group.wgsl()})`'
     type_resolution:
       source_children: [ fn_return_type ]
 
   fn_arg_group:
     min_repeat: 0
     max_repeat: 1
-    sequence: [ fn_arg, fn_other_args, fn_args_final_comma ]
-    sequence_error_after: fn_arg
-    transpilation: 'node.fn_arg.wgsl() + node.fn_other_args.wgsl()'
-
-  fn_arg:
-    sequence: [ expr ]
+    sequence: [ expr, fn_other_args, fn_args_final_comma ]
     sequence_error_after: expr
-    transpilation: 'node.expr.wgsl()'
+    transpilation: 'node.expr.wgsl() + node.fn_other_args.wgsl()'
 
   fn_other_args:
     min_repeat: 0
     max_repeat: *max_u32
-    sequence: [ comma, fn_arg ]
-    sequence_error_after: fn_arg
-    transpilation: '", " + node.fn_arg.wgsl()'
+    sequence: [ comma, expr ]
+    sequence_error_after: expr
+    transpilation: '", " + node.expr.wgsl()'
 
   fn_args_final_comma:
     min_repeat: 0
@@ -149,19 +115,46 @@ kinds:
     sequence: [ comma ]
     sequence_error_after: comma
 
-  binary_sub_expr:
-    sequence: [ fn_arg, hyphen, binary_right_arg ]
-    sequence_error_after: hyphen
-    transpilation: *binary_expr_transpilation
+  flat_binary_expr:
+    sequence: [ expr_without_binary, binary_right ]
+    sequence_error_after: binary_sub_right
+    binary_transformation:
+      new_kind: binary_expr
+      operand: expr_without_binary
+      operator: binary_operator
+      operator_priority:
+        - '-'
+        - '*'
 
-  binary_mul_expr:
-    sequence: [ fn_arg, star, binary_right_arg ]
-    sequence_error_after: star
-    transpilation: *binary_expr_transpilation
+  binary_right:
+    min_repeat: 1
+    max_repeat: *max_u32
+    sequence: [ binary_operator, expr_without_binary ]
+    sequence_error_after: binary_operator
 
-  binary_right_arg:
-    sequence: [ fn_arg ]
-    sequence_error_after: fn_arg
+  binary_operator:
+    choice:
+      - hyphen
+      - star
+    transpilation: 'node.children()[0].wgsl()'
+
+  binary_expr:
+    index_key_source:
+      key: |-
+        let fn_name = switch node.binary_operator.slice() {
+          "-" => "__sub__",
+          "*" => "__mul__",
+        };
+        ```${fn_name}(${node.children()[0].type()}, ${node.children()[2].type()})`` function`
+      criteria:
+        - kind: fn_item
+          can_be_after: true
+    validation:
+      - *missing_source_check
+    transpilation: '`_${node.source().id()}(${node.children()[0].wgsl()}, ${node.children()[2].wgsl()})`'
+    type_resolution:
+      source_children: [ fn_return_type ]
+
 
   f32_expr:
     pattern_parts:

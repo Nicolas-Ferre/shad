@@ -33,7 +33,7 @@ pub(crate) fn transpile_asts(
                     Buffer {
                         size_bytes: 4,
                         type_name: node
-                            .type_(asts)
+                            .type_(&ctx)
                             .expect("internal error: missing buffer type"),
                     },
                 )
@@ -108,7 +108,7 @@ fn sorted_buffers(ctx: &ScriptContext) -> Vec<&Rc<AstNode>> {
     });
     for item in buffers {
         graph.add_node(item);
-        for source in item.nested_sources(&ctx.asts) {
+        for source in item.nested_sources(ctx) {
             graph.add_edge(source, item, ());
         }
     }
@@ -124,7 +124,7 @@ fn transpile_shader(
     Shader {
         code: transpile_from_script(ctx, node, &shader_config.transpilation),
         buffers: node
-            .nested_sources(&ctx.asts)
+            .nested_sources(ctx)
             .into_iter()
             .map(Deref::deref)
             .chain([&**node])

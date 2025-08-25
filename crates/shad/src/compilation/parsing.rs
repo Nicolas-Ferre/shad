@@ -2,7 +2,7 @@
 
 use crate::compilation::ast::AstNode;
 use crate::compilation::error::ParsingError;
-use crate::config::{Config, KindConfig, PatternPartConfig};
+use crate::config::{BinaryTransformationConfig, Config, KindConfig, PatternPartConfig};
 use crate::Error;
 use itertools::Itertools;
 use std::collections::HashMap;
@@ -112,14 +112,15 @@ fn parse_repeated_node(ctx: &mut Context<'_>) -> Result<AstNode, ParsingError> {
         }
     }
     ctx.parent_ids.pop();
+    let slice = &ctx.code[start..ctx.offset];
     Ok(AstNode {
         id,
         parent_ids: ctx.parent_ids.clone(),
         children,
         kind_name,
         kind_config,
-        slice: ctx.code[start..ctx.offset].into(),
-        offset: start,
+        slice: slice.into(),
+        span: start..start + slice.len(),
         path: ctx.path.into(),
     })
 }
@@ -180,16 +181,85 @@ fn parse_sequence(ctx: &mut Context<'_>) -> Result<AstNode, ParsingError> {
     local_ctx.current_kinds_started.pop();
     *ctx = local_ctx;
     ctx.parent_ids.pop();
-    Ok(AstNode {
+    let slice = &ctx.code[start..ctx.offset];
+    let node = AstNode {
         id,
         parent_ids: ctx.parent_ids.clone(),
         children,
         kind_name,
         kind_config,
-        slice: ctx.code[start..ctx.offset].into(),
-        offset: start,
+        slice: slice.into(),
+        span: start..start + slice.len(),
         path: ctx.path.into(),
-    })
+    };
+    Ok(transform_binary_node(ctx, node))
+}
+
+fn transform_binary_node(ctx: &Context<'_>, node: AstNode) -> AstNode {
+    let Some(config) = &node.kind_config.binary_transformation else {
+        return node;
+    };
+    let operators = node.nested_children(&config.operator);
+    let operands = node.nested_children(&config.operand);
+    transform_binary_node_inner(ctx, &operators, &operands, config)
+}
+
+fn transform_binary_node_inner(
+    ctx: &Context<'_>,
+    operators: &[&Rc<AstNode>],
+    operands: &[&Rc<AstNode>],
+    config: &BinaryTransformationConfig,
+) -> AstNode {
+    let split_index = split_index(operators, config);
+    let operator = operators[split_index];
+    let left_operators = &operators[..split_index];
+    let right_operators = &operators[split_index + 1..];
+    let left_operands = &operands[..=split_index];
+    let right_operands = &operands[split_index + 1..];
+    let left_node = if left_operators.is_empty() {
+        operands[0].clone()
+    } else {
+        Rc::new(transform_binary_node_inner(
+            ctx,
+            left_operators,
+            left_operands,
+            config,
+        ))
+    };
+    let right_node = if right_operators.is_empty() {
+        right_operands[0].clone()
+    } else {
+        Rc::new(transform_binary_node_inner(
+            ctx,
+            right_operators,
+            right_operands,
+            config,
+        ))
+    };
+    AstNode {
+        id: operator.id,
+        parent_ids: operator.parent_ids.clone(),
+        kind_name: config.new_kind.clone(),
+        kind_config: ctx.config.kinds[&config.new_kind].clone(),
+        slice: format!(
+            "{} {} {}",
+            left_node.slice, operator.slice, right_node.slice
+        ),
+        span: left_node.span.start..right_node.span.end,
+        children: vec![left_node, operator.clone(), right_node],
+        path: operator.path.clone(),
+    }
+}
+
+fn split_index(operators: &[&Rc<AstNode>], config: &BinaryTransformationConfig) -> usize {
+    for checked_operator in &config.operator_priority {
+        for (index, operator) in operators.iter().enumerate().rev() {
+            if &operator.slice == checked_operator {
+                return index;
+            }
+        }
+    }
+    unreachable!("internal error: no operator found in binary node")
 }
 
 fn parse_choice(ctx: &mut Context<'_>) -> Result<AstNode, ParsingError> {
@@ -218,7 +288,7 @@ fn parse_choice(ctx: &mut Context<'_>) -> Result<AstNode, ParsingError> {
                     kind_name,
                     kind_config,
                     slice: node.slice.clone(),
-                    offset: node.offset,
+                    span: node.span.clone(),
                     path: node.path.clone(),
                     children: vec![Rc::new(node)],
                 });
@@ -293,14 +363,15 @@ fn parse_slice(ctx: &mut Context<'_>, length: usize) -> Option<AstNode> {
     let mut local_ctx = ctx.clone();
     let start = local_ctx.offset;
     local_ctx.offset += length;
+    let slice = &local_ctx.code[start..local_ctx.offset];
     let node = AstNode {
         id: local_ctx.next_node_id(),
         parent_ids: ctx.parent_ids.clone(),
         children: vec![],
         kind_name: local_ctx.kind_name.into(),
         kind_config: local_ctx.kind_config.clone(),
-        slice: local_ctx.code[start..local_ctx.offset].into(),
-        offset: start,
+        slice: slice.into(),
+        span: start..start + slice.len(),
         path: ctx.path.into(),
     };
     if is_next_char_valid(&local_ctx) {
