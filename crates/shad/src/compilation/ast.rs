@@ -29,6 +29,7 @@ pub(crate) struct AstNode {
     pub path: PathBuf,
 }
 
+// coverage: off (no need to test)
 impl Debug for AstNode {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("AstNode")
@@ -38,6 +39,7 @@ impl Debug for AstNode {
             .finish_non_exhaustive()
     }
 }
+// coverage: on
 
 impl AstNode {
     pub(crate) fn span(&self) -> Range<usize> {

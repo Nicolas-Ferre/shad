@@ -48,7 +48,6 @@ fn parse_file(
         offset: 0,
         next_node_id: first_node_id,
         parent_ids: vec![],
-        current_kinds_started: vec![],
     };
     let parsed = parse_node(&mut ctx).map_err(|mut err| {
         err.code = raw_code.into();
@@ -144,12 +143,10 @@ fn parse_sequence(ctx: &mut Context<'_>) -> Result<AstNode, ParsingError> {
     let id = ctx.next_node_id();
     ctx.parent_ids.push(id);
     let mut local_ctx = ctx.clone();
-    local_ctx.current_kinds_started.push((ctx.kind_name, false));
     let start = local_ctx.offset;
     let kind_name = local_ctx.kind_name.to_string();
     let kind_config = local_ctx.kind_config.clone();
     let mut forced_error = false;
-    let mut is_started = false;
     let children = local_ctx
         .kind_config
         .sequence
@@ -157,7 +154,7 @@ fn parse_sequence(ctx: &mut Context<'_>) -> Result<AstNode, ParsingError> {
         .map(|child_kind_name| {
             local_ctx.kind_name = child_kind_name;
             local_ctx.kind_config = &local_ctx.config.kinds[child_kind_name];
-            let result = parse_node(&mut local_ctx).map(|node| {
+            parse_node(&mut local_ctx).map(|node| {
                 let sequence_error_after = kind_config
                     .sequence_error_after
                     .as_deref()
@@ -166,19 +163,13 @@ fn parse_sequence(ctx: &mut Context<'_>) -> Result<AstNode, ParsingError> {
                     forced_error = true;
                 }
                 Rc::new(node)
-            });
-            if !is_started {
-                local_ctx.start_kind();
-                is_started = true;
-            }
-            result
+            })
         })
         .collect::<Result<Vec<_>, _>>()
         .map_err(|mut err| {
             err.forced |= forced_error;
             err
         })?;
-    local_ctx.current_kinds_started.pop();
     *ctx = local_ctx;
     ctx.parent_ids.pop();
     let slice = &ctx.code[start..ctx.offset];
@@ -299,9 +290,6 @@ fn split_index(operators: &[&Rc<AstNode>], config: &BinaryTransformationConfig) 
 fn parse_choice(ctx: &mut Context<'_>) -> Result<AstNode, ParsingError> {
     let mut errors = vec![];
     for child_kind_name in &ctx.kind_config.choice {
-        if ctx.is_current_kind_not_started(child_kind_name) {
-            continue;
-        }
         let mut local_ctx = ctx.clone();
         let id = local_ctx.next_node_id();
         let kind_name = local_ctx.kind_name.to_string();
@@ -476,8 +464,6 @@ struct Context<'a> {
     offset: usize,
     next_node_id: u32,
     parent_ids: Vec<u32>,
-    // used to avoid recursive kinds (for example, with associated function calls)
-    current_kinds_started: Vec<(&'a str, bool)>,
 }
 
 impl Context<'_> {
@@ -490,19 +476,5 @@ impl Context<'_> {
         let index = self.next_node_id;
         self.next_node_id += 1;
         index
-    }
-
-    fn is_current_kind_not_started(&self, kind: &str) -> bool {
-        self.current_kinds_started
-            .iter()
-            .rev()
-            .find(|(k, _)| k == &kind)
-            .is_some_and(|(_, v)| !v)
-    }
-
-    fn start_kind(&mut self) {
-        for (_, is_started) in &mut self.current_kinds_started {
-            *is_started = true;
-        }
     }
 }
