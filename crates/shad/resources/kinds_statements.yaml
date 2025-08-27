@@ -7,8 +7,7 @@ kinds:
     choice:
       - local_var_def_stmt
       - assignment_stmt
-      - fn_call_stmt
-      - associated_fn_call_stmt
+      - expr_stmt
       - return_stmt
     transpilation: 'node.children()[0].wgsl()'
 
@@ -38,15 +37,18 @@ kinds:
               title: '`expected type is ``${node.var_ident_expr.type()}```'
     transpilation: '`${node.var_ident_expr.wgsl()} = ${node.typed_expr.wgsl()};`'
 
-  fn_call_stmt:
-    sequence: [ fn_call_expr, semicolon ]
-    sequence_error_after: fn_call_expr
-    transpilation: '`${node.fn_call_expr.wgsl()};`'
-
-  associated_fn_call_stmt:
-    sequence: [ associated_fn_call_expr, semicolon ]
-    sequence_error_after: associated_fn_call_expr
-    transpilation: '`${node.associated_fn_call_expr.wgsl()};`'
+  expr_stmt:
+    sequence: [ binary_operand, semicolon ]
+    sequence_error_after: binary_operand
+    validation:
+      - assertion: |-
+          node.children()[0].kind() == "transformed_binary_operand"
+          || node.binary_operand.simple_expr.children()[0].kind() == "fn_call_expr"
+        error:
+          node: 'node'
+          title: '"invalid statement"'
+          label: '"this expression requires to be assigned"'
+    transpilation: '`${node.children()[0].wgsl()};`'
 
   return_stmt:
     sequence: [ return_kw, typed_expr, semicolon ]

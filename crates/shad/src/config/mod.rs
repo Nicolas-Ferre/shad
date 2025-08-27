@@ -126,6 +126,9 @@ pub(crate) struct KindConfig {
     pub(crate) binary_transformation: Option<BinaryTransformationConfig>,
     #[serde(default)]
     #[validate]
+    pub(crate) repeated_suffix_transformation: Option<RepeatedSuffixTransformationConfig>,
+    #[serde(default)]
+    #[validate]
     pub(crate) validation: Vec<ValidationConfig>,
     #[serde(default)]
     #[validate]
@@ -184,11 +187,24 @@ pub(crate) struct BinaryTransformationConfig {
     #[validate(min_length = 1)]
     pub(crate) new_kind: String,
     #[validate(min_length = 1)]
-    pub(crate) operand: String,
+    pub(crate) operand: Vec<String>,
     #[validate(min_length = 1)]
-    pub(crate) operator: String,
+    pub(crate) operator: Vec<String>,
     #[validate(min_items = 1)]
     pub(crate) operator_priority: Vec<Vec<String>>,
+}
+
+#[derive(Debug, Clone, Deserialize, Validate)]
+#[serde(deny_unknown_fields)]
+pub(crate) struct RepeatedSuffixTransformationConfig {
+    #[validate(min_length = 1)]
+    pub(crate) new_kind: String,
+    #[validate(min_length = 1)]
+    pub(crate) new_child_kind: String,
+    #[validate(min_length = 1)]
+    pub(crate) prefix: String,
+    #[validate(min_length = 1)]
+    pub(crate) suffix: String,
 }
 
 #[derive(Debug, Clone, Deserialize, Validate)]

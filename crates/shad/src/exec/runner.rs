@@ -218,7 +218,7 @@ impl Runner {
                 );
             }
             TargetSpecialized::Texture(_) => {
-                unreachable!("internal error: refreshing non-window target surface")
+                unreachable!("refreshing non-window target surface")
             }
         }
     }
@@ -238,7 +238,7 @@ impl Runner {
                 );
             }
             TargetSpecialized::Texture(_) => {
-                unreachable!("internal error: updating non-window target surface")
+                unreachable!("updating non-window target surface")
             }
         }
     }

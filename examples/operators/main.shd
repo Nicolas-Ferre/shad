@@ -1,9 +1,12 @@
+buf val = 20;
+buf operator = 200 + 5 - 7 * 9 / (10 % 11 < 11 > 12 <= 13) >= 14 == 15 != 16 && 17 || 18 && !19 || -val;
+
 fn __add__(left: i32, right: i32) -> i32 {
-    return left;
+    return 0;
 }
 
 fn __sub__(left: i32, right: i32) -> i32 {
-    return left;
+    return 1;
 }
 
 fn __mul__(left: i32, right: i32) -> i32 {
@@ -56,14 +59,4 @@ fn __neg__(value: i32) -> i32 {
 
 fn __not__(value: i32) -> i32 {
     return 20;
-}
-
-// TODO: fix this:
-// run {
-//     0.func2().func2().func2().func2(1);
-// }
-
-// TODO: optimize inefficient (simple_)expr parsing
-run {
-    var operator = ---------------2;
 }

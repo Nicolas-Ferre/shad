@@ -4,12 +4,12 @@ use crate::config::{scripts, KindConfig};
 use derive_where::derive_where;
 use itertools::Itertools;
 use std::collections::{HashMap, HashSet};
+use std::fmt::Debug;
 use std::ops::Range;
 use std::path::{Path, PathBuf};
 use std::rc::Rc;
 use std::{iter, mem};
 
-#[derive(Debug)]
 #[derive_where(PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub(crate) struct AstNode {
     pub id: u32,
@@ -29,6 +29,16 @@ pub(crate) struct AstNode {
     pub path: PathBuf,
 }
 
+impl Debug for AstNode {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("AstNode")
+            .field("kind_name", &self.kind_name)
+            .field("slice", &self.slice)
+            .field("children", &self.children)
+            .finish_non_exhaustive()
+    }
+}
+
 impl AstNode {
     pub(crate) fn span(&self) -> Range<usize> {
         self.span.clone()
@@ -46,19 +56,27 @@ impl AstNode {
     }
 
     pub(crate) fn nested_children(&self, child_name: &str) -> Vec<&Rc<Self>> {
-        self.nested_children_except(child_name, None)
+        let mut children = vec![];
+        self.scan(&mut |scanned| {
+            if child_name.contains(&scanned.kind_name) {
+                children.push(scanned);
+                return true;
+            }
+            false
+        });
+        children
     }
 
     pub(crate) fn nested_children_except(
         &self,
-        child_name: &str,
-        stop_child_name: Option<&str>,
+        child_names: &[String],
+        stop_child_names: Option<&[String]>,
     ) -> Vec<&Rc<Self>> {
         let mut children = vec![];
         self.scan(&mut |scanned| {
-            if Some(scanned.kind_name.as_str()) == stop_child_name {
+            if stop_child_names.is_some_and(|names| names.contains(&scanned.kind_name)) {
                 return true;
-            } else if scanned.kind_name == child_name {
+            } else if child_names.contains(&scanned.kind_name) {
                 children.push(scanned);
                 return true;
             }

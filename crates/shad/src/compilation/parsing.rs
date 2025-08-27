@@ -192,16 +192,50 @@ fn parse_sequence(ctx: &mut Context<'_>) -> Result<AstNode, ParsingError> {
         span: start..start + slice.len(),
         path: ctx.path.into(),
     };
-    Ok(transform_binary_node(ctx, node))
+    Ok(transform_node(ctx, node))
 }
 
-fn transform_binary_node(ctx: &Context<'_>, node: AstNode) -> AstNode {
-    let Some(config) = &node.kind_config.binary_transformation else {
-        return node;
-    };
-    let operators = node.nested_children_except(&config.operator, Some(&config.operand));
-    let operands = node.nested_children_except(&config.operand, Some(&config.operator));
-    transform_binary_node_inner(ctx, &operators, &operands, config)
+fn transform_node(ctx: &Context<'_>, node: AstNode) -> AstNode {
+    if let Some(config) = &node.kind_config.binary_transformation {
+        let operators = node.nested_children_except(&config.operator, Some(&config.operand));
+        let operands = node.nested_children_except(&config.operand, Some(&config.operator));
+        if operators.is_empty() {
+            node
+        } else {
+            transform_binary_node_inner(ctx, &operators, &operands, config)
+        }
+    } else if let Some(config) = &node.kind_config.repeated_suffix_transformation {
+        let mut prefix = node.child(&config.prefix).clone();
+        let suffixes = node.child(&config.suffix).children.clone();
+        if suffixes.is_empty() {
+            node
+        } else {
+            for suffix in suffixes {
+                prefix = Rc::new(AstNode {
+                    id: prefix.id,
+                    parent_ids: prefix.parent_ids.clone(),
+                    kind_name: config.new_child_kind.clone(),
+                    kind_config: ctx.config.kinds[&config.new_child_kind].clone(),
+                    slice: format!("{} {}", prefix.slice, suffix.slice),
+                    span: prefix.span.start..suffix.span.end,
+                    children: vec![prefix, suffix],
+                    path: node.path.clone(),
+                });
+            }
+            AstNode {
+                id: node.id,
+                parent_ids: node.parent_ids,
+                children: vec![prefix],
+                kind_name: config.new_kind.clone(),
+                kind_config: ctx.config.kinds[&config.new_kind].clone(),
+                slice: node.slice,
+                span: node.span,
+                path: node.path,
+            }
+        }
+    } else {
+        node
+    }
 }
 
 fn transform_binary_node_inner(
@@ -259,7 +293,7 @@ fn split_index(operators: &[&Rc<AstNode>], config: &BinaryTransformationConfig) 
             }
         }
     }
-    unreachable!("internal error: no operator found in binary node")
+    unreachable!("no operator found in binary node")
 }
 
 fn parse_choice(ctx: &mut Context<'_>) -> Result<AstNode, ParsingError> {
@@ -317,7 +351,7 @@ fn parse_choice(ctx: &mut Context<'_>) -> Result<AstNode, ParsingError> {
 fn parse_pattern(ctx: &mut Context<'_>) -> Result<AstNode, ParsingError> {
     let length = pattern_length(ctx.code, ctx.offset, &ctx.kind_config.pattern_parts);
     if let Some(length) = length {
-        if let Some(value) = parse_slice(ctx, length) {
+        if let Some(value) = parse_slice(ctx, length, true) {
             return Ok(value);
         }
     }
@@ -341,7 +375,7 @@ fn parse_string(ctx: &mut Context<'_>, string: &str) -> Result<AstNode, ParsingE
         None
     };
     if let Some(length) = length {
-        if let Some(value) = parse_slice(ctx, length) {
+        if let Some(value) = parse_slice(ctx, length, false) {
             return Ok(value);
         }
     }
@@ -359,7 +393,7 @@ fn parse_string(ctx: &mut Context<'_>, string: &str) -> Result<AstNode, ParsingE
     })
 }
 
-fn parse_slice(ctx: &mut Context<'_>, length: usize) -> Option<AstNode> {
+fn parse_slice(ctx: &mut Context<'_>, length: usize, check_keyword: bool) -> Option<AstNode> {
     let mut local_ctx = ctx.clone();
     let start = local_ctx.offset;
     local_ctx.offset += length;
@@ -374,7 +408,7 @@ fn parse_slice(ctx: &mut Context<'_>, length: usize) -> Option<AstNode> {
         span: start..start + slice.len(),
         path: ctx.path.into(),
     };
-    if is_next_char_valid(&local_ctx) {
+    if is_next_char_valid(&local_ctx) && (!check_keyword || !is_keyword(&local_ctx, slice)) {
         *ctx = local_ctx;
         Some(node)
     } else {
@@ -413,6 +447,14 @@ fn is_next_char_valid(ctx: &Context<'_>) -> bool {
     let previous_char = ctx.code[..ctx.offset].chars().last().unwrap_or(' ');
     let next_char = ctx.code[ctx.offset..].chars().next().unwrap_or(' ');
     !(is_ident_char(previous_char) && is_ident_char(next_char))
+}
+
+fn is_keyword(ctx: &Context<'_>, slice: &str) -> bool {
+    ctx.config
+        .kinds
+        .values()
+        .filter_map(|config| config.string.as_ref())
+        .any(|keyword| slice == keyword)
 }
 
 fn clean_code_prefix(ctx: &mut Context<'_>) {
