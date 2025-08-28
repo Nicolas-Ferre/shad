@@ -1,0 +1,214 @@
+// Binary operators
+
+native fn __add__(left: f32, right: f32) -> f32 = "left + right";
+native fn __add__(left: i32, right: i32) -> i32 = "left + right";
+native fn __add__(left: u32, right: u32) -> u32 = "left + right";
+
+native fn __sub__(left: f32, right: f32) -> f32 = "left - right";
+native fn __sub__(left: i32, right: i32) -> i32 = "left - right";
+native fn __sub__(left: u32, right: u32) -> u32 = "left - right";
+
+native fn __mul__(left: f32, right: f32) -> f32 = "left * right";
+native fn __mul__(left: i32, right: i32) -> i32 = "left * right";
+native fn __mul__(left: u32, right: u32) -> u32 = "left * right";
+
+native fn __div__(left: f32, right: f32) -> f32 = "left / right";
+native fn __div__(left: i32, right: i32) -> i32 = "left / right";
+native fn __div__(left: u32, right: u32) -> u32 = "left / right";
+
+native fn __mod__(left: i32, right: i32) -> i32 = "left % right";
+native fn __mod__(left: u32, right: u32) -> u32 = "left % right";
+
+native fn __lt__(left: bool, right: bool) -> bool = "u32(left < right)";
+native fn __lt__(left: f32, right: f32) -> bool = "u32(left < right)";
+native fn __lt__(left: i32, right: i32) -> bool = "u32(left < right)";
+native fn __lt__(left: u32, right: u32) -> bool = "u32(left < right)";
+
+native fn __gt__(left: bool, right: bool) -> bool = "u32(left > right)";
+native fn __gt__(left: f32, right: f32) -> bool = "u32(left > right)";
+native fn __gt__(left: i32, right: i32) -> bool = "u32(left > right)";
+native fn __gt__(left: u32, right: u32) -> bool = "u32(left > right)";
+
+native fn __le__(left: bool, right: bool) -> bool = "u32(left <= right)";
+native fn __le__(left: f32, right: f32) -> bool = "u32(left <= right)";
+native fn __le__(left: i32, right: i32) -> bool = "u32(left <= right)";
+native fn __le__(left: u32, right: u32) -> bool = "u32(left <= right)";
+
+native fn __ge__(left: bool, right: bool) -> bool = "u32(left >= right)";
+native fn __ge__(left: f32, right: f32) -> bool = "u32(left >= right)";
+native fn __ge__(left: i32, right: i32) -> bool = "u32(left >= right)";
+native fn __ge__(left: u32, right: u32) -> bool = "u32(left >= right)";
+
+native fn __eq__(left: bool, right: bool) -> bool = "u32(left == right)";
+native fn __eq__(left: f32, right: f32) -> bool = "u32(left == right)";
+native fn __eq__(left: i32, right: i32) -> bool = "u32(left == right)";
+native fn __eq__(left: u32, right: u32) -> bool = "u32(left == right)";
+
+native fn __ne__(left: bool, right: bool) -> bool = "u32(left != right)";
+native fn __ne__(left: f32, right: f32) -> bool = "u32(left != right)";
+native fn __ne__(left: i32, right: i32) -> bool = "u32(left != right)";
+native fn __ne__(left: u32, right: u32) -> bool = "u32(left != right)";
+
+native fn __and__(left: bool, right: bool) -> bool = "u32(bool(left) && bool(right))";
+
+native fn __or__(left: bool, right: bool) -> bool = "u32(bool(left) || bool(right))";
+
+// Unary operators
+
+native fn __neg__(value: f32) -> f32 = "-value";
+native fn __neg__(value: i32) -> i32 = "-value";
+
+native fn __not__(value: bool) -> bool = "u32(!bool(value))";
+
+// Composed operations
+
+native fn mul_add(value: f32, factor: f32, addend: f32) -> f32 = "fma(value, factor, added)";
+
+// Value choice/truncation
+
+native fn select(cond: bool, t_value: bool, f_value: bool) -> bool = "select(f_value, t_value, bool(cond))";
+native fn select(cond: bool, t_value: f32, f_value: f32) -> f32 = "select(f_value, t_value, bool(cond))";
+native fn select(cond: bool, t_value: i32, f_value: i32) -> i32 = "select(f_value, t_value, bool(cond))";
+native fn select(cond: bool, t_value: u32, f_value: u32) -> u32 = "select(f_value, t_value, bool(cond))";
+
+native fn clamp(value: f32, low: f32, high: f32) -> f32 = "clamp(value, low, high)";
+native fn clamp(value: i32, low: i32, high: i32) -> i32 = "clamp(value, low, high)";
+native fn clamp(value: u32, low: u32, high: u32) -> u32 = "clamp(value, low, high)";
+
+native fn saturate(value: f32) -> f32 = "saturate(value)";
+
+native fn mix(factor: f32, first: f32, second: f32) -> f32 = "mix(first, second, factor)";
+
+native fn smoothstep(value: f32, edge0: f32, edge1: f32) -> f32 = "smoothstep(edge0, edge1, value)";
+
+// Type conversation
+
+native fn bool(value: f32) -> bool = "u32(bool(value))";
+native fn bool(value: i32) -> bool = "u32(bool(value))";
+native fn bool(value: u32) -> bool = "value";
+
+native fn f32(value: bool) -> f32 = "f32(value)";
+native fn f32(value: i32) -> f32 = "f32(value)";
+native fn f32(value: u32) -> f32 = "f32(value)";
+
+native fn i32(value: bool) -> i32 = "i32(value)";
+native fn i32(value: f32) -> i32 = "i32(value)";
+native fn i32(value: u32) -> i32 = "i32(value)";
+
+native fn u32(value: bool) -> u32 = "u32(value)";
+native fn u32(value: f32) -> u32 = "u32(value)";
+native fn u32(value: i32) -> u32 = "u32(value)";
+
+native fn bitcast_f32(value: bool) -> f32 = "bitcast<f32>(value)";
+native fn bitcast_f32(value: i32) -> f32 = "bitcast<f32>(value)";
+native fn bitcast_f32(value: u32) -> f32 = "bitcast<f32>(value)";
+
+native fn bitcast_i32(value: bool) -> i32 = "bitcast<i32>(value)";
+native fn bitcast_i32(value: f32) -> i32 = "bitcast<i32>(value)";
+native fn bitcast_i32(value: u32) -> i32 = "bitcast<i32>(value)";
+
+native fn bitcast_u32(value: bool) -> u32 = "value";
+native fn bitcast_u32(value: f32) -> u32 = "bitcast<u32>(value)";
+native fn bitcast_u32(value: i32) -> u32 = "bitcast<u32>(value)";
+
+native fn quantize_f16(value: f32) -> f32 = "quantizeToF16(value)";
+
+// Bit manipulation
+
+native fn leading_zero_bits(value: i32) -> i32 = "countLeadingZeros(value)";
+native fn leading_zero_bits(value: u32) -> u32 = "countLeadingZeros(value)";
+
+native fn trailing_zero_bits(value: i32) -> i32 = "countTrailingZeros(value)";
+native fn trailing_zero_bits(value: u32) -> u32 = "countTrailingZeros(value)";
+
+native fn one_bits(value: i32) -> i32 = "countOneBits(value)";
+native fn one_bits(value: u32) -> u32 = "countOneBits(value)";
+
+native fn first_leading_bit(value: i32) -> i32 = "firstLeadingBit(value)";
+native fn first_leading_bit(value: u32) -> u32 = "firstLeadingBit(value)";
+
+native fn first_trailing_bit(value: i32) -> i32 = "firstTrailingBit(value)";
+native fn first_trailing_bit(value: u32) -> u32 = "firstTrailingBit(value)";
+
+native fn extract_bits(value: i32, offset: u32, count: u32) -> i32 = "extractBits(value, offset, count)";
+native fn extract_bits(value: u32, offset: u32, count: u32) -> u32 = "extractBits(value, offset, count)";
+
+native fn insert_bits(value: i32, new_bits: i32, offset: u32, count: u32) -> i32 = "insertBits(value, new_bits, offset, count)";
+native fn insert_bits(value: u32, new_bits: u32, offset: u32, count: u32) -> u32 = "insertBits(value, new_bits, offset, count)";
+
+native fn reverse_bits(value: i32) -> i32 = "reverseBits(value)";
+native fn reverse_bits(value: u32) -> u32 = "reverseBits(value)";
+
+// Trigonometry
+
+native fn acos(value: f32) -> f32 = "acos(value)";
+
+native fn acosh(value: f32) -> f32 = "acosh(value)";
+
+native fn asin(value: f32) -> f32 = "asin(value)";
+
+native fn asinh(value: f32) -> f32 = "asinh(value)";
+
+native fn atan(value: f32) -> f32 = "atan(value)";
+
+native fn atanh(value: f32) -> f32 = "atanh(value)";
+
+native fn atan2(y: f32, x: f32) -> f32 = "atan2(y, x)";
+
+native fn cos(value: f32) -> f32 = "cos(value)";
+
+native fn cosh(value: f32) -> f32 = "cosh(value)";
+
+native fn sin(value: f32) -> f32 = "sin(value)";
+
+native fn sinh(value: f32) -> f32 = "sinh(value)";
+
+native fn tan(value: f32) -> f32 = "tan(value)";
+
+native fn tanh(value: f32) -> f32 = "tanh(value)";
+
+native fn degrees(radians: f32) -> f32 = "degrees(radians)";
+
+native fn radians(degrees: f32) -> f32 = "radians(degrees)";
+
+// Other math functions
+
+native fn abs(value: f32) -> f32 = "abs(value)";
+native fn abs(value: i32) -> i32 = "abs(value)";
+
+native fn min(first: f32, second: f32) -> f32 = "min(first, second)";
+native fn min(first: i32, second: i32) -> i32 = "min(first, second)";
+native fn min(first: u32, second: u32) -> u32 = "min(first, second)";
+
+native fn max(first: f32, second: f32) -> f32 = "max(first, second)";
+native fn max(first: i32, second: i32) -> i32 = "max(first, second)";
+native fn max(first: u32, second: u32) -> u32 = "max(first, second)";
+
+native fn ceil(value: f32) -> f32 = "ceil(value)";
+
+native fn floor(value: f32) -> f32 = "floor(value)";
+
+native fn round(value: f32) -> f32 = "round(value)";
+
+native fn trunc(value: f32) -> f32 = "trunc(value)";
+
+native fn fract(value: f32) -> f32 = "fract(value)";
+
+native fn pow(value: f32, power: f32) -> f32 = "pow(value, power)";
+
+native fn log(value: f32) -> f32 = "log(value)";
+
+native fn log2(value: f32) -> f32 = "log2(value)";
+
+native fn exp(value: f32) -> f32 = "exp(value)";
+
+native fn exp2(value: f32) -> f32 = "exp2(value)";
+
+native fn sqrt(value: f32) -> f32 = "sqrt(value)";
+
+native fn inverse_sqrt(value: f32) -> f32 = "inverseSqrt(value)";
+
+native fn step(value: f32, min: f32) -> f32 = "step(min, value)";
+
+native fn sign(value: f32) -> f32 = "sign(value)";
+native fn sign(value: i32) -> i32 = "sign(value)";

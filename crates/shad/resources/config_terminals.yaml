@@ -18,6 +18,22 @@ kinds:
         max_length: *max_u32
     display_name: identifier
 
+  string:
+    pattern_parts:
+      - char_ranges:
+          - { start: '"', end: '"' }
+        min_length: 1
+        max_length: 1
+      - exception_char_ranges:
+          - { start: '"', end: '"' }
+        min_length: 0
+        max_length: *max_u32
+      - char_ranges:
+          - { start: '"', end: '"' }
+        min_length: 1
+        max_length: 1
+    display_name: string literal
+
   tilde: { string: '~' }
   dot: { string: '.' }
   comma: { string: ',' }
@@ -49,4 +65,5 @@ kinds:
   run_kw: { string: 'run' }
   var_kw: { string: 'var' }
   fn_kw: { string: 'fn' }
+  native_kw: { string: 'native' }
   return_kw: { string: 'return' }

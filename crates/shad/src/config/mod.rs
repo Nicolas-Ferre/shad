@@ -18,8 +18,8 @@ pub(crate) fn load_config() -> Config {
     let additional_kinds = fs::read_dir(concat!(env!("CARGO_MANIFEST_DIR"), "/resources"))
         .expect("internal error: config folder should be valid")
         .filter_map(Result::ok)
-        .filter(is_kind_config_file)
-        .flat_map(load_kind_config);
+        .filter(is_additional_config_file)
+        .flat_map(load_additional_config);
     config.kinds.extend(additional_kinds);
     config
         .validate()
@@ -27,22 +27,22 @@ pub(crate) fn load_config() -> Config {
     config
 }
 
-fn is_kind_config_file(entry: &DirEntry) -> bool {
+fn is_additional_config_file(entry: &DirEntry) -> bool {
     entry.path().extension().is_some_and(|ext| ext == "yaml")
         && entry
             .file_name()
             .as_os_str()
             .to_str()
-            .is_some_and(|filename| filename.starts_with("kinds_"))
+            .is_some_and(|filename| filename.starts_with("config_"))
 }
 
-fn load_kind_config(entry: DirEntry) -> HashMap<String, Rc<KindConfig>> {
-    serde_yml::from_str::<KindsConfig>(
+fn load_additional_config(entry: DirEntry) -> HashMap<String, Rc<KindConfig>> {
+    serde_yml::from_str::<AdditionalConfig>(
         fs::read_to_string(entry.path())
-            .expect("internal error: kind config file should exist")
+            .expect("internal error: additional config file should exist")
             .as_str(),
     )
-    .expect("internal error: `` kind config should be valid")
+    .expect("internal error: additional config should be valid")
     .kinds
 }
 
@@ -88,7 +88,7 @@ pub(crate) struct Config {
 }
 
 #[derive(Debug, Clone, Deserialize, Validate)]
-pub(crate) struct KindsConfig {
+pub(crate) struct AdditionalConfig {
     #[validate(custom(validate_kinds))]
     pub(crate) kinds: HashMap<String, Rc<KindConfig>>,
 }
@@ -147,7 +147,10 @@ pub(crate) struct KindConfig {
 #[derive(Debug, Clone, Deserialize, Validate)]
 #[serde(deny_unknown_fields)]
 pub(crate) struct PatternPartConfig {
+    #[serde(default)]
     pub(crate) char_ranges: Vec<RangeInclusive<char>>,
+    #[serde(default)]
+    pub(crate) exception_char_ranges: Vec<RangeInclusive<char>>,
     pub(crate) min_length: usize,
     pub(crate) max_length: usize,
 }
@@ -232,7 +235,7 @@ pub(crate) struct IndexKeySourceCriteriaConfig {
 #[serde(deny_unknown_fields)]
 pub(crate) struct IndexKeySourceSiblingConfig {
     pub(crate) parent_index: usize,
-    pub(crate) child_offset: u32,
+    pub(crate) child_offsets: Vec<u32>,
 }
 
 #[derive(Debug, Clone, Deserialize, Validate)]

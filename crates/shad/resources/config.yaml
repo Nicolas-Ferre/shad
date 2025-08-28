@@ -12,13 +12,4 @@ import_index_key: '@import'
 type_transpilation:
   bool: u32
 
-kinds:
-  root:
-    min_repeat: 0
-    max_repeat: *max_u32
-    choice:
-      - buffer_item
-      - fn_item
-      - import_item
-      - init_item
-      - run_item
+kinds: { } # defined in other config files

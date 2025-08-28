@@ -1,4 +1,4 @@
-use crate::compilation::FILE_EXT;
+use crate::compilation::{FILE_EXT, PRELUDE_PATH};
 use crate::config::scripts::ScriptContext;
 use crate::config::{scripts, KindConfig};
 use derive_where::derive_where;
@@ -144,6 +144,7 @@ impl AstNode {
     }
 
     pub(crate) fn source<'a>(self: &Rc<Self>, ctx: &'a ScriptContext) -> Option<&'a Rc<Self>> {
+        let prelude_path = PRELUDE_PATH.into();
         let key = self.source_key(ctx)?;
         for criteria in &self.kind_config.index_key_source.as_ref()?.criteria {
             let parent_id = self.parent_ids.last().copied().unwrap_or(0);
@@ -159,6 +160,13 @@ impl AstNode {
                         .get(&key)
                         .map(|nodes| (nodes, current_path))
                 })
+                .chain(
+                    ctx.asts[&prelude_path]
+                        .index
+                        .indexed_nodes
+                        .get(&key)
+                        .map(|nodes| (nodes, &prelude_path)),
+                )
                 .flat_map(|(nodes, current_path)| {
                     nodes.iter().map(move |node| (node, current_path)).rev()
                 })
@@ -167,7 +175,10 @@ impl AstNode {
                     let is_node_root_child = node.parent_ids.len() == 1;
                     let is_in_allowed_sibling = criteria.allowed_siblings.iter().any(|sibling| {
                         self.parent_ids.get(sibling.parent_index).is_some_and(|id| {
-                            node.parent_ids.contains(&(id + sibling.child_offset))
+                            sibling
+                                .child_offsets
+                                .iter()
+                                .any(|offset| node.parent_ids.contains(&(id + offset)))
                         })
                     });
                     (criteria.can_be_after || node.id < parent_id || &&self.path != current_path)

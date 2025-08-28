@@ -9,6 +9,18 @@ missing_source_check: &missing_source_check
     title: '"undefined item"'
     label: '`${node.source_key()} is undefined`'
 
+unary_transpilation: &unary_transpilation |-
+  let source = node.source();
+  if source.kind() == "native_fn_item" {
+    let transpilation = source.string.slice().sub_string(1, source.string.slice().len() - 2);
+    let param = source.nested_children("fn_param")[0];
+    let arg = node.children()[1];
+    transpilation.replace(param.ident.slice(), arg.wgsl());
+    transpilation
+  } else {
+    `_${source.id()}(${node.children()[1].wgsl()})`
+  }
+
 kinds:
   typed_expr:
     sequence: [ expr ]
@@ -64,9 +76,24 @@ kinds:
       criteria:
         - kind: fn_item
           can_be_after: true
+        - kind: native_fn_item
+          can_be_after: true
     validation:
       - *missing_source_check
-    transpilation: '`_${node.source().id()}(${node.children()[0].wgsl()}, ${node.children()[2].wgsl()})`'
+    transpilation: |-
+      let source = node.source();
+      if source.kind() == "native_fn_item" {
+        let transpilation = source.string.slice().sub_string(1, source.string.slice().len() - 2);
+        let params = source.nested_children("fn_param");
+        let args = [node.children()[0], node.children()[2]];
+        for i in 0..params.len() {
+          transpilation.replace(params[i].ident.slice(), args[i].wgsl());
+        }
+        transpilation
+      } else {
+        `_${source.id()}(${node.children()[0].wgsl()}, ${node.children()[2].wgsl()})`
+      }
+
     type_resolution:
       source_children: [ fn_return_type ]
 
@@ -95,9 +122,23 @@ kinds:
       criteria:
         - kind: fn_item
           can_be_after: true
+        - kind: native_fn_item
+          can_be_after: true
     validation:
       - *missing_source_check
-    transpilation: '`_${node.source().id()}(${node.children()[0].wgsl()}, ${node.associated_fn_call_suffix.fn_arg_group.wgsl()})`'
+    transpilation: |-
+      let source = node.source();
+      if source.kind() == "native_fn_item" {
+        let transpilation = source.string.slice().sub_string(1, source.string.slice().len() - 2);
+        let params = source.nested_children("fn_param");
+        let args = ([node.children()[0]] + node.associated_fn_call_suffix.nested_children("expr"));
+        for i in 0..params.len() {
+          transpilation.replace(params[i].ident.slice(), args[i].wgsl());
+        }
+        transpilation
+      } else {
+        `_${source.id()}(${node.children()[0].wgsl()}, ${node.associated_fn_call_suffix.fn_arg_group.wgsl()})`
+      }
     type_resolution:
       source_children: [ fn_return_type ]
 
@@ -126,8 +167,8 @@ kinds:
         - kind: fn_param
           can_be_after: false
           allowed_siblings:
-            - parent_index: 1 # `fn_item` node
-              child_offset: 4 # `fn_param_group` child node
+            - parent_index: 1 # `fn_item`/`native_fn_item` node
+              child_offsets: [ 4, 5 ] # `fn_param_group` child node
         - kind: buffer_item
           can_be_after: true
     validation:
@@ -144,9 +185,23 @@ kinds:
       criteria:
         - kind: fn_item
           can_be_after: true
+        - kind: native_fn_item
+          can_be_after: true
     validation:
       - *missing_source_check
-    transpilation: '`_${node.source().id()}(${node.fn_arg_group.wgsl()})`'
+    transpilation: |-
+      let source = node.source();
+      if source.kind() == "native_fn_item" {
+        let transpilation = source.string.slice().sub_string(1, source.string.slice().len() - 2);
+        let params = source.nested_children("fn_param");
+        let args = node.nested_children("expr");
+        for i in 0..params.len() {
+          transpilation.replace(params[i].ident.slice(), args[i].wgsl());
+        }
+        transpilation
+      } else {
+        `_${source.id()}(${node.fn_arg_group.wgsl()})`
+      }
     type_resolution:
       source_children: [ fn_return_type ]
 
@@ -183,9 +238,11 @@ kinds:
       criteria:
         - kind: fn_item
           can_be_after: true
+        - kind: native_fn_item
+          can_be_after: true
     validation:
       - *missing_source_check
-    transpilation: '`_${node.source().id()}(${node.children()[1].wgsl()})`'
+    transpilation: *unary_transpilation
 
   not_unary_expr:
     sequence: [ excl_mark, binary_operand ]
@@ -195,9 +252,11 @@ kinds:
       criteria:
         - kind: fn_item
           can_be_after: true
+        - kind: native_fn_item
+          can_be_after: true
     validation:
       - *missing_source_check
-    transpilation: '`_${node.source().id()}(${node.children()[1].wgsl()})`'
+    transpilation: *unary_transpilation
 
   binary_operator:
     choice:

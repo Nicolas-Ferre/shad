@@ -12,10 +12,11 @@ use std::rc::Rc;
 pub(crate) fn parse_files(
     config: &Config,
     files: &HashMap<PathBuf, String>,
+    first_node_id: u32,
 ) -> Result<HashMap<PathBuf, (String, Rc<AstNode>)>, Error> {
     let mut asts = HashMap::new();
     let mut errors = vec![];
-    let mut next_node_id = 0;
+    let mut next_node_id = first_node_id;
     for (path, code) in files {
         match parse_file(config, path, code, next_node_id) {
             Ok((ast, new_next_node_id)) => {
@@ -32,7 +33,7 @@ pub(crate) fn parse_files(
     }
 }
 
-fn parse_file(
+pub(crate) fn parse_file(
     config: &Config,
     path: &Path,
     raw_code: &str,
@@ -414,10 +415,16 @@ fn pattern_length(
         let mut length = 0;
         for _ in 0..pattern_part.max_length {
             let char = string[new_offset..].chars().next().unwrap_or(' ');
-            if pattern_part
-                .char_ranges
-                .iter()
-                .any(|range| range.contains(&char))
+            if !pattern_part.char_ranges.is_empty()
+                && pattern_part
+                    .char_ranges
+                    .iter()
+                    .any(|range| range.contains(&char))
+                || !pattern_part.exception_char_ranges.is_empty()
+                    && !pattern_part
+                        .exception_char_ranges
+                        .iter()
+                        .any(|range| range.contains(&char))
             {
                 new_offset += char.len_utf8();
                 length += char.len_utf8();

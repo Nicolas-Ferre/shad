@@ -19,7 +19,40 @@ recursive_item_check: &recursive_item_check
     title: '"item definition with circular dependency"'
     label: '"this item is directly or indirectly referring to itself"'
 
+duplicated_param_check: &duplicated_param_check
+  assertion: |-
+    let params = node.nested_children("fn_param");
+    let _params = params; // to avoid data race
+    !params.some(|param, i| _params.index_of(|| this.ident.slice() == param.ident.slice()) < i)
+  error:
+    node: |-
+      let params = node.nested_children("fn_param");
+      let _params = params; // to avoid data race
+      params.find(|param, i| _params.index_of(|| this.ident.slice() == param.ident.slice()) < i)
+    title: '"function parameter defined multiple times"'
+    label: '"duplicated parameter name"'
+    info:
+      - node: |-
+          let params = node.nested_children("fn_param");
+          let _params = params; // to avoid data race
+          params.find_map(|param, i| {
+            let index = _params.index_of(|| this.ident.slice() == param.ident.slice());
+            if index < i { _params[index] } else { () }
+          })
+        title: '"same parameter name defined here"'
+
 kinds:
+  root:
+    min_repeat: 0
+    max_repeat: *max_u32
+    choice:
+      - buffer_item
+      - native_fn_item
+      - fn_item
+      - import_item
+      - init_item
+      - run_item
+
   import_item:
     sequence: [ import_kw, import_path_prefix, ident, semicolon ]
     sequence_error_after: import_kw
@@ -102,8 +135,39 @@ kinds:
         ${node.non_return_block.wgsl()}
         }`
 
+  native_fn_item:
+    sequence:
+      - native_kw
+      - fn_kw
+      - ident
+      - open_parenthesis
+      - fn_param_group
+      - close_parenthesis
+      - fn_return_type
+      - eq
+      - string
+      - semicolon
+    sequence_error_after: fn_kw
+    index_key:
+      - string: '`'
+      - child: ident
+      - string: '('
+      - nested: param_type
+        separator: ', '
+      - string: ')` function'
+    validation:
+      - *duplicated_item_check
+      - *duplicated_param_check
+
   fn_item:
-    sequence: [ fn_kw, ident, open_parenthesis, fn_param_group, close_parenthesis, fn_return_type, block ]
+    sequence:
+      - fn_kw
+      - ident
+      - open_parenthesis
+      - fn_param_group
+      - close_parenthesis
+      - fn_return_type
+      - block
     sequence_error_after: fn_kw
     index_key:
       - string: '`'
@@ -115,6 +179,7 @@ kinds:
     validation:
       - *duplicated_item_check
       - *recursive_item_check
+      - *duplicated_param_check
       - assertion: |-
           let last_stmt = node.block.stmts.children().map(|| this.children()[0]).last();
           let has_return_stmt = last_stmt.is_some() && last_stmt.unwrap_or_stop().kind() == "return_stmt";
@@ -139,26 +204,6 @@ kinds:
           info:
             - node: 'node.fn_return_type'
               title: '`expected type is ``${node.fn_return_type.type()}```'
-      - assertion: |-
-          let params = node.nested_children("fn_param");
-          let _params = params; // to avoid data race
-          !params.some(|param, i| _params.index_of(|| this.ident.slice() == param.ident.slice()) < i)
-        error:
-          node: |-
-            let params = node.nested_children("fn_param");
-            let _params = params; // to avoid data race
-            params.find(|param, i| _params.index_of(|| this.ident.slice() == param.ident.slice()) < i)
-          title: '"function parameter defined multiple times"'
-          label: '"duplicated parameter name"'
-          info:
-            - node: |-
-                let params = node.nested_children("fn_param");
-                let _params = params; // to avoid data race
-                params.find_map(|param, i| {
-                  let index = _params.index_of(|| this.ident.slice() == param.ident.slice());
-                  if index < i { _params[index] } else { () }
-                })
-              title: '"same parameter name defined here"'
     transpilation: |-
       `fn _${node.id()}(${node.fn_param_group.wgsl()}) ${node.fn_return_type.wgsl()} {
       ${node.nested_children("fn_param").map(|| `var _${this.id()} = _p${this.id()};`).join("")}
