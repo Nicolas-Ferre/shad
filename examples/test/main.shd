@@ -1,0 +1,8 @@
+buf a = 1;
+buf c = 2;
+buf b = f(a);
+
+fn f(param: i32) -> i32 {
+    param = param + 1;
+    return param;
+}

@@ -2,8 +2,8 @@
 
 mod cli;
 mod compilation;
-mod config;
 mod exec;
+mod language;
 
 pub use cli::*;
 pub use compilation::error::*;

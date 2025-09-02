@@ -5,8 +5,7 @@ error: invalid expression type
   |     ------------   ^^^^^^^^
   |     |              |
   |     |              expression type is `bool`
-  |     info: expected type is `i32`
-  |
+  |     expected type is `i32`
 
 error: invalid expression type
   --> ./cases_invalid/statements/invalid_assigned_type.shd:10:20
@@ -15,8 +14,7 @@ error: invalid expression type
    |     ------------   ^^^
    |     |              |
    |     |              expression type is `f32`
-   |     info: expected type is `i32`
-   |
+   |     expected type is `i32`
 
 error: invalid expression type
   --> ./cases_invalid/statements/invalid_assigned_type.shd:11:20
@@ -25,8 +23,7 @@ error: invalid expression type
    |     ------------   ^^^^^^^^^
    |     |              |
    |     |              expression type is `bool`
-   |     info: expected type is `i32`
-   |
+   |     expected type is `i32`
 
 error: invalid expression type
   --> ./cases_invalid/statements/invalid_assigned_type.shd:12:20
@@ -35,8 +32,7 @@ error: invalid expression type
    |     ------------   ^^^^^^^^^
    |     |              |
    |     |              expression type is `u32`
-   |     info: expected type is `i32`
-   |
+   |     expected type is `i32`
 
 error: invalid expression type
   --> ./cases_invalid/statements/invalid_assigned_type.shd:13:20
@@ -45,8 +41,7 @@ error: invalid expression type
    |     ------------   ^^^
    |     |              |
    |     |              expression type is `f32`
-   |     info: expected type is `i32`
-   |
+   |     expected type is `i32`
 
 error: invalid expression type
   --> ./cases_invalid/statements/invalid_assigned_type.shd:14:20
@@ -55,8 +50,7 @@ error: invalid expression type
    |     ------------   ^^^^^^^^^
    |     |              |
    |     |              expression type is `bool`
-   |     info: expected type is `i32`
-   |
+   |     expected type is `i32`
 
 error: invalid expression type
   --> ./cases_invalid/statements/invalid_assigned_type.shd:15:20
@@ -65,54 +59,52 @@ error: invalid expression type
    |     ------------   ^^^^^^^^^
    |     |              |
    |     |              expression type is `u32`
-   |     info: expected type is `i32`
-   |
+   |     expected type is `i32`
 
 error: missing return statement
- --> ./cases_invalid/statements/return.shd:2:5
+ --> ./cases_invalid/statements/return.shd:1:38
   |
-1 | fn missing_return_with_body() -> i32 {
-  |                              ------- info: the function has a return type
-2 |     var a = 0;
-  |     ^^^^^^^^^^
-  |     |
-  |     last statement should be a `return` statement
-  |
+1 |   fn missing_return_with_body() -> i32 {
+  |  _______________________________------_^
+  | |                               |
+  | |                               the function has a return type
+2 | |     var a = 0;
+3 | | }
+  | | ^
+  | |_|
+  |   last statement should be a `return` statement
 
 error: missing return statement
  --> ./cases_invalid/statements/return.shd:5:41
   |
 5 |   fn missing_return_without_body() -> i32 {
-  |  _________________________________-------_^
-  | |                                 |
-  | |                                 info: the function has a return type
+  |  __________________________________------_^
+  | |                                  |
+  | |                                  the function has a return type
 6 | | }
-  | |_^
-  |   |
+  | | ^
+  | |_|
   |   last statement should be a `return` statement
-  |
 
 error: invalid returned type
- --> ./cases_invalid/statements/return.shd:9:5
+ --> ./cases_invalid/statements/return.shd:9:12
   |
 8 | fn no_return_type_but_return_stmt() {
-  |                                    - info: expected type is `<no return>`
+  |                                    - expected type is `<no return>`
 9 |     return 0;
-  |     ^^^^^^^^^
-  |     |
-  |     returned type is `i32`
-  |
+  |            ^
+  |            |
+  |            returned type is `i32`
 
 error: invalid returned type
-  --> ./cases_invalid/statements/return.shd:13:5
+  --> ./cases_invalid/statements/return.shd:13:12
    |
 12 | fn return_type_and_invalid_returned_value() -> i32 {
-   |                                            ------- info: expected type is `i32`
+   |                                            ------- expected type is `i32`
 13 |     return 0u;
-   |     ^^^^^^^^^^
-   |     |
-   |     returned type is `u32`
-   |
+   |            ^^
+   |            |
+   |            returned type is `u32`
 
 error: `return` statement before end of the block
   --> ./cases_invalid/statements/return.shd:18:5
@@ -121,7 +113,6 @@ error: `return` statement before end of the block
    |     ^^^^^^^^^^
    |     |
    |     only allowed at the end of a block
-   |
 
 error: `return` statement used outside a function
   --> ./cases_invalid/statements/return.shd:24:5
@@ -130,7 +121,6 @@ error: `return` statement used outside a function
    |     ^^^^^^^^^
    |     |
    |     not allowed statement
-   |
 
 error: `return` statement used outside a function
   --> ./cases_invalid/statements/return.shd:28:5
@@ -139,7 +129,6 @@ error: `return` statement used outside a function
    |     ^^^^^^^^^
    |     |
    |     not allowed statement
-   |
 
 error: undefined item
  --> ./cases_invalid/statements/unknown_var_ident.shd:6:21
@@ -148,7 +137,6 @@ error: undefined item
   |                     ^^^^^^^
   |                     |
   |                     `missing` variable is undefined
-  |
 
 error: undefined item
  --> ./cases_invalid/statements/unknown_var_ident.shd:7:17
@@ -157,7 +145,6 @@ error: undefined item
   |                 ^^^^^^^
   |                 |
   |                 `missing` variable is undefined
-  |
 
 error: undefined item
  --> ./cases_invalid/statements/unknown_var_ident.shd:8:17
@@ -166,7 +153,6 @@ error: undefined item
   |                 ^^^^^^^^^^^^
   |                 |
   |                 `unused_value` variable is undefined
-  |
 
 error: undefined item
  --> ./cases_invalid/statements/unknown_var_ident.shd:9:5
@@ -175,4 +161,3 @@ error: undefined item
   |     ^^^^^^^
   |     |
   |     `missing` variable is undefined
-  |

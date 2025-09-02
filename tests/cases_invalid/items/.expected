@@ -5,19 +5,17 @@ error: undefined item
   |              ^^^^^^^
   |              |
   |              `missing` variable is undefined
-  |
 
 error: `buffer1` variable defined multiple times
  --> ./cases_invalid/items/buffer_not_unique.shd:3:1
   |
 1 | buf buffer1 = 0;
-  | ---------------- info: same item defined here
+  | ---------------- same item defined here
 2 | buf buffer2 = 0;
 3 | buf buffer1 = 0;
   | ^^^^^^^^^^^^^^^^
   | |
   | duplicated item
-  |
 
 error: function parameter defined multiple times
  --> ./cases_invalid/items/function_definition.shd:1:42
@@ -26,22 +24,18 @@ error: function parameter defined multiple times
   |                          ------          ^^^^^^
   |                          |               |
   |                          |               duplicated parameter name
-  |                          info: same parameter name defined here
-  |
+  |                          same parameter name defined here
 
 error: `func(u32, i32)` function defined multiple times
  --> ./cases_invalid/items/function_not_unique.shd:5:1
   |
 1 | fn func(a: u32, b: i32) {}
-  | -------------------------- info: same item defined here
-2 | fn func(a: u32, b: bool) {}
-3 | fn func(a: u32) {}
-4 | fn other_name(a: u32, b: i32) {}
+  | -------------------------- same item defined here
+...
 5 | fn func(a: u32, b: i32) {}
   | ^^^^^^^^^^^^^^^^^^^^^^^^^^
   | |
   | duplicated item
-  |
 
 error: item definition with circular dependency
  --> ./cases_invalid/items/recursion.shd:1:1
@@ -50,7 +44,6 @@ error: item definition with circular dependency
   | ^^^^^^^^^^^^^^^^^
   | |
   | this item is directly or indirectly referring to itself
-  |
 
 error: item definition with circular dependency
  --> ./cases_invalid/items/recursion.shd:3:1
@@ -58,10 +51,9 @@ error: item definition with circular dependency
 3 | / fn f() -> i32 {
 4 | |     return buffer;
 5 | | }
-  | |_^
-  |   |
+  | | ^
+  | |_|
   |   this item is directly or indirectly referring to itself
-  |
 
 error: item definition with circular dependency
  --> ./cases_invalid/items/recursion.shd:7:1
@@ -70,7 +62,6 @@ error: item definition with circular dependency
   | ^^^^^^^^^^^^^^^^^^^^^^
   | |
   | this item is directly or indirectly referring to itself
-  |
 
 error: item definition with circular dependency
  --> ./cases_invalid/items/recursion.shd:8:1
@@ -79,7 +70,6 @@ error: item definition with circular dependency
   | ^^^^^^^^^^^^^^^^^^^^^^
   | |
   | this item is directly or indirectly referring to itself
-  |
 
 error: item definition with circular dependency
  --> ./cases_invalid/items/recursion.shd:9:1
@@ -88,7 +78,6 @@ error: item definition with circular dependency
   | ^^^^^^^^^^^^^^^^^^^^^^
   | |
   | this item is directly or indirectly referring to itself
-  |
 
 error: item definition with circular dependency
   --> ./cases_invalid/items/recursion.shd:11:1
@@ -96,10 +85,9 @@ error: item definition with circular dependency
 11 | / fn f1() {
 12 | |     f2();
 13 | | }
-   | |_^
-   |   |
+   | | ^
+   | |_|
    |   this item is directly or indirectly referring to itself
-   |
 
 error: item definition with circular dependency
   --> ./cases_invalid/items/recursion.shd:15:1
@@ -107,10 +95,9 @@ error: item definition with circular dependency
 15 | / fn f2() {
 16 | |     f3();
 17 | | }
-   | |_^
-   |   |
+   | | ^
+   | |_|
    |   this item is directly or indirectly referring to itself
-   |
 
 error: item definition with circular dependency
   --> ./cases_invalid/items/recursion.shd:19:1
@@ -118,7 +105,6 @@ error: item definition with circular dependency
 19 | / fn f3() {
 20 | |     f1();
 21 | | }
-   | |_^
-   |   |
+   | | ^
+   | |_|
    |   this item is directly or indirectly referring to itself
-   |

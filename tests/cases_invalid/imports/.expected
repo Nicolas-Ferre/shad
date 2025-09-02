@@ -5,7 +5,6 @@ error: imported file not found
   | ^^^^^^^^^^^^^^^
   | |
   | no file found at `./cases_invalid/imports/unknown.shd`
-  |
 
 error: imported file not found
  --> ./cases_invalid/imports/not_found.shd:2:1
@@ -14,7 +13,6 @@ error: imported file not found
   | ^^^^^^^^^^^^^^^^^^^^^
   | |
   | no file found at `./cases_invalid/imports/inner/unknown.shd`
-  |
 
 error: imported file not found
  --> ./cases_invalid/imports/not_found.shd:3:1
@@ -23,7 +21,6 @@ error: imported file not found
   | ^^^^^^^^^^^^^^^^^
   | |
   | no file found at `./cases_invalid/imports/unknown.shd`
-  |
 
 error: imported file not found
  --> ./cases_invalid/imports/not_found.shd:4:1
@@ -32,4 +29,3 @@ error: imported file not found
   | ^^^^^^^^^^^^^^^^^^^^^^^
   | |
   | no file found at `./cases_invalid/imports/inner/unknown.shd`
-  |

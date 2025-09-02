@@ -5,7 +5,6 @@ error: undefined item
   |                            ^^^^^^^^^^^^
   |                            |
   |                            `__add__(bool, bool)` function is undefined
-  |
 
 error: undefined item
  --> ./cases_invalid/expressions/custom_operators.shd:3:27
@@ -14,7 +13,6 @@ error: undefined item
   |                           ^^^^
   |                           |
   |                           `__not__(f32)` function is undefined
-  |
 
 error: undefined item
   --> ./cases_invalid/expressions/fn_call.shd:10:5
@@ -23,7 +21,6 @@ error: undefined item
    |     ^^^^^^^^^^
    |     |
    |     `func(i32, i32)` function is undefined
-   |
 
 error: undefined item
   --> ./cases_invalid/expressions/fn_call.shd:11:5
@@ -32,7 +29,6 @@ error: undefined item
    |     ^^^^^^^
    |     |
    |     `func(i32)` function is undefined
-   |
 
 error: undefined item
   --> ./cases_invalid/expressions/fn_call.shd:12:5
@@ -41,7 +37,6 @@ error: undefined item
    |     ^^^^^^^^^^^^
    |     |
    |     `other_func()` function is undefined
-   |
 
 error: undefined item
   --> ./cases_invalid/expressions/fn_call.shd:14:5
@@ -50,7 +45,6 @@ error: undefined item
    |     ^^^^^^^^
    |     |
    |     `func(i32)` function is undefined
-   |
 
 error: undefined item
   --> ./cases_invalid/expressions/fn_call.shd:15:17
@@ -59,7 +53,6 @@ error: undefined item
    |                 ^^^^^^^
    |                 |
    |                 `func2()` function is undefined
-   |
 
 error: undefined item
   --> ./cases_invalid/expressions/fn_call.shd:16:5
@@ -68,7 +61,6 @@ error: undefined item
    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^
    |     |
    |     `func2(i32, i32)` function is undefined
-   |
 
 error: invalid statement
   --> ./cases_invalid/expressions/fn_call.shd:17:5
@@ -76,8 +68,7 @@ error: invalid statement
 17 |     0;
    |     ^^
    |     |
-   |     this expression requires to be assigned
-   |
+   |     this expression must be assigned to a variable
 
 error: invalid expression type
  --> ./cases_invalid/expressions/no_return_type.shd:1:14
@@ -86,7 +77,6 @@ error: invalid expression type
   |              ^^^^^^^^^^^
   |              |
   |              this function does not return a value
-  |
 
 error: invalid expression type
  --> ./cases_invalid/expressions/no_return_type.shd:4:13
@@ -95,7 +85,6 @@ error: invalid expression type
   |             ^^^^^^^^^^^
   |             |
   |             this function does not return a value
-  |
 
 error: invalid expression type
  --> ./cases_invalid/expressions/no_return_type.shd:5:9
@@ -104,7 +93,6 @@ error: invalid expression type
   |         ^^^^^^^^^^^
   |         |
   |         this function does not return a value
-  |
 
 error: invalid expression type
  --> ./cases_invalid/expressions/no_return_type.shd:6:12
@@ -113,4 +101,3 @@ error: invalid expression type
   |            ^^^^^^^^^^^
   |            |
   |            this function does not return a value
-  |

@@ -1,12 +1,10 @@
-use crate::compilation::ast::AstNode;
-use crate::config::scripts::ScriptContext;
-use crate::config::{scripts, ValidationMessageConfig};
-use annotate_snippets::{Level, Renderer, Snippet};
+use crate::compilation::node::Node;
+use crate::compilation::validation::ValidationContext;
+use annotate_snippets::{AnnotationKind, Group, Level, Renderer, Snippet};
 use itertools::Itertools;
 use std::io;
 use std::ops::Range;
 use std::path::{Path, PathBuf};
-use std::rc::Rc;
 
 /// A Shad compilation error.
 #[derive(Debug)]
@@ -50,9 +48,9 @@ impl Error {
     }
 
     fn render_io(path: &Path, error: &io::Error) -> String {
-        Renderer::styled()
-            .render(Level::Error.title(&format!("{}: {error}", path.display())))
-            .to_string()
+        Renderer::styled().render(&[Group::with_title(
+            Level::ERROR.primary_title(format!("{}: {error}", path.display())),
+        )])
     }
 
     fn render_parsing(error: &ParsingError) -> String {
@@ -74,26 +72,29 @@ impl Error {
         let message = format!("expected {expected_tokens}");
         let path = error.path.display().to_string();
         let renderer = Renderer::styled();
-        let content = renderer.render(
-            Level::Error.title(&message).snippet(
+        renderer.render(&[
+            Group::with_title(Level::ERROR.primary_title(&message)).element(
                 Snippet::source(&error.code)
                     .fold(true)
-                    .origin(&path)
-                    .annotation(Level::Error.span(error.offset..error.offset).label("here")),
+                    .path(path)
+                    .annotation(
+                        AnnotationKind::Primary
+                            .span(error.offset..error.offset)
+                            .label("here"),
+                    ),
             ),
-        );
-        content.to_string()
+        ])
     }
 
     fn render_validation(error: &ValidationError) -> String {
         let path = error.path.display().to_string();
         let renderer = Renderer::styled();
-        let level = Self::convert_level(error.level);
-        let mut annotations = vec![level.span(error.span.clone())];
+        let mut annotations =
+            vec![Self::annotation_level(error.level, error.level).span(error.span.clone())];
         for inner in &error.inner {
             if inner.path == error.path {
                 annotations.push(
-                    Self::convert_level(inner.level)
+                    Self::annotation_level(error.level, inner.level)
                         .span(inner.span.clone())
                         .label(&inner.message),
                 );
@@ -101,7 +102,7 @@ impl Error {
         }
         let mut snippets = vec![Snippet::source(&error.code)
             .fold(true)
-            .origin(&path)
+            .path(&path)
             .annotations(annotations)];
         // coverage: off (unused for now)
         for inner in &error.inner {
@@ -109,9 +110,9 @@ impl Error {
                 snippets.push(
                     Snippet::source(&error.code)
                         .fold(true)
-                        .origin(&path)
+                        .path(&path)
                         .annotation(
-                            Self::convert_level(inner.level)
+                            Self::annotation_level(error.level, inner.level)
                                 .span(inner.span.clone())
                                 .label(&inner.message),
                         ),
@@ -119,14 +120,19 @@ impl Error {
             }
         }
         // coverage: on
-        let content = renderer.render(level.title(&error.message).snippets(snippets));
-        content.to_string()
+        renderer.render(&[
+            Group::with_title(Level::ERROR.primary_title(&error.message)).elements(snippets),
+        ])
     }
 
-    fn convert_level(level: ValidationMessageLevel) -> Level {
-        match level {
-            ValidationMessageLevel::Error => Level::Error,
-            ValidationMessageLevel::Info => Level::Info,
+    fn annotation_level(
+        base_level: ValidationMessageLevel,
+        level: ValidationMessageLevel,
+    ) -> AnnotationKind {
+        if level <= base_level {
+            AnnotationKind::Primary
+        } else {
+            AnnotationKind::Context
         }
     }
 }
@@ -163,49 +169,51 @@ pub struct ValidationError {
 }
 
 impl ValidationError {
-    pub(crate) fn from_config(
-        ctx: &ScriptContext,
-        node: &Rc<AstNode>,
-        level: ValidationMessageLevel,
-        config: &ValidationMessageConfig,
+    pub(crate) fn error(
+        ctx: &ValidationContext<'_>,
+        node: &dyn Node,
+        title: &str,
+        label: Option<&str>,
+        secondary: &[(&dyn Node, &str)],
     ) -> Self {
-        let span_node = scripts::compile_and_run::<Rc<AstNode>>(&config.node, node, ctx)
-            .expect("internal error: failed to calculate message node");
-        let title = scripts::compile_and_run::<String>(&config.title, node, ctx)
-            .expect("internal error: failed to calculate message title");
-        let label = config.label.as_ref().map(|label| {
-            scripts::compile_and_run::<String>(label, node, ctx)
-                .expect("internal error: failed to calculate message label")
-        });
         Self {
-            level,
-            message: title,
-            span: span_node.span(),
-            code: ctx.asts[&span_node.path].code.clone(),
-            path: span_node.path.clone(),
+            level: ValidationMessageLevel::Primary,
+            message: title.into(),
+            span: node.span.clone(),
+            code: ctx.roots[&node.path].slice.clone(),
+            path: node.path.clone(),
             inner: label
-                .map(|message| Self {
-                    level,
-                    message,
-                    span: span_node.span(),
-                    code: ctx.asts[&span_node.path].code.clone(),
-                    path: span_node.path.clone(),
-                    inner: vec![],
-                })
+                .map(|label| Self::simple(ctx, ValidationMessageLevel::Primary, node, label))
                 .into_iter()
-                .chain(config.info.iter().map(|config| {
-                    Self::from_config(ctx, node, ValidationMessageLevel::Info, config)
+                .chain(secondary.iter().map(|&(node, label)| {
+                    Self::simple(ctx, ValidationMessageLevel::Context, node, label)
                 }))
                 .collect(),
+        }
+    }
+
+    fn simple(
+        ctx: &ValidationContext<'_>,
+        level: ValidationMessageLevel,
+        node: &dyn Node,
+        label: &str,
+    ) -> Self {
+        Self {
+            level,
+            message: label.into(),
+            span: node.span.clone(),
+            code: ctx.roots[&node.path].slice.clone(),
+            path: node.path.clone(),
+            inner: vec![],
         }
     }
 }
 
 /// A validation message level.
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum ValidationMessageLevel {
     /// An error.
-    Error,
+    Primary,
     /// An information.
-    Info,
+    Context,
 }

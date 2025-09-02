@@ -1,148 +1,11 @@
-use crate::compilation::ast::AstNode;
-use crate::compilation::FileAst;
-use crate::config::scripts::{compile_and_run, ScriptContext};
-use crate::config::{Config, ShaderConfig};
-use itertools::Itertools;
+use crate::compilation::index::NodeIndex;
+use crate::compilation::node::{Node, NodeConfig};
+use crate::language::nodes::items::{BufferItem, InitItem, Root, RunItem};
 use petgraph::graphmap::DiGraphMap;
+use std::any::Any;
 use std::collections::HashMap;
 use std::hash::RandomState;
-use std::ops::Deref;
 use std::path::{Path, PathBuf};
-use std::rc::Rc;
-
-pub(crate) fn transpile_asts(
-    config: &Rc<Config>,
-    asts: &Rc<HashMap<PathBuf, FileAst>>,
-    root_path: &Path,
-) -> Program {
-    let ctx = ScriptContext::new(config, asts, root_path);
-    Program {
-        buffers: asts
-            .values()
-            .flat_map(|ast| &ast.root.children)
-            .flat_map(|node| &node.children)
-            .filter_map(|node| {
-                node.kind_config
-                    .buffer
-                    .as_ref()
-                    .map(|config| (node, config))
-            })
-            .map(|(node, config)| {
-                (
-                    node.item_path(&config.ident, root_path),
-                    Buffer {
-                        size_bytes: 4,
-                        type_name: node
-                            .type_(&ctx)
-                            .expect("internal error: missing buffer type"),
-                    },
-                )
-            })
-            .collect(),
-        init_shaders: sorted_buffers(&ctx)
-            .into_iter()
-            .filter_map(|node| {
-                Some(transpile_shader(
-                    &ctx,
-                    node,
-                    node.kind_config.buffer_init_shader.as_ref()?,
-                ))
-            })
-            .chain(
-                asts.values()
-                    .sorted_unstable_by_key(|ast| &ast.root.path)
-                    .flat_map(|ast| {
-                        ast.root
-                            .children
-                            .iter()
-                            .flat_map(|node| &node.children)
-                            .filter_map(|node| {
-                                Some(transpile_shader(
-                                    &ctx,
-                                    node,
-                                    node.kind_config.init_shader.as_ref()?,
-                                ))
-                            })
-                    }),
-            )
-            .collect(),
-        run_shaders: asts
-            .values()
-            .sorted_unstable_by_key(|ast| &ast.root.path)
-            .flat_map(|ast| {
-                ast.root
-                    .children
-                    .iter()
-                    .flat_map(|node| &node.children)
-                    .filter_map(|node| {
-                        Some(transpile_shader(
-                            &ctx,
-                            node,
-                            node.kind_config.run_shader.as_ref()?,
-                        ))
-                    })
-            })
-            .collect(),
-    }
-}
-
-pub(crate) fn transpile_node(ctx: &ScriptContext, node: &Rc<AstNode>) -> String {
-    if node.kind_config.min_repeat == 1 && node.kind_config.max_repeat == 1 {
-        transpile_from_script(ctx, node, &node.kind_config.transpilation)
-    } else {
-        node.children
-            .iter()
-            .map(|child| transpile_from_script(ctx, child, &child.kind_config.transpilation))
-            .join("\n")
-    }
-}
-
-fn sorted_buffers(ctx: &ScriptContext) -> Vec<&Rc<AstNode>> {
-    let mut graph = DiGraphMap::<&Rc<AstNode>, (), RandomState>::new();
-    let buffers = ctx.asts.values().flat_map(|ast| {
-        ast.root
-            .children
-            .iter()
-            .flat_map(|node| &node.children)
-            .filter(|node| node.kind_config.buffer_init_shader.is_some())
-    });
-    for item in buffers {
-        graph.add_node(item);
-        for source in item.nested_sources(ctx) {
-            graph.add_edge(source, item, ());
-        }
-    }
-    petgraph::algo::toposort(&graph, None).expect("internal error: buffer cycle detected")
-}
-
-fn transpile_shader(
-    ctx: &ScriptContext,
-    node: &Rc<AstNode>,
-    shader_config: &ShaderConfig,
-) -> Shader {
-    ctx.next_binding.replace(0);
-    Shader {
-        code: transpile_from_script(ctx, node, &shader_config.transpilation),
-        buffers: node
-            .nested_sources(ctx)
-            .into_iter()
-            .map(Deref::deref)
-            .chain([&**node])
-            .filter_map(|node| {
-                node.kind_config
-                    .buffer
-                    .as_ref()
-                    .map(|buffer| (node, buffer))
-            })
-            .map(|(node, config)| node.item_path(&config.ident, &ctx.root_path))
-            .collect(),
-    }
-}
-
-fn transpile_from_script(ctx: &ScriptContext, node: &Rc<AstNode>, template: &str) -> String {
-    compile_and_run::<String>(template, node, ctx)
-        .expect("internal error: invalid transpilation script output")
-}
 
 /// A compiled Shad program.
 #[derive(Debug)]
@@ -155,6 +18,56 @@ pub struct Program {
     pub run_shaders: Vec<Shader>,
 }
 
+impl Program {
+    pub(crate) fn new(roots: &HashMap<PathBuf, Root>, index: &NodeIndex, root_path: &Path) -> Self {
+        Self {
+            buffers: roots
+                .values()
+                .flat_map(|root| root.items.iter().filter_map(|item| item.as_buffer()))
+                .map(|buffer| (buffer.item_path(root_path), Buffer::new(buffer, index)))
+                .collect(),
+            init_shaders: Self::sorted_buffers(roots, index)
+                .into_iter()
+                .map(|item| Shader::from_buffer_item(item, index, root_path))
+                .chain(roots.values().flat_map(|root| {
+                    root.items
+                        .iter()
+                        .filter_map(|item| item.as_init())
+                        .map(|item| Shader::from_init_item(item, index, root_path))
+                }))
+                .collect(),
+            run_shaders: roots
+                .values()
+                .flat_map(|root| {
+                    root.items
+                        .iter()
+                        .filter_map(|item| item.as_run())
+                        .map(|item| Shader::from_run_item(item, index, root_path))
+                })
+                .collect(),
+        }
+    }
+
+    fn sorted_buffers<'a>(
+        roots: &'a HashMap<PathBuf, Root>,
+        index: &'a NodeIndex,
+    ) -> Vec<&'a BufferItem> {
+        let mut graph = DiGraphMap::<&BufferItem, (), RandomState>::new();
+        let buffers = roots
+            .values()
+            .flat_map(|root| root.items.iter().filter_map(|item| item.as_buffer()));
+        for buffer in buffers {
+            graph.add_node(buffer);
+            for source in buffer.nested_sources(index) {
+                if let Some(source) = (source as &dyn Any).downcast_ref::<BufferItem>() {
+                    graph.add_edge(source, buffer, ());
+                }
+            }
+        }
+        petgraph::algo::toposort(&graph, None).expect("internal error: buffer cycle detected")
+    }
+}
+
 /// A buffer definition.
 #[derive(Debug)]
 pub struct Buffer {
@@ -164,6 +77,17 @@ pub struct Buffer {
     pub type_name: String,
 }
 
+impl Buffer {
+    fn new(item: &BufferItem, index: &NodeIndex) -> Self {
+        Self {
+            size_bytes: 4,
+            type_name: item
+                .expr_type(index)
+                .expect("internal error: failed to calculate buffer type"),
+        }
+    }
+}
+
 /// A shader definition.
 #[derive(Debug)]
 pub struct Shader {
@@ -171,4 +95,63 @@ pub struct Shader {
     pub code: String,
     /// The buffers used by the shader.
     pub buffers: Vec<String>,
+}
+
+impl Shader {
+    fn from_buffer_item(item: &BufferItem, index: &NodeIndex, root_path: &Path) -> Self {
+        let mut ctx = TranspilationContext {
+            index,
+            next_binding: 0,
+        };
+        Self {
+            code: item.transpile_shader(&mut ctx),
+            buffers: Self::find_buffers(item, index, root_path)
+                .into_iter()
+                .chain([item.item_path(root_path)])
+                .collect(),
+        }
+    }
+
+    fn from_init_item(item: &InitItem, index: &NodeIndex, root_path: &Path) -> Self {
+        let mut ctx = TranspilationContext {
+            index,
+            next_binding: 0,
+        };
+        Self {
+            code: item.transpile_shader(&mut ctx),
+            buffers: Self::find_buffers(item, index, root_path),
+        }
+    }
+
+    fn from_run_item(item: &RunItem, index: &NodeIndex, root_path: &Path) -> Self {
+        let mut ctx = TranspilationContext {
+            index,
+            next_binding: 0,
+        };
+        Self {
+            code: item.transpile_shader(&mut ctx),
+            buffers: Self::find_buffers(item, index, root_path),
+        }
+    }
+
+    fn find_buffers(item: &impl Node, index: &NodeIndex, root_path: &Path) -> Vec<String> {
+        item.nested_sources(index)
+            .iter()
+            .filter_map(|source| (*source as &dyn Any).downcast_ref::<BufferItem>())
+            .map(|buffer| buffer.item_path(root_path))
+            .collect()
+    }
+}
+
+pub(crate) struct TranspilationContext<'a> {
+    pub(crate) index: &'a NodeIndex,
+    next_binding: u32,
+}
+
+impl TranspilationContext<'_> {
+    pub(crate) fn next_binding(&mut self) -> u32 {
+        let binding = self.next_binding;
+        self.next_binding += 1;
+        binding
+    }
 }

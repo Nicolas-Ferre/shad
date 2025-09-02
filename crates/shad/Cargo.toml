@@ -15,16 +15,14 @@ rust-version.workspace = true
 [dependencies]
 annotate-snippets.workspace = true
 clap.workspace = true
+pastey.workspace = true
 derive-where.workspace = true
 futures.workspace = true
 include_dir.workspace = true
+indoc.workspace = true
 itertools.workspace = true
 log.workspace = true
 petgraph.workspace = true
-rhai.workspace = true
-serde.workspace = true
-serde_valid.workspace = true
-serde_yml.workspace = true
 walkdir.workspace = true
 
 [target.'cfg(not(target_os = "android"))'.dependencies]

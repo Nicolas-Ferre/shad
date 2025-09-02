@@ -13,7 +13,7 @@ rust-version = "1.89.0"
 [workspace.dependencies]
 android-activity = { version = "0.6", features = ["native-activity"] }
 android_logger = "0.15"
-annotate-snippets = "0.11"
+annotate-snippets = "0.12"
 cargo-run-wasm = "0.4"
 clap = { version = "4", features = ["derive"] }
 console_error_panic_hook = "0.1"
@@ -22,15 +22,13 @@ derive-where = "1"
 fs_extra = "1.2"
 futures = "0.3"
 include_dir = "0.7"
+indoc = "2"
 itertools = "0.14"
 log = "0.4"
+pastey = "0.1"
 petgraph = "0.8"
 pico-args = "0.5"
-rhai = "1"
 rstest = "0.26"
-serde = { version = "1", features = ["rc"] }
-serde_valid = "1"
-serde_yml = "0.0.12"
 strip-ansi-escapes = "0.2"
 wasm-bindgen-futures = "0.4"
 web-sys = { version = "0.3", features = ["Location"] }

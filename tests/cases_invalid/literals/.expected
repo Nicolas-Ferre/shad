@@ -3,32 +3,27 @@ error: out of bound `f32` literal
   |
 1 | buf too_small = -400000000000000000000000000000000000000.0;
   |                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  |
 
 error: out of bound `f32` literal
  --> ./cases_invalid/literals/out_of_bound_f32.shd:2:15
   |
 2 | buf too_big = 400000000000000000000000000000000000000.0;
   |               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  |
 
 error: out of bound `i32` literal
  --> ./cases_invalid/literals/out_of_bound_i32.shd:1:17
   |
 1 | buf too_small = -2_147_483_649;
   |                 ^^^^^^^^^^^^^^
-  |
 
 error: out of bound `i32` literal
  --> ./cases_invalid/literals/out_of_bound_i32.shd:2:15
   |
 2 | buf too_big = 2_147_483_648;
   |               ^^^^^^^^^^^^^
-  |
 
 error: out of bound `i32` literal
  --> ./cases_invalid/literals/out_of_bound_u32.shd:1:15
   |
 1 | buf too_big = 4_294_967_296;
   |               ^^^^^^^^^^^^^
-  |
