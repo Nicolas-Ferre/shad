@@ -22,8 +22,8 @@ error: out of bound `i32` literal
 2 | buf too_big = 2_147_483_648;
   |               ^^^^^^^^^^^^^
 
-error: out of bound `i32` literal
+error: out of bound `u32` literal
  --> ./cases_invalid/literals/out_of_bound_u32.shd:1:15
   |
-1 | buf too_big = 4_294_967_296;
-  |               ^^^^^^^^^^^^^
+1 | buf too_big = 4_294_967_296u;
+  |               ^^^^^^^^^^^^^^

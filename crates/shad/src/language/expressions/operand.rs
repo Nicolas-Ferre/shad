@@ -1,0 +1,181 @@
+use crate::compilation::index::NodeIndex;
+use crate::compilation::node::{
+    choice, sequence, transform, Node, NodeConfig, NodeSourceSearchCriteria, Repeated,
+};
+use crate::compilation::transpilation::TranspilationContext;
+use crate::compilation::validation::ValidationContext;
+use crate::language::expressions::binary::Expr;
+use crate::language::expressions::fn_call::{AssociatedFnCallSuffix, FnCallExpr};
+use crate::language::expressions::simple::{FalseExpr, ParenthesizedExpr, TrueExpr, VarIdentExpr};
+use crate::language::expressions::unary::{NegUnaryExpr, NotUnaryExpr};
+use crate::language::expressions::{check_missing_source, transformations, transpile_fn_call};
+use crate::language::patterns::{F32Literal, I32Literal, U32Literal};
+use crate::language::sources;
+use std::iter;
+
+transform!(
+    OperandExpr,
+    ParsedOperandExpr,
+    TransformedOperandExpr,
+    transformations::transform_binary_operand
+);
+
+impl OperandExpr {
+    pub(crate) fn is_fn_call(&self) -> bool {
+        match self {
+            Self::Parsed(child) => child.is_fn_call(),
+            Self::Transformed(child) => child.is_fn_call(),
+        }
+    }
+}
+
+sequence!(
+    struct ParsedOperandExpr {
+        expr: OperandPrefix,
+        #[force_error(true)]
+        call_suffix: Repeated<AssociatedFnCallSuffix, 0, { usize::MAX }>,
+    }
+);
+
+impl NodeConfig for ParsedOperandExpr {
+    fn expr_type(&self, index: &NodeIndex) -> Option<String> {
+        debug_assert!(self.call_suffix.iter().len() == 0);
+        self.expr.expr_type(index)
+    }
+
+    fn transpile(&self, ctx: &mut TranspilationContext<'_>) -> String {
+        debug_assert!(self.call_suffix.iter().len() == 0);
+        self.expr.transpile(ctx)
+    }
+}
+
+impl ParsedOperandExpr {
+    pub(crate) fn is_fn_call(&self) -> bool {
+        self.expr.is_fn_call()
+    }
+}
+
+sequence!(
+    #[allow(unused_mut)]
+    struct TransformedOperandExpr {
+        expr: Expr,
+        call_suffix: Repeated<AssociatedFnCallSuffix, 0, 1>,
+    }
+);
+
+impl NodeConfig for TransformedOperandExpr {
+    fn source_key(&self, index: &NodeIndex) -> Option<String> {
+        debug_assert!(self.call_suffix.iter().len() <= 1);
+        let suffix = &self.call_suffix.iter().next()?;
+        sources::fn_key_from_args(&suffix.ident, self.args(suffix), index)
+    }
+
+    fn source_search_criteria(&self) -> &'static [NodeSourceSearchCriteria] {
+        sources::fn_criteria()
+    }
+
+    fn expr_type(&self, index: &NodeIndex) -> Option<String> {
+        debug_assert!(self.call_suffix.iter().len() <= 1);
+        if self.call_suffix.iter().next().is_some() {
+            self.source(index)?.expr_type(index)
+        } else {
+            self.expr.expr_type(index)
+        }
+    }
+
+    fn validate(&self, ctx: &mut ValidationContext<'_>) {
+        check_missing_source(self, ctx);
+    }
+
+    fn transpile(&self, ctx: &mut TranspilationContext<'_>) -> String {
+        debug_assert!(self.call_suffix.iter().len() <= 1);
+        if let Some(suffix) = &self.call_suffix.iter().next() {
+            let source = self
+                .source(ctx.index)
+                .expect("internal error: fn call source not found");
+            transpile_fn_call(ctx, source, self.args(suffix))
+        } else {
+            self.expr.transpile(ctx)
+        }
+    }
+}
+
+impl TransformedOperandExpr {
+    pub(crate) fn is_fn_call(&self) -> bool {
+        self.call_suffix.iter().len() == 1 || self.expr.is_fn_call()
+    }
+
+    fn args<'a>(&'a self, suffix: &'a AssociatedFnCallSuffix) -> impl Iterator<Item = &'a Expr> {
+        iter::once(&*self.expr).chain(
+            suffix
+                .args
+                .iter()
+                .flat_map(|args| args.args().map(|arg| &**arg)),
+        )
+    }
+}
+
+choice!(
+    #[allow(clippy::large_enum_variant)]
+    enum OperandPrefix {
+        True(TrueExpr),
+        False(FalseExpr),
+        F32(F32Literal),
+        U32(U32Literal),
+        I32(I32Literal),
+        FnCall(FnCallExpr),
+        Var(VarIdentExpr),
+        NegUnary(NegUnaryExpr),
+        NotUnary(NotUnaryExpr),
+        Parenthesized(ParenthesizedExpr),
+    }
+);
+
+impl NodeConfig for OperandPrefix {
+    fn expr_type(&self, index: &NodeIndex) -> Option<String> {
+        match self {
+            Self::True(child) => child.expr_type(index),
+            Self::False(child) => child.expr_type(index),
+            Self::F32(child) => child.expr_type(index),
+            Self::U32(child) => child.expr_type(index),
+            Self::I32(child) => child.expr_type(index),
+            Self::FnCall(child) => child.expr_type(index),
+            Self::Var(child) => child.expr_type(index),
+            Self::NegUnary(child) => child.expr_type(index),
+            Self::NotUnary(child) => child.expr_type(index),
+            Self::Parenthesized(child) => child.expr_type(index),
+        }
+    }
+
+    fn transpile(&self, ctx: &mut TranspilationContext<'_>) -> String {
+        match self {
+            Self::True(child) => child.transpile(ctx),
+            Self::False(child) => child.transpile(ctx),
+            Self::F32(child) => child.transpile(ctx),
+            Self::U32(child) => child.transpile(ctx),
+            Self::I32(child) => child.transpile(ctx),
+            Self::FnCall(child) => child.transpile(ctx),
+            Self::Var(child) => child.transpile(ctx),
+            Self::NegUnary(child) => child.transpile(ctx),
+            Self::NotUnary(child) => child.transpile(ctx),
+            Self::Parenthesized(child) => child.transpile(ctx),
+        }
+    }
+}
+
+impl OperandPrefix {
+    pub(crate) fn is_fn_call(&self) -> bool {
+        match self {
+            Self::FnCall(_) => true,
+            Self::True(_)
+            | Self::False(_)
+            | Self::F32(_)
+            | Self::U32(_)
+            | Self::I32(_)
+            | Self::Var(_)
+            | Self::NegUnary(_)
+            | Self::NotUnary(_)
+            | Self::Parenthesized(_) => false,
+        }
+    }
+}

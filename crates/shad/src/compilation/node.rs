@@ -1,5 +1,8 @@
+use crate::compilation::index::NodeIndex;
 use crate::compilation::parsing;
 use crate::compilation::parsing::ParsingContext;
+use crate::compilation::transpilation::TranspilationContext;
+use crate::compilation::validation::ValidationContext;
 use crate::ParsingError;
 use derive_where::derive_where;
 use itertools::Itertools;
@@ -33,6 +36,7 @@ pub(crate) struct NodeSourceSearchCriteria {
     pub(crate) common_parent_count: Option<usize>,
 }
 
+// coverage: off (most default implementations are unreachable)
 #[allow(unused_variables)]
 pub(crate) trait NodeConfig {
     fn key(&self) -> Option<String> {
@@ -57,6 +61,7 @@ pub(crate) trait NodeConfig {
         unreachable!("`{}` node has no transpilation", type_name::<Self>())
     }
 }
+// coverage: on
 
 pub(crate) trait Node: Any + NodeConfig + Debug + Deref<Target = NodeProps> {
     fn parse(ctx: &mut ParsingContext<'_>) -> Result<Self, ParsingError>
@@ -684,9 +689,6 @@ macro_rules! transform {
     };
 }
 
-use crate::compilation::index::NodeIndex;
-use crate::compilation::transpilation::TranspilationContext;
-use crate::compilation::validation::ValidationContext;
 pub(crate) use choice;
 pub(crate) use keyword;
 pub(crate) use pattern;

@@ -1,6 +1,8 @@
 use crate::compilation::index::NodeIndex;
 use crate::compilation::node::{Node, NodeConfig};
-use crate::language::nodes::items::{BufferItem, InitItem, Root, RunItem};
+use crate::language::items::buffer::BufferItem;
+use crate::language::items::compute::{InitItem, RunItem};
+use crate::language::items::Root;
 use petgraph::graphmap::DiGraphMap;
 use std::any::Any;
 use std::collections::HashMap;

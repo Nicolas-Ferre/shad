@@ -1,6 +1,6 @@
 use crate::compilation::index::NodeIndex;
 use crate::compilation::node::Node;
-use crate::language::nodes::items::Root;
+use crate::language::items::Root;
 use crate::{Error, ValidationError};
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};

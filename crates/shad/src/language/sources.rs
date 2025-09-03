@@ -1,9 +1,10 @@
 use crate::compilation::index::NodeIndex;
 use crate::compilation::node::{NodeConfig, NodeSourceSearchCriteria, Repeated};
-use crate::language::nodes::expressions::Expr;
-use crate::language::nodes::items::{BufferItem, FnItem, FnParam, FnParamGroup, NativeFnItem};
-use crate::language::nodes::statements::LocalVarDefStmt;
-use crate::language::nodes::terminals::Ident;
+use crate::language::expressions::binary::Expr;
+use crate::language::items::buffer::BufferItem;
+use crate::language::items::fn_::{FnItem, FnParam, FnParamGroup, NativeFnItem};
+use crate::language::patterns::Ident;
+use crate::language::statements::LocalVarDefStmt;
 use itertools::Itertools;
 use std::any::TypeId;
 

@@ -1,6 +1,6 @@
 use crate::compilation::node::{Node, NodeSourceSearchCriteria};
 use crate::compilation::PRELUDE_PATH;
-use crate::language::nodes::items::Root;
+use crate::language::items::Root;
 use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
 use std::rc::Rc;

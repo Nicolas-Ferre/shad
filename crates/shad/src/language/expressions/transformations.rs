@@ -1,7 +1,8 @@
 use crate::compilation::node::{Node, NodeProps, Repeated};
-use crate::language::nodes::expressions::{
-    AssociatedFnCallSuffix, BinaryOperand, BinaryOperator, Expr, ParsedBinaryOperand, ParsedExpr,
-    TransformedBinaryOperand, TransformedExpr,
+use crate::language::expressions::binary::{BinaryOperator, Expr, ParsedExpr, TransformedExpr};
+use crate::language::expressions::fn_call::AssociatedFnCallSuffix;
+use crate::language::expressions::operand::{
+    OperandExpr, ParsedOperandExpr, TransformedOperandExpr,
 };
 use itertools::Itertools;
 use std::iter;
@@ -26,10 +27,7 @@ pub(crate) fn transform_expr(expr: ParsedExpr) -> Expr {
     transform_binary_expr(&operators, &operands)
 }
 
-fn transform_binary_expr(
-    operators: &[&Rc<BinaryOperator>],
-    operands: &[&Rc<BinaryOperand>],
-) -> Expr {
+fn transform_binary_expr(operators: &[&Rc<BinaryOperator>], operands: &[&Rc<OperandExpr>]) -> Expr {
     let split_index = split_index(operators);
     let operator = operators[split_index];
     let left_operators = &operators[..split_index];
@@ -79,24 +77,24 @@ fn split_index(operators: &[&Rc<BinaryOperator>]) -> usize {
     unreachable!("no operator found in binary node")
 }
 
-pub(crate) fn transform_binary_operand(expr: ParsedBinaryOperand) -> BinaryOperand {
+pub(crate) fn transform_binary_operand(expr: ParsedOperandExpr) -> OperandExpr {
     let suffix: Vec<_> = Rc::into_inner(expr.call_suffix)
         .expect("internal error: cannot extract expression suffix")
         .take();
-    let prefix = Rc::new(BinaryOperand::Parsed(Rc::new(ParsedBinaryOperand {
+    let prefix = Rc::new(OperandExpr::Parsed(Rc::new(ParsedOperandExpr {
         expr: expr.expr,
         call_suffix: Rc::new(Repeated::new(expr.props.clone())),
         props: expr.props,
     })));
-    BinaryOperand::Transformed(Rc::new(transform_associated_call(prefix, suffix)))
+    OperandExpr::Transformed(Rc::new(transform_associated_call(prefix, suffix)))
 }
 
 fn transform_associated_call(
-    prefix: Rc<BinaryOperand>,
+    prefix: Rc<OperandExpr>,
     mut suffixes: Vec<Rc<AssociatedFnCallSuffix>>,
-) -> TransformedBinaryOperand {
+) -> TransformedOperandExpr {
     if let Some(suffix) = suffixes.pop().and_then(Rc::into_inner) {
-        TransformedBinaryOperand {
+        TransformedOperandExpr {
             props: NodeProps {
                 id: prefix.id,
                 parent_ids: prefix.parent_ids.clone(),
@@ -115,12 +113,12 @@ fn transform_associated_call(
                 Rc::new(Expr::Parsed(Rc::new(ParsedExpr {
                     right: Rc::new(Repeated::new(new_expr.props().clone())),
                     props: new_expr.props().clone(),
-                    left: Rc::new(BinaryOperand::Transformed(Rc::new(new_expr))),
+                    left: Rc::new(OperandExpr::Transformed(Rc::new(new_expr))),
                 })))
             },
         }
     } else {
-        TransformedBinaryOperand {
+        TransformedOperandExpr {
             call_suffix: Rc::new(Repeated::new(prefix.props().clone())),
             props: prefix.props().clone(),
             expr: Rc::new(Expr::Parsed(Rc::new(ParsedExpr {

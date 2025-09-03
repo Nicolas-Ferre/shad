@@ -1,5 +1,5 @@
 use crate::compilation::node::{Node, NodeProps};
-use crate::language::nodes::items::Root;
+use crate::language::items::Root;
 use crate::{Error, ParsingError};
 use itertools::Itertools;
 use std::collections::HashMap;
