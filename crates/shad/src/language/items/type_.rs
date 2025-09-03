@@ -5,7 +5,6 @@ use crate::language::patterns::Ident;
 
 pub(crate) const NO_RETURN_TYPE: &str = "<no return>";
 
-// TODO: validate type
 sequence!(
     #[allow(unused_mut)]
     struct Type {

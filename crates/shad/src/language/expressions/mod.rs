@@ -53,7 +53,7 @@ fn transpile_fn_call<'a>(
     if let Some(native_fn) = (fn_ as &dyn Any).downcast_ref::<NativeFnItem>() {
         let mut transpilation =
             native_fn.transpilation.slice[1..native_fn.transpilation.slice.len() - 1].to_string();
-        for (arg, param) in args.zip(native_fn.params()) {
+        for (arg, param) in args.zip(native_fn.signature.params()) {
             transpilation = transpilation.replace(&param.ident.slice, &arg.transpile(ctx));
         }
         transpilation

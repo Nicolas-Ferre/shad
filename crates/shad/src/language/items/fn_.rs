@@ -19,13 +19,8 @@ use std::rc::Rc;
 sequence!(
     struct NativeFnItem {
         native: NativeKeyword,
-        fn_: FnKeyword,
+        signature: FnSignature,
         #[force_error(true)]
-        ident: Ident,
-        params_start: OpenParenthesisSymbol,
-        params: Repeated<FnParamGroup, 0, 1>,
-        params_end: CloseParenthesisSymbol,
-        return_type: Repeated<FnReturnType, 0, 1>,
         eq: EqSymbol,
         transpilation: StringLiteral,
         semicolon: SemicolonSymbol,
@@ -34,65 +29,40 @@ sequence!(
 
 impl NodeConfig for NativeFnItem {
     fn key(&self) -> Option<String> {
-        Some(sources::fn_key_from_params(&self.ident, &self.params))
+        Some(self.signature.fn_key())
     }
 
     fn expr_type(&self, index: &NodeIndex) -> Option<String> {
-        if let Some(return_type) = &self.return_type.iter().next() {
-            return_type.expr_type(index)
-        } else {
-            Some(NO_RETURN_TYPE.into())
-        }
+        self.signature.expr_type(index)
     }
 
     fn validate(&self, ctx: &mut ValidationContext<'_>) {
         items::check_duplicated_items(self, ctx);
-        check_duplicated_fn_params(&self.params().collect::<Vec<_>>(), ctx);
     }
 }
 
-impl NativeFnItem {
-    pub(crate) fn params(&self) -> impl Iterator<Item = &FnParam> {
-        self.params
-            .iter()
-            .flat_map(|params| params.params())
-            .map(|param| &**param)
-    }
-}
-
-// TODO: create FnSignature node common between NativeFnItem and FnItem
 sequence!(
     struct FnItem {
-        fn_: FnKeyword,
+        signature: FnSignature,
         #[force_error(true)]
-        ident: Ident,
-        params_start: OpenParenthesisSymbol,
-        params: Repeated<FnParamGroup, 0, 1>,
-        params_end: CloseParenthesisSymbol,
-        return_type: Repeated<FnReturnType, 0, 1>,
         body: Block,
     }
 );
 
 impl NodeConfig for FnItem {
     fn key(&self) -> Option<String> {
-        Some(sources::fn_key_from_params(&self.ident, &self.params))
+        Some(self.signature.fn_key())
     }
 
     fn expr_type(&self, index: &NodeIndex) -> Option<String> {
-        if let Some(return_type) = &self.return_type.iter().next() {
-            return_type.expr_type(index)
-        } else {
-            Some(NO_RETURN_TYPE.into())
-        }
+        self.signature.expr_type(index)
     }
 
     fn validate(&self, ctx: &mut ValidationContext<'_>) {
         items::check_duplicated_items(self, ctx);
         items::check_recursive_items(self, ctx);
-        check_duplicated_fn_params(&self.params().collect::<Vec<_>>(), ctx);
         let return_stmt = self.body.last_stmt().and_then(|stmt| stmt.return_());
-        let return_type = self.return_type.iter().next();
+        let return_type = self.signature.return_type.iter().next();
         if let (None, Some(return_type)) = (return_stmt, return_type) {
             ctx.errors.push(ValidationError::error(
                 ctx,
@@ -111,7 +81,7 @@ impl NodeConfig for FnItem {
                         "invalid returned type",
                         Some(&format!("returned type is `{actual_type}`")),
                         &[(
-                            &*self.return_type,
+                            &*self.signature.return_type,
                             &format!("expected type is `{expected_type}`"),
                         )],
                     ));
@@ -123,15 +93,14 @@ impl NodeConfig for FnItem {
     fn transpile(&self, ctx: &mut TranspilationContext<'_>) -> String {
         format!(
             indoc!(
-                "fn _{id}({params}) {return_type} {{
+                "{signature} {{
                 {param_vars}
                 {body}
                 }}"
             ),
-            id = self.id,
-            params = self.params().map(|param| param.transpile(ctx)).join(", "),
-            return_type = self.return_type.transpile(ctx),
+            signature = self.signature.transpile(ctx),
             param_vars = self
+                .signature
                 .params()
                 .map(|param| format!("var _{id} = _p{id};", id = param.id))
                 .join("\n"),
@@ -140,12 +109,51 @@ impl NodeConfig for FnItem {
     }
 }
 
-impl FnItem {
+sequence!(
+    struct FnSignature {
+        fn_: FnKeyword,
+        #[force_error(true)]
+        ident: Ident,
+        params_start: OpenParenthesisSymbol,
+        params: Repeated<FnParamGroup, 0, 1>,
+        params_end: CloseParenthesisSymbol,
+        return_type: Repeated<FnReturnType, 0, 1>,
+    }
+);
+
+impl NodeConfig for FnSignature {
+    fn expr_type(&self, index: &NodeIndex) -> Option<String> {
+        if let Some(return_type) = &self.return_type.iter().next() {
+            return_type.expr_type(index)
+        } else {
+            Some(NO_RETURN_TYPE.into())
+        }
+    }
+
+    fn validate(&self, ctx: &mut ValidationContext<'_>) {
+        check_duplicated_fn_params(&self.params().collect::<Vec<_>>(), ctx);
+    }
+
+    fn transpile(&self, ctx: &mut TranspilationContext<'_>) -> String {
+        format!(
+            "fn _{fn_id}({params}) {return_type}",
+            fn_id = self.parent_ids[self.parent_ids.len() - 1],
+            params = self.params().map(|param| param.transpile(ctx)).join(", "),
+            return_type = self.return_type.transpile(ctx),
+        )
+    }
+}
+
+impl FnSignature {
     pub(crate) fn params(&self) -> impl Iterator<Item = &FnParam> {
         self.params
             .iter()
             .flat_map(|params| params.params())
             .map(|param| &**param)
+    }
+
+    fn fn_key(&self) -> String {
+        sources::fn_key_from_params(&self.ident, &self.params)
     }
 }
 

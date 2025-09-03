@@ -182,9 +182,7 @@ impl<T: Node, const MIN: usize, const MAX: usize> Node for Repeated<T, MIN, MAX>
 
     fn index(&self, index: &mut NodeIndex) {
         for node in &self.nodes {
-            if let Some(key) = node.key() {
-                index.register(key, node);
-            }
+            debug_assert!(node.key().is_none());
             node.index(index);
         }
     }
@@ -214,9 +212,11 @@ impl NodeConfig for EndOfFile {}
 impl Deref for EndOfFile {
     type Target = NodeProps;
 
+    // coverage: off (unused by needed by `Node` trait)
     fn deref(&self) -> &Self::Target {
         &self.props
     }
+    // coverage: on
 }
 
 impl Node for EndOfFile {
@@ -233,9 +233,11 @@ impl Node for EndOfFile {
 
     fn validate_nested(&self, _ctx: &mut ValidationContext<'_>) {}
 
+    // coverage: off (unused by needed by `Node` trait)
     fn direct_nested_sources<'a>(&self, _index: &'a NodeIndex) -> Vec<&'a dyn Node> {
         vec![]
     }
+    // coverage: on
 }
 
 macro_rules! keyword {
@@ -515,7 +517,7 @@ macro_rules! choice {
                     },
                     Err(err) => {
                         if err.forced {
-                            return Err(err);
+                            return Err(err); // no-coverage (false positive)
                         }
                         errors.push(err);
                     }
@@ -646,15 +648,11 @@ macro_rules! transform {
             fn index(&self, index: &mut crate::compilation::index::NodeIndex) {
                 match self {
                     Self::Parsed(child) => {
-                        if let Some(key) = child.key() {
-                            index.register(key, child);
-                        }
+                        debug_assert!(child.key().is_none());
                         child.index(index);
                     }
                     Self::Transformed(child) => {
-                        if let Some(key) = child.key() {
-                            index.register(key, child);
-                        }
+                        debug_assert!(child.key().is_none());
                         child.index(index);
                     }
                 }
