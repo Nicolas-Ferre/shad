@@ -93,7 +93,12 @@ impl NodeConfig for U32Literal {
 
     fn transpile(&self, _ctx: &mut TranspilationContext<'_>) -> String {
         let value = self.slice.replace('_', "");
-        format!("u32({value})")
+        let value_without_leading_zeros = value.trim_start_matches('0');
+        if value_without_leading_zeros.len() == 1 {
+            "u32(0u)".into()
+        } else {
+            format!("u32({value_without_leading_zeros})")
+        }
     }
 }
 
@@ -127,7 +132,12 @@ impl NodeConfig for I32Literal {
 
     fn transpile(&self, _ctx: &mut TranspilationContext<'_>) -> String {
         let value = self.slice.replace('_', "");
-        format!("i32({value})")
+        let value_without_leading_zeros = value.trim_start_matches('0');
+        if value_without_leading_zeros.is_empty() {
+            "i32(0)".into()
+        } else {
+            format!("i32({value_without_leading_zeros})")
+        }
     }
 }
 
