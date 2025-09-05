@@ -3,7 +3,7 @@ use crate::compilation::node::{sequence, Node, NodeConfig};
 use crate::compilation::transpilation::TranspilationContext;
 use crate::compilation::validation::ValidationContext;
 use crate::language::expressions::binary::Expr;
-use crate::language::items::fn_::NativeFnItem;
+use crate::language::items::fn_::{FnItem, NativeFnItem};
 use crate::language::items::type_::NO_RETURN_TYPE;
 use crate::ValidationError;
 use itertools::Itertools;
@@ -57,11 +57,59 @@ fn transpile_fn_call<'a>(
             transpilation = transpilation.replace(&param.ident.slice, &arg.transpile(ctx));
         }
         transpilation
+    } else if let Some(fn_) = (fn_ as &dyn Any).downcast_ref::<FnItem>() {
+        let is_inlined = fn_
+            .signature
+            .params()
+            .any(|param| param.ref_.iter().len() == 1);
+        if is_inlined {
+            transpile_inlined_fn_call(ctx, fn_, args)
+        } else {
+            let fn_id = fn_.id;
+            let args = args.map(|arg| arg.transpile(ctx)).join(", ");
+            format!("_{fn_id}({args})")
+        }
     } else {
-        let fn_id = fn_.id;
-        let args = args.map(|arg| arg.transpile(ctx)).join(", ");
-        format!("_{fn_id}({args})")
+        unreachable!("unknown function item")
     }
+}
+
+fn transpile_inlined_fn_call<'a>(
+    ctx: &mut TranspilationContext<'_>,
+    fn_: &FnItem,
+    args: impl Iterator<Item = &'a impl Node>,
+) -> String {
+    let old_state = ctx.inline_state;
+    ctx.inline_state.is_inlined = true;
+    ctx.start_block();
+    let return_var_name = if let Some(return_type) = fn_.signature.return_type.iter().next() {
+        let return_var_id = ctx.next_node_id();
+        let return_var_name = format!("_{return_var_id}");
+        let return_type = return_type.type_.transpile(ctx);
+        ctx.generated_stmts
+            .push(format!("var {return_var_name}: {return_type};"));
+        ctx.inline_state.return_var_id = Some(return_var_id);
+        Some(return_var_name)
+    } else {
+        None
+    };
+    for (param, arg) in fn_.signature.params().zip(args) {
+        let transpiled_arg = arg.transpile(ctx);
+        if param.ref_.iter().len() == 1 {
+            ctx.add_inline_mapping(param.id, transpiled_arg);
+        } else {
+            let var_id = ctx.next_node_id();
+            let var_name = format!("_{var_id}");
+            ctx.generated_stmts
+                .push(format!("var {var_name} = {transpiled_arg};"));
+            ctx.add_inline_mapping(param.id, var_name);
+        }
+    }
+    let inlined_stmts = fn_.body.transpile(ctx);
+    ctx.generated_stmts.push(inlined_stmts);
+    ctx.end_block();
+    ctx.inline_state = old_state;
+    return_var_name.unwrap_or_default()
 }
 
 fn check_missing_source(node: &impl Node, ctx: &mut ValidationContext<'_>) {

@@ -8,11 +8,11 @@ use std::rc::Rc;
 
 pub(crate) fn parse_files(
     files: &HashMap<PathBuf, String>,
-    first_node_id: u32,
+    first_node_id: &mut u32,
 ) -> Result<HashMap<PathBuf, Root>, Error> {
     let mut roots = HashMap::new();
     let mut errors = vec![];
-    let mut next_node_id = first_node_id;
+    let mut next_node_id = *first_node_id;
     for (path, code) in files {
         match parse_file(path, code, next_node_id) {
             Ok((mut root, new_next_node_id)) => {
@@ -23,6 +23,7 @@ pub(crate) fn parse_files(
             Err(err) => errors.push(err),
         }
     }
+    *first_node_id = next_node_id;
     if errors.is_empty() {
         Ok(roots)
     } else {

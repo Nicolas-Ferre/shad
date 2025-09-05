@@ -62,9 +62,16 @@ impl NodeConfig for LocalVarDefStmt {
     }
 
     fn transpile(&self, ctx: &mut TranspilationContext<'_>) -> String {
-        let id = self.id;
+        let var_name = if ctx.inline_state.is_inlined {
+            let id = ctx.next_node_id();
+            let var_name = format!("_{id}");
+            ctx.add_inline_mapping(self.id, &var_name);
+            var_name
+        } else {
+            format!("_{}", self.id)
+        };
         let expr = self.expr.transpile(ctx);
-        format!("var _{id} = {expr};")
+        format!("var {var_name} = {expr};")
     }
 }
 
@@ -127,7 +134,11 @@ impl NodeConfig for ExprStmt {
 
     fn transpile(&self, ctx: &mut TranspilationContext<'_>) -> String {
         let expr = self.expr.transpile(ctx);
-        format!("{expr};")
+        if expr.contains('(') {
+            format!("{expr};")
+        } else {
+            String::new()
+        }
     }
 }
 
@@ -147,6 +158,10 @@ impl NodeConfig for ReturnStmt {
 
     fn transpile(&self, ctx: &mut TranspilationContext<'_>) -> String {
         let expr = self.expr.transpile(ctx);
-        format!("return {expr};")
+        if let Some(var_id) = ctx.inline_state.return_var_id {
+            format!("_{var_id} = {expr};")
+        } else {
+            format!("return {expr};")
+        }
     }
 }

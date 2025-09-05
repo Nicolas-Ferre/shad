@@ -6,7 +6,7 @@ use crate::language::items::block::Block;
 use crate::language::items::type_::{Type, NO_RETURN_TYPE};
 use crate::language::keywords::{
     ArrowSymbol, CloseParenthesisSymbol, ColonSymbol, CommaSymbol, EqSymbol, FnKeyword,
-    NativeKeyword, OpenParenthesisSymbol, SemicolonSymbol,
+    NativeKeyword, OpenParenthesisSymbol, RefKeyword, SemicolonSymbol,
 };
 use crate::language::patterns::{Ident, StringLiteral};
 use crate::language::{items, sources};
@@ -179,6 +179,7 @@ sequence!(
         ident: Ident,
         #[force_error(true)]
         colon: ColonSymbol,
+        ref_: Repeated<RefKeyword, 0, 1>,
         type_: Type,
     }
 );

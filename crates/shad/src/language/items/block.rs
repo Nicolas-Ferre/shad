@@ -4,6 +4,8 @@ use crate::compilation::validation::ValidationContext;
 use crate::language::keywords::{CloseCurlyBracketSymbol, OpenCurlyBracketSymbol};
 use crate::language::statements::Stmt;
 use crate::ValidationError;
+use itertools::Itertools;
+use std::mem;
 
 sequence!(
     #[allow(unused_mut)]
@@ -58,7 +60,19 @@ impl NodeConfig for Block {
     }
 
     fn transpile(&self, ctx: &mut TranspilationContext<'_>) -> String {
-        self.statements.transpile(ctx)
+        ctx.start_block();
+        let transpilation = self
+            .statements
+            .iter()
+            .flat_map(|stmt| {
+                let stmt = stmt.transpile(ctx);
+                mem::take(&mut ctx.generated_stmts)
+                    .into_iter()
+                    .chain([stmt])
+            })
+            .join("\n");
+        ctx.end_block();
+        transpilation
     }
 }
 

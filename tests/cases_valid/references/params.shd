@@ -1,0 +1,21 @@
+buf assigned_value = 3;
+buf result = 0;
+buf incremented_result = 0;
+buf inlined_result = 0;
+
+run {
+    // repeat same inline function multiple times to ensure deduplicated var names
+    assign_return(result, assigned_value); // not assigned returned value
+    incremented_result = result.assign_return(assign_return(result, assigned_value));
+}
+
+fn assign_return(output: ref i32, input: i32) -> i32 {
+    var local_var = input;
+    output.assign_no_return(local_var);
+    inlined_result = 42;
+    return output + 1;
+}
+
+fn assign_no_return(output: ref i32, input: i32) {
+    output = input;
+}

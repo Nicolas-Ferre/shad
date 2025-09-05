@@ -27,14 +27,14 @@ const PRELUDE_CODE: &str = include_str!(concat!(
 pub fn compile(folder: impl SourceFolder) -> Result<Program, Error> {
     let root_path = folder.path();
     let files = reading::read_files(folder).map_err(Error::Io)?;
-    let (prelude_root, next_node_id) = parse_file(Path::new(PRELUDE_PATH), PRELUDE_CODE, 0)
+    let (prelude_root, mut next_node_id) = parse_file(Path::new(PRELUDE_PATH), PRELUDE_CODE, 0)
         .map_err(|err| Error::Parsing(vec![err]))?;
-    let roots = parse_files(&files, next_node_id)?
+    let roots = parse_files(&files, &mut next_node_id)?
         .into_iter()
         .chain([(PRELUDE_PATH.into(), prelude_root)])
         .collect::<HashMap<_, _>>();
     let index = NodeIndex::new(&roots, &root_path);
     validation::run(&roots, &index, &root_path)?;
-    let program = Program::new(&roots, &index, &root_path);
+    let program = Program::new(&roots, &index, &root_path, next_node_id);
     Ok(program)
 }

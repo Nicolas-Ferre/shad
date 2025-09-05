@@ -21,7 +21,24 @@ pub struct Program {
 }
 
 impl Program {
-    pub(crate) fn new(roots: &HashMap<PathBuf, Root>, index: &NodeIndex, root_path: &Path) -> Self {
+    pub(crate) fn new(
+        roots: &HashMap<PathBuf, Root>,
+        index: &NodeIndex,
+        root_path: &Path,
+        next_node_id: u32,
+    ) -> Self {
+        let mut ctx = TranspilationContext {
+            index,
+            inline_state: InlineState {
+                is_inlined: false,
+                return_var_id: None,
+            },
+            generated_stmts: vec![],
+            block_inline_mappings: vec![],
+            root_path,
+            next_binding: 0,
+            next_node_id,
+        };
         Self {
             buffers: roots
                 .values()
@@ -30,12 +47,15 @@ impl Program {
                 .collect(),
             init_shaders: Self::sorted_buffers(roots, index)
                 .into_iter()
-                .map(|item| Shader::from_buffer_item(item, index, root_path))
+                .map(|item| Shader::from_buffer_item(item, &mut ctx))
+                .collect::<Vec<_>>()
+                .into_iter()
                 .chain(roots.values().flat_map(|root| {
                     root.items
                         .iter()
                         .filter_map(|item| item.as_init())
-                        .map(|item| Shader::from_init_item(item, index, root_path))
+                        .map(|item| Shader::from_init_item(item, &mut ctx))
+                        .collect::<Vec<_>>()
                 }))
                 .collect(),
             run_shaders: roots
@@ -44,7 +64,8 @@ impl Program {
                     root.items
                         .iter()
                         .filter_map(|item| item.as_run())
-                        .map(|item| Shader::from_run_item(item, index, root_path))
+                        .map(|item| Shader::from_run_item(item, &mut ctx))
+                        .collect::<Vec<_>>()
                 })
                 .collect(),
         }
@@ -100,54 +121,57 @@ pub struct Shader {
 }
 
 impl Shader {
-    fn from_buffer_item(item: &BufferItem, index: &NodeIndex, root_path: &Path) -> Self {
-        let mut ctx = TranspilationContext {
-            index,
-            next_binding: 0,
-        };
+    fn from_buffer_item(item: &BufferItem, ctx: &mut TranspilationContext<'_>) -> Self {
+        ctx.next_binding = 0;
         Self {
-            code: item.transpile_shader(&mut ctx),
-            buffers: Self::find_buffers(item, index, root_path)
+            code: item.transpile_shader(ctx),
+            buffers: Self::find_buffers(item, ctx)
                 .into_iter()
-                .chain([item.item_path(root_path)])
+                .chain([item.item_path(ctx.root_path)])
                 .collect(),
         }
     }
 
-    fn from_init_item(item: &InitItem, index: &NodeIndex, root_path: &Path) -> Self {
-        let mut ctx = TranspilationContext {
-            index,
-            next_binding: 0,
-        };
+    fn from_init_item(item: &InitItem, ctx: &mut TranspilationContext<'_>) -> Self {
+        ctx.next_binding = 0;
         Self {
-            code: item.transpile_shader(&mut ctx),
-            buffers: Self::find_buffers(item, index, root_path),
+            code: item.transpile_shader(ctx),
+            buffers: Self::find_buffers(item, ctx),
         }
     }
 
-    fn from_run_item(item: &RunItem, index: &NodeIndex, root_path: &Path) -> Self {
-        let mut ctx = TranspilationContext {
-            index,
-            next_binding: 0,
-        };
+    fn from_run_item(item: &RunItem, ctx: &mut TranspilationContext<'_>) -> Self {
+        ctx.next_binding = 0;
         Self {
-            code: item.transpile_shader(&mut ctx),
-            buffers: Self::find_buffers(item, index, root_path),
+            code: item.transpile_shader(ctx),
+            buffers: Self::find_buffers(item, ctx),
         }
     }
 
-    fn find_buffers(item: &impl Node, index: &NodeIndex, root_path: &Path) -> Vec<String> {
-        item.nested_sources(index)
+    fn find_buffers(item: &impl Node, ctx: &TranspilationContext<'_>) -> Vec<String> {
+        item.nested_sources(ctx.index)
             .iter()
             .filter_map(|source| (*source as &dyn Any).downcast_ref::<BufferItem>())
-            .map(|buffer| buffer.item_path(root_path))
+            .map(|buffer| buffer.item_path(ctx.root_path))
             .collect()
     }
 }
 
+#[derive(Debug)]
 pub(crate) struct TranspilationContext<'a> {
     pub(crate) index: &'a NodeIndex,
+    pub(crate) generated_stmts: Vec<String>,
+    pub(crate) inline_state: InlineState,
+    block_inline_mappings: Vec<HashMap<u32, String>>,
+    root_path: &'a Path,
     next_binding: u32,
+    next_node_id: u32,
+}
+
+#[derive(Debug, Clone, Copy)]
+pub(crate) struct InlineState {
+    pub(crate) is_inlined: bool,
+    pub(crate) return_var_id: Option<u32>,
 }
 
 impl TranspilationContext<'_> {
@@ -155,5 +179,32 @@ impl TranspilationContext<'_> {
         let binding = self.next_binding;
         self.next_binding += 1;
         binding
+    }
+
+    pub(crate) fn next_node_id(&mut self) -> u32 {
+        let id = self.next_node_id;
+        self.next_node_id += 1;
+        id
+    }
+
+    pub(crate) fn start_block(&mut self) {
+        self.block_inline_mappings.push(HashMap::new());
+    }
+
+    pub(crate) fn end_block(&mut self) {
+        self.block_inline_mappings.pop();
+    }
+
+    pub(crate) fn inline_mapping(&self, id: u32) -> Option<&str> {
+        self.block_inline_mappings
+            .iter()
+            .rev()
+            .find_map(|mapping| mapping.get(&id))
+            .map(|mapping| &**mapping)
+    }
+
+    pub(crate) fn add_inline_mapping(&mut self, id: u32, mapping: impl Into<String>) {
+        let last_block = self.block_inline_mappings.len() - 1;
+        self.block_inline_mappings[last_block].insert(id, mapping.into());
     }
 }

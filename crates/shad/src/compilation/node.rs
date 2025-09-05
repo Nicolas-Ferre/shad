@@ -625,7 +625,7 @@ macro_rules! transform {
             fn transpile(
                 &self,
                 ctx: &mut crate::compilation::transpilation::TranspilationContext<'_>,
-            ) -> String {
+            ) -> std::string::String {
                 match self {
                     Self::Parsed(child) => child.transpile(ctx),
                     Self::Transformed(child) => child.transpile(ctx),

@@ -10,6 +10,7 @@ keyword!(FnKeyword, "fn");
 keyword!(ImportKeyword, "import");
 keyword!(InitKeyword, "init");
 keyword!(NativeKeyword, "native");
+keyword!(RefKeyword, "ref");
 keyword!(RunKeyword, "run");
 keyword!(ReturnKeyword, "return");
 keyword!(VarKeyword, "var");

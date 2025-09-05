@@ -72,7 +72,11 @@ impl NodeConfig for VarIdentExpr {
             .source(ctx.index)
             .expect("internal error: var ident source not found")
             .id;
-        format!("_{source_id}")
+        if let Some(mapping) = ctx.inline_mapping(source_id) {
+            mapping.to_string()
+        } else {
+            format!("_{source_id}")
+        }
     }
 }
 
