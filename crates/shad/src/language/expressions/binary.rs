@@ -5,7 +5,8 @@ use crate::compilation::node::{
 use crate::compilation::transpilation::TranspilationContext;
 use crate::compilation::validation::ValidationContext;
 use crate::language::expressions::operand::OperandExpr;
-use crate::language::expressions::{check_missing_source, transformations, transpile_fn_call};
+use crate::language::expressions::{check_missing_source, transformations};
+use crate::language::expressions::fn_call::transpile_fn_call;
 use crate::language::keywords::{
     AndSymbol, CloseAngleBracketSymbol, DoubleEqSymbol, GreaterEqSymbol, HyphenSymbol,
     LessEqSymbol, NotEqSymbol, OpenAngleBracketSymbol, OrSymbol, PercentSymbol, PlusSymbol,
@@ -38,13 +39,19 @@ sequence!(
 );
 
 impl NodeConfig for ParsedExpr {
+    fn is_ref(&self, index: &NodeIndex) -> bool {
+        self.left.is_ref(index)
+    }
+
     fn expr_type(&self, index: &NodeIndex) -> Option<String> {
-        debug_assert!(self.right.iter().len() == 0);
         self.left.expr_type(index)
     }
 
-    fn transpile(&self, ctx: &mut TranspilationContext<'_>) -> String {
+    fn validate(&self, _ctx: &mut ValidationContext<'_>) {
         debug_assert!(self.right.iter().len() == 0);
+    }
+
+    fn transpile(&self, ctx: &mut TranspilationContext<'_>) -> String {
         self.left.transpile(ctx)
     }
 }
@@ -89,6 +96,11 @@ impl NodeConfig for TransformedExpr {
 
     fn source_search_criteria(&self) -> &'static [NodeSourceSearchCriteria] {
         sources::fn_criteria()
+    }
+
+    fn is_ref(&self, index: &NodeIndex) -> bool {
+        self.source(index)
+            .is_some_and(|source| source.is_ref(index))
     }
 
     fn expr_type(&self, index: &NodeIndex) -> Option<String> {

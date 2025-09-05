@@ -5,10 +5,10 @@ use crate::compilation::node::{
 use crate::compilation::transpilation::TranspilationContext;
 use crate::compilation::validation::ValidationContext;
 use crate::language::expressions::binary::Expr;
-use crate::language::expressions::fn_call::{AssociatedFnCallSuffix, FnCallExpr};
+use crate::language::expressions::fn_call::{transpile_fn_call, AssociatedFnCallSuffix, FnCallExpr};
 use crate::language::expressions::simple::{FalseExpr, ParenthesizedExpr, TrueExpr, VarIdentExpr};
 use crate::language::expressions::unary::{NegUnaryExpr, NotUnaryExpr};
-use crate::language::expressions::{check_missing_source, transformations, transpile_fn_call};
+use crate::language::expressions::{check_missing_source, transformations};
 use crate::language::patterns::{F32Literal, I32Literal, U32Literal};
 use crate::language::sources;
 use std::iter;
@@ -38,13 +38,19 @@ sequence!(
 );
 
 impl NodeConfig for ParsedOperandExpr {
+    fn is_ref(&self, index: &NodeIndex) -> bool {
+        self.expr.is_ref(index)
+    }
+
     fn expr_type(&self, index: &NodeIndex) -> Option<String> {
-        debug_assert!(self.call_suffix.iter().len() == 0);
         self.expr.expr_type(index)
     }
 
-    fn transpile(&self, ctx: &mut TranspilationContext<'_>) -> String {
+    fn validate(&self, _ctx: &mut ValidationContext<'_>) {
         debug_assert!(self.call_suffix.iter().len() == 0);
+    }
+
+    fn transpile(&self, ctx: &mut TranspilationContext<'_>) -> String {
         self.expr.transpile(ctx)
     }
 }
@@ -65,7 +71,6 @@ sequence!(
 
 impl NodeConfig for TransformedOperandExpr {
     fn source_key(&self, index: &NodeIndex) -> Option<String> {
-        debug_assert!(self.call_suffix.iter().len() <= 1);
         let suffix = &self.call_suffix.iter().next()?;
         sources::fn_key_from_args(&suffix.ident, self.args(suffix), index)
     }
@@ -74,8 +79,16 @@ impl NodeConfig for TransformedOperandExpr {
         sources::fn_criteria()
     }
 
+    fn is_ref(&self, index: &NodeIndex) -> bool {
+        if self.call_suffix.iter().next().is_some() {
+            self.source(index)
+                .is_some_and(|source| source.is_ref(index))
+        } else {
+            self.expr.is_ref(index)
+        }
+    }
+
     fn expr_type(&self, index: &NodeIndex) -> Option<String> {
-        debug_assert!(self.call_suffix.iter().len() <= 1);
         if self.call_suffix.iter().next().is_some() {
             self.source(index)?.expr_type(index)
         } else {
@@ -84,11 +97,11 @@ impl NodeConfig for TransformedOperandExpr {
     }
 
     fn validate(&self, ctx: &mut ValidationContext<'_>) {
+        debug_assert!(self.call_suffix.iter().len() <= 1);
         check_missing_source(self, ctx);
     }
 
     fn transpile(&self, ctx: &mut TranspilationContext<'_>) -> String {
-        debug_assert!(self.call_suffix.iter().len() <= 1);
         if let Some(suffix) = &self.call_suffix.iter().next() {
             let source = self
                 .source(ctx.index)
@@ -132,6 +145,21 @@ choice!(
 );
 
 impl NodeConfig for OperandPrefix {
+    fn is_ref(&self, index: &NodeIndex) -> bool {
+        match self {
+            Self::True(_)
+            | Self::False(_)
+            | Self::F32(_)
+            | Self::U32(_)
+            | Self::I32(_)
+            | Self::Parenthesized(_) => false,
+            Self::Var(_) => true,
+            Self::FnCall(child) => child.is_ref(index),
+            Self::NegUnary(child) => child.is_ref(index),
+            Self::NotUnary(child) => child.is_ref(index),
+        }
+    }
+
     fn expr_type(&self, index: &NodeIndex) -> Option<String> {
         match self {
             Self::True(child) => child.expr_type(index),

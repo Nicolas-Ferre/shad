@@ -7,6 +7,14 @@ run {
     // repeat same inline function multiple times to ensure deduplicated var names
     assign_return(result, assigned_value); // not assigned returned value
     incremented_result = result.assign_return(assign_return(result, assigned_value));
+
+    // pass non-reference as reference (creates a new variable behind the hood)
+    0.assign_no_return(2);
+    -1.assign_no_return(2);
+    to_i32(!true);
+    (0 + 1).assign_no_return(2);
+    0.assign_return(1).assign_no_return(2);
+    i32(true).assign_no_return(2);
 }
 
 fn assign_return(output: ref i32, input: i32) -> i32 {
@@ -18,4 +26,8 @@ fn assign_return(output: ref i32, input: i32) -> i32 {
 
 fn assign_no_return(output: ref i32, input: i32) {
     output = input;
+}
+
+fn to_i32(value: ref bool) -> i32 {
+    return i32(value);
 }

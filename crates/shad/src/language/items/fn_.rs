@@ -32,6 +32,10 @@ impl NodeConfig for NativeFnItem {
         Some(self.signature.fn_key())
     }
 
+    fn is_ref(&self, _index: &NodeIndex) -> bool {
+        false
+    }
+
     fn expr_type(&self, index: &NodeIndex) -> Option<String> {
         self.signature.expr_type(index)
     }
@@ -52,6 +56,10 @@ sequence!(
 impl NodeConfig for FnItem {
     fn key(&self) -> Option<String> {
         Some(self.signature.fn_key())
+    }
+
+    fn is_ref(&self, _index: &NodeIndex) -> bool {
+        false
     }
 
     fn expr_type(&self, index: &NodeIndex) -> Option<String> {

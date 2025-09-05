@@ -3,10 +3,11 @@ use crate::compilation::node::{sequence, Node, NodeConfig, NodeSourceSearchCrite
 use crate::compilation::transpilation::TranspilationContext;
 use crate::compilation::validation::ValidationContext;
 use crate::language::expressions::operand::OperandExpr;
-use crate::language::expressions::{check_missing_source, transpile_fn_call};
+use crate::language::expressions::check_missing_source;
 use crate::language::keywords::{ExclamationSymbol, HyphenSymbol};
 use crate::language::sources;
 use std::iter;
+use crate::language::expressions::fn_call::transpile_fn_call;
 
 sequence!(
     struct NegUnaryExpr {
@@ -24,6 +25,11 @@ impl NodeConfig for NegUnaryExpr {
 
     fn source_search_criteria(&self) -> &'static [NodeSourceSearchCriteria] {
         sources::fn_criteria()
+    }
+
+    fn is_ref(&self, index: &NodeIndex) -> bool {
+        self.source(index)
+            .is_some_and(|source| source.is_ref(index))
     }
 
     fn expr_type(&self, index: &NodeIndex) -> Option<String> {
@@ -58,6 +64,11 @@ impl NodeConfig for NotUnaryExpr {
 
     fn source_search_criteria(&self) -> &'static [NodeSourceSearchCriteria] {
         sources::fn_criteria()
+    }
+
+    fn is_ref(&self, index: &NodeIndex) -> bool {
+        self.source(index)
+            .is_some_and(|source| source.is_ref(index))
     }
 
     fn expr_type(&self, index: &NodeIndex) -> Option<String> {

@@ -51,6 +51,10 @@ pub(crate) trait NodeConfig {
         unreachable!("`{}` node has no source criteria", type_name::<Self>())
     }
 
+    fn is_ref(&self, index: &NodeIndex) -> bool {
+        unreachable!("`{}` node has no ref checking", type_name::<Self>())
+    }
+
     fn expr_type(&self, index: &NodeIndex) -> Option<String> {
         unreachable!("`{}` node has no expr type", type_name::<Self>())
     }
@@ -615,6 +619,13 @@ macro_rules! transform {
         }
 
         impl crate::compilation::node::NodeConfig for $typename {
+            fn is_ref(&self, index: &crate::compilation::index::NodeIndex) -> bool {
+                match self {
+                    Self::Parsed(child) => child.is_ref(index),
+                    Self::Transformed(child) => child.is_ref(index),
+                }
+            }
+            
             fn expr_type(&self, index: &crate::compilation::index::NodeIndex) -> Option<String> {
                 match self {
                     Self::Parsed(child) => child.expr_type(index),
