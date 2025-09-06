@@ -21,15 +21,6 @@ transform!(
     transformations::transform_binary_expr
 );
 
-impl MaybeBinaryExpr {
-    pub(crate) fn is_fn_call(&self) -> bool {
-        match self {
-            Self::Parsed(child) => child.is_fn_call(),
-            Self::Transformed(_) => unreachable!("binary op is invalid syntax in expr stmt"),
-        }
-    }
-}
-
 sequence!(
     struct ParsedMaybeBinaryExpr {
         left: ChainExpr,
@@ -53,12 +44,6 @@ impl NodeConfig for ParsedMaybeBinaryExpr {
 
     fn transpile(&self, ctx: &mut TranspilationContext<'_>) -> String {
         self.left.transpile(ctx)
-    }
-}
-
-impl ParsedMaybeBinaryExpr {
-    pub(crate) fn is_fn_call(&self) -> bool {
-        self.left.is_fn_call()
     }
 }
 

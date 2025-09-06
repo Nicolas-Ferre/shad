@@ -62,14 +62,6 @@ error: undefined item
    |     |
    |     `func2(i32, i32)` function is undefined
 
-error: invalid statement
-  --> ./cases_invalid/expressions/fn_call.shd:17:5
-   |
-17 |     0;
-   |     ^^
-   |     |
-   |     this expression must be assigned to a variable
-
 error: invalid expression type
  --> ./cases_invalid/expressions/no_return_type.shd:1:14
   |

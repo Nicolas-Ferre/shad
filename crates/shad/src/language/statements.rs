@@ -2,7 +2,7 @@ use crate::compilation::index::NodeIndex;
 use crate::compilation::node::{choice, sequence, NodeConfig};
 use crate::compilation::transpilation::TranspilationContext;
 use crate::compilation::validation::ValidationContext;
-use crate::language::expressions::chain::ChainExpr;
+use crate::language::expressions::binary::MaybeBinaryExpr;
 use crate::language::expressions::simple::VarIdentExpr;
 use crate::language::expressions::TypedExpr;
 use crate::language::items::type_::NO_RETURN_TYPE;
@@ -114,30 +114,19 @@ impl NodeConfig for AssignmentStmt {
 sequence!(
     #[allow(unused_mut)]
     struct ExprStmt {
-        expr: ChainExpr,
+        expr: MaybeBinaryExpr,
         semicolon: SemicolonSymbol,
     }
 );
 
 impl NodeConfig for ExprStmt {
-    fn validate(&self, ctx: &mut ValidationContext<'_>) {
-        if !self.expr.is_fn_call() {
-            ctx.errors.push(ValidationError::error(
-                ctx,
-                self,
-                "invalid statement",
-                Some("this expression must be assigned to a variable"),
-                &[],
-            ));
-        }
-    }
-
     fn transpile(&self, ctx: &mut TranspilationContext<'_>) -> String {
         let expr = self.expr.transpile(ctx);
-        if expr.contains('(') {
+        if self.expr.expr_type(ctx.index).as_deref() == Some(NO_RETURN_TYPE) {
             format!("{expr};")
         } else {
-            String::new()
+            let id = ctx.next_node_id();
+            format!("var _{id} = {expr};")
         }
     }
 }

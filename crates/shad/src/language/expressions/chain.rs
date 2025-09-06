@@ -22,15 +22,6 @@ transform!(
     transformations::transform_chain_expr
 );
 
-impl ChainExpr {
-    pub(crate) fn is_fn_call(&self) -> bool {
-        match self {
-            Self::Parsed(child) => child.is_fn_call(),
-            Self::Transformed(child) => child.is_fn_call(),
-        }
-    }
-}
-
 sequence!(
     struct ParsedChainExpr {
         expr: ChainPrefix,
@@ -54,12 +45,6 @@ impl NodeConfig for ParsedChainExpr {
 
     fn transpile(&self, ctx: &mut TranspilationContext<'_>) -> String {
         self.expr.transpile(ctx)
-    }
-}
-
-impl ParsedChainExpr {
-    pub(crate) fn is_fn_call(&self) -> bool {
-        self.expr.is_fn_call()
     }
 }
 
@@ -116,10 +101,6 @@ impl NodeConfig for TransformedChainExpr {
 }
 
 impl TransformedChainExpr {
-    pub(crate) fn is_fn_call(&self) -> bool {
-        self.call_suffix.iter().len() == 1 || self.expr.is_fn_call()
-    }
-
     fn args<'a>(
         &'a self,
         suffix: &'a AssociatedFnCallSuffix,
@@ -189,22 +170,6 @@ impl NodeConfig for ChainPrefix {
             Self::Var(child) => child.transpile(ctx),
             Self::Unary(child) => child.transpile(ctx),
             Self::Parenthesized(child) => child.transpile(ctx),
-        }
-    }
-}
-
-impl ChainPrefix {
-    pub(crate) fn is_fn_call(&self) -> bool {
-        match self {
-            Self::FnCall(_) => true,
-            Self::True(_)
-            | Self::False(_)
-            | Self::F32(_)
-            | Self::U32(_)
-            | Self::I32(_)
-            | Self::Var(_)
-            | Self::Unary(_)
-            | Self::Parenthesized(_) => false,
         }
     }
 }

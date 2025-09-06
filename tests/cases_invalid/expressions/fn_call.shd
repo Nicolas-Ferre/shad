@@ -14,5 +14,4 @@ run {
     0.func();
     func2(func2(func2()));
     0.func2().func2().func2(1).func2();
-    0;
 }
