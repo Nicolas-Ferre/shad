@@ -1,6 +1,6 @@
 use crate::compilation::index::NodeIndex;
 use crate::compilation::node::{NodeConfig, NodeSourceSearchCriteria, Repeated};
-use crate::language::expressions::binary::Expr;
+use crate::language::expressions::binary::MaybeBinaryExpr;
 use crate::language::items::buffer::BufferItem;
 use crate::language::items::fn_::{FnItem, FnParam, FnParamGroup, NativeFnItem};
 use crate::language::patterns::Ident;
@@ -25,7 +25,7 @@ pub(crate) fn fn_key_from_params(ident: &Ident, params: &Repeated<FnParamGroup, 
 
 pub(crate) fn fn_key_from_args<'a>(
     ident: &Ident,
-    args: impl Iterator<Item = &'a Expr>,
+    args: impl Iterator<Item = &'a MaybeBinaryExpr>,
     index: &NodeIndex,
 ) -> Option<String> {
     let name = &ident.slice;

@@ -4,7 +4,7 @@ use crate::compilation::node::{
 };
 use crate::compilation::transpilation::TranspilationContext;
 use crate::compilation::validation::ValidationContext;
-use crate::language::expressions::binary::Expr;
+use crate::language::expressions::binary::MaybeBinaryExpr;
 use crate::language::expressions::fn_call::{
     transpile_fn_call, AssociatedFnCallSuffix, FnCallExpr,
 };
@@ -16,13 +16,13 @@ use crate::language::sources;
 use std::iter;
 
 transform!(
-    OperandExpr,
-    ParsedOperandExpr,
-    TransformedOperandExpr,
-    transformations::transform_binary_operand
+    ChainExpr,
+    ParsedChainExpr,
+    TransformedChainExpr,
+    transformations::transform_chain_expr
 );
 
-impl OperandExpr {
+impl ChainExpr {
     pub(crate) fn is_fn_call(&self) -> bool {
         match self {
             Self::Parsed(child) => child.is_fn_call(),
@@ -32,14 +32,14 @@ impl OperandExpr {
 }
 
 sequence!(
-    struct ParsedOperandExpr {
-        expr: OperandPrefix,
+    struct ParsedChainExpr {
+        expr: ChainPrefix,
         #[force_error(true)]
         call_suffix: Repeated<AssociatedFnCallSuffix, 0, { usize::MAX }>,
     }
 );
 
-impl NodeConfig for ParsedOperandExpr {
+impl NodeConfig for ParsedChainExpr {
     fn is_ref(&self, index: &NodeIndex) -> bool {
         self.expr.is_ref(index)
     }
@@ -57,7 +57,7 @@ impl NodeConfig for ParsedOperandExpr {
     }
 }
 
-impl ParsedOperandExpr {
+impl ParsedChainExpr {
     pub(crate) fn is_fn_call(&self) -> bool {
         self.expr.is_fn_call()
     }
@@ -65,13 +65,13 @@ impl ParsedOperandExpr {
 
 sequence!(
     #[allow(unused_mut)]
-    struct TransformedOperandExpr {
-        expr: Expr,
+    struct TransformedChainExpr {
+        expr: MaybeBinaryExpr,
         call_suffix: Repeated<AssociatedFnCallSuffix, 0, 1>,
     }
 );
 
-impl NodeConfig for TransformedOperandExpr {
+impl NodeConfig for TransformedChainExpr {
     fn source_key(&self, index: &NodeIndex) -> Option<String> {
         let suffix = &self.call_suffix.iter().next()?;
         sources::fn_key_from_args(&suffix.ident, self.args(suffix), index)
@@ -115,12 +115,15 @@ impl NodeConfig for TransformedOperandExpr {
     }
 }
 
-impl TransformedOperandExpr {
+impl TransformedChainExpr {
     pub(crate) fn is_fn_call(&self) -> bool {
         self.call_suffix.iter().len() == 1 || self.expr.is_fn_call()
     }
 
-    fn args<'a>(&'a self, suffix: &'a AssociatedFnCallSuffix) -> impl Iterator<Item = &'a Expr> {
+    fn args<'a>(
+        &'a self,
+        suffix: &'a AssociatedFnCallSuffix,
+    ) -> impl Iterator<Item = &'a MaybeBinaryExpr> {
         iter::once(&*self.expr).chain(
             suffix
                 .args
@@ -132,7 +135,7 @@ impl TransformedOperandExpr {
 
 choice!(
     #[allow(clippy::large_enum_variant)]
-    enum OperandPrefix {
+    enum ChainPrefix {
         True(TrueExpr),
         False(FalseExpr),
         F32(F32Literal),
@@ -146,7 +149,7 @@ choice!(
     }
 );
 
-impl NodeConfig for OperandPrefix {
+impl NodeConfig for ChainPrefix {
     fn is_ref(&self, index: &NodeIndex) -> bool {
         match self {
             Self::True(_)
@@ -193,7 +196,7 @@ impl NodeConfig for OperandPrefix {
     }
 }
 
-impl OperandPrefix {
+impl ChainPrefix {
     pub(crate) fn is_fn_call(&self) -> bool {
         match self {
             Self::FnCall(_) => true,

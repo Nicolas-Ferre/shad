@@ -2,7 +2,7 @@ use crate::compilation::index::NodeIndex;
 use crate::compilation::node::{choice, sequence, NodeConfig};
 use crate::compilation::transpilation::TranspilationContext;
 use crate::compilation::validation::ValidationContext;
-use crate::language::expressions::operand::OperandExpr;
+use crate::language::expressions::chain::ChainExpr;
 use crate::language::expressions::simple::VarIdentExpr;
 use crate::language::expressions::TypedExpr;
 use crate::language::items::type_::NO_RETURN_TYPE;
@@ -114,7 +114,7 @@ impl NodeConfig for AssignmentStmt {
 sequence!(
     #[allow(unused_mut)]
     struct ExprStmt {
-        expr: OperandExpr,
+        expr: ChainExpr,
         semicolon: SemicolonSymbol,
     }
 );

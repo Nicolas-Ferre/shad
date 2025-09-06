@@ -1,9 +1,9 @@
 use crate::compilation::node::{Node, NodeProps, Repeated};
-use crate::language::expressions::binary::{BinaryOperator, Expr, ParsedExpr, TransformedExpr};
-use crate::language::expressions::fn_call::AssociatedFnCallSuffix;
-use crate::language::expressions::operand::{
-    OperandExpr, ParsedOperandExpr, TransformedOperandExpr,
+use crate::language::expressions::binary::{
+    BinaryExpr, BinaryOperator, MaybeBinaryExpr, ParsedMaybeBinaryExpr,
 };
+use crate::language::expressions::chain::{ChainExpr, ParsedChainExpr, TransformedChainExpr};
+use crate::language::expressions::fn_call::AssociatedFnCallSuffix;
 use itertools::Itertools;
 use std::iter;
 use std::rc::Rc;
@@ -16,18 +16,33 @@ const OPERATOR_PRIORITY: &[&[&str]] = &[
     &["*", "/", "%"],
 ];
 
-pub(crate) fn transform_expr(expr: ParsedExpr) -> Expr {
+pub(crate) fn transform_binary_expr(expr: ParsedMaybeBinaryExpr) -> MaybeBinaryExpr {
     let operators: Vec<_> = expr.right.iter().map(|right| &right.operator).collect();
     if operators.is_empty() {
-        return Expr::Parsed(Rc::new(expr));
+        return MaybeBinaryExpr::Parsed(Rc::new(expr));
     }
     let operands: Vec<_> = iter::once(&expr.left)
         .chain(expr.right.iter().map(|right| &right.operand))
         .collect();
-    transform_binary_expr(&operators, &operands)
+    transform_binary_expr_inner(&operators, &operands)
 }
 
-fn transform_binary_expr(operators: &[&Rc<BinaryOperator>], operands: &[&Rc<OperandExpr>]) -> Expr {
+pub(crate) fn transform_chain_expr(expr: ParsedChainExpr) -> ChainExpr {
+    let suffix: Vec<_> = Rc::into_inner(expr.call_suffix)
+        .expect("internal error: cannot extract expression suffix")
+        .take();
+    let prefix = Rc::new(ChainExpr::Parsed(Rc::new(ParsedChainExpr {
+        expr: expr.expr,
+        call_suffix: Rc::new(Repeated::new(expr.props.clone())),
+        props: expr.props,
+    })));
+    ChainExpr::Transformed(Rc::new(transform_chain_expr_inner(prefix, suffix)))
+}
+
+fn transform_binary_expr_inner(
+    operators: &[&Rc<BinaryOperator>],
+    operands: &[&Rc<ChainExpr>],
+) -> MaybeBinaryExpr {
     let split_index = split_index(operators);
     let operator = operators[split_index];
     let left_operators = &operators[..split_index];
@@ -35,24 +50,24 @@ fn transform_binary_expr(operators: &[&Rc<BinaryOperator>], operands: &[&Rc<Oper
     let left_operands = &operands[..=split_index];
     let right_operands = &operands[split_index + 1..];
     let left = if left_operators.is_empty() {
-        Expr::Parsed(Rc::new(ParsedExpr {
+        MaybeBinaryExpr::Parsed(Rc::new(ParsedMaybeBinaryExpr {
             right: Rc::new(Repeated::new(operands[0].props().clone())),
             props: operands[0].props().clone(),
             left: operands[0].clone(),
         }))
     } else {
-        transform_binary_expr(left_operators, left_operands)
+        transform_binary_expr_inner(left_operators, left_operands)
     };
     let right = if right_operators.is_empty() {
-        Expr::Parsed(Rc::new(ParsedExpr {
+        MaybeBinaryExpr::Parsed(Rc::new(ParsedMaybeBinaryExpr {
             right: Rc::new(Repeated::new(right_operands[0].props().clone())),
             props: right_operands[0].props().clone(),
             left: right_operands[0].clone(),
         }))
     } else {
-        transform_binary_expr(right_operators, right_operands)
+        transform_binary_expr_inner(right_operators, right_operands)
     };
-    Expr::Transformed(Rc::new(TransformedExpr {
+    MaybeBinaryExpr::Transformed(Rc::new(BinaryExpr {
         props: NodeProps {
             id: operator.id,
             parent_ids: operator.parent_ids.clone(),
@@ -77,24 +92,12 @@ fn split_index(operators: &[&Rc<BinaryOperator>]) -> usize {
     unreachable!("no operator found in binary node")
 }
 
-pub(crate) fn transform_binary_operand(expr: ParsedOperandExpr) -> OperandExpr {
-    let suffix: Vec<_> = Rc::into_inner(expr.call_suffix)
-        .expect("internal error: cannot extract expression suffix")
-        .take();
-    let prefix = Rc::new(OperandExpr::Parsed(Rc::new(ParsedOperandExpr {
-        expr: expr.expr,
-        call_suffix: Rc::new(Repeated::new(expr.props.clone())),
-        props: expr.props,
-    })));
-    OperandExpr::Transformed(Rc::new(transform_associated_call(prefix, suffix)))
-}
-
-fn transform_associated_call(
-    prefix: Rc<OperandExpr>,
+fn transform_chain_expr_inner(
+    prefix: Rc<ChainExpr>,
     mut suffixes: Vec<Rc<AssociatedFnCallSuffix>>,
-) -> TransformedOperandExpr {
+) -> TransformedChainExpr {
     if let Some(suffix) = suffixes.pop().and_then(Rc::into_inner) {
-        TransformedOperandExpr {
+        TransformedChainExpr {
             props: NodeProps {
                 id: prefix.id,
                 parent_ids: prefix.parent_ids.clone(),
@@ -109,19 +112,19 @@ fn transform_associated_call(
             },
             call_suffix: Rc::new(Repeated::from_node(suffix)),
             expr: {
-                let new_expr = transform_associated_call(prefix, suffixes);
-                Rc::new(Expr::Parsed(Rc::new(ParsedExpr {
+                let new_expr = transform_chain_expr_inner(prefix, suffixes);
+                Rc::new(MaybeBinaryExpr::Parsed(Rc::new(ParsedMaybeBinaryExpr {
                     right: Rc::new(Repeated::new(new_expr.props().clone())),
                     props: new_expr.props().clone(),
-                    left: Rc::new(OperandExpr::Transformed(Rc::new(new_expr))),
+                    left: Rc::new(ChainExpr::Transformed(Rc::new(new_expr))),
                 })))
             },
         }
     } else {
-        TransformedOperandExpr {
+        TransformedChainExpr {
             call_suffix: Rc::new(Repeated::new(prefix.props().clone())),
             props: prefix.props().clone(),
-            expr: Rc::new(Expr::Parsed(Rc::new(ParsedExpr {
+            expr: Rc::new(MaybeBinaryExpr::Parsed(Rc::new(ParsedMaybeBinaryExpr {
                 right: Rc::new(Repeated::new(prefix.props().clone())),
                 props: prefix.props().clone(),
                 left: prefix,

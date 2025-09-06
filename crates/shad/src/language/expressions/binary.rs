@@ -4,8 +4,8 @@ use crate::compilation::node::{
 };
 use crate::compilation::transpilation::TranspilationContext;
 use crate::compilation::validation::ValidationContext;
+use crate::language::expressions::chain::ChainExpr;
 use crate::language::expressions::fn_call::transpile_fn_call;
-use crate::language::expressions::operand::OperandExpr;
 use crate::language::expressions::{check_missing_source, transformations};
 use crate::language::keywords::{
     AndSymbol, CloseAngleBracketSymbol, DoubleEqSymbol, GreaterEqSymbol, HyphenSymbol,
@@ -15,13 +15,13 @@ use crate::language::keywords::{
 use crate::language::sources;
 
 transform!(
-    Expr,
-    ParsedExpr,
-    TransformedExpr,
-    transformations::transform_expr
+    MaybeBinaryExpr,
+    ParsedMaybeBinaryExpr,
+    BinaryExpr,
+    transformations::transform_binary_expr
 );
 
-impl Expr {
+impl MaybeBinaryExpr {
     pub(crate) fn is_fn_call(&self) -> bool {
         match self {
             Self::Parsed(child) => child.is_fn_call(),
@@ -31,14 +31,14 @@ impl Expr {
 }
 
 sequence!(
-    struct ParsedExpr {
-        left: OperandExpr,
+    struct ParsedMaybeBinaryExpr {
+        left: ChainExpr,
         #[force_error(true)]
-        right: Repeated<BinaryRight, 0, { usize::MAX }>,
+        right: Repeated<ParsedBinaryRight, 0, { usize::MAX }>,
     }
 );
 
-impl NodeConfig for ParsedExpr {
+impl NodeConfig for ParsedMaybeBinaryExpr {
     fn is_ref(&self, index: &NodeIndex) -> bool {
         self.left.is_ref(index)
     }
@@ -56,7 +56,7 @@ impl NodeConfig for ParsedExpr {
     }
 }
 
-impl ParsedExpr {
+impl ParsedMaybeBinaryExpr {
     pub(crate) fn is_fn_call(&self) -> bool {
         self.left.is_fn_call()
     }
@@ -64,14 +64,14 @@ impl ParsedExpr {
 
 sequence!(
     #[allow(unused_mut)]
-    struct TransformedExpr {
-        left: Expr,
+    struct BinaryExpr {
+        left: MaybeBinaryExpr,
         operator: BinaryOperator,
-        right: Expr,
+        right: MaybeBinaryExpr,
     }
 );
 
-impl NodeConfig for TransformedExpr {
+impl NodeConfig for BinaryExpr {
     fn source_key(&self, index: &NodeIndex) -> Option<String> {
         let name = match &*self.operator {
             BinaryOperator::Add(_) => "__add__",
@@ -120,14 +120,14 @@ impl NodeConfig for TransformedExpr {
 }
 
 sequence!(
-    struct BinaryRight {
+    struct ParsedBinaryRight {
         operator: BinaryOperator,
         #[force_error(true)]
-        operand: OperandExpr,
+        operand: ChainExpr,
     }
 );
 
-impl NodeConfig for BinaryRight {}
+impl NodeConfig for ParsedBinaryRight {}
 
 choice!(
     enum BinaryOperator {

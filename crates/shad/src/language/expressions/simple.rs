@@ -2,7 +2,7 @@ use crate::compilation::index::NodeIndex;
 use crate::compilation::node::{sequence, Node, NodeConfig, NodeSourceSearchCriteria};
 use crate::compilation::transpilation::TranspilationContext;
 use crate::compilation::validation::ValidationContext;
-use crate::language::expressions::{check_missing_source, Expr};
+use crate::language::expressions::{check_missing_source, MaybeBinaryExpr};
 use crate::language::keywords::{
     CloseParenthesisSymbol, FalseKeyword, OpenParenthesisSymbol, TrueKeyword,
 };
@@ -84,7 +84,7 @@ sequence!(
     struct ParenthesizedExpr {
         open: OpenParenthesisSymbol,
         #[force_error(true)]
-        expr: Expr,
+        expr: MaybeBinaryExpr,
         close: CloseParenthesisSymbol,
     }
 );

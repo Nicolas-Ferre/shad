@@ -2,13 +2,13 @@ use crate::compilation::index::NodeIndex;
 use crate::compilation::node::{sequence, Node, NodeConfig};
 use crate::compilation::transpilation::TranspilationContext;
 use crate::compilation::validation::ValidationContext;
-use crate::language::expressions::binary::Expr;
+use crate::language::expressions::binary::MaybeBinaryExpr;
 use crate::language::items::type_::NO_RETURN_TYPE;
 use crate::ValidationError;
 
 pub(crate) mod binary;
+pub(crate) mod chain;
 pub(crate) mod fn_call;
-pub(crate) mod operand;
 pub(crate) mod simple;
 mod transformations;
 pub(crate) mod unary;
@@ -16,7 +16,7 @@ pub(crate) mod unary;
 sequence!(
     #[allow(unused_mut)]
     struct TypedExpr {
-        expr: Expr,
+        expr: MaybeBinaryExpr,
     }
 );
 

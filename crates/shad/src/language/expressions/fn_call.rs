@@ -2,7 +2,7 @@ use crate::compilation::index::NodeIndex;
 use crate::compilation::node::{sequence, Node, NodeConfig, NodeSourceSearchCriteria, Repeated};
 use crate::compilation::transpilation::TranspilationContext;
 use crate::compilation::validation::ValidationContext;
-use crate::language::expressions::binary::Expr;
+use crate::language::expressions::binary::MaybeBinaryExpr;
 use crate::language::expressions::check_missing_source;
 use crate::language::items::fn_::{FnItem, NativeFnItem};
 use crate::language::keywords::{
@@ -69,7 +69,7 @@ impl NodeConfig for FnCallExpr {
 }
 
 impl FnCallExpr {
-    fn args(&self) -> impl Iterator<Item = &Expr> {
+    fn args(&self) -> impl Iterator<Item = &MaybeBinaryExpr> {
         self.args
             .iter()
             .flat_map(|args| args.args().map(|arg| &**arg))
@@ -78,7 +78,7 @@ impl FnCallExpr {
 
 sequence!(
     struct FnArgGroup {
-        first_arg: Expr,
+        first_arg: MaybeBinaryExpr,
         #[force_error(true)]
         other_args: Repeated<FnOtherArg, 0, { usize::MAX }>,
         final_comma: Repeated<CommaSymbol, 0, 1>,
@@ -88,7 +88,7 @@ sequence!(
 impl NodeConfig for FnArgGroup {}
 
 impl FnArgGroup {
-    pub(crate) fn args(&self) -> impl Iterator<Item = &Rc<Expr>> {
+    pub(crate) fn args(&self) -> impl Iterator<Item = &Rc<MaybeBinaryExpr>> {
         iter::once(&self.first_arg).chain(self.other_args.iter().map(|other| &other.arg))
     }
 }
@@ -97,7 +97,7 @@ sequence!(
     #[allow(unused_mut)]
     struct FnOtherArg {
         comma: CommaSymbol,
-        arg: Expr,
+        arg: MaybeBinaryExpr,
     }
 );
 
