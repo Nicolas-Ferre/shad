@@ -61,6 +61,7 @@ impl NodeConfig for BufferItem {
 
 impl BufferItem {
     pub(crate) fn transpile_shader(&self, ctx: &mut TranspilationContext<'_>) -> String {
+        let expr = self.expr.transpile(ctx);
         format!(
             indoc!(
                 "{dependencies}
@@ -69,11 +70,13 @@ impl BufferItem {
                 @compute
                 @workgroup_size(1, 1, 1)
                 fn main() {{
+                    {stmts}
                     _{id} = {expr};
                 }}"
             ),
             id = self.id,
-            expr = self.expr.transpile(ctx),
+            stmts = ctx.generated_stmts.join("\n"),
+            expr = expr,
             dependencies = transpiled_dependencies(ctx, self),
             self_ = self.transpile(ctx),
         )

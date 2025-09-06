@@ -1,0 +1,6 @@
+buf buffer = inlined_fn(5);
+
+fn inlined_fn(param: ref i32) -> i32 {
+    var local_var = param;
+    return local_var + 1;
+}
