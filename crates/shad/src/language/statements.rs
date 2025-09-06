@@ -53,6 +53,10 @@ impl NodeConfig for LocalVarDefStmt {
         self.expr.expr_type(index)
     }
 
+    fn is_transpilable_dependency(&self, _index: &NodeIndex) -> bool {
+        false
+    }
+
     fn transpile(&self, ctx: &mut TranspilationContext<'_>) -> String {
         let var_name = if ctx.inline_state.is_inlined {
             let id = ctx.next_node_id();
@@ -85,6 +89,10 @@ impl NodeConfig for LocalRefDefStmt {
 
     fn expr_type(&self, index: &NodeIndex) -> Option<String> {
         self.expr.expr_type(index)
+    }
+
+    fn is_transpilable_dependency(&self, _index: &NodeIndex) -> bool {
+        false
     }
 
     fn transpile(&self, ctx: &mut TranspilationContext<'_>) -> String {

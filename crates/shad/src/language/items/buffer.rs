@@ -43,6 +43,10 @@ impl NodeConfig for BufferItem {
         check_recursive_items(self, ctx);
     }
 
+    fn is_transpilable_dependency(&self, _index: &NodeIndex) -> bool {
+        true
+    }
+
     fn transpile(&self, ctx: &mut TranspilationContext<'_>) -> String {
         format!(
             indoc!(

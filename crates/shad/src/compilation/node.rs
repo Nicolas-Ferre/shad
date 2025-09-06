@@ -61,6 +61,10 @@ pub(crate) trait NodeConfig {
 
     fn validate(&self, ctx: &mut ValidationContext<'_>) {}
 
+    fn is_transpilable_dependency(&self, index: &NodeIndex) -> bool {
+        unreachable!("`{}` node has no dependency checking", type_name::<Self>())
+    }
+
     fn transpile(&self, ctx: &mut TranspilationContext<'_>) -> String {
         unreachable!("`{}` node has no transpilation", type_name::<Self>())
     }

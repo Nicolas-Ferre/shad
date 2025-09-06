@@ -8,7 +8,6 @@ use crate::language::items::fn_::{FnItem, NativeFnItem};
 use crate::language::items::import::ImportItem;
 use crate::ValidationError;
 use itertools::Itertools;
-use std::any::TypeId;
 
 pub(crate) mod block;
 pub(crate) mod buffer;
@@ -79,9 +78,7 @@ fn check_recursive_items(item: &impl Node, ctx: &mut ValidationContext<'_>) {
 fn transpiled_dependencies(ctx: &mut TranspilationContext<'_>, item: &impl Node) -> String {
     item.nested_sources(ctx.index)
         .into_iter()
-        .filter(|source| {
-            [TypeId::of::<BufferItem>(), TypeId::of::<FnItem>()].contains(&(*source).node_type_id())
-        })
+        .filter(|source| source.is_transpilable_dependency(ctx.index))
         .map(|source| source.transpile(ctx))
         .join("\n")
 }

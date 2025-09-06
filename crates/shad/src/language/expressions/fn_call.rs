@@ -116,7 +116,7 @@ pub(crate) fn transpile_fn_call<'a>(
         }
         transpilation
     } else if let Some(fn_) = (fn_ as &dyn Any).downcast_ref::<FnItem>() {
-        if fn_.signature.params().any(|param| param.is_ref(ctx.index)) || fn_.is_ref(ctx.index) {
+        if fn_.is_inlined(ctx.index) {
             transpile_inlined_fn_call(ctx, fn_, args)
         } else {
             let fn_id = fn_.id;

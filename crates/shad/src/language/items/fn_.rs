@@ -43,6 +43,10 @@ impl NodeConfig for NativeFnItem {
     fn validate(&self, ctx: &mut ValidationContext<'_>) {
         items::check_duplicated_items(self, ctx);
     }
+
+    fn is_transpilable_dependency(&self, _index: &NodeIndex) -> bool {
+        false
+    }
 }
 
 sequence!(
@@ -98,6 +102,10 @@ impl NodeConfig for FnItem {
         }
     }
 
+    fn is_transpilable_dependency(&self, index: &NodeIndex) -> bool {
+        !self.is_inlined(index)
+    }
+
     fn transpile(&self, ctx: &mut TranspilationContext<'_>) -> String {
         format!(
             indoc!(
@@ -114,6 +122,12 @@ impl NodeConfig for FnItem {
                 .join("\n"),
             body = self.body.transpile(ctx),
         )
+    }
+}
+
+impl FnItem {
+    pub(crate) fn is_inlined(&self, index: &NodeIndex) -> bool {
+        self.signature.params().any(|param| param.is_ref(index)) || self.is_ref(index)
     }
 }
 
@@ -210,6 +224,10 @@ impl NodeConfig for FnParam {
 
     fn expr_type(&self, index: &NodeIndex) -> Option<String> {
         self.type_.expr_type(index)
+    }
+
+    fn is_transpilable_dependency(&self, _index: &NodeIndex) -> bool {
+        false
     }
 
     fn transpile(&self, ctx: &mut TranspilationContext<'_>) -> String {
