@@ -10,7 +10,7 @@ run {
 
     // pass non-reference as reference (creates a new variable behind the hood)
     assign_no_return(0, 2);
-    assign_no_return(-1, 2);
+    assign_no_return(-(1), 2);
     to_i32(!true);
     assign_no_return(0 + 1, 2);
     assign_no_return(0.assign_return(1), 2);
