@@ -4,7 +4,7 @@ use crate::language::expressions::binary::MaybeBinaryExpr;
 use crate::language::items::buffer::BufferItem;
 use crate::language::items::fn_::{FnItem, FnParam, FnParamGroup, NativeFnItem};
 use crate::language::patterns::Ident;
-use crate::language::statements::LocalVarDefStmt;
+use crate::language::statements::{LocalRefDefStmt, LocalVarDefStmt};
 use itertools::Itertools;
 use std::any::TypeId;
 
@@ -48,6 +48,11 @@ pub(crate) fn variable_criteria() -> &'static [NodeSourceSearchCriteria] {
     &[
         NodeSourceSearchCriteria {
             node_type: || TypeId::of::<LocalVarDefStmt>(),
+            can_be_after: false,
+            common_parent_count: None,
+        },
+        NodeSourceSearchCriteria {
+            node_type: || TypeId::of::<LocalRefDefStmt>(),
             can_be_after: false,
             common_parent_count: None,
         },

@@ -16,7 +16,12 @@ sequence!(
 
 impl NodeConfig for NonReturnBlock {
     fn validate(&self, ctx: &mut ValidationContext<'_>) {
-        if let Some(return_stmt) = self.inner.statements.iter().find_map(|stmt| stmt.return_()) {
+        if let Some(return_stmt) = self
+            .inner
+            .statements
+            .iter()
+            .find_map(|stmt| stmt.as_return())
+        {
             ctx.errors.push(ValidationError::error(
                 ctx,
                 return_stmt,
@@ -45,7 +50,7 @@ impl NodeConfig for Block {
     fn validate(&self, ctx: &mut ValidationContext<'_>) {
         let last_stmt_id = self.last_stmt().map_or(0, |stmt| stmt.inner().id);
         for stmt in self.statements.iter() {
-            if let Some(return_stmt) = stmt.return_() {
+            if let Some(return_stmt) = stmt.as_return() {
                 if return_stmt.id != last_stmt_id {
                     ctx.errors.push(ValidationError::error(
                         ctx,

@@ -1,7 +1,7 @@
 use crate::compilation::node::keyword;
 
 pub(crate) const RESERVED_KEYWORDS: &[&str] = &[
-    "buf", "false", "fn", "import", "init", "native", "run", "return", "var", "true",
+    "buf", "false", "fn", "import", "init", "native", "ref", "run", "return", "var", "true",
 ];
 
 keyword!(BufKeyword, "buf");

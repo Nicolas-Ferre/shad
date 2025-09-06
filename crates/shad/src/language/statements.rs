@@ -6,7 +6,7 @@ use crate::language::expressions::binary::MaybeBinaryExpr;
 use crate::language::expressions::simple::VarIdentExpr;
 use crate::language::expressions::TypedExpr;
 use crate::language::items::type_::NO_RETURN_TYPE;
-use crate::language::keywords::{EqSymbol, ReturnKeyword, SemicolonSymbol, VarKeyword};
+use crate::language::keywords::{EqSymbol, RefKeyword, ReturnKeyword, SemicolonSymbol, VarKeyword};
 use crate::language::patterns::Ident;
 use crate::language::sources;
 use crate::ValidationError;
@@ -14,6 +14,7 @@ use crate::ValidationError;
 choice!(
     enum Stmt {
         LocalVarDef(LocalVarDefStmt),
+        LocalRefDef(LocalRefDefStmt),
         Assignment(AssignmentStmt),
         Expr(ExprStmt),
         Return(ReturnStmt),
@@ -24,19 +25,10 @@ impl NodeConfig for Stmt {
     fn transpile(&self, ctx: &mut TranspilationContext<'_>) -> String {
         match self {
             Self::LocalVarDef(child) => child.transpile(ctx),
+            Self::LocalRefDef(child) => child.transpile(ctx),
             Self::Assignment(child) => child.transpile(ctx),
             Self::Expr(child) => child.transpile(ctx),
             Self::Return(child) => child.transpile(ctx),
-        }
-    }
-}
-
-impl Stmt {
-    pub(crate) fn return_(&self) -> Option<&ReturnStmt> {
-        if let Self::Return(stmt) = self {
-            Some(stmt)
-        } else {
-            None
         }
     }
 }
@@ -72,6 +64,40 @@ impl NodeConfig for LocalVarDefStmt {
         };
         let expr = self.expr.transpile(ctx);
         format!("var {var_name} = {expr};")
+    }
+}
+
+sequence!(
+    struct LocalRefDefStmt {
+        ref_: RefKeyword,
+        #[force_error(true)]
+        ident: Ident,
+        eq: EqSymbol,
+        expr: TypedExpr,
+        semicolon: SemicolonSymbol,
+    }
+);
+
+impl NodeConfig for LocalRefDefStmt {
+    fn key(&self) -> Option<String> {
+        Some(sources::variable_key(&self.ident))
+    }
+
+    fn expr_type(&self, index: &NodeIndex) -> Option<String> {
+        self.expr.expr_type(index)
+    }
+
+    fn transpile(&self, ctx: &mut TranspilationContext<'_>) -> String {
+        let expr = self.expr.transpile(ctx);
+        if self.expr.is_ref(ctx.index) {
+            ctx.add_inline_mapping(self.id, expr);
+            String::new()
+        } else {
+            let id = ctx.next_node_id();
+            let var_name = format!("_{id}");
+            ctx.add_inline_mapping(self.id, &var_name);
+            format!("var {var_name} = {expr};")
+        }
     }
 }
 

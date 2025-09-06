@@ -69,7 +69,7 @@ impl NodeConfig for FnItem {
     fn validate(&self, ctx: &mut ValidationContext<'_>) {
         items::check_duplicated_items(self, ctx);
         items::check_recursive_items(self, ctx);
-        let return_stmt = self.body.last_stmt().and_then(|stmt| stmt.return_());
+        let return_stmt = self.body.last_stmt().and_then(|stmt| stmt.as_return());
         let return_type = self.signature.return_type.iter().next();
         if let (None, Some(return_type)) = (return_stmt, return_type) {
             ctx.errors.push(ValidationError::error(
