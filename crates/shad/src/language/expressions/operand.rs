@@ -5,7 +5,9 @@ use crate::compilation::node::{
 use crate::compilation::transpilation::TranspilationContext;
 use crate::compilation::validation::ValidationContext;
 use crate::language::expressions::binary::Expr;
-use crate::language::expressions::fn_call::{transpile_fn_call, AssociatedFnCallSuffix, FnCallExpr};
+use crate::language::expressions::fn_call::{
+    transpile_fn_call, AssociatedFnCallSuffix, FnCallExpr,
+};
 use crate::language::expressions::simple::{FalseExpr, ParenthesizedExpr, TrueExpr, VarIdentExpr};
 use crate::language::expressions::unary::{NegUnaryExpr, NotUnaryExpr};
 use crate::language::expressions::{check_missing_source, transformations};

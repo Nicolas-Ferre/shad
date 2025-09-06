@@ -9,12 +9,12 @@ run {
     incremented_result = result.assign_return(assign_return(result, assigned_value));
 
     // pass non-reference as reference (creates a new variable behind the hood)
-    0.assign_no_return(2);
-    -1.assign_no_return(2);
+    assign_no_return(0, 2);
+    assign_no_return(-1, 2);
     to_i32(!true);
-    (0 + 1).assign_no_return(2);
-    0.assign_return(1).assign_no_return(2);
-    i32(true).assign_no_return(2);
+    assign_no_return(0 + 1, 2);
+    assign_no_return(0.assign_return(1), 2);
+    assign_no_return(i32(true), 2);
 }
 
 fn assign_return(output: ref i32, input: i32) -> i32 {

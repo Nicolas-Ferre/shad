@@ -625,7 +625,7 @@ macro_rules! transform {
                     Self::Transformed(child) => child.is_ref(index),
                 }
             }
-            
+
             fn expr_type(&self, index: &crate::compilation::index::NodeIndex) -> Option<String> {
                 match self {
                     Self::Parsed(child) => child.expr_type(index),

@@ -2,12 +2,12 @@ use crate::compilation::index::NodeIndex;
 use crate::compilation::node::{sequence, Node, NodeConfig, NodeSourceSearchCriteria};
 use crate::compilation::transpilation::TranspilationContext;
 use crate::compilation::validation::ValidationContext;
-use crate::language::expressions::operand::OperandExpr;
 use crate::language::expressions::check_missing_source;
+use crate::language::expressions::fn_call::transpile_fn_call;
+use crate::language::expressions::operand::OperandExpr;
 use crate::language::keywords::{ExclamationSymbol, HyphenSymbol};
 use crate::language::sources;
 use std::iter;
-use crate::language::expressions::fn_call::transpile_fn_call;
 
 sequence!(
     struct NegUnaryExpr {
