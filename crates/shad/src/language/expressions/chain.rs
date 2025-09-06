@@ -9,7 +9,7 @@ use crate::language::expressions::fn_call::{
     transpile_fn_call, AssociatedFnCallSuffix, FnCallExpr,
 };
 use crate::language::expressions::simple::{FalseExpr, ParenthesizedExpr, TrueExpr, VarIdentExpr};
-use crate::language::expressions::unary::{NegUnaryExpr, NotUnaryExpr};
+use crate::language::expressions::unary::UnaryExpr;
 use crate::language::expressions::{check_missing_source, transformations};
 use crate::language::patterns::{F32Literal, I32Literal, U32Literal};
 use crate::language::sources;
@@ -134,6 +134,7 @@ impl TransformedChainExpr {
 }
 
 choice!(
+    // TODO: remove unary exprs
     #[allow(clippy::large_enum_variant)]
     enum ChainPrefix {
         True(TrueExpr),
@@ -143,8 +144,7 @@ choice!(
         I32(I32Literal),
         FnCall(FnCallExpr),
         Var(VarIdentExpr),
-        NegUnary(NegUnaryExpr),
-        NotUnary(NotUnaryExpr),
+        Unary(UnaryExpr),
         Parenthesized(ParenthesizedExpr),
     }
 );
@@ -160,8 +160,7 @@ impl NodeConfig for ChainPrefix {
             | Self::Parenthesized(_) => false,
             Self::Var(_) => true,
             Self::FnCall(child) => child.is_ref(index),
-            Self::NegUnary(child) => child.is_ref(index),
-            Self::NotUnary(child) => child.is_ref(index),
+            Self::Unary(child) => child.is_ref(index),
         }
     }
 
@@ -174,8 +173,7 @@ impl NodeConfig for ChainPrefix {
             Self::I32(child) => child.expr_type(index),
             Self::FnCall(child) => child.expr_type(index),
             Self::Var(child) => child.expr_type(index),
-            Self::NegUnary(child) => child.expr_type(index),
-            Self::NotUnary(child) => child.expr_type(index),
+            Self::Unary(child) => child.expr_type(index),
             Self::Parenthesized(child) => child.expr_type(index),
         }
     }
@@ -189,8 +187,7 @@ impl NodeConfig for ChainPrefix {
             Self::I32(child) => child.transpile(ctx),
             Self::FnCall(child) => child.transpile(ctx),
             Self::Var(child) => child.transpile(ctx),
-            Self::NegUnary(child) => child.transpile(ctx),
-            Self::NotUnary(child) => child.transpile(ctx),
+            Self::Unary(child) => child.transpile(ctx),
             Self::Parenthesized(child) => child.transpile(ctx),
         }
     }
@@ -206,8 +203,7 @@ impl ChainPrefix {
             | Self::U32(_)
             | Self::I32(_)
             | Self::Var(_)
-            | Self::NegUnary(_)
-            | Self::NotUnary(_)
+            | Self::Unary(_)
             | Self::Parenthesized(_) => false,
         }
     }
