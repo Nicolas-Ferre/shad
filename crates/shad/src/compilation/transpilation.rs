@@ -31,7 +31,9 @@ impl Program {
             index,
             inline_state: InlineState {
                 is_inlined: false,
+                is_returning_ref: false,
                 return_var_id: None,
+                returned_ref: None,
             },
             generated_stmts: vec![],
             block_inline_mappings: vec![],
@@ -168,10 +170,12 @@ pub(crate) struct TranspilationContext<'a> {
     next_node_id: u32,
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 pub(crate) struct InlineState {
     pub(crate) is_inlined: bool,
+    pub(crate) is_returning_ref: bool,
     pub(crate) return_var_id: Option<u32>,
+    pub(crate) returned_ref: Option<String>,
 }
 
 impl TranspilationContext<'_> {

@@ -115,7 +115,6 @@ impl TransformedChainExpr {
 }
 
 choice!(
-    // TODO: remove unary exprs
     #[allow(clippy::large_enum_variant)]
     enum ChainPrefix {
         True(TrueExpr),

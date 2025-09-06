@@ -21,6 +21,10 @@ sequence!(
 );
 
 impl NodeConfig for TypedExpr {
+    fn is_ref(&self, index: &NodeIndex) -> bool {
+        self.expr.is_ref(index)
+    }
+
     fn expr_type(&self, index: &NodeIndex) -> Option<String> {
         self.expr.expr_type(index)
     }

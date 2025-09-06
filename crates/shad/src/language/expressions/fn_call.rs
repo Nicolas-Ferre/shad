@@ -116,11 +116,7 @@ pub(crate) fn transpile_fn_call<'a>(
         }
         transpilation
     } else if let Some(fn_) = (fn_ as &dyn Any).downcast_ref::<FnItem>() {
-        let is_inlined = fn_
-            .signature
-            .params()
-            .any(|param| param.ref_.iter().len() == 1);
-        if is_inlined {
+        if fn_.signature.params().any(|param| param.is_ref(ctx.index)) || fn_.is_ref(ctx.index) {
             transpile_inlined_fn_call(ctx, fn_, args)
         } else {
             let fn_id = fn_.id;
@@ -137,23 +133,27 @@ pub(crate) fn transpile_inlined_fn_call<'a>(
     fn_: &FnItem,
     args: impl Iterator<Item = &'a impl Node>,
 ) -> String {
-    let old_state = ctx.inline_state;
+    let old_state = ctx.inline_state.clone();
     ctx.inline_state.is_inlined = true;
     ctx.start_block();
-    let return_var_name = if let Some(return_type) = fn_.signature.return_type.iter().next() {
+    let return_var_name = if fn_.is_ref(ctx.index) {
+        ctx.inline_state.is_returning_ref = true;
+        None
+    } else if let Some(return_type) = fn_.signature.return_type.iter().next() {
         let return_var_id = ctx.next_node_id();
         let return_var_name = format!("_{return_var_id}");
         let return_type = return_type.type_.transpile(ctx);
         ctx.generated_stmts
             .push(format!("var {return_var_name}: {return_type};"));
         ctx.inline_state.return_var_id = Some(return_var_id);
+        ctx.inline_state.is_returning_ref = false;
         Some(return_var_name)
     } else {
         None
     };
     for (param, arg) in fn_.signature.params().zip(args) {
         let transpiled_arg = arg.transpile(ctx);
-        if param.ref_.iter().len() == 1 && arg.is_ref(ctx.index) {
+        if param.is_ref(ctx.index) && arg.is_ref(ctx.index) {
             ctx.add_inline_mapping(param.id, transpiled_arg);
         } else {
             let var_id = ctx.next_node_id();
@@ -166,6 +166,7 @@ pub(crate) fn transpile_inlined_fn_call<'a>(
     let inlined_stmts = fn_.body.transpile(ctx);
     ctx.generated_stmts.push(inlined_stmts);
     ctx.end_block();
+    let returned_ref = ctx.inline_state.returned_ref.take();
     ctx.inline_state = old_state;
-    return_var_name.unwrap_or_default()
+    returned_ref.or(return_var_name).unwrap_or_default()
 }

@@ -147,7 +147,17 @@ impl NodeConfig for ReturnStmt {
 
     fn transpile(&self, ctx: &mut TranspilationContext<'_>) -> String {
         let expr = self.expr.transpile(ctx);
-        if let Some(var_id) = ctx.inline_state.return_var_id {
+        if ctx.inline_state.is_returning_ref {
+            if self.expr.is_ref(ctx.index) {
+                ctx.inline_state.returned_ref = Some(expr);
+                String::new()
+            } else {
+                let id = ctx.next_node_id();
+                let var_name = format!("_{id}");
+                ctx.inline_state.returned_ref = Some(var_name.clone());
+                format!("var {var_name} = {expr};")
+            }
+        } else if let Some(var_id) = ctx.inline_state.return_var_id {
             format!("_{var_id} = {expr};")
         } else {
             format!("return {expr};")

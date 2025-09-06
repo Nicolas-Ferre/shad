@@ -47,7 +47,7 @@ error: expected `;`
   |               ^ here
 
 error: expected end of file
- --> ./cases_invalid/syntax/repeated_root_item.shd:1:16
+ --> ./cases_invalid/syntax/repeated_root_item.shd:2:1
   |
-1 | buf buffer = 0;
-  |                ^ here
+2 | var
+  | ^ here

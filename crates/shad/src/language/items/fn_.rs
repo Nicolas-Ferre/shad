@@ -32,8 +32,8 @@ impl NodeConfig for NativeFnItem {
         Some(self.signature.fn_key())
     }
 
-    fn is_ref(&self, _index: &NodeIndex) -> bool {
-        false
+    fn is_ref(&self, index: &NodeIndex) -> bool {
+        self.signature.is_ref(index)
     }
 
     fn expr_type(&self, index: &NodeIndex) -> Option<String> {
@@ -58,8 +58,8 @@ impl NodeConfig for FnItem {
         Some(self.signature.fn_key())
     }
 
-    fn is_ref(&self, _index: &NodeIndex) -> bool {
-        false
+    fn is_ref(&self, index: &NodeIndex) -> bool {
+        self.signature.is_ref(index)
     }
 
     fn expr_type(&self, index: &NodeIndex) -> Option<String> {
@@ -130,6 +130,13 @@ sequence!(
 );
 
 impl NodeConfig for FnSignature {
+    fn is_ref(&self, _index: &NodeIndex) -> bool {
+        self.return_type
+            .iter()
+            .next()
+            .is_some_and(|return_type| return_type.ref_.iter().len() == 1)
+    }
+
     fn expr_type(&self, index: &NodeIndex) -> Option<String> {
         if let Some(return_type) = &self.return_type.iter().next() {
             return_type.expr_type(index)
@@ -197,6 +204,10 @@ impl NodeConfig for FnParam {
         Some(sources::variable_key(&self.ident))
     }
 
+    fn is_ref(&self, _index: &NodeIndex) -> bool {
+        self.ref_.iter().len() == 1
+    }
+
     fn expr_type(&self, index: &NodeIndex) -> Option<String> {
         self.type_.expr_type(index)
     }
@@ -222,6 +233,7 @@ sequence!(
     struct FnReturnType {
         arrow: ArrowSymbol,
         #[force_error(true)]
+        ref_: Repeated<RefKeyword, 0, 1>,
         type_: Type,
     }
 );

@@ -52,6 +52,7 @@ pub(crate) fn parse_file(
 }
 
 pub(crate) fn parse_end_of_file(ctx: &mut ParsingContext<'_>) -> Result<NodeProps, ParsingError> {
+    ctx.parse_spaces();
     if ctx.offset < ctx.code.len() {
         Err(ParsingError {
             expected_tokens: vec!["end of file".into()],

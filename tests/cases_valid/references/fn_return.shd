@@ -1,0 +1,21 @@
+buf initial_value = 3;
+buf result = 0;
+buf other_result = 0;
+
+run {
+    result = return_ref_with_param_ref(return_ref_with_param_ref(result, initial_value), initial_value);
+    return_ref_with_param_ref(return_non_ref_as_ref(), initial_value);
+}
+
+fn return_ref_with_param_ref(output: ref i32, input: i32) -> ref i32 {
+    output = input + 1;
+    return return_ref_without_param_ref();
+}
+
+fn return_ref_without_param_ref() -> ref i32 {
+    return other_result;
+}
+
+fn return_non_ref_as_ref() -> ref i32 {
+    return 0 + 1;
+}
