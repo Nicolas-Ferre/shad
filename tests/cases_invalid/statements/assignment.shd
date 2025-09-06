@@ -13,4 +13,5 @@ run {
     assigned_buf = 1.0;
     assigned_buf = buf_value;
     assigned_buf = var_value;
+    assigned_buf + 1 = 2;
 }

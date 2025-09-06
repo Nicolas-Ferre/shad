@@ -1,5 +1,5 @@
 error: invalid expression type
- --> ./cases_invalid/statements/invalid_assigned_type.shd:9:20
+ --> ./cases_invalid/statements/assignment.shd:9:20
   |
 9 |     assigned_var = imported;
   |     ------------   ^^^^^^^^
@@ -8,7 +8,7 @@ error: invalid expression type
   |     expected type is `i32`
 
 error: invalid expression type
-  --> ./cases_invalid/statements/invalid_assigned_type.shd:10:20
+  --> ./cases_invalid/statements/assignment.shd:10:20
    |
 10 |     assigned_var = 1.0;
    |     ------------   ^^^
@@ -17,7 +17,7 @@ error: invalid expression type
    |     expected type is `i32`
 
 error: invalid expression type
-  --> ./cases_invalid/statements/invalid_assigned_type.shd:11:20
+  --> ./cases_invalid/statements/assignment.shd:11:20
    |
 11 |     assigned_var = buf_value;
    |     ------------   ^^^^^^^^^
@@ -26,7 +26,7 @@ error: invalid expression type
    |     expected type is `i32`
 
 error: invalid expression type
-  --> ./cases_invalid/statements/invalid_assigned_type.shd:12:20
+  --> ./cases_invalid/statements/assignment.shd:12:20
    |
 12 |     assigned_var = var_value;
    |     ------------   ^^^^^^^^^
@@ -35,7 +35,7 @@ error: invalid expression type
    |     expected type is `i32`
 
 error: invalid expression type
-  --> ./cases_invalid/statements/invalid_assigned_type.shd:13:20
+  --> ./cases_invalid/statements/assignment.shd:13:20
    |
 13 |     assigned_buf = 1.0;
    |     ------------   ^^^
@@ -44,7 +44,7 @@ error: invalid expression type
    |     expected type is `i32`
 
 error: invalid expression type
-  --> ./cases_invalid/statements/invalid_assigned_type.shd:14:20
+  --> ./cases_invalid/statements/assignment.shd:14:20
    |
 14 |     assigned_buf = buf_value;
    |     ------------   ^^^^^^^^^
@@ -53,13 +53,21 @@ error: invalid expression type
    |     expected type is `i32`
 
 error: invalid expression type
-  --> ./cases_invalid/statements/invalid_assigned_type.shd:15:20
+  --> ./cases_invalid/statements/assignment.shd:15:20
    |
 15 |     assigned_buf = var_value;
    |     ------------   ^^^^^^^^^
    |     |              |
    |     |              expression type is `u32`
    |     expected type is `i32`
+
+error: invalid assignment left value
+  --> ./cases_invalid/statements/assignment.shd:16:5
+   |
+16 |     assigned_buf + 1 = 2;
+   |     ^^^^^^^^^^^^^^^^
+   |     |
+   |     this should be a valid reference
 
 error: missing return statement
  --> ./cases_invalid/statements/return.shd:1:38

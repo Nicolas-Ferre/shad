@@ -3,7 +3,6 @@ use crate::compilation::node::{choice, sequence, NodeConfig};
 use crate::compilation::transpilation::TranspilationContext;
 use crate::compilation::validation::ValidationContext;
 use crate::language::expressions::binary::MaybeBinaryExpr;
-use crate::language::expressions::simple::VarIdentExpr;
 use crate::language::expressions::TypedExpr;
 use crate::language::items::type_::NO_RETURN_TYPE;
 use crate::language::keywords::{EqSymbol, RefKeyword, ReturnKeyword, SemicolonSymbol, VarKeyword};
@@ -111,7 +110,7 @@ impl NodeConfig for LocalRefDefStmt {
 
 sequence!(
     struct AssignmentStmt {
-        left: VarIdentExpr,
+        left: MaybeBinaryExpr,
         eq: EqSymbol,
         #[force_error(true)]
         right: TypedExpr,
@@ -121,6 +120,15 @@ sequence!(
 
 impl NodeConfig for AssignmentStmt {
     fn validate(&self, ctx: &mut ValidationContext<'_>) {
+        if !self.left.is_ref(ctx.index) {
+            ctx.errors.push(ValidationError::error(
+                ctx,
+                &*self.left,
+                "invalid assignment left value",
+                Some("this should be a valid reference"),
+                &[],
+            ));
+        }
         let (Some(left_type), Some(right_type)) = (
             self.left.expr_type(ctx.index),
             self.right.expr_type(ctx.index),
