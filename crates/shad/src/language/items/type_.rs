@@ -75,6 +75,19 @@ impl NodeConfig for Type {
     }
 }
 
+pub(crate) fn size(type_: &dyn Node) -> u64 {
+    if let Some(type_) = (type_ as &dyn Any).downcast_ref::<NativeTypeItem>() {
+        type_
+            .size
+            .slice
+            .replace(['_', 'u'], "")
+            .parse::<u64>()
+            .expect("internal error: invalid type size")
+    } else {
+        unreachable!("unknown type size")
+    }
+}
+
 pub(crate) fn name(type_: &dyn Node) -> String {
     if let Some(type_) = (type_ as &dyn Any).downcast_ref::<NativeTypeItem>() {
         type_.ident.slice.clone()

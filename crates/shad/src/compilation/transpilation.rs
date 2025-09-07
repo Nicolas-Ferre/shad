@@ -104,9 +104,10 @@ pub struct Buffer {
 
 impl Buffer {
     fn new(item: &BufferItem, index: &NodeIndex) -> Self {
+        let type_ = item.buffer_type(index);
         Self {
-            size_bytes: 4,
-            type_name: type_::name(item.buffer_type(index)),
+            size_bytes: type_::size(type_),
+            type_name: type_::name(type_),
         }
     }
 }

@@ -7,24 +7,24 @@ native struct bool = "u32", 4u, 4u {}
 
 // Binary operators
 
-native fn __add__(left: f32, right: f32) -> f32 = "left + right";
-native fn __add__(left: i32, right: i32) -> i32 = "left + right";
-native fn __add__(left: u32, right: u32) -> u32 = "left + right";
+native fn __add__(left: f32, right: f32) -> f32 = "(left + right)";
+native fn __add__(left: i32, right: i32) -> i32 = "(left + right)";
+native fn __add__(left: u32, right: u32) -> u32 = "(left + right)";
 
-native fn __sub__(left: f32, right: f32) -> f32 = "left - right";
-native fn __sub__(left: i32, right: i32) -> i32 = "left - right";
-native fn __sub__(left: u32, right: u32) -> u32 = "left - right";
+native fn __sub__(left: f32, right: f32) -> f32 = "(left - right)";
+native fn __sub__(left: i32, right: i32) -> i32 = "(left - right)";
+native fn __sub__(left: u32, right: u32) -> u32 = "(left - right)";
 
-native fn __mul__(left: f32, right: f32) -> f32 = "left * right";
-native fn __mul__(left: i32, right: i32) -> i32 = "left * right";
-native fn __mul__(left: u32, right: u32) -> u32 = "left * right";
+native fn __mul__(left: f32, right: f32) -> f32 = "(left * right)";
+native fn __mul__(left: i32, right: i32) -> i32 = "(left * right)";
+native fn __mul__(left: u32, right: u32) -> u32 = "(left * right)";
 
-native fn __div__(left: f32, right: f32) -> f32 = "left / right";
-native fn __div__(left: i32, right: i32) -> i32 = "left / right";
-native fn __div__(left: u32, right: u32) -> u32 = "left / right";
+native fn __div__(left: f32, right: f32) -> f32 = "(left / right)";
+native fn __div__(left: i32, right: i32) -> i32 = "(left / right)";
+native fn __div__(left: u32, right: u32) -> u32 = "(left / right)";
 
-native fn __mod__(left: i32, right: i32) -> i32 = "left % right";
-native fn __mod__(left: u32, right: u32) -> u32 = "left % right";
+native fn __mod__(left: i32, right: i32) -> i32 = "(left % right)";
+native fn __mod__(left: u32, right: u32) -> u32 = "(left % right)";
 
 native fn __lt__(left: bool, right: bool) -> bool = "u32(left < right)";
 native fn __lt__(left: f32, right: f32) -> bool = "u32(left < right)";
@@ -62,8 +62,8 @@ native fn __or__(left: bool, right: bool) -> bool = "u32(bool(left) || bool(righ
 
 // Unary operators
 
-native fn __neg__(value: f32) -> f32 = "-value";
-native fn __neg__(value: i32) -> i32 = "-value";
+native fn __neg__(value: f32) -> f32 = "(-value)";
+native fn __neg__(value: i32) -> i32 = "(-value)";
 
 native fn __not__(value: bool) -> bool = "u32(!bool(value))";
 
