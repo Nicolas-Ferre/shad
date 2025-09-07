@@ -1,6 +1,6 @@
 buf buffer = no_return();
 
-fn invalid_expr_type() {
+fn invalid_type_() {
     var a = no_return();
     a = no_return();
     return no_return();

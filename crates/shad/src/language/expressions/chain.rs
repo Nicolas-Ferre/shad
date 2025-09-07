@@ -1,6 +1,6 @@
 use crate::compilation::index::NodeIndex;
 use crate::compilation::node::{
-    choice, sequence, transform, Node, NodeConfig, NodeSourceSearchCriteria, Repeated,
+    choice, sequence, transform, Node, NodeConfig, NodeSourceSearchCriteria, NodeType, Repeated,
 };
 use crate::compilation::transpilation::TranspilationContext;
 use crate::compilation::validation::ValidationContext;
@@ -8,11 +8,12 @@ use crate::language::expressions::binary::MaybeBinaryExpr;
 use crate::language::expressions::fn_call::{
     transpile_fn_call, AssociatedFnCallSuffix, FnCallExpr,
 };
-use crate::language::expressions::simple::{FalseExpr, ParenthesizedExpr, TrueExpr, VarIdentExpr};
+use crate::language::expressions::simple::{BoolLiteral, ParenthesizedExpr, VarIdentExpr};
+use crate::language::expressions::transformations;
 use crate::language::expressions::unary::UnaryExpr;
-use crate::language::expressions::{check_missing_source, transformations};
 use crate::language::patterns::{F32Literal, I32Literal, U32Literal};
 use crate::language::sources;
+use crate::language::sources::check_missing_source;
 use std::iter;
 
 transform!(
@@ -35,8 +36,8 @@ impl NodeConfig for ParsedChainExpr {
         self.expr.is_ref(index)
     }
 
-    fn expr_type(&self, index: &NodeIndex) -> Option<String> {
-        self.expr.expr_type(index)
+    fn type_<'a>(&self, index: &'a NodeIndex) -> Option<NodeType<'a>> {
+        self.expr.type_(index)
     }
 
     fn validate(&self, _ctx: &mut ValidationContext<'_>) {
@@ -75,11 +76,11 @@ impl NodeConfig for TransformedChainExpr {
         }
     }
 
-    fn expr_type(&self, index: &NodeIndex) -> Option<String> {
+    fn type_<'a>(&self, index: &'a NodeIndex) -> Option<NodeType<'a>> {
         if self.call_suffix.iter().next().is_some() {
-            self.source(index)?.expr_type(index)
+            self.source(index)?.type_(index)
         } else {
-            self.expr.expr_type(index)
+            self.expr.type_(index)
         }
     }
 
@@ -117,8 +118,7 @@ impl TransformedChainExpr {
 choice!(
     #[allow(clippy::large_enum_variant)]
     enum ChainPrefix {
-        True(TrueExpr),
-        False(FalseExpr),
+        Bool(BoolLiteral),
         F32(F32Literal),
         U32(U32Literal),
         I32(I32Literal),
@@ -132,36 +132,31 @@ choice!(
 impl NodeConfig for ChainPrefix {
     fn is_ref(&self, index: &NodeIndex) -> bool {
         match self {
-            Self::True(_)
-            | Self::False(_)
-            | Self::F32(_)
-            | Self::U32(_)
-            | Self::I32(_)
-            | Self::Parenthesized(_) => false,
+            Self::Bool(_) | Self::F32(_) | Self::U32(_) | Self::I32(_) | Self::Parenthesized(_) => {
+                false
+            }
             Self::Var(_) => true,
             Self::FnCall(child) => child.is_ref(index),
             Self::Unary(child) => child.is_ref(index),
         }
     }
 
-    fn expr_type(&self, index: &NodeIndex) -> Option<String> {
+    fn type_<'a>(&self, index: &'a NodeIndex) -> Option<NodeType<'a>> {
         match self {
-            Self::True(child) => child.expr_type(index),
-            Self::False(child) => child.expr_type(index),
-            Self::F32(child) => child.expr_type(index),
-            Self::U32(child) => child.expr_type(index),
-            Self::I32(child) => child.expr_type(index),
-            Self::FnCall(child) => child.expr_type(index),
-            Self::Var(child) => child.expr_type(index),
-            Self::Unary(child) => child.expr_type(index),
-            Self::Parenthesized(child) => child.expr_type(index),
+            Self::Bool(child) => child.type_(index),
+            Self::F32(child) => child.type_(index),
+            Self::U32(child) => child.type_(index),
+            Self::I32(child) => child.type_(index),
+            Self::FnCall(child) => child.type_(index),
+            Self::Var(child) => child.type_(index),
+            Self::Unary(child) => child.type_(index),
+            Self::Parenthesized(child) => child.type_(index),
         }
     }
 
     fn transpile(&self, ctx: &mut TranspilationContext<'_>) -> String {
         match self {
-            Self::True(child) => child.transpile(ctx),
-            Self::False(child) => child.transpile(ctx),
+            Self::Bool(child) => child.transpile(ctx),
             Self::F32(child) => child.transpile(ctx),
             Self::U32(child) => child.transpile(ctx),
             Self::I32(child) => child.transpile(ctx),

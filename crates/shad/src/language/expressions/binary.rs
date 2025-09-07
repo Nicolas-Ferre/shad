@@ -1,18 +1,19 @@
 use crate::compilation::index::NodeIndex;
 use crate::compilation::node::{
-    choice, sequence, transform, Node, NodeConfig, NodeSourceSearchCriteria, Repeated,
+    choice, sequence, transform, Node, NodeConfig, NodeSourceSearchCriteria, NodeType, Repeated,
 };
 use crate::compilation::transpilation::TranspilationContext;
 use crate::compilation::validation::ValidationContext;
 use crate::language::expressions::chain::ChainExpr;
 use crate::language::expressions::fn_call::transpile_fn_call;
-use crate::language::expressions::{check_missing_source, transformations};
+use crate::language::expressions::transformations;
 use crate::language::keywords::{
     AndSymbol, CloseAngleBracketSymbol, DoubleEqSymbol, GreaterEqSymbol, HyphenSymbol,
     LessEqSymbol, NotEqSymbol, OpenAngleBracketSymbol, OrSymbol, PercentSymbol, PlusSymbol,
     SlashSymbol, StarSymbol,
 };
 use crate::language::sources;
+use crate::language::sources::check_missing_source;
 
 transform!(
     MaybeBinaryExpr,
@@ -34,8 +35,8 @@ impl NodeConfig for ParsedMaybeBinaryExpr {
         self.left.is_ref(index)
     }
 
-    fn expr_type(&self, index: &NodeIndex) -> Option<String> {
-        self.left.expr_type(index)
+    fn type_<'a>(&self, index: &'a NodeIndex) -> Option<NodeType<'a>> {
+        self.left.type_(index)
     }
 
     fn validate(&self, _ctx: &mut ValidationContext<'_>) {
@@ -75,7 +76,7 @@ impl NodeConfig for BinaryExpr {
         };
         Some(sources::fn_key_from_operator(
             name,
-            [self.left.expr_type(index)?, self.right.expr_type(index)?],
+            [self.left.type_(index)?, self.right.type_(index)?],
         ))
     }
 
@@ -88,8 +89,8 @@ impl NodeConfig for BinaryExpr {
             .is_some_and(|source| source.is_ref(index))
     }
 
-    fn expr_type(&self, index: &NodeIndex) -> Option<String> {
-        self.source(index)?.expr_type(index)
+    fn type_<'a>(&self, index: &'a NodeIndex) -> Option<NodeType<'a>> {
+        self.source(index)?.type_(index)
     }
 
     fn validate(&self, ctx: &mut ValidationContext<'_>) {

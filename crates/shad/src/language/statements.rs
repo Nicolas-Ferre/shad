@@ -1,10 +1,10 @@
 use crate::compilation::index::NodeIndex;
-use crate::compilation::node::{choice, sequence, NodeConfig};
+use crate::compilation::node::{choice, sequence, NodeConfig, NodeType};
 use crate::compilation::transpilation::TranspilationContext;
 use crate::compilation::validation::ValidationContext;
 use crate::language::expressions::binary::MaybeBinaryExpr;
 use crate::language::expressions::TypedExpr;
-use crate::language::items::type_::NO_RETURN_TYPE;
+use crate::language::items::type_;
 use crate::language::keywords::{EqSymbol, RefKeyword, ReturnKeyword, SemicolonSymbol, VarKeyword};
 use crate::language::patterns::Ident;
 use crate::language::sources;
@@ -48,8 +48,8 @@ impl NodeConfig for LocalVarDefStmt {
         Some(sources::variable_key(&self.ident))
     }
 
-    fn expr_type(&self, index: &NodeIndex) -> Option<String> {
-        self.expr.expr_type(index)
+    fn type_<'a>(&self, index: &'a NodeIndex) -> Option<NodeType<'a>> {
+        self.expr.type_(index)
     }
 
     fn is_transpilable_dependency(&self, _index: &NodeIndex) -> bool {
@@ -86,8 +86,8 @@ impl NodeConfig for LocalRefDefStmt {
         Some(sources::variable_key(&self.ident))
     }
 
-    fn expr_type(&self, index: &NodeIndex) -> Option<String> {
-        self.expr.expr_type(index)
+    fn type_<'a>(&self, index: &'a NodeIndex) -> Option<NodeType<'a>> {
+        self.expr.type_(index)
     }
 
     fn is_transpilable_dependency(&self, _index: &NodeIndex) -> bool {
@@ -129,19 +129,23 @@ impl NodeConfig for AssignmentStmt {
                 &[],
             ));
         }
-        let (Some(left_type), Some(right_type)) = (
-            self.left.expr_type(ctx.index),
-            self.right.expr_type(ctx.index),
-        ) else {
+        let (Some(left_type), Some(right_type)) =
+            (self.left.type_(ctx.index), self.right.type_(ctx.index))
+        else {
             return;
         };
-        if left_type != NO_RETURN_TYPE && right_type != NO_RETURN_TYPE && left_type != right_type {
+        if !left_type.is_no_return()
+            && !right_type.is_no_return()
+            && left_type.source().map(|s| s.id) != right_type.source().map(|s| s.id)
+        {
+            let left_type_name = type_::name_or_no_return(left_type);
+            let right_type_name = type_::name_or_no_return(right_type);
             ctx.errors.push(ValidationError::error(
                 ctx,
                 &*self.right,
                 "invalid expression type",
-                Some(&format!("expression type is `{right_type}`")),
-                &[(&*self.left, &format!("expected type is `{left_type}`"))],
+                Some(&format!("expression type is `{right_type_name}`")),
+                &[(&*self.left, &format!("expected type is `{left_type_name}`"))],
             ));
         }
     }
@@ -164,7 +168,11 @@ sequence!(
 impl NodeConfig for ExprStmt {
     fn transpile(&self, ctx: &mut TranspilationContext<'_>) -> String {
         let expr = self.expr.transpile(ctx);
-        if self.expr.expr_type(ctx.index).as_deref() == Some(NO_RETURN_TYPE) {
+        if self
+            .expr
+            .type_(ctx.index)
+            .is_some_and(NodeType::is_no_return)
+        {
             format!("{expr};")
         } else {
             let id = ctx.next_node_id();
@@ -183,8 +191,8 @@ sequence!(
 );
 
 impl NodeConfig for ReturnStmt {
-    fn expr_type(&self, index: &NodeIndex) -> Option<String> {
-        self.expr.expr_type(index)
+    fn type_<'a>(&self, index: &'a NodeIndex) -> Option<NodeType<'a>> {
+        self.expr.type_(index)
     }
 
     fn transpile(&self, ctx: &mut TranspilationContext<'_>) -> String {

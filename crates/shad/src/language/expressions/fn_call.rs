@@ -1,15 +1,17 @@
 use crate::compilation::index::NodeIndex;
-use crate::compilation::node::{sequence, Node, NodeConfig, NodeSourceSearchCriteria, Repeated};
+use crate::compilation::node::{
+    sequence, Node, NodeConfig, NodeSourceSearchCriteria, NodeType, Repeated,
+};
 use crate::compilation::transpilation::TranspilationContext;
 use crate::compilation::validation::ValidationContext;
 use crate::language::expressions::binary::MaybeBinaryExpr;
-use crate::language::expressions::check_missing_source;
 use crate::language::items::fn_::{FnItem, NativeFnItem};
 use crate::language::keywords::{
     CloseParenthesisSymbol, CommaSymbol, DotSymbol, OpenParenthesisSymbol,
 };
 use crate::language::patterns::Ident;
 use crate::language::sources;
+use crate::language::sources::check_missing_source;
 use itertools::Itertools;
 use std::any::Any;
 use std::iter;
@@ -52,8 +54,8 @@ impl NodeConfig for FnCallExpr {
             .is_some_and(|source| source.is_ref(index))
     }
 
-    fn expr_type(&self, index: &NodeIndex) -> Option<String> {
-        self.source(index)?.expr_type(index)
+    fn type_<'a>(&self, index: &'a NodeIndex) -> Option<NodeType<'a>> {
+        self.source(index)?.type_(index)
     }
 
     fn validate(&self, ctx: &mut ValidationContext<'_>) {
@@ -109,8 +111,7 @@ pub(crate) fn transpile_fn_call<'a>(
     args: impl Iterator<Item = &'a impl Node>,
 ) -> String {
     if let Some(native_fn) = (fn_ as &dyn Any).downcast_ref::<NativeFnItem>() {
-        let mut transpilation =
-            native_fn.transpilation.slice[1..native_fn.transpilation.slice.len() - 1].to_string();
+        let mut transpilation = native_fn.transpilation.as_str().to_string();
         for (arg, param) in args.zip(native_fn.signature.params()) {
             transpilation = transpilation.replace(&param.ident.slice, &arg.transpile(ctx));
         }

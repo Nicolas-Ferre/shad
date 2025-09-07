@@ -1,45 +1,43 @@
 use crate::compilation::index::NodeIndex;
-use crate::compilation::node::{sequence, Node, NodeConfig, NodeSourceSearchCriteria};
+use crate::compilation::node::{
+    choice, sequence, Node, NodeConfig, NodeSourceSearchCriteria, NodeType,
+};
 use crate::compilation::transpilation::TranspilationContext;
 use crate::compilation::validation::ValidationContext;
-use crate::language::expressions::{check_missing_source, MaybeBinaryExpr};
+use crate::language::expressions::MaybeBinaryExpr;
 use crate::language::keywords::{
     CloseParenthesisSymbol, FalseKeyword, OpenParenthesisSymbol, TrueKeyword,
 };
 use crate::language::patterns::Ident;
 use crate::language::sources;
+use crate::language::sources::check_missing_source;
 
-sequence!(
-    #[allow(unused_mut)]
-    struct TrueExpr {
-        value: TrueKeyword,
+choice!(
+    enum BoolLiteral {
+        True(TrueKeyword),
+        False(FalseKeyword),
     }
 );
 
-impl NodeConfig for TrueExpr {
-    fn expr_type(&self, _index: &NodeIndex) -> Option<String> {
-        Some("bool".into())
+impl NodeConfig for BoolLiteral {
+    fn type_<'a>(&self, index: &'a NodeIndex) -> Option<NodeType<'a>> {
+        let source = index
+            .search(
+                "`bool` type",
+                sources::type_criteria(),
+                &self.path,
+                &self.parent_ids,
+            )
+            .expect("internal error: `bool` type not found");
+        Some(NodeType::Source(source))
     }
 
     fn transpile(&self, _ctx: &mut TranspilationContext<'_>) -> String {
-        "u32(true)".into()
-    }
-}
-
-sequence!(
-    #[allow(unused_mut)]
-    struct FalseExpr {
-        value: FalseKeyword,
-    }
-);
-
-impl NodeConfig for FalseExpr {
-    fn expr_type(&self, _index: &NodeIndex) -> Option<String> {
-        Some("bool".into())
-    }
-
-    fn transpile(&self, _ctx: &mut TranspilationContext<'_>) -> String {
-        "u32(false)".into()
+        let value = match self {
+            Self::True(_) => "true",
+            Self::False(_) => "false",
+        };
+        format!("u32({value})")
     }
 }
 
@@ -59,8 +57,8 @@ impl NodeConfig for VarIdentExpr {
         sources::variable_criteria()
     }
 
-    fn expr_type(&self, index: &NodeIndex) -> Option<String> {
-        self.source(index)?.expr_type(index)
+    fn type_<'a>(&self, index: &'a NodeIndex) -> Option<NodeType<'a>> {
+        self.source(index)?.type_(index)
     }
 
     fn validate(&self, ctx: &mut ValidationContext<'_>) {
@@ -94,8 +92,8 @@ impl NodeConfig for ParenthesizedExpr {
         self.expr.source_key(index)
     }
 
-    fn expr_type(&self, index: &NodeIndex) -> Option<String> {
-        self.expr.expr_type(index)
+    fn type_<'a>(&self, index: &'a NodeIndex) -> Option<NodeType<'a>> {
+        self.expr.type_(index)
     }
 
     fn transpile(&self, ctx: &mut TranspilationContext<'_>) -> String {

@@ -1,5 +1,5 @@
 use crate::compilation::index::NodeIndex;
-use crate::compilation::node::{sequence, NodeConfig};
+use crate::compilation::node::{sequence, Node, NodeConfig, NodeType};
 use crate::compilation::transpilation::TranspilationContext;
 use crate::compilation::validation::ValidationContext;
 use crate::language::expressions::TypedExpr;
@@ -30,11 +30,11 @@ impl NodeConfig for BufferItem {
         Some(sources::variable_key(&self.ident))
     }
 
-    fn expr_type(&self, index: &NodeIndex) -> Option<String> {
+    fn type_<'a>(&self, index: &'a NodeIndex) -> Option<NodeType<'a>> {
         if is_item_recursive(self, index) {
             None
         } else {
-            self.expr.expr_type(index)
+            self.expr.type_(index)
         }
     }
 
@@ -54,16 +54,20 @@ impl NodeConfig for BufferItem {
                 var<storage, read_write> _{id}: {type_};"
             ),
             id = self.id,
-            type_ = type_::transpile_type(
-                self.expr_type(ctx.index)
-                    .expect("internal error: cannot calculate buffer type")
-            ),
+            type_ = type_::transpile_name(self.buffer_type(ctx.index)),
             next_binding = ctx.next_binding(),
         )
     }
 }
 
 impl BufferItem {
+    pub(crate) fn buffer_type<'a>(&self, index: &'a NodeIndex) -> &'a dyn Node {
+        self.type_(index)
+            .expect("internal error: buffer type not found")
+            .source()
+            .expect("internal error: buffer has <no return> type")
+    }
+
     pub(crate) fn transpile_shader(&self, ctx: &mut TranspilationContext<'_>) -> String {
         let expr = self.expr.transpile(ctx);
         format!(

@@ -1,9 +1,47 @@
 use crate::compilation::index::NodeIndex;
-use crate::compilation::node::{sequence, NodeConfig};
+use crate::compilation::node::{sequence, Node, NodeConfig, NodeSourceSearchCriteria, NodeType};
 use crate::compilation::transpilation::TranspilationContext;
-use crate::language::patterns::Ident;
+use crate::compilation::validation::ValidationContext;
+use crate::language::keywords::{
+    CloseCurlyBracketSymbol, CommaSymbol, EqSymbol, NativeKeyword, OpenCurlyBracketSymbol,
+    StructKeyword,
+};
+use crate::language::patterns::{Ident, StringLiteral, U32Literal};
+use crate::language::{items, sources};
+use std::any::Any;
 
 pub(crate) const NO_RETURN_TYPE: &str = "<no return>";
+
+sequence!(
+    struct NativeTypeItem {
+        native: NativeKeyword,
+        struct_: StructKeyword,
+        #[force_error(true)]
+        ident: Ident,
+        eq: EqSymbol,
+        transpilation: StringLiteral,
+        comma1: CommaSymbol,
+        alignment: U32Literal,
+        comma2: CommaSymbol,
+        size: U32Literal,
+        fields_start: OpenCurlyBracketSymbol,
+        fields_end: CloseCurlyBracketSymbol,
+    }
+);
+
+impl NodeConfig for NativeTypeItem {
+    fn key(&self) -> Option<String> {
+        Some(sources::type_key(&self.ident))
+    }
+
+    fn validate(&self, ctx: &mut ValidationContext<'_>) {
+        items::check_duplicated_items(self, ctx);
+    }
+
+    fn is_transpilable_dependency(&self, _index: &NodeIndex) -> bool {
+        false
+    }
+}
 
 sequence!(
     #[allow(unused_mut)]
@@ -13,20 +51,49 @@ sequence!(
 );
 
 impl NodeConfig for Type {
-    fn expr_type(&self, _index: &NodeIndex) -> Option<String> {
-        Some(self.ident.slice.clone())
+    fn source_key(&self, _index: &NodeIndex) -> Option<String> {
+        Some(sources::type_key(&self.ident))
     }
 
-    fn transpile(&self, _ctx: &mut TranspilationContext<'_>) -> String {
-        let type_name = self.ident.slice.clone();
-        transpile_type(type_name)
+    fn source_search_criteria(&self) -> &'static [NodeSourceSearchCriteria] {
+        sources::type_criteria()
+    }
+
+    fn type_<'a>(&self, index: &'a NodeIndex) -> Option<NodeType<'a>> {
+        self.source(index).map(NodeType::Source)
+    }
+
+    fn validate(&self, ctx: &mut ValidationContext<'_>) {
+        sources::check_missing_source(self, ctx);
+    }
+
+    fn transpile(&self, ctx: &mut TranspilationContext<'_>) -> String {
+        transpile_name(
+            self.source(ctx.index)
+                .expect("internal error: type not found"),
+        )
     }
 }
 
-pub(crate) fn transpile_type(type_name: String) -> String {
-    if type_name == "bool" {
-        "u32".into()
+pub(crate) fn name(type_: &dyn Node) -> String {
+    if let Some(type_) = (type_ as &dyn Any).downcast_ref::<NativeTypeItem>() {
+        type_.ident.slice.clone()
     } else {
-        type_name
+        unreachable!("unknown type item")
+    }
+}
+
+pub(crate) fn name_or_no_return(type_: NodeType<'_>) -> String {
+    match type_ {
+        NodeType::Source(source) => name(source),
+        NodeType::NoReturn => NO_RETURN_TYPE.into(),
+    }
+}
+
+pub(crate) fn transpile_name(type_: &dyn Node) -> String {
+    if let Some(type_) = (type_ as &dyn Any).downcast_ref::<NativeTypeItem>() {
+        type_.transpilation.as_str().to_string()
+    } else {
+        unreachable!("unknown type item")
     }
 }

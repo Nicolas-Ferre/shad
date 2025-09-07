@@ -1,9 +1,10 @@
 use crate::compilation::index::NodeIndex;
-use crate::compilation::node::{sequence, NodeConfig, Repeated};
+use crate::compilation::node::{sequence, NodeConfig, NodeType, Repeated};
 use crate::compilation::transpilation::TranspilationContext;
 use crate::compilation::validation::ValidationContext;
 use crate::language::items::block::Block;
-use crate::language::items::type_::{Type, NO_RETURN_TYPE};
+use crate::language::items::type_;
+use crate::language::items::type_::Type;
 use crate::language::keywords::{
     ArrowSymbol, CloseParenthesisSymbol, ColonSymbol, CommaSymbol, EqSymbol, FnKeyword,
     NativeKeyword, OpenParenthesisSymbol, RefKeyword, SemicolonSymbol,
@@ -36,8 +37,8 @@ impl NodeConfig for NativeFnItem {
         self.signature.is_ref(index)
     }
 
-    fn expr_type(&self, index: &NodeIndex) -> Option<String> {
-        self.signature.expr_type(index)
+    fn type_<'a>(&self, index: &'a NodeIndex) -> Option<NodeType<'a>> {
+        self.signature.type_(index)
     }
 
     fn validate(&self, ctx: &mut ValidationContext<'_>) {
@@ -66,8 +67,8 @@ impl NodeConfig for FnItem {
         self.signature.is_ref(index)
     }
 
-    fn expr_type(&self, index: &NodeIndex) -> Option<String> {
-        self.signature.expr_type(index)
+    fn type_<'a>(&self, index: &'a NodeIndex) -> Option<NodeType<'a>> {
+        self.signature.type_(index)
     }
 
     fn validate(&self, ctx: &mut ValidationContext<'_>) {
@@ -84,17 +85,21 @@ impl NodeConfig for FnItem {
                 &[(&**return_type, "the function has a return type")],
             ));
         }
-        if let (Some(return_stmt), Some(expected_type)) = (return_stmt, self.expr_type(ctx.index)) {
-            if let Some(actual_type) = return_stmt.expr_type(ctx.index) {
-                if actual_type != NO_RETURN_TYPE && actual_type != expected_type {
+        if let (Some(return_stmt), Some(expected_type)) = (return_stmt, self.type_(ctx.index)) {
+            if let Some(actual_type) = return_stmt.type_(ctx.index) {
+                if !actual_type.is_no_return()
+                    && actual_type.source().map(|s| s.id) != expected_type.source().map(|s| s.id)
+                {
+                    let actual_type_name = type_::name_or_no_return(actual_type);
+                    let expected_type_name = type_::name_or_no_return(expected_type);
                     ctx.errors.push(ValidationError::error(
                         ctx,
                         &*return_stmt.expr,
                         "invalid returned type",
-                        Some(&format!("returned type is `{actual_type}`")),
+                        Some(&format!("returned type is `{actual_type_name}`",)),
                         &[(
                             &*self.signature.return_type,
-                            &format!("expected type is `{expected_type}`"),
+                            &format!("expected type is `{expected_type_name}`"),
                         )],
                     ));
                 }
@@ -151,11 +156,11 @@ impl NodeConfig for FnSignature {
             .is_some_and(|return_type| return_type.ref_.iter().len() == 1)
     }
 
-    fn expr_type(&self, index: &NodeIndex) -> Option<String> {
+    fn type_<'a>(&self, index: &'a NodeIndex) -> Option<NodeType<'a>> {
         if let Some(return_type) = &self.return_type.iter().next() {
-            return_type.expr_type(index)
+            return_type.type_(index)
         } else {
-            Some(NO_RETURN_TYPE.into())
+            Some(NodeType::NoReturn)
         }
     }
 
@@ -222,8 +227,8 @@ impl NodeConfig for FnParam {
         self.ref_.iter().len() == 1
     }
 
-    fn expr_type(&self, index: &NodeIndex) -> Option<String> {
-        self.type_.expr_type(index)
+    fn type_<'a>(&self, index: &'a NodeIndex) -> Option<NodeType<'a>> {
+        self.type_.type_(index)
     }
 
     fn is_transpilable_dependency(&self, _index: &NodeIndex) -> bool {
@@ -257,8 +262,8 @@ sequence!(
 );
 
 impl NodeConfig for FnReturnType {
-    fn expr_type(&self, index: &NodeIndex) -> Option<String> {
-        self.type_.expr_type(index)
+    fn type_<'a>(&self, index: &'a NodeIndex) -> Option<NodeType<'a>> {
+        self.type_.type_(index)
     }
 
     fn transpile(&self, ctx: &mut TranspilationContext<'_>) -> String {

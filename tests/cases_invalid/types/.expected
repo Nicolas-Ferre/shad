@@ -1,0 +1,27 @@
+error: undefined item
+ --> ./cases_invalid/types/not_found.shd:1:13
+  |
+1 | fn f(param: invalid) -> invalid {
+  |             ^^^^^^^
+  |             |
+  |             `invalid` type is undefined
+
+error: undefined item
+ --> ./cases_invalid/types/not_found.shd:1:25
+  |
+1 | fn f(param: invalid) -> invalid {
+  |                         ^^^^^^^
+  |                         |
+  |                         `invalid` type is undefined
+
+error: missing return statement
+ --> ./cases_invalid/types/not_found.shd:1:33
+  |
+1 |   fn f(param: invalid) -> invalid {
+  |  ______________________----------_^
+  | |                      |
+  | |                      the function has a return type
+2 | | }
+  | | ^
+  | |_|
+  |   last statement should be a `return` statement

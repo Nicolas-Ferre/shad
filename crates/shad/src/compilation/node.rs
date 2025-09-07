@@ -36,6 +36,25 @@ pub(crate) struct NodeSourceSearchCriteria {
     pub(crate) common_parent_count: Option<usize>,
 }
 
+#[derive(Debug, Clone, Copy)]
+pub(crate) enum NodeType<'a> {
+    Source(&'a dyn Node),
+    NoReturn,
+}
+
+impl<'a> NodeType<'a> {
+    pub(crate) fn is_no_return(self) -> bool {
+        matches!(self, Self::NoReturn)
+    }
+
+    pub(crate) fn source(self) -> Option<&'a dyn Node> {
+        match self {
+            NodeType::Source(source) => Some(source),
+            NodeType::NoReturn => None,
+        }
+    }
+}
+
 // coverage: off (most default implementations are unreachable)
 #[allow(unused_variables)]
 pub(crate) trait NodeConfig {
@@ -55,8 +74,8 @@ pub(crate) trait NodeConfig {
         unreachable!("`{}` node has no ref checking", type_name::<Self>())
     }
 
-    fn expr_type(&self, index: &NodeIndex) -> Option<String> {
-        unreachable!("`{}` node has no expr type", type_name::<Self>())
+    fn type_<'a>(&self, index: &'a NodeIndex) -> Option<NodeType<'a>> {
+        unreachable!("`{}` node has no type", type_name::<Self>())
     }
 
     fn validate(&self, ctx: &mut ValidationContext<'_>) {}
@@ -630,10 +649,13 @@ macro_rules! transform {
                 }
             }
 
-            fn expr_type(&self, index: &crate::compilation::index::NodeIndex) -> Option<String> {
+            fn type_<'a>(
+                &self,
+                index: &'a crate::compilation::index::NodeIndex,
+            ) -> Option<crate::compilation::node::NodeType<'a>> {
                 match self {
-                    Self::Parsed(child) => child.expr_type(index),
-                    Self::Transformed(child) => child.expr_type(index),
+                    Self::Parsed(child) => child.type_(index),
+                    Self::Transformed(child) => child.type_(index),
                 }
             }
 

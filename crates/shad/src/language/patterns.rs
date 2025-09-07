@@ -1,8 +1,9 @@
 use crate::compilation::index::NodeIndex;
-use crate::compilation::node::{pattern, NodeConfig};
+use crate::compilation::node::{pattern, NodeConfig, NodeType};
 use crate::compilation::transpilation::TranspilationContext;
 use crate::compilation::validation::ValidationContext;
 use crate::language::keywords::RESERVED_KEYWORDS;
+use crate::language::sources;
 use crate::ValidationError;
 
 pattern!(
@@ -36,8 +37,16 @@ pattern!(
 );
 
 impl NodeConfig for F32Literal {
-    fn expr_type(&self, _index: &NodeIndex) -> Option<String> {
-        Some("f32".into())
+    fn type_<'a>(&self, index: &'a NodeIndex) -> Option<NodeType<'a>> {
+        let source = index
+            .search(
+                "`f32` type",
+                sources::type_criteria(),
+                &self.path,
+                &self.parent_ids,
+            )
+            .expect("internal error: `f32` type not found");
+        Some(NodeType::Source(source))
     }
 
     fn validate(&self, ctx: &mut ValidationContext<'_>) {
@@ -75,8 +84,16 @@ pattern!(
 );
 
 impl NodeConfig for U32Literal {
-    fn expr_type(&self, _index: &NodeIndex) -> Option<String> {
-        Some("u32".into())
+    fn type_<'a>(&self, index: &'a NodeIndex) -> Option<NodeType<'a>> {
+        let source = index
+            .search(
+                "`u32` type",
+                sources::type_criteria(),
+                &self.path,
+                &self.parent_ids,
+            )
+            .expect("internal error: `u32` type not found");
+        Some(NodeType::Source(source))
     }
 
     fn validate(&self, ctx: &mut ValidationContext<'_>) {
@@ -114,8 +131,16 @@ pattern!(
 );
 
 impl NodeConfig for I32Literal {
-    fn expr_type(&self, _index: &NodeIndex) -> Option<String> {
-        Some("i32".into())
+    fn type_<'a>(&self, index: &'a NodeIndex) -> Option<NodeType<'a>> {
+        let source = index
+            .search(
+                "`i32` type",
+                sources::type_criteria(),
+                &self.path,
+                &self.parent_ids,
+            )
+            .expect("internal error: `i32` type not found");
+        Some(NodeType::Source(source))
     }
 
     fn validate(&self, ctx: &mut ValidationContext<'_>) {
@@ -153,3 +178,9 @@ pattern!(
 );
 
 impl NodeConfig for StringLiteral {}
+
+impl StringLiteral {
+    pub(crate) fn as_str(&self) -> &str {
+        &self.slice[1..self.slice.len() - 1]
+    }
+}

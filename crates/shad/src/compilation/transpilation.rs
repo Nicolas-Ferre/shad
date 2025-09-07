@@ -1,8 +1,8 @@
 use crate::compilation::index::NodeIndex;
-use crate::compilation::node::{Node, NodeConfig};
+use crate::compilation::node::Node;
 use crate::language::items::buffer::BufferItem;
 use crate::language::items::compute::{InitItem, RunItem};
-use crate::language::items::Root;
+use crate::language::items::{type_, Root};
 use petgraph::graphmap::DiGraphMap;
 use std::any::Any;
 use std::collections::HashMap;
@@ -106,9 +106,7 @@ impl Buffer {
     fn new(item: &BufferItem, index: &NodeIndex) -> Self {
         Self {
             size_bytes: 4,
-            type_name: item
-                .expr_type(index)
-                .expect("internal error: failed to calculate buffer type"),
+            type_name: type_::name(item.buffer_type(index)),
         }
     }
 }

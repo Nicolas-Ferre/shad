@@ -1,3 +1,10 @@
+// Types
+
+native struct u32 = "u32", 4u, 4u {}
+native struct i32 = "i32", 4u, 4u {}
+native struct f32 = "f32", 4u, 4u {}
+native struct bool = "u32", 4u, 4u {}
+
 // Binary operators
 
 native fn __add__(left: f32, right: f32) -> f32 = "left + right";

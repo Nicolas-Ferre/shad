@@ -1,9 +1,8 @@
 use crate::compilation::index::NodeIndex;
-use crate::compilation::node::{sequence, Node, NodeConfig};
+use crate::compilation::node::{sequence, NodeConfig, NodeType};
 use crate::compilation::transpilation::TranspilationContext;
 use crate::compilation::validation::ValidationContext;
 use crate::language::expressions::binary::MaybeBinaryExpr;
-use crate::language::items::type_::NO_RETURN_TYPE;
 use crate::ValidationError;
 
 pub(crate) mod binary;
@@ -25,12 +24,12 @@ impl NodeConfig for TypedExpr {
         self.expr.is_ref(index)
     }
 
-    fn expr_type(&self, index: &NodeIndex) -> Option<String> {
-        self.expr.expr_type(index)
+    fn type_<'a>(&self, index: &'a NodeIndex) -> Option<NodeType<'a>> {
+        self.expr.type_(index)
     }
 
     fn validate(&self, ctx: &mut ValidationContext<'_>) {
-        if self.expr_type(ctx.index).as_deref() == Some(NO_RETURN_TYPE) {
+        if self.type_(ctx.index).is_some_and(NodeType::is_no_return) {
             ctx.errors.push(ValidationError::error(
                 ctx,
                 self,
@@ -43,19 +42,5 @@ impl NodeConfig for TypedExpr {
 
     fn transpile(&self, ctx: &mut TranspilationContext<'_>) -> String {
         self.expr.transpile(ctx)
-    }
-}
-
-fn check_missing_source(node: &impl Node, ctx: &mut ValidationContext<'_>) {
-    if let Some(key) = node.source_key(ctx.index) {
-        if node.source_from_key(ctx.index, &key).is_none() {
-            ctx.errors.push(ValidationError::error(
-                ctx,
-                node,
-                "undefined item",
-                Some(&format!("{key} is undefined")),
-                &[],
-            ));
-        }
     }
 }
