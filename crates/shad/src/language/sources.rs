@@ -5,7 +5,7 @@ use crate::language::expressions::binary::MaybeBinaryExpr;
 use crate::language::items::buffer::BufferItem;
 use crate::language::items::fn_::{FnItem, FnParam, FnParamGroup, NativeFnItem};
 use crate::language::items::type_;
-use crate::language::items::type_::NativeTypeItem;
+use crate::language::items::type_::NativeStructItem;
 use crate::language::patterns::Ident;
 use crate::language::statements::{LocalRefDefStmt, LocalVarDefStmt};
 use crate::ValidationError;
@@ -98,7 +98,7 @@ pub(crate) fn fn_criteria() -> &'static [NodeSourceSearchCriteria] {
 
 pub(crate) fn type_criteria() -> &'static [NodeSourceSearchCriteria] {
     &[NodeSourceSearchCriteria {
-        node_type: || TypeId::of::<NativeTypeItem>(),
+        node_type: || TypeId::of::<NativeStructItem>(),
         can_be_after: true,
         common_parent_count: None,
     }]
@@ -106,7 +106,7 @@ pub(crate) fn type_criteria() -> &'static [NodeSourceSearchCriteria] {
 
 pub(crate) fn check_missing_source(node: &impl Node, ctx: &mut ValidationContext<'_>) {
     if let Some(key) = node.source_key(ctx.index) {
-        if node.source_from_key(ctx.index, &key).is_none() {
+        if node.source(ctx.index).is_none() {
             ctx.errors.push(ValidationError::error(
                 ctx,
                 node,

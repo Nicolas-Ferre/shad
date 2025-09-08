@@ -63,6 +63,10 @@ impl NodeConfig for TransformedChainExpr {
         sources::fn_key_from_args(&suffix.ident, self.args(suffix), index)
     }
 
+    fn source<'a>(&self, index: &'a NodeIndex) -> Option<&'a dyn Node> {
+        index.search(self, &self.source_key(index)?)
+    }
+
     fn source_search_criteria(&self) -> &'static [NodeSourceSearchCriteria] {
         sources::fn_criteria()
     }

@@ -1,5 +1,5 @@
 use crate::compilation::index::NodeIndex;
-use crate::compilation::node::{pattern, NodeConfig, NodeType};
+use crate::compilation::node::{pattern, NodeConfig, NodeSourceSearchCriteria, NodeType};
 use crate::compilation::transpilation::TranspilationContext;
 use crate::compilation::validation::ValidationContext;
 use crate::language::keywords::RESERVED_KEYWORDS;
@@ -37,14 +37,13 @@ pattern!(
 );
 
 impl NodeConfig for F32Literal {
+    fn source_search_criteria(&self) -> &'static [NodeSourceSearchCriteria] {
+        sources::type_criteria()
+    }
+
     fn type_<'a>(&self, index: &'a NodeIndex) -> Option<NodeType<'a>> {
         let source = index
-            .search(
-                "`f32` type",
-                sources::type_criteria(),
-                &self.path,
-                &self.parent_ids,
-            )
+            .search(self, "`f32` type")
             .expect("internal error: `f32` type not found");
         Some(NodeType::Source(source))
     }
@@ -84,14 +83,13 @@ pattern!(
 );
 
 impl NodeConfig for U32Literal {
+    fn source_search_criteria(&self) -> &'static [NodeSourceSearchCriteria] {
+        sources::type_criteria()
+    }
+
     fn type_<'a>(&self, index: &'a NodeIndex) -> Option<NodeType<'a>> {
         let source = index
-            .search(
-                "`u32` type",
-                sources::type_criteria(),
-                &self.path,
-                &self.parent_ids,
-            )
+            .search(self, "`u32` type")
             .expect("internal error: `u32` type not found");
         Some(NodeType::Source(source))
     }
@@ -131,14 +129,13 @@ pattern!(
 );
 
 impl NodeConfig for I32Literal {
+    fn source_search_criteria(&self) -> &'static [NodeSourceSearchCriteria] {
+        sources::type_criteria()
+    }
+
     fn type_<'a>(&self, index: &'a NodeIndex) -> Option<NodeType<'a>> {
         let source = index
-            .search(
-                "`i32` type",
-                sources::type_criteria(),
-                &self.path,
-                &self.parent_ids,
-            )
+            .search(self, "`i32` type")
             .expect("internal error: `i32` type not found");
         Some(NodeType::Source(source))
     }

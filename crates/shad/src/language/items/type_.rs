@@ -13,7 +13,7 @@ use std::any::Any;
 pub(crate) const NO_RETURN_TYPE: &str = "<no return>";
 
 sequence!(
-    struct NativeTypeItem {
+    struct NativeStructItem {
         native: NativeKeyword,
         struct_: StructKeyword,
         #[force_error(true)]
@@ -29,7 +29,7 @@ sequence!(
     }
 );
 
-impl NodeConfig for NativeTypeItem {
+impl NodeConfig for NativeStructItem {
     fn key(&self) -> Option<String> {
         Some(sources::type_key(&self.ident))
     }
@@ -55,6 +55,10 @@ impl NodeConfig for Type {
         Some(sources::type_key(&self.ident))
     }
 
+    fn source<'a>(&self, index: &'a NodeIndex) -> Option<&'a dyn Node> {
+        index.search(self, &self.source_key(index)?)
+    }
+
     fn source_search_criteria(&self) -> &'static [NodeSourceSearchCriteria] {
         sources::type_criteria()
     }
@@ -76,7 +80,7 @@ impl NodeConfig for Type {
 }
 
 pub(crate) fn size(type_: &dyn Node) -> u64 {
-    if let Some(type_) = (type_ as &dyn Any).downcast_ref::<NativeTypeItem>() {
+    if let Some(type_) = (type_ as &dyn Any).downcast_ref::<NativeStructItem>() {
         type_
             .size
             .slice
@@ -89,7 +93,7 @@ pub(crate) fn size(type_: &dyn Node) -> u64 {
 }
 
 pub(crate) fn name(type_: &dyn Node) -> String {
-    if let Some(type_) = (type_ as &dyn Any).downcast_ref::<NativeTypeItem>() {
+    if let Some(type_) = (type_ as &dyn Any).downcast_ref::<NativeStructItem>() {
         type_.ident.slice.clone()
     } else {
         unreachable!("unknown type item")
@@ -104,7 +108,7 @@ pub(crate) fn name_or_no_return(type_: NodeType<'_>) -> String {
 }
 
 pub(crate) fn transpile_name(type_: &dyn Node) -> String {
-    if let Some(type_) = (type_ as &dyn Any).downcast_ref::<NativeTypeItem>() {
+    if let Some(type_) = (type_ as &dyn Any).downcast_ref::<NativeStructItem>() {
         type_.transpilation.as_str().to_string()
     } else {
         unreachable!("unknown type item")

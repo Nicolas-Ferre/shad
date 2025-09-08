@@ -45,6 +45,10 @@ impl NodeConfig for FnCallExpr {
         sources::fn_key_from_args(&self.ident, self.args(), index)
     }
 
+    fn source<'a>(&self, index: &'a NodeIndex) -> Option<&'a dyn Node> {
+        index.search(self, &self.source_key(index)?)
+    }
+
     fn source_search_criteria(&self) -> &'static [NodeSourceSearchCriteria] {
         sources::fn_criteria()
     }

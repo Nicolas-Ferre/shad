@@ -20,14 +20,13 @@ choice!(
 );
 
 impl NodeConfig for BoolLiteral {
+    fn source_search_criteria(&self) -> &'static [NodeSourceSearchCriteria] {
+        sources::type_criteria()
+    }
+
     fn type_<'a>(&self, index: &'a NodeIndex) -> Option<NodeType<'a>> {
         let source = index
-            .search(
-                "`bool` type",
-                sources::type_criteria(),
-                &self.path,
-                &self.parent_ids,
-            )
+            .search(self, "`bool` type")
             .expect("internal error: `bool` type not found");
         Some(NodeType::Source(source))
     }
@@ -51,6 +50,10 @@ sequence!(
 impl NodeConfig for VarIdentExpr {
     fn source_key(&self, _index: &NodeIndex) -> Option<String> {
         Some(sources::variable_key(&self.ident))
+    }
+
+    fn source<'a>(&self, index: &'a NodeIndex) -> Option<&'a dyn Node> {
+        index.search(self, &self.source_key(index)?)
     }
 
     fn source_search_criteria(&self) -> &'static [NodeSourceSearchCriteria] {
@@ -90,6 +93,10 @@ sequence!(
 impl NodeConfig for ParenthesizedExpr {
     fn source_key(&self, index: &NodeIndex) -> Option<String> {
         self.expr.source_key(index)
+    }
+
+    fn source<'a>(&self, index: &'a NodeIndex) -> Option<&'a dyn Node> {
+        index.search(self, &self.source_key(index)?)
     }
 
     fn type_<'a>(&self, index: &'a NodeIndex) -> Option<NodeType<'a>> {

@@ -6,7 +6,7 @@ use crate::language::items::buffer::BufferItem;
 use crate::language::items::compute::{InitItem, RunItem};
 use crate::language::items::fn_::{FnItem, NativeFnItem};
 use crate::language::items::import::ImportItem;
-use crate::language::items::type_::NativeTypeItem;
+use crate::language::items::type_::NativeStructItem;
 use crate::ValidationError;
 use itertools::Itertools;
 
@@ -35,7 +35,7 @@ choice!(
         Run(RunItem),
         NativeFn(NativeFnItem),
         Fn(FnItem),
-        NativeType(NativeTypeItem),
+        NativeType(NativeStructItem),
     }
 );
 

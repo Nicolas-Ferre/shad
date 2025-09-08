@@ -66,6 +66,10 @@ pub(crate) trait NodeConfig {
         None
     }
 
+    fn source<'a>(&self, index: &'a NodeIndex) -> Option<&'a dyn Node> {
+        None
+    }
+
     fn source_search_criteria(&self) -> &'static [NodeSourceSearchCriteria] {
         unreachable!("`{}` node has no source criteria", type_name::<Self>())
     }
@@ -107,19 +111,6 @@ pub(crate) trait Node: Any + NodeConfig + Debug + Deref<Target = NodeProps> {
 
     fn node_type_id(&self) -> TypeId {
         TypeId::of::<Self>()
-    }
-
-    fn source<'a>(&self, index: &'a NodeIndex) -> Option<&'a dyn Node> {
-        self.source_from_key(index, &self.source_key(index)?)
-    }
-
-    fn source_from_key<'a>(&self, index: &'a NodeIndex, key: &str) -> Option<&'a dyn Node> {
-        index.search(
-            key,
-            self.source_search_criteria(),
-            &self.path,
-            &self.parent_ids,
-        )
     }
 
     fn nested_sources<'a>(&self, index: &'a NodeIndex) -> Vec<&'a dyn Node>
