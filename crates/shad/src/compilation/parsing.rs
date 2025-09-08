@@ -15,9 +15,8 @@ pub(crate) fn parse_files(
     let mut next_node_id = *first_node_id;
     for (path, code) in files {
         match parse_file(path, code, next_node_id) {
-            Ok((mut root, new_next_node_id)) => {
+            Ok((root, new_next_node_id)) => {
                 next_node_id = new_next_node_id;
-                root.props.slice.clone_from(code);
                 roots.insert(path.clone(), root);
             }
             Err(err) => errors.push(err),
@@ -44,10 +43,11 @@ pub(crate) fn parse_file(
         next_node_id: first_node_id,
         parent_ids: vec![],
     };
-    let root = Root::parse(&mut ctx).map_err(|mut err| {
+    let mut root = Root::parse(&mut ctx).map_err(|mut err| {
         err.code = raw_code.into();
         err
     })?;
+    root.props.slice = raw_code.into();
     Ok((root, ctx.next_node_id))
 }
 

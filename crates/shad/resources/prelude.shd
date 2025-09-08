@@ -5,21 +5,105 @@ native struct f32 = "f32", 4u, 4u {}
 native struct u32 = "u32", 4u, 4u {}
 native struct i32 = "i32", 4u, 4u {}
 
-native struct boolx2 = "vec2<u32>", 8u, 8u {}
-native struct boolx3 = "vec3<u32>", 16u, 12u {}
-native struct boolx4 = "vec4<u32>", 16u, 16u {}
+native struct boolx2 = "vec2<u32>", 8u, 8u {
+    x: bool,
+    y: bool,
+    r: bool,
+    g: bool,
+}
+native struct boolx3 = "vec3<u32>", 16u, 12u {
+    x: bool,
+    y: bool,
+    z: bool,
+    r: bool,
+    g: bool,
+    b: bool,
+}
+native struct boolx4 = "vec4<u32>", 16u, 16u {
+    x: bool,
+    y: bool,
+    z: bool,
+    w: bool,
+    r: bool,
+    g: bool,
+    b: bool,
+    a: bool,
+}
 
-native struct f32x2 = "vec2<f32>", 8u, 8u {}
-native struct f32x3 = "vec3<f32>", 16u, 12u {}
-native struct f32x4 = "vec4<f32>", 16u, 16u {}
+native struct f32x2 = "vec2<f32>", 8u, 8u {
+    x: f32,
+    y: f32,
+    r: f32,
+    g: f32,
+}
+native struct f32x3 = "vec3<f32>", 16u, 12u {
+    x: f32,
+    y: f32,
+    z: f32,
+    r: f32,
+    g: f32,
+    b: f32,
+}
+native struct f32x4 = "vec4<f32>", 16u, 16u {
+    x: f32,
+    y: f32,
+    z: f32,
+    w: f32,
+    r: f32,
+    g: f32,
+    b: f32,
+    a: f32,
+}
 
-native struct i32x2 = "vec2<i32>", 8u, 8u {}
-native struct i32x3 = "vec3<i32>", 16u, 12u {}
-native struct i32x4 = "vec4<i32>", 16u, 16u {}
+native struct i32x2 = "vec2<i32>", 8u, 8u {
+    x: i32,
+    y: i32,
+    r: i32,
+    g: i32,
+}
+native struct i32x3 = "vec3<i32>", 16u, 12u {
+    x: i32,
+    y: i32,
+    z: i32,
+    r: i32,
+    g: i32,
+    b: i32,
+}
+native struct i32x4 = "vec4<i32>", 16u, 16u {
+    x: i32,
+    y: i32,
+    z: i32,
+    w: i32,
+    r: i32,
+    g: i32,
+    b: i32,
+    a: i32,
+}
 
-native struct u32x2 = "vec2<u32>", 8u, 8u {}
-native struct u32x3 = "vec3<u32>", 16u, 12u {}
-native struct u32x4 = "vec4<u32>", 16u, 16u {}
+native struct u32x2 = "vec2<u32>", 8u, 8u {
+    x: u32,
+    y: u32,
+    r: u32,
+    g: u32,
+}
+native struct u32x3 = "vec3<u32>", 16u, 12u {
+    x: u32,
+    y: u32,
+    z: u32,
+    r: u32,
+    g: u32,
+    a: u32,
+}
+native struct u32x4 = "vec4<u32>", 16u, 16u {
+    x: u32,
+    y: u32,
+    z: u32,
+    w: u32,
+    r: u32,
+    g: u32,
+    b: u32,
+    a: u32,
+}
 
 // Binary operators
 

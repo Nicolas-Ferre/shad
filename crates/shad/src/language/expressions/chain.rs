@@ -5,15 +5,16 @@ use crate::compilation::node::{
 use crate::compilation::transpilation::TranspilationContext;
 use crate::compilation::validation::ValidationContext;
 use crate::language::expressions::binary::MaybeBinaryExpr;
-use crate::language::expressions::fn_call::{
-    transpile_fn_call, AssociatedFnCallSuffix, FnCallExpr,
-};
+use crate::language::expressions::fn_call::{transpile_fn_call, FnArgGroup, FnCallExpr};
 use crate::language::expressions::simple::{BoolLiteral, ParenthesizedExpr, VarIdentExpr};
 use crate::language::expressions::transformations;
 use crate::language::expressions::unary::UnaryExpr;
-use crate::language::patterns::{F32Literal, I32Literal, U32Literal};
+use crate::language::items::type_::NativeStructItem;
+use crate::language::keywords::{CloseParenthesisSymbol, DotSymbol, OpenParenthesisSymbol};
+use crate::language::patterns::{F32Literal, I32Literal, Ident, U32Literal};
 use crate::language::sources;
 use crate::language::sources::check_missing_source;
+use std::any::Any;
 use std::iter;
 
 transform!(
@@ -27,7 +28,7 @@ sequence!(
     struct ParsedChainExpr {
         expr: ChainPrefix,
         #[force_error(true)]
-        call_suffix: Repeated<AssociatedFnCallSuffix, 0, { usize::MAX }>,
+        suffix: Repeated<ChainSuffix, 0, { usize::MAX }>,
     }
 );
 
@@ -41,7 +42,7 @@ impl NodeConfig for ParsedChainExpr {
     }
 
     fn validate(&self, _ctx: &mut ValidationContext<'_>) {
-        debug_assert!(self.call_suffix.iter().len() == 0);
+        debug_assert!(self.suffix.iter().len() == 0);
     }
 
     fn transpile(&self, ctx: &mut TranspilationContext<'_>) -> String {
@@ -53,18 +54,36 @@ sequence!(
     #[allow(unused_mut)]
     struct TransformedChainExpr {
         expr: MaybeBinaryExpr,
-        call_suffix: Repeated<AssociatedFnCallSuffix, 0, 1>,
+        suffix: Repeated<ChainSuffix, 0, 1>,
     }
 );
 
 impl NodeConfig for TransformedChainExpr {
     fn source_key(&self, index: &NodeIndex) -> Option<String> {
-        let suffix = &self.call_suffix.iter().next()?;
-        sources::fn_key_from_args(&suffix.ident, self.args(suffix), index)
+        match &**self.suffix.iter().next()? {
+            ChainSuffix::FnCall(suffix) => {
+                sources::fn_key_from_args(&suffix.ident, self.args(suffix), index)
+            }
+            ChainSuffix::StructField(suffix) => {
+                let prefix_type_key = self.expr.type_(index)?.source()?.key()?;
+                let field_name = &suffix.ident.slice;
+                Some(format!("`{field_name}` field of {prefix_type_key}"))
+            }
+        }
     }
 
     fn source<'a>(&self, index: &'a NodeIndex) -> Option<&'a dyn Node> {
-        index.search(self, &self.source_key(index)?)
+        match &**self.suffix.iter().next()? {
+            ChainSuffix::FnCall(_) => index.search(self, &self.source_key(index)?),
+            ChainSuffix::StructField(suffix) => {
+                let type_ = self.expr.type_(index)?.source()?;
+                if let Some(type_) = (type_ as &dyn Any).downcast_ref::<NativeStructItem>() {
+                    Some(type_.field(&suffix.ident.slice)?)
+                } else {
+                    unreachable!("unexpected type")
+                }
+            }
+        }
     }
 
     fn source_search_criteria(&self) -> &'static [NodeSourceSearchCriteria] {
@@ -72,7 +91,7 @@ impl NodeConfig for TransformedChainExpr {
     }
 
     fn is_ref(&self, index: &NodeIndex) -> bool {
-        if self.call_suffix.iter().next().is_some() {
+        if self.suffix.iter().next().is_some() {
             self.source(index)
                 .is_some_and(|source| source.is_ref(index))
         } else {
@@ -81,7 +100,7 @@ impl NodeConfig for TransformedChainExpr {
     }
 
     fn type_<'a>(&self, index: &'a NodeIndex) -> Option<NodeType<'a>> {
-        if self.call_suffix.iter().next().is_some() {
+        if self.suffix.iter().next().is_some() {
             self.source(index)?.type_(index)
         } else {
             self.expr.type_(index)
@@ -89,18 +108,24 @@ impl NodeConfig for TransformedChainExpr {
     }
 
     fn validate(&self, ctx: &mut ValidationContext<'_>) {
-        debug_assert!(self.call_suffix.iter().len() <= 1);
+        debug_assert!(self.suffix.iter().len() <= 1);
         check_missing_source(self, ctx);
     }
 
     fn transpile(&self, ctx: &mut TranspilationContext<'_>) -> String {
-        if let Some(suffix) = &self.call_suffix.iter().next() {
-            let source = self
-                .source(ctx.index)
-                .expect("internal error: fn call source not found");
-            transpile_fn_call(ctx, source, self.args(suffix))
-        } else {
-            self.expr.transpile(ctx)
+        match self.suffix.iter().next().map(|s| &**s) {
+            Some(ChainSuffix::FnCall(suffix)) => {
+                let source = self
+                    .source(ctx.index)
+                    .expect("internal error: fn call source not found");
+                transpile_fn_call(ctx, source, self.args(suffix))
+            }
+            Some(ChainSuffix::StructField(suffix)) => {
+                let prefix = self.expr.transpile(ctx);
+                let suffix = &suffix.ident.slice;
+                format!("{prefix}.{suffix}")
+            }
+            None => self.expr.transpile(ctx),
         }
     }
 }
@@ -171,3 +196,35 @@ impl NodeConfig for ChainPrefix {
         }
     }
 }
+
+choice!(
+    enum ChainSuffix {
+        FnCall(AssociatedFnCallSuffix),
+        StructField(AssociatedStructField),
+    }
+);
+
+impl NodeConfig for ChainSuffix {}
+
+sequence!(
+    struct AssociatedFnCallSuffix {
+        dot: DotSymbol,
+        ident: Ident,
+        args_start: OpenParenthesisSymbol,
+        #[force_error(true)]
+        args: Repeated<FnArgGroup, 0, 1>,
+        args_end: CloseParenthesisSymbol,
+    }
+);
+
+impl NodeConfig for AssociatedFnCallSuffix {}
+
+sequence!(
+    #[allow(unused_mut)]
+    struct AssociatedStructField {
+        dot: DotSymbol,
+        ident: Ident,
+    }
+);
+
+impl NodeConfig for AssociatedStructField {}

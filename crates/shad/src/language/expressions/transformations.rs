@@ -2,8 +2,9 @@ use crate::compilation::node::{Node, NodeProps, Repeated};
 use crate::language::expressions::binary::{
     BinaryExpr, BinaryOperator, MaybeBinaryExpr, ParsedMaybeBinaryExpr,
 };
-use crate::language::expressions::chain::{ChainExpr, ParsedChainExpr, TransformedChainExpr};
-use crate::language::expressions::fn_call::AssociatedFnCallSuffix;
+use crate::language::expressions::chain::{
+    ChainExpr, ChainSuffix, ParsedChainExpr, TransformedChainExpr,
+};
 use itertools::Itertools;
 use std::iter;
 use std::rc::Rc;
@@ -28,12 +29,12 @@ pub(crate) fn transform_binary_expr(expr: ParsedMaybeBinaryExpr) -> MaybeBinaryE
 }
 
 pub(crate) fn transform_chain_expr(expr: ParsedChainExpr) -> ChainExpr {
-    let suffix: Vec<_> = Rc::into_inner(expr.call_suffix)
+    let suffix: Vec<_> = Rc::into_inner(expr.suffix)
         .expect("internal error: cannot extract expression suffix")
         .take();
     let prefix = Rc::new(ChainExpr::Parsed(Rc::new(ParsedChainExpr {
         expr: expr.expr,
-        call_suffix: Rc::new(Repeated::new(expr.props.clone())),
+        suffix: Rc::new(Repeated::new(expr.props.clone())),
         props: expr.props,
     })));
     ChainExpr::Transformed(Rc::new(transform_chain_expr_inner(prefix, suffix)))
@@ -94,7 +95,7 @@ fn split_index(operators: &[&Rc<BinaryOperator>]) -> usize {
 
 fn transform_chain_expr_inner(
     prefix: Rc<ChainExpr>,
-    mut suffixes: Vec<Rc<AssociatedFnCallSuffix>>,
+    mut suffixes: Vec<Rc<ChainSuffix>>,
 ) -> TransformedChainExpr {
     if let Some(suffix) = suffixes.pop().and_then(Rc::into_inner) {
         TransformedChainExpr {
@@ -110,7 +111,7 @@ fn transform_chain_expr_inner(
                 span: prefix.span.start..suffix.span.end,
                 path: prefix.path.clone(),
             },
-            call_suffix: Rc::new(Repeated::from_node(suffix)),
+            suffix: Rc::new(Repeated::from_node(suffix)),
             expr: {
                 let new_expr = transform_chain_expr_inner(prefix, suffixes);
                 Rc::new(MaybeBinaryExpr::Parsed(Rc::new(ParsedMaybeBinaryExpr {
@@ -122,7 +123,7 @@ fn transform_chain_expr_inner(
         }
     } else {
         TransformedChainExpr {
-            call_suffix: Rc::new(Repeated::new(prefix.props().clone())),
+            suffix: Rc::new(Repeated::new(prefix.props().clone())),
             props: prefix.props().clone(),
             expr: Rc::new(MaybeBinaryExpr::Parsed(Rc::new(ParsedMaybeBinaryExpr {
                 right: Rc::new(Repeated::new(prefix.props().clone())),

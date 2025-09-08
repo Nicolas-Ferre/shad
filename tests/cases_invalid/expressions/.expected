@@ -15,6 +15,14 @@ error: undefined item
   |                           `__not__(f32)` function is undefined
 
 error: undefined item
+ --> ./cases_invalid/expressions/field.shd:3:13
+  |
+3 |     var z = vec.z;
+  |             ^^^^^
+  |             |
+  |             `z` field of `i32x2` type is undefined
+
+error: undefined item
   --> ./cases_invalid/expressions/fn_call.shd:10:5
    |
 10 |     func(0, 0);

@@ -18,6 +18,7 @@ builtin.associated_fn_call=2
 builtin.binary=6
 builtin.fn_call=2
 builtin.unary=-4
+fields.result=25
 fn_calls.no_return_associated_fn_run=1
 fn_calls.no_return_fn_run=1
 fn_calls.result=2

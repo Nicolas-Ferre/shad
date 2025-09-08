@@ -6,9 +6,7 @@ use crate::compilation::transpilation::TranspilationContext;
 use crate::compilation::validation::ValidationContext;
 use crate::language::expressions::binary::MaybeBinaryExpr;
 use crate::language::items::fn_::{FnItem, NativeFnItem};
-use crate::language::keywords::{
-    CloseParenthesisSymbol, CommaSymbol, DotSymbol, OpenParenthesisSymbol,
-};
+use crate::language::keywords::{CloseParenthesisSymbol, CommaSymbol, OpenParenthesisSymbol};
 use crate::language::patterns::Ident;
 use crate::language::sources;
 use crate::language::sources::check_missing_source;
@@ -16,19 +14,6 @@ use itertools::Itertools;
 use std::any::Any;
 use std::iter;
 use std::rc::Rc;
-
-sequence!(
-    struct AssociatedFnCallSuffix {
-        dot: DotSymbol,
-        #[force_error(true)]
-        ident: Ident,
-        args_start: OpenParenthesisSymbol,
-        args: Repeated<FnArgGroup, 0, 1>,
-        args_end: CloseParenthesisSymbol,
-    }
-);
-
-impl NodeConfig for AssociatedFnCallSuffix {}
 
 sequence!(
     struct FnCallExpr {
