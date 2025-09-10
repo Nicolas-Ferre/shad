@@ -103,26 +103,42 @@ error: invalid expression type
   |            this function does not return a value
 
 error: invalid number of fields
- --> ./cases_invalid/expressions/struct_constructor.shd:2:29
-  |
-2 |       var invalid_arg_count = TestStruct { 1, 2, 3 };
-  |                               ^^^^^^^^^^^^^^^^^^^^^^
-  |                               |
-  |                               3 fields specified here
+  --> ./cases_invalid/expressions/struct_constructor.shd:2:29
+   |
+ 2 |       var invalid_arg_count = TestStruct { 1, 2, 3 };
+   |                               ^^^^^^^^^^^^^^^^^^^^^^
+   |                               |
+   |                               3 fields specified here
 ...
-6 | / struct TestStruct {
-7 | |     a: i32,
-8 | |     b: u32,
-9 | | }
-  | |_- 2 fields expected
+ 8 | / struct TestStruct {
+ 9 | |     a: i32,
+10 | |     b: u32,
+11 | | }
+   | |_- 2 fields expected
 
 error: invalid expression type
- --> ./cases_invalid/expressions/struct_constructor.shd:3:44
-  |
-3 |     var invalid_arg_type = TestStruct { 1, 2 };
-  |                                            ^
-  |                                            |
-  |                                            expression type is `i32`
+  --> ./cases_invalid/expressions/struct_constructor.shd:3:44
+   |
+ 3 |     var invalid_arg_type = TestStruct { 1, 2 };
+   |                                            ^
+   |                                            |
+   |                                            expression type is `i32`
 ...
-8 |     b: u32,
-  |     ------ expected type is `u32`
+10 |     b: u32,
+   |     ------ expected type is `u32`
+
+error: cannot call constructor for a native type
+ --> ./cases_invalid/expressions/struct_constructor.shd:4:32
+  |
+4 |     var call_for_native_type = i32x2 { 1, 2 };
+  |                                ^^^^^^^^^^^^^^
+  |                                |
+  |                                constructor called here
+
+error: undefined item
+ --> ./cases_invalid/expressions/struct_constructor.shd:5:33
+  |
+5 |     var call_for_unknown_type = unknown { 1, 2 };
+  |                                 ^^^^^^^
+  |                                 |
+  |                                 `unknown` type is undefined

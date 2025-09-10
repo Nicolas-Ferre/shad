@@ -216,6 +216,12 @@ impl NodeConfig for Type {
     }
 }
 
+pub(crate) fn is_native(type_: &dyn Node) -> bool {
+    (type_ as &dyn Any)
+        .downcast_ref::<NativeStructItem>()
+        .is_some()
+}
+
 pub(crate) fn size(type_: &dyn Node, index: &NodeIndex) -> u64 {
     if let Some(type_) = (type_ as &dyn Any).downcast_ref::<NativeStructItem>() {
         type_.size.to_u32().into()
@@ -279,12 +285,11 @@ pub(crate) fn name_or_no_return(type_: NodeType<'_>) -> String {
 }
 
 pub(crate) fn fields(type_: &dyn Node) -> Vec<&StructField> {
-    if let Some(type_) = (type_ as &dyn Any).downcast_ref::<NativeStructItem>() {
-        type_
-            .fields
-            .iter()
-            .flat_map(|fields| fields.iter())
-            .collect()
+    if (type_ as &dyn Any)
+        .downcast_ref::<NativeStructItem>()
+        .is_some()
+    {
+        unreachable!("never called for native structs")
     } else if let Some(type_) = (type_ as &dyn Any).downcast_ref::<StructItem>() {
         type_.fields.iter().collect()
     } else {

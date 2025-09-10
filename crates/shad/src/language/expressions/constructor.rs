@@ -9,7 +9,6 @@ use crate::language::expressions::fn_call::FnArgGroup;
 use crate::language::items::type_;
 use crate::language::items::type_::Type;
 use crate::language::keywords::{CloseCurlyBracketSymbol, OpenCurlyBracketSymbol};
-use crate::language::sources::check_missing_source;
 use crate::language::{expressions, sources};
 use crate::ValidationError;
 use itertools::Itertools;
@@ -42,8 +41,17 @@ impl NodeConfig for ConstructorExpr {
     }
 
     fn validate(&self, ctx: &mut ValidationContext<'_>) {
-        check_missing_source(self, ctx);
         if let Some(source) = self.source(ctx.index) {
+            if type_::is_native(source) {
+                ctx.errors.push(ValidationError::error(
+                    ctx,
+                    self,
+                    "cannot call constructor for a native type",
+                    Some("constructor called here"),
+                    &[],
+                ));
+                return;
+            }
             let fields = type_::fields(source);
             let expected_field_count = fields.len();
             let actual_field_count = self.args().count();
