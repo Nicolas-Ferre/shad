@@ -1,0 +1,9 @@
+run {
+    var invalid_arg_count = TestStruct { 1, 2, 3 };
+    var invalid_arg_type = TestStruct { 1, 2 };
+}
+
+struct TestStruct {
+    a: i32,
+    b: u32,
+}

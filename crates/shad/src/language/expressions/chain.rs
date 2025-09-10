@@ -5,16 +5,16 @@ use crate::compilation::node::{
 use crate::compilation::transpilation::TranspilationContext;
 use crate::compilation::validation::ValidationContext;
 use crate::language::expressions::binary::MaybeBinaryExpr;
+use crate::language::expressions::constructor::ConstructorExpr;
 use crate::language::expressions::fn_call::{transpile_fn_call, FnArgGroup, FnCallExpr};
 use crate::language::expressions::simple::{BoolLiteral, ParenthesizedExpr, VarIdentExpr};
 use crate::language::expressions::transformations;
 use crate::language::expressions::unary::UnaryExpr;
-use crate::language::items::type_::NativeStructItem;
+use crate::language::items::type_;
 use crate::language::keywords::{CloseParenthesisSymbol, DotSymbol, OpenParenthesisSymbol};
 use crate::language::patterns::{F32Literal, I32Literal, Ident, U32Literal};
 use crate::language::sources;
 use crate::language::sources::check_missing_source;
-use std::any::Any;
 use std::iter;
 
 transform!(
@@ -75,14 +75,10 @@ impl NodeConfig for TransformedChainExpr {
     fn source<'a>(&self, index: &'a NodeIndex) -> Option<&'a dyn Node> {
         match &**self.suffix.iter().next()? {
             ChainSuffix::FnCall(_) => index.search(self, &self.source_key(index)?),
-            ChainSuffix::StructField(suffix) => {
-                let type_ = self.expr.type_(index)?.source()?;
-                if let Some(type_) = (type_ as &dyn Any).downcast_ref::<NativeStructItem>() {
-                    Some(type_.field(&suffix.ident.slice)?)
-                } else {
-                    unreachable!("unexpected type")
-                }
-            }
+            ChainSuffix::StructField(suffix) => Some(type_::field(
+                self.expr.type_(index)?.source()?,
+                &suffix.ident.slice,
+            )?),
         }
     }
 
@@ -121,8 +117,14 @@ impl NodeConfig for TransformedChainExpr {
                 transpile_fn_call(ctx, source, self.args(suffix))
             }
             Some(ChainSuffix::StructField(suffix)) => {
+                let type_ = self
+                    .expr
+                    .type_(ctx.index)
+                    .expect("internal error: chain prefix type not found")
+                    .source()
+                    .expect("internal error: invalid chain prefix");
                 let prefix = self.expr.transpile(ctx);
-                let suffix = &suffix.ident.slice;
+                let suffix = type_::transpile_field_name(type_, &suffix.ident.slice);
                 format!("{prefix}.{suffix}")
             }
             None => self.expr.transpile(ctx),
@@ -152,6 +154,7 @@ choice!(
         U32(U32Literal),
         I32(I32Literal),
         FnCall(FnCallExpr),
+        Constructor(ConstructorExpr),
         Var(VarIdentExpr),
         Unary(UnaryExpr),
         Parenthesized(ParenthesizedExpr),
@@ -161,9 +164,12 @@ choice!(
 impl NodeConfig for ChainPrefix {
     fn is_ref(&self, index: &NodeIndex) -> bool {
         match self {
-            Self::Bool(_) | Self::F32(_) | Self::U32(_) | Self::I32(_) | Self::Parenthesized(_) => {
-                false
-            }
+            Self::Bool(_)
+            | Self::F32(_)
+            | Self::U32(_)
+            | Self::I32(_)
+            | Self::Parenthesized(_)
+            | Self::Constructor(_) => false,
             Self::Var(_) => true,
             Self::FnCall(child) => child.is_ref(index),
             Self::Unary(child) => child.is_ref(index),
@@ -180,6 +186,7 @@ impl NodeConfig for ChainPrefix {
             Self::Var(child) => child.type_(index),
             Self::Unary(child) => child.type_(index),
             Self::Parenthesized(child) => child.type_(index),
+            Self::Constructor(child) => child.type_(index),
         }
     }
 
@@ -193,6 +200,7 @@ impl NodeConfig for ChainPrefix {
             Self::Var(child) => child.transpile(ctx),
             Self::Unary(child) => child.transpile(ctx),
             Self::Parenthesized(child) => child.transpile(ctx),
+            Self::Constructor(child) => child.transpile(ctx),
         }
     }
 }

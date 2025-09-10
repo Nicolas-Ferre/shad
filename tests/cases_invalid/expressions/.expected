@@ -101,3 +101,28 @@ error: invalid expression type
   |            ^^^^^^^^^^^
   |            |
   |            this function does not return a value
+
+error: invalid number of fields
+ --> ./cases_invalid/expressions/struct_constructor.shd:2:29
+  |
+2 |       var invalid_arg_count = TestStruct { 1, 2, 3 };
+  |                               ^^^^^^^^^^^^^^^^^^^^^^
+  |                               |
+  |                               3 fields specified here
+...
+6 | / struct TestStruct {
+7 | |     a: i32,
+8 | |     b: u32,
+9 | | }
+  | |_- 2 fields expected
+
+error: invalid expression type
+ --> ./cases_invalid/expressions/struct_constructor.shd:3:44
+  |
+3 |     var invalid_arg_type = TestStruct { 1, 2 };
+  |                                            ^
+  |                                            |
+  |                                            expression type is `i32`
+...
+8 |     b: u32,
+  |     ------ expected type is `u32`

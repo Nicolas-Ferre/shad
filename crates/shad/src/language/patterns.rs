@@ -117,6 +117,15 @@ impl NodeConfig for U32Literal {
     }
 }
 
+impl U32Literal {
+    pub(crate) fn to_u32(&self) -> u32 {
+        self.slice
+            .replace(['_', 'u'], "")
+            .parse::<u32>()
+            .expect("internal error: invalid u32 literal")
+    }
+}
+
 pattern!(
     I32Literal,
     "`i32` literal",

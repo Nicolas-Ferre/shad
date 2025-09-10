@@ -106,7 +106,7 @@ impl Buffer {
     fn new(item: &BufferItem, index: &NodeIndex) -> Self {
         let type_ = item.buffer_type(index);
         Self {
-            size_bytes: type_::size(type_),
+            size_bytes: type_::size(type_, index),
             type_name: type_::name(type_),
         }
     }
