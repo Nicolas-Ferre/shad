@@ -10,7 +10,7 @@ use crate::language::keywords::{
     NativeKeyword, OpenParenthesisSymbol, RefKeyword, SemicolonSymbol,
 };
 use crate::language::patterns::{Ident, StringLiteral};
-use crate::language::{items, sources};
+use crate::language::{sources, validations};
 use crate::ValidationError;
 use indoc::indoc;
 use itertools::Itertools;
@@ -42,7 +42,7 @@ impl NodeConfig for NativeFnItem {
     }
 
     fn validate(&self, ctx: &mut ValidationContext<'_>) {
-        items::check_duplicated_items(self, ctx);
+        validations::check_duplicated_items(self, ctx);
     }
 
     fn is_transpilable_dependency(&self, _index: &NodeIndex) -> bool {
@@ -72,8 +72,8 @@ impl NodeConfig for FnItem {
     }
 
     fn validate(&self, ctx: &mut ValidationContext<'_>) {
-        items::check_duplicated_items(self, ctx);
-        items::check_recursive_items(self, ctx);
+        validations::check_duplicated_items(self, ctx);
+        validations::check_recursive_items(self, ctx);
         let return_stmt = self.body.last_stmt().and_then(|stmt| stmt.as_return());
         let return_type = self.signature.return_type.iter().next();
         if let (None, Some(return_type)) = (return_stmt, return_type) {
@@ -165,7 +165,19 @@ impl NodeConfig for FnSignature {
     }
 
     fn validate(&self, ctx: &mut ValidationContext<'_>) {
-        check_duplicated_fn_params(&self.params().collect::<Vec<_>>(), ctx);
+        for param1 in self.params() {
+            for param2 in self.params() {
+                if param1.id < param2.id && param1.ident.slice == param2.ident.slice {
+                    ctx.errors.push(ValidationError::error(
+                        ctx,
+                        param2,
+                        "function parameter defined multiple times",
+                        Some("duplicated parameter name"),
+                        &[(param1, "same parameter name defined here")],
+                    ));
+                }
+            }
+        }
     }
 
     fn transpile(&self, ctx: &mut TranspilationContext<'_>) -> String {
@@ -269,21 +281,5 @@ impl NodeConfig for FnReturnType {
     fn transpile(&self, ctx: &mut TranspilationContext<'_>) -> String {
         let type_ = self.type_.transpile(ctx);
         format!("-> {type_}")
-    }
-}
-
-fn check_duplicated_fn_params(params: &[&FnParam], ctx: &mut ValidationContext<'_>) {
-    for &param1 in params {
-        for &param2 in params {
-            if param1.id < param2.id && param1.ident.slice == param2.ident.slice {
-                ctx.errors.push(ValidationError::error(
-                    ctx,
-                    param2,
-                    "function parameter defined multiple times",
-                    Some("duplicated parameter name"),
-                    &[(param1, "same parameter name defined here")],
-                ));
-            }
-        }
     }
 }

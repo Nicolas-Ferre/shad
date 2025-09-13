@@ -6,7 +6,7 @@ use crate::language::expressions::binary::MaybeBinaryExpr;
 use crate::language::expressions::TypedExpr;
 use crate::language::keywords::{EqSymbol, RefKeyword, ReturnKeyword, SemicolonSymbol, VarKeyword};
 use crate::language::patterns::Ident;
-use crate::language::{expressions, sources};
+use crate::language::{sources, validations};
 use crate::ValidationError;
 
 choice!(
@@ -128,7 +128,7 @@ impl NodeConfig for AssignmentStmt {
                 &[],
             ));
         }
-        expressions::check_invalid_expr_type(&*self.left, &*self.right, false, ctx);
+        validations::check_invalid_expr_type(&*self.left, &*self.right, false, ctx);
     }
 
     fn transpile(&self, ctx: &mut TranspilationContext<'_>) -> String {

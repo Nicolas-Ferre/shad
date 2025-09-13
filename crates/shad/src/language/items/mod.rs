@@ -1,13 +1,11 @@
 use crate::compilation::index::NodeIndex;
 use crate::compilation::node::{choice, sequence, EndOfFile, Node, NodeConfig, Repeated};
 use crate::compilation::transpilation::TranspilationContext;
-use crate::compilation::validation::ValidationContext;
 use crate::language::items::buffer::BufferItem;
 use crate::language::items::compute::{InitItem, RunItem};
 use crate::language::items::fn_::{FnItem, NativeFnItem};
 use crate::language::items::import::ImportItem;
 use crate::language::items::type_::{NativeStructItem, StructItem};
-use crate::ValidationError;
 use itertools::Itertools;
 
 pub(crate) mod block;
@@ -42,40 +40,10 @@ choice!(
 
 impl NodeConfig for Item {}
 
-fn check_duplicated_items(item: &impl Node, ctx: &mut ValidationContext<'_>) {
-    let key = item
-        .key()
-        .expect("internal error: cannot calculate item key");
-    for other_item in ctx.roots[&item.path].items.iter() {
-        let other_item = other_item.inner();
-        if other_item.id < item.id && other_item.key().as_ref() == Some(&key) {
-            ctx.errors.push(ValidationError::error(
-                ctx,
-                item,
-                &format!("{key} defined multiple times"),
-                Some("duplicated item"),
-                &[(other_item, "same item defined here")],
-            ));
-        }
-    }
-}
-
-fn is_item_recursive(item: &impl Node, index: &NodeIndex) -> bool {
+pub(crate) fn is_item_recursive(item: &impl Node, index: &NodeIndex) -> bool {
     item.nested_sources(index)
         .iter()
         .any(|source| source.id == item.id)
-}
-
-fn check_recursive_items(item: &impl Node, ctx: &mut ValidationContext<'_>) {
-    if is_item_recursive(item, ctx.index) {
-        ctx.errors.push(ValidationError::error(
-            ctx,
-            item,
-            "item definition with circular dependency",
-            Some("this item is directly or indirectly referring to itself"),
-            &[],
-        ));
-    }
 }
 
 fn transpiled_dependencies(ctx: &mut TranspilationContext<'_>, item: &impl Node) -> String {

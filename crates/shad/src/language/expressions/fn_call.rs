@@ -9,7 +9,7 @@ use crate::language::items::fn_::{FnItem, NativeFnItem};
 use crate::language::keywords::{CloseParenthesisSymbol, CommaSymbol, OpenParenthesisSymbol};
 use crate::language::patterns::Ident;
 use crate::language::sources;
-use crate::language::sources::check_missing_source;
+use crate::language::validations;
 use itertools::Itertools;
 use std::any::Any;
 use std::iter;
@@ -48,7 +48,7 @@ impl NodeConfig for FnCallExpr {
     }
 
     fn validate(&self, ctx: &mut ValidationContext<'_>) {
-        check_missing_source(self, ctx);
+        validations::check_missing_source(self, ctx);
     }
 
     fn transpile(&self, ctx: &mut TranspilationContext<'_>) -> String {

@@ -8,7 +8,7 @@ use crate::language::expressions::chain::ChainExpr;
 use crate::language::expressions::fn_call::transpile_fn_call;
 use crate::language::keywords::{ExclamationSymbol, HyphenSymbol};
 use crate::language::sources;
-use crate::language::sources::check_missing_source;
+use crate::language::validations;
 use std::iter;
 
 sequence!(
@@ -47,7 +47,7 @@ impl NodeConfig for UnaryExpr {
     }
 
     fn validate(&self, ctx: &mut ValidationContext<'_>) {
-        check_missing_source(self, ctx);
+        validations::check_missing_source(self, ctx);
     }
 
     fn transpile(&self, ctx: &mut TranspilationContext<'_>) -> String {

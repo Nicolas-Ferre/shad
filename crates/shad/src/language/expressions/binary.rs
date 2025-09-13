@@ -13,7 +13,7 @@ use crate::language::keywords::{
     SlashSymbol, StarSymbol,
 };
 use crate::language::sources;
-use crate::language::sources::check_missing_source;
+use crate::language::validations;
 
 transform!(
     MaybeBinaryExpr,
@@ -98,7 +98,7 @@ impl NodeConfig for BinaryExpr {
     }
 
     fn validate(&self, ctx: &mut ValidationContext<'_>) {
-        check_missing_source(self, ctx);
+        validations::check_missing_source(self, ctx);
     }
 
     fn transpile(&self, ctx: &mut TranspilationContext<'_>) -> String {

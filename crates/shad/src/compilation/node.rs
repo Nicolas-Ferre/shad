@@ -36,6 +36,7 @@ pub(crate) struct NodeSourceSearchCriteria {
     pub(crate) common_parent_count: Option<usize>,
 }
 
+// TODO: convert to trait
 #[derive(Debug, Clone, Copy)]
 pub(crate) enum NodeType<'a> {
     Source(&'a dyn Node),

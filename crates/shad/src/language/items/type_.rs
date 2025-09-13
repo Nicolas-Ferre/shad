@@ -9,7 +9,7 @@ use crate::language::keywords::{
     OpenCurlyBracketSymbol, StructKeyword,
 };
 use crate::language::patterns::{Ident, StringLiteral, U32Literal};
-use crate::language::{items, sources};
+use crate::language::{sources, validations};
 use crate::ValidationError;
 use indoc::indoc;
 use itertools::Itertools;
@@ -42,7 +42,7 @@ impl NodeConfig for NativeStructItem {
     }
 
     fn validate(&self, ctx: &mut ValidationContext<'_>) {
-        items::check_duplicated_items(self, ctx);
+        validations::check_duplicated_items(self, ctx);
     }
 
     fn is_transpilable_dependency(&self, _index: &NodeIndex) -> bool {
@@ -69,8 +69,8 @@ impl NodeConfig for StructItem {
     }
 
     fn validate(&self, ctx: &mut ValidationContext<'_>) {
-        items::check_duplicated_items(self, ctx);
-        items::check_recursive_items(self, ctx);
+        validations::check_duplicated_items(self, ctx);
+        validations::check_recursive_items(self, ctx);
         for field in self.fields.iter() {
             for other_field in self.fields.iter() {
                 if other_field.id < field.id && other_field.ident.slice == field.ident.slice {
@@ -205,7 +205,7 @@ impl NodeConfig for Type {
     }
 
     fn validate(&self, ctx: &mut ValidationContext<'_>) {
-        sources::check_missing_source(self, ctx);
+        validations::check_missing_source(self, ctx);
     }
 
     fn transpile(&self, ctx: &mut TranspilationContext<'_>) -> String {

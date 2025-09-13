@@ -10,7 +10,7 @@ use crate::language::keywords::{
 };
 use crate::language::patterns::Ident;
 use crate::language::sources;
-use crate::language::sources::check_missing_source;
+use crate::language::validations;
 
 choice!(
     enum BoolLiteral {
@@ -65,7 +65,7 @@ impl NodeConfig for VarIdentExpr {
     }
 
     fn validate(&self, ctx: &mut ValidationContext<'_>) {
-        check_missing_source(self, ctx);
+        validations::check_missing_source(self, ctx);
     }
 
     fn transpile(&self, ctx: &mut TranspilationContext<'_>) -> String {

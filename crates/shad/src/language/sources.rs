@@ -1,6 +1,5 @@
 use crate::compilation::index::NodeIndex;
-use crate::compilation::node::{Node, NodeConfig, NodeSourceSearchCriteria, NodeType, Repeated};
-use crate::compilation::validation::ValidationContext;
+use crate::compilation::node::{NodeConfig, NodeSourceSearchCriteria, NodeType, Repeated};
 use crate::language::expressions::binary::MaybeBinaryExpr;
 use crate::language::items::buffer::BufferItem;
 use crate::language::items::fn_::{FnItem, FnParam, FnParamGroup, NativeFnItem};
@@ -8,7 +7,6 @@ use crate::language::items::type_;
 use crate::language::items::type_::{NativeStructItem, StructItem};
 use crate::language::patterns::Ident;
 use crate::language::statements::{LocalRefDefStmt, LocalVarDefStmt};
-use crate::ValidationError;
 use itertools::Itertools;
 use std::any::TypeId;
 
@@ -109,18 +107,4 @@ pub(crate) fn type_criteria() -> &'static [NodeSourceSearchCriteria] {
             common_parent_count: None,
         },
     ]
-}
-
-pub(crate) fn check_missing_source(node: &impl Node, ctx: &mut ValidationContext<'_>) {
-    if let Some(key) = node.source_key(ctx.index) {
-        if node.source(ctx.index).is_none() {
-            ctx.errors.push(ValidationError::error(
-                ctx,
-                node,
-                "undefined item",
-                Some(&format!("{key} is undefined")),
-                &[],
-            ));
-        }
-    }
 }

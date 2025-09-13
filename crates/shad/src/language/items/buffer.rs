@@ -3,13 +3,10 @@ use crate::compilation::node::{sequence, Node, NodeConfig, NodeType};
 use crate::compilation::transpilation::TranspilationContext;
 use crate::compilation::validation::ValidationContext;
 use crate::language::expressions::TypedExpr;
-use crate::language::items::{
-    check_duplicated_items, check_recursive_items, is_item_recursive, transpiled_dependencies,
-    type_,
-};
+use crate::language::items::{is_item_recursive, transpiled_dependencies, type_};
 use crate::language::keywords::{BufKeyword, EqSymbol, SemicolonSymbol};
 use crate::language::patterns::Ident;
-use crate::language::sources;
+use crate::language::{sources, validations};
 use indoc::indoc;
 use itertools::Itertools;
 use std::path::Path;
@@ -39,8 +36,8 @@ impl NodeConfig for BufferItem {
     }
 
     fn validate(&self, ctx: &mut ValidationContext<'_>) {
-        check_duplicated_items(self, ctx);
-        check_recursive_items(self, ctx);
+        validations::check_duplicated_items(self, ctx);
+        validations::check_recursive_items(self, ctx);
     }
 
     fn is_transpilable_dependency(&self, _index: &NodeIndex) -> bool {

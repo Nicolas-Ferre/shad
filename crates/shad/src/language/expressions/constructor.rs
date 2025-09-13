@@ -9,7 +9,7 @@ use crate::language::expressions::fn_call::FnArgGroup;
 use crate::language::items::type_;
 use crate::language::items::type_::Type;
 use crate::language::keywords::{CloseCurlyBracketSymbol, OpenCurlyBracketSymbol};
-use crate::language::{expressions, sources};
+use crate::language::{sources, validations};
 use crate::ValidationError;
 use itertools::Itertools;
 
@@ -57,7 +57,7 @@ impl NodeConfig for ConstructorExpr {
             let actual_field_count = self.args().count();
             if expected_field_count == actual_field_count {
                 for (arg, field) in self.args().zip(fields) {
-                    expressions::check_invalid_expr_type(field, arg, true, ctx);
+                    validations::check_invalid_expr_type(field, arg, true, ctx);
                 }
             } else {
                 ctx.errors.push(ValidationError::error(

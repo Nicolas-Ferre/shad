@@ -14,7 +14,7 @@ use crate::language::items::type_;
 use crate::language::keywords::{CloseParenthesisSymbol, DotSymbol, OpenParenthesisSymbol};
 use crate::language::patterns::{F32Literal, I32Literal, Ident, U32Literal};
 use crate::language::sources;
-use crate::language::sources::check_missing_source;
+use crate::language::validations;
 use std::iter;
 
 transform!(
@@ -105,7 +105,7 @@ impl NodeConfig for TransformedChainExpr {
 
     fn validate(&self, ctx: &mut ValidationContext<'_>) {
         debug_assert!(self.suffix.iter().len() <= 1);
-        check_missing_source(self, ctx);
+        validations::check_missing_source(self, ctx);
     }
 
     fn transpile(&self, ctx: &mut TranspilationContext<'_>) -> String {
