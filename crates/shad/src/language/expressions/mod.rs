@@ -1,5 +1,6 @@
+use crate::compilation::constant::{ConstantContext, ConstantValue};
 use crate::compilation::index::NodeIndex;
-use crate::compilation::node::{sequence, NodeConfig, NodeType};
+use crate::compilation::node::{sequence, Node, NodeConfig, NodeType};
 use crate::compilation::transpilation::TranspilationContext;
 use crate::compilation::validation::ValidationContext;
 use crate::language::expressions::binary::MaybeBinaryExpr;
@@ -10,7 +11,6 @@ pub(crate) mod chain;
 pub(crate) mod constructor;
 pub(crate) mod fn_call;
 pub(crate) mod simple;
-mod transformations;
 pub(crate) mod unary;
 
 sequence!(
@@ -21,7 +21,7 @@ sequence!(
 );
 
 impl NodeConfig for TypedExpr {
-    fn is_ref(&self, index: &NodeIndex) -> bool {
+    fn is_ref(&self, index: &NodeIndex) -> Option<bool> {
         self.expr.is_ref(index)
     }
 
@@ -39,6 +39,14 @@ impl NodeConfig for TypedExpr {
                 &[],
             ));
         }
+    }
+
+    fn invalid_constant(&self, index: &NodeIndex) -> Option<&dyn Node> {
+        self.expr.invalid_constant(index)
+    }
+
+    fn evaluate_constant(&self, ctx: &mut ConstantContext<'_>) -> Option<ConstantValue> {
+        self.expr.evaluate_constant(ctx)
     }
 
     fn transpile(&self, ctx: &mut TranspilationContext<'_>) -> String {

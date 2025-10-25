@@ -1,3 +1,4 @@
+use crate::compilation::constant::{ConstantContext, ConstantValue};
 use crate::compilation::index::NodeIndex;
 use crate::compilation::node::{
     sequence, Node, NodeConfig, NodeSourceSearchCriteria, NodeType, Repeated,
@@ -5,11 +6,12 @@ use crate::compilation::node::{
 use crate::compilation::transpilation::TranspilationContext;
 use crate::compilation::validation::ValidationContext;
 use crate::language::expressions::binary::MaybeBinaryExpr;
+use crate::language::items::fn_;
 use crate::language::items::fn_::{FnItem, NativeFnItem};
 use crate::language::keywords::{CloseParenthesisSymbol, CommaSymbol, OpenParenthesisSymbol};
 use crate::language::patterns::Ident;
-use crate::language::sources;
 use crate::language::validations;
+use crate::language::{constants, sources};
 use itertools::Itertools;
 use std::any::Any;
 use std::iter;
@@ -38,9 +40,8 @@ impl NodeConfig for FnCallExpr {
         sources::fn_criteria()
     }
 
-    fn is_ref(&self, index: &NodeIndex) -> bool {
-        self.source(index)
-            .is_some_and(|source| source.is_ref(index))
+    fn is_ref(&self, index: &NodeIndex) -> Option<bool> {
+        self.source(index).and_then(|source| source.is_ref(index))
     }
 
     fn type_<'a>(&self, index: &'a NodeIndex) -> Option<NodeType<'a>> {
@@ -49,6 +50,20 @@ impl NodeConfig for FnCallExpr {
 
     fn validate(&self, ctx: &mut ValidationContext<'_>) {
         validations::check_missing_source(self, ctx);
+    }
+
+    fn invalid_constant(&self, index: &NodeIndex) -> Option<&dyn Node> {
+        self.args()
+            .find_map(|arg| arg.invalid_constant(index))
+            .or_else(|| (!fn_::is_const(self.source(index)?)).then_some(self))
+    }
+
+    fn evaluate_constant(&self, ctx: &mut ConstantContext<'_>) -> Option<ConstantValue> {
+        let args = constants::evaluate_fn_args(self.source(ctx.index)?, self.args(), ctx);
+        ctx.start_fn(args);
+        let value = self.source(ctx.index)?.evaluate_constant(ctx);
+        ctx.end_fn();
+        value
     }
 
     fn transpile(&self, ctx: &mut TranspilationContext<'_>) -> String {
@@ -126,7 +141,7 @@ pub(crate) fn transpile_inlined_fn_call<'a>(
     let old_state = ctx.inline_state.clone();
     ctx.inline_state.is_inlined = true;
     ctx.start_block();
-    let return_var_name = if fn_.is_ref(ctx.index) {
+    let return_var_name = if fn_.is_ref(ctx.index) == Some(true) {
         ctx.inline_state.is_returning_ref = true;
         None
     } else if let Some(return_type) = fn_.signature.return_type.iter().next() {
@@ -143,7 +158,7 @@ pub(crate) fn transpile_inlined_fn_call<'a>(
     };
     for (param, arg) in fn_.signature.params().zip(args) {
         let transpiled_arg = arg.transpile(ctx);
-        if param.is_ref(ctx.index) && arg.is_ref(ctx.index) {
+        if param.is_ref(ctx.index) == Some(true) && arg.is_ref(ctx.index) == Some(true) {
             ctx.add_inline_mapping(param.id, transpiled_arg);
         } else {
             let var_id = ctx.next_node_id();

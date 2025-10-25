@@ -1,0 +1,55 @@
+const BOOL_FROM_ZERO_F32 = bool(0.0);
+const BOOL_FROM_ZERO_I32 = bool(0);
+const BOOL_FROM_ZERO_U32 = bool(0u);
+const BOOL_FROM_NON_ZERO_F32 = bool(1.2);
+const BOOL_FROM_NON_ZERO_I32 = bool(12);
+const BOOL_FROM_NON_ZERO_U32 = bool(12u);
+
+const BOOLX2_DEFAULT = boolx2();
+const BOOLX2_FROM_BOOL = boolx2(false, true);
+const BOOLX2_FROM_F32X2 = boolx2(f32x2(0.0, 1.2));
+const BOOLX2_FROM_I32X2 = boolx2(i32x2(0, 12));
+const BOOLX2_FROM_U32X2 = boolx2(u32x2(0u, 12u));
+
+const BOOLX3_DEFAULT = boolx3();
+const BOOLX3_FROM_BOOL = boolx3(true, false, true);
+const BOOLX3_FROM_BOOLX2_AND_BOOL = boolx3(boolx2(true, false), true);
+const BOOLX3_FROM_F32X3 = boolx3(f32x3(1.0, 0.0, 1.2));
+const BOOLX3_FROM_I32X3 = boolx3(i32x3(1, 0, 12));
+const BOOLX3_FROM_U32X3 = boolx3(u32x3(1u, 0u, 12u));
+
+const BOOLX4_DEFAULT = boolx4();
+const BOOLX4_FROM_BOOL = boolx4(true, false, true, false);
+const BOOLX4_FROM_BOOLX2_AND_BOOL = boolx4(boolx2(true, false), true, false);
+const BOOLX4_FROM_BOOLX3_AND_BOOL = boolx4(boolx3(true, false, true), false);
+const BOOLX4_FROM_F32X4 = boolx4(f32x4(1.0, 0.0, 1.2, 0.0));
+const BOOLX4_FROM_I32X4 = boolx4(i32x4(1, 0, 12, 0));
+const BOOLX4_FROM_U32X4 = boolx4(u32x4(1u, 0u, 12u, 0u));
+
+buf bool_from_non_zero_f32 = BOOL_FROM_NON_ZERO_F32;
+buf bool_from_non_zero_i32 = BOOL_FROM_NON_ZERO_I32;
+buf bool_from_non_zero_u32 = BOOL_FROM_NON_ZERO_U32;
+buf bool_from_zero_f32 = BOOL_FROM_ZERO_F32;
+buf bool_from_zero_i32 = BOOL_FROM_ZERO_I32;
+buf bool_from_zero_u32 = BOOL_FROM_ZERO_U32;
+
+buf boolx2_default = BOOLX2_DEFAULT;
+buf boolx2_from_bool = BOOLX2_FROM_BOOL;
+buf boolx2_from_f32x2 = BOOLX2_FROM_F32X2;
+buf boolx2_from_i32x2 = BOOLX2_FROM_I32X2;
+buf boolx2_from_u32x2 = BOOLX2_FROM_U32X2;
+
+buf boolx3_default = BOOLX3_DEFAULT;
+buf boolx3_from_bool = BOOLX3_FROM_BOOL;
+buf boolx3_from_boolx2_and_bool = BOOLX3_FROM_BOOLX2_AND_BOOL;
+buf boolx3_from_f32x3 = BOOLX3_FROM_F32X3;
+buf boolx3_from_i32x3 = BOOLX3_FROM_I32X3;
+buf boolx3_from_u32x3 = BOOLX3_FROM_U32X3;
+
+buf boolx4_default = BOOLX4_DEFAULT;
+buf boolx4_from_bool = BOOLX4_FROM_BOOL;
+buf boolx4_from_boolx2_and_bool = BOOLX4_FROM_BOOLX2_AND_BOOL;
+buf boolx4_from_boolx3_and_bool = BOOLX4_FROM_BOOLX3_AND_BOOL;
+buf boolx4_from_f32x4 = BOOLX4_FROM_F32X4;
+buf boolx4_from_i32x4 = BOOLX4_FROM_I32X4;
+buf boolx4_from_u32x4 = BOOLX4_FROM_U32X4;

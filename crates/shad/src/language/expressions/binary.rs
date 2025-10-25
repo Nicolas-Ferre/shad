@@ -1,3 +1,4 @@
+use crate::compilation::constant::{ConstantContext, ConstantValue};
 use crate::compilation::index::NodeIndex;
 use crate::compilation::node::{
     choice, sequence, transform, Node, NodeConfig, NodeSourceSearchCriteria, NodeType, Repeated,
@@ -6,14 +7,15 @@ use crate::compilation::transpilation::TranspilationContext;
 use crate::compilation::validation::ValidationContext;
 use crate::language::expressions::chain::ChainExpr;
 use crate::language::expressions::fn_call::transpile_fn_call;
-use crate::language::expressions::transformations;
+use crate::language::items::fn_;
 use crate::language::keywords::{
     AndSymbol, CloseAngleBracketSymbol, DoubleEqSymbol, GreaterEqSymbol, HyphenSymbol,
     LessEqSymbol, NotEqSymbol, OpenAngleBracketSymbol, OrSymbol, PercentSymbol, PlusSymbol,
     SlashSymbol, StarSymbol,
 };
-use crate::language::sources;
+use crate::language::transformations;
 use crate::language::validations;
+use crate::language::{constants, sources};
 
 transform!(
     MaybeBinaryExpr,
@@ -31,7 +33,7 @@ sequence!(
 );
 
 impl NodeConfig for ParsedMaybeBinaryExpr {
-    fn is_ref(&self, index: &NodeIndex) -> bool {
+    fn is_ref(&self, index: &NodeIndex) -> Option<bool> {
         self.left.is_ref(index)
     }
 
@@ -41,6 +43,14 @@ impl NodeConfig for ParsedMaybeBinaryExpr {
 
     fn validate(&self, _ctx: &mut ValidationContext<'_>) {
         debug_assert!(self.right.iter().len() == 0);
+    }
+
+    fn invalid_constant(&self, index: &NodeIndex) -> Option<&dyn Node> {
+        self.left.invalid_constant(index)
+    }
+
+    fn evaluate_constant(&self, ctx: &mut ConstantContext<'_>) -> Option<ConstantValue> {
+        self.left.evaluate_constant(ctx)
     }
 
     fn transpile(&self, ctx: &mut TranspilationContext<'_>) -> String {
@@ -88,9 +98,8 @@ impl NodeConfig for BinaryExpr {
         sources::fn_criteria()
     }
 
-    fn is_ref(&self, index: &NodeIndex) -> bool {
-        self.source(index)
-            .is_some_and(|source| source.is_ref(index))
+    fn is_ref(&self, index: &NodeIndex) -> Option<bool> {
+        self.source(index).and_then(|source| source.is_ref(index))
     }
 
     fn type_<'a>(&self, index: &'a NodeIndex) -> Option<NodeType<'a>> {
@@ -99,6 +108,22 @@ impl NodeConfig for BinaryExpr {
 
     fn validate(&self, ctx: &mut ValidationContext<'_>) {
         validations::check_missing_source(self, ctx);
+    }
+
+    fn invalid_constant(&self, index: &NodeIndex) -> Option<&dyn Node> {
+        (!fn_::is_const(self.source(index)?)).then_some(self)
+    }
+
+    fn evaluate_constant(&self, ctx: &mut ConstantContext<'_>) -> Option<ConstantValue> {
+        let args = constants::evaluate_fn_args(
+            self.source(ctx.index)?,
+            [&*self.left, &*self.right].into_iter(),
+            ctx,
+        );
+        ctx.start_fn(args);
+        let value = self.source(ctx.index)?.evaluate_constant(ctx);
+        ctx.end_fn();
+        value
     }
 
     fn transpile(&self, ctx: &mut TranspilationContext<'_>) -> String {

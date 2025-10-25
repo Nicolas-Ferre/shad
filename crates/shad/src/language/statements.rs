@@ -1,5 +1,6 @@
+use crate::compilation::constant::{ConstantContext, ConstantValue};
 use crate::compilation::index::NodeIndex;
-use crate::compilation::node::{choice, sequence, NodeConfig, NodeType};
+use crate::compilation::node::{choice, sequence, Node, NodeConfig, NodeType};
 use crate::compilation::transpilation::TranspilationContext;
 use crate::compilation::validation::ValidationContext;
 use crate::language::expressions::binary::MaybeBinaryExpr;
@@ -20,6 +21,26 @@ choice!(
 );
 
 impl NodeConfig for Stmt {
+    fn invalid_constant(&self, index: &NodeIndex) -> Option<&dyn Node> {
+        match self {
+            Self::LocalVarDef(child) => child.invalid_constant(index),
+            Self::LocalRefDef(child) => child.invalid_constant(index),
+            Self::Assignment(child) => child.invalid_constant(index),
+            Self::Expr(child) => child.invalid_constant(index),
+            Self::Return(child) => child.invalid_constant(index),
+        }
+    }
+
+    fn evaluate_constant(&self, ctx: &mut ConstantContext<'_>) -> Option<ConstantValue> {
+        match self {
+            Self::LocalVarDef(child) => child.evaluate_constant(ctx),
+            Self::LocalRefDef(child) => child.evaluate_constant(ctx),
+            Self::Assignment(child) => child.evaluate_constant(ctx),
+            Self::Expr(child) => child.evaluate_constant(ctx),
+            Self::Return(child) => child.evaluate_constant(ctx),
+        }
+    }
+
     fn transpile(&self, ctx: &mut TranspilationContext<'_>) -> String {
         match self {
             Self::LocalVarDef(child) => child.transpile(ctx),
@@ -49,6 +70,16 @@ impl NodeConfig for LocalVarDefStmt {
 
     fn type_<'a>(&self, index: &'a NodeIndex) -> Option<NodeType<'a>> {
         self.expr.type_(index)
+    }
+
+    fn invalid_constant(&self, index: &NodeIndex) -> Option<&dyn Node> {
+        self.expr.invalid_constant(index)
+    }
+
+    fn evaluate_constant(&self, ctx: &mut ConstantContext<'_>) -> Option<ConstantValue> {
+        let value = self.expr.evaluate_constant(ctx)?;
+        ctx.create_var(self.id, value);
+        None
     }
 
     fn is_transpilable_dependency(&self, _index: &NodeIndex) -> bool {
@@ -89,13 +120,23 @@ impl NodeConfig for LocalRefDefStmt {
         self.expr.type_(index)
     }
 
+    fn invalid_constant(&self, index: &NodeIndex) -> Option<&dyn Node> {
+        self.expr.invalid_constant(index)
+    }
+
+    fn evaluate_constant(&self, ctx: &mut ConstantContext<'_>) -> Option<ConstantValue> {
+        let value = self.expr.evaluate_constant(ctx)?;
+        ctx.create_var(self.id, value);
+        None
+    }
+
     fn is_transpilable_dependency(&self, _index: &NodeIndex) -> bool {
         false
     }
 
     fn transpile(&self, ctx: &mut TranspilationContext<'_>) -> String {
         let expr = self.expr.transpile(ctx);
-        if self.expr.is_ref(ctx.index) {
+        if self.expr.is_ref(ctx.index) == Some(true) {
             ctx.add_inline_mapping(self.id, expr);
             String::new()
         } else {
@@ -119,7 +160,7 @@ sequence!(
 
 impl NodeConfig for AssignmentStmt {
     fn validate(&self, ctx: &mut ValidationContext<'_>) {
-        if !self.left.is_ref(ctx.index) {
+        if self.left.is_ref(ctx.index) == Some(false) {
             ctx.errors.push(ValidationError::error(
                 ctx,
                 &*self.left,
@@ -129,6 +170,10 @@ impl NodeConfig for AssignmentStmt {
             ));
         }
         validations::check_invalid_expr_type(&*self.left, &*self.right, false, ctx);
+    }
+
+    fn invalid_constant(&self, _index: &NodeIndex) -> Option<&dyn Node> {
+        Some(self)
     }
 
     fn transpile(&self, ctx: &mut TranspilationContext<'_>) -> String {
@@ -147,6 +192,10 @@ sequence!(
 );
 
 impl NodeConfig for ExprStmt {
+    fn invalid_constant(&self, _index: &NodeIndex) -> Option<&dyn Node> {
+        Some(self)
+    }
+
     fn transpile(&self, ctx: &mut TranspilationContext<'_>) -> String {
         let expr = self.expr.transpile(ctx);
         if self
@@ -176,10 +225,18 @@ impl NodeConfig for ReturnStmt {
         self.expr.type_(index)
     }
 
+    fn invalid_constant(&self, index: &NodeIndex) -> Option<&dyn Node> {
+        self.expr.invalid_constant(index)
+    }
+
+    fn evaluate_constant(&self, ctx: &mut ConstantContext<'_>) -> Option<ConstantValue> {
+        self.expr.evaluate_constant(ctx)
+    }
+
     fn transpile(&self, ctx: &mut TranspilationContext<'_>) -> String {
         let expr = self.expr.transpile(ctx);
         if ctx.inline_state.is_returning_ref {
-            if self.expr.is_ref(ctx.index) {
+            if self.expr.is_ref(ctx.index) == Some(true) {
                 ctx.inline_state.returned_ref = Some(expr);
                 String::new()
             } else {

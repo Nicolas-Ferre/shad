@@ -1,24 +1,27 @@
+use crate::compilation::constant::{ConstantContext, ConstantValue};
 use crate::compilation::index::NodeIndex;
-use crate::compilation::node::{sequence, NodeConfig, NodeType, Repeated};
+use crate::compilation::node::{sequence, Node, NodeConfig, NodeType, Repeated};
 use crate::compilation::transpilation::TranspilationContext;
 use crate::compilation::validation::ValidationContext;
 use crate::language::items::block::Block;
 use crate::language::items::type_;
 use crate::language::items::type_::Type;
 use crate::language::keywords::{
-    ArrowSymbol, CloseParenthesisSymbol, ColonSymbol, CommaSymbol, EqSymbol, FnKeyword,
-    NativeKeyword, OpenParenthesisSymbol, RefKeyword, SemicolonSymbol,
+    ArrowSymbol, CloseParenthesisSymbol, ColonSymbol, CommaSymbol, ConstKeyword, EqSymbol,
+    FnKeyword, NativeKeyword, OpenParenthesisSymbol, RefKeyword, SemicolonSymbol,
 };
 use crate::language::patterns::{Ident, StringLiteral};
-use crate::language::{sources, validations};
+use crate::language::{constants, sources, validations};
 use crate::ValidationError;
 use indoc::indoc;
 use itertools::Itertools;
+use std::any::Any;
 use std::iter;
 use std::rc::Rc;
 
 sequence!(
     struct NativeFnItem {
+        const_: Repeated<ConstKeyword, 0, 1>,
         native: NativeKeyword,
         signature: FnSignature,
         #[force_error(true)]
@@ -33,7 +36,7 @@ impl NodeConfig for NativeFnItem {
         Some(self.signature.fn_key())
     }
 
-    fn is_ref(&self, index: &NodeIndex) -> bool {
+    fn is_ref(&self, index: &NodeIndex) -> Option<bool> {
         self.signature.is_ref(index)
     }
 
@@ -43,6 +46,32 @@ impl NodeConfig for NativeFnItem {
 
     fn validate(&self, ctx: &mut ValidationContext<'_>) {
         validations::check_duplicated_items(self, ctx);
+        if self.const_.iter().len() > 0
+            && constants::native_fn_runner(&self.signature.fn_key()).is_none()
+        {
+            ctx.errors.push(ValidationError::error(
+                ctx,
+                self,
+                "`const` native function without constant implementation",
+                Some("this function cannot be qualified with `const`"),
+                &[],
+            ));
+        }
+    }
+
+    fn evaluate_constant(&self, ctx: &mut ConstantContext<'_>) -> Option<ConstantValue> {
+        let params = self
+            .signature
+            .params()
+            .map(|param| {
+                ctx.var_value(param.id)
+                    .expect("internal error: not found const fn arg variable")
+            })
+            .collect::<Vec<_>>();
+        Some(ConstantValue {
+            transpiled_type_name: type_::transpile_name(self.type_(ctx.index)?.source()?),
+            data: constants::native_fn_runner(&self.key()?)?(&params),
+        })
     }
 
     fn is_transpilable_dependency(&self, _index: &NodeIndex) -> bool {
@@ -52,6 +81,7 @@ impl NodeConfig for NativeFnItem {
 
 sequence!(
     struct FnItem {
+        const_: Repeated<ConstKeyword, 0, 1>,
         signature: FnSignature,
         #[force_error(true)]
         body: Block,
@@ -63,7 +93,7 @@ impl NodeConfig for FnItem {
         Some(self.signature.fn_key())
     }
 
-    fn is_ref(&self, index: &NodeIndex) -> bool {
+    fn is_ref(&self, index: &NodeIndex) -> Option<bool> {
         self.signature.is_ref(index)
     }
 
@@ -74,6 +104,9 @@ impl NodeConfig for FnItem {
     fn validate(&self, ctx: &mut ValidationContext<'_>) {
         validations::check_duplicated_items(self, ctx);
         validations::check_recursive_items(self, ctx);
+        if let Some(const_kw) = self.const_.iter().next() {
+            validations::check_invalid_const_scope(&*self.body, const_kw, ctx);
+        }
         let return_stmt = self.body.last_stmt().and_then(|stmt| stmt.as_return());
         let return_type = self.signature.return_type.iter().next();
         if let (None, Some(return_type)) = (return_stmt, return_type) {
@@ -107,6 +140,10 @@ impl NodeConfig for FnItem {
         }
     }
 
+    fn evaluate_constant(&self, ctx: &mut ConstantContext<'_>) -> Option<ConstantValue> {
+        self.body.evaluate_constant(ctx)
+    }
+
     fn is_transpilable_dependency(&self, index: &NodeIndex) -> bool {
         !self.is_inlined(index)
     }
@@ -132,7 +169,10 @@ impl NodeConfig for FnItem {
 
 impl FnItem {
     pub(crate) fn is_inlined(&self, index: &NodeIndex) -> bool {
-        self.signature.params().any(|param| param.is_ref(index)) || self.is_ref(index)
+        self.signature
+            .params()
+            .any(|param| param.is_ref(index) == Some(true))
+            || self.is_ref(index) == Some(true)
     }
 }
 
@@ -149,11 +189,13 @@ sequence!(
 );
 
 impl NodeConfig for FnSignature {
-    fn is_ref(&self, _index: &NodeIndex) -> bool {
-        self.return_type
-            .iter()
-            .next()
-            .is_some_and(|return_type| return_type.ref_.iter().len() == 1)
+    fn is_ref(&self, _index: &NodeIndex) -> Option<bool> {
+        Some(
+            self.return_type
+                .iter()
+                .next()
+                .is_some_and(|return_type| return_type.ref_.iter().len() == 1),
+        )
     }
 
     fn type_<'a>(&self, index: &'a NodeIndex) -> Option<NodeType<'a>> {
@@ -235,8 +277,8 @@ impl NodeConfig for FnParam {
         Some(sources::variable_key(&self.ident))
     }
 
-    fn is_ref(&self, _index: &NodeIndex) -> bool {
-        self.ref_.iter().len() == 1
+    fn is_ref(&self, _index: &NodeIndex) -> Option<bool> {
+        Some(self.ref_.iter().len() == 1)
     }
 
     fn type_<'a>(&self, index: &'a NodeIndex) -> Option<NodeType<'a>> {
@@ -281,5 +323,25 @@ impl NodeConfig for FnReturnType {
     fn transpile(&self, ctx: &mut TranspilationContext<'_>) -> String {
         let type_ = self.type_.transpile(ctx);
         format!("-> {type_}")
+    }
+}
+
+pub(crate) fn is_const(fn_item_node: &dyn Node) -> bool {
+    if let Some(fn_) = (fn_item_node as &dyn Any).downcast_ref::<NativeFnItem>() {
+        fn_.const_.iter().len() == 1
+    } else if let Some(fn_) = (fn_item_node as &dyn Any).downcast_ref::<FnItem>() {
+        fn_.const_.iter().len() == 1
+    } else {
+        unreachable!("unknown fn item")
+    }
+}
+
+pub(crate) fn signature(fn_item_node: &dyn Node) -> &FnSignature {
+    if let Some(fn_) = (fn_item_node as &dyn Any).downcast_ref::<NativeFnItem>() {
+        &fn_.signature
+    } else if let Some(fn_) = (fn_item_node as &dyn Any).downcast_ref::<FnItem>() {
+        &fn_.signature
+    } else {
+        unreachable!("unknown fn item")
     }
 }

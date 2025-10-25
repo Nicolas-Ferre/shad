@@ -1,4 +1,6 @@
-use crate::compilation::node::{sequence, NodeConfig, Repeated};
+use crate::compilation::constant::{ConstantContext, ConstantValue};
+use crate::compilation::index::NodeIndex;
+use crate::compilation::node::{sequence, Node, NodeConfig, Repeated};
 use crate::compilation::transpilation::TranspilationContext;
 use crate::compilation::validation::ValidationContext;
 use crate::language::keywords::{CloseCurlyBracketSymbol, OpenCurlyBracketSymbol};
@@ -62,6 +64,19 @@ impl NodeConfig for Block {
                 }
             }
         }
+    }
+
+    fn invalid_constant(&self, index: &NodeIndex) -> Option<&dyn Node> {
+        self.statements
+            .iter()
+            .find_map(|stmt| stmt.invalid_constant(index))
+    }
+
+    fn evaluate_constant(&self, ctx: &mut ConstantContext<'_>) -> Option<ConstantValue> {
+        self.statements
+            .iter()
+            .filter_map(|stmt| stmt.evaluate_constant(ctx))
+            .last()
     }
 
     fn transpile(&self, ctx: &mut TranspilationContext<'_>) -> String {

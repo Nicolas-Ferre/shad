@@ -143,8 +143,8 @@ sequence!(
 );
 
 impl NodeConfig for StructField {
-    fn is_ref(&self, _index: &NodeIndex) -> bool {
-        true
+    fn is_ref(&self, _index: &NodeIndex) -> Option<bool> {
+        Some(true)
     }
 
     fn type_<'a>(&self, index: &'a NodeIndex) -> Option<NodeType<'a>> {
@@ -224,7 +224,11 @@ pub(crate) fn is_native(type_: &dyn Node) -> bool {
 
 pub(crate) fn size(type_: &dyn Node, index: &NodeIndex) -> u64 {
     if let Some(type_) = (type_ as &dyn Any).downcast_ref::<NativeStructItem>() {
-        type_.size.to_u32().into()
+        type_
+            .size
+            .value()
+            .expect("internal error: invalid u32 literal for struct size")
+            .into()
     } else if let Some(type_) = (type_ as &dyn Any).downcast_ref::<StructItem>() {
         let fields: Vec<_> = type_.fields.iter().collect();
         let last_field_size = size(fields[fields.len() - 1].type_source(index), index);
@@ -239,7 +243,11 @@ pub(crate) fn size(type_: &dyn Node, index: &NodeIndex) -> u64 {
 
 fn alignment(type_: &dyn Node, index: &NodeIndex) -> u64 {
     if let Some(type_) = (type_ as &dyn Any).downcast_ref::<NativeStructItem>() {
-        type_.alignment.to_u32().into()
+        type_
+            .alignment
+            .value()
+            .expect("internal error: invalid u32 literal for struct alignment")
+            .into()
     } else if let Some(type_) = (type_ as &dyn Any).downcast_ref::<StructItem>() {
         type_
             .fields

@@ -4,6 +4,7 @@ use crate::{Error, Program, SourceFolder};
 use std::collections::HashMap;
 use std::path::Path;
 
+pub(crate) mod constant;
 pub(crate) mod error;
 pub(crate) mod index;
 pub(crate) mod node;

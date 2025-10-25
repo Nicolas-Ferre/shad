@@ -1,0 +1,27 @@
+buf buffer = 0;
+
+const NON_CONST_FN_CALL = non_const();
+const NON_CONST_ASSOCIATED_FN_CALL = 5.__not__();
+const NON_CONST_UNARY = !5;
+const NON_CONST_BINARY = true + false;
+const BUF_IDENT = buffer;
+const FN_CALL_WITH_NON_CONST_ARG = u32(buffer);
+const ASSOCIATED_FN_CALL_WITH_NON_CONST_ARG = 5.i32x2(buffer);
+const ASSOCIATED_FN_CALL_WITH_NON_CONST_FIRST_ARG = buffer.u32();
+const CONSTRUCTOR_WITH_NON_CONST_ARG = I32Wrapper { buffer };
+
+struct I32Wrapper {
+    inner: i32,
+}
+
+fn non_const() -> i32 {
+    return 0;
+}
+
+fn __add__(left: bool, right: bool) -> bool {
+    return left || right;
+}
+
+fn __not__(value: i32) -> i32 {
+    return -value;
+}

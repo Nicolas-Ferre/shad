@@ -2,6 +2,7 @@ use crate::compilation::index::NodeIndex;
 use crate::compilation::node::{NodeConfig, NodeSourceSearchCriteria, NodeType, Repeated};
 use crate::language::expressions::binary::MaybeBinaryExpr;
 use crate::language::items::buffer::BufferItem;
+use crate::language::items::constant::ConstantItem;
 use crate::language::items::fn_::{FnItem, FnParam, FnParamGroup, NativeFnItem};
 use crate::language::items::type_;
 use crate::language::items::type_::{NativeStructItem, StructItem};
@@ -73,6 +74,11 @@ pub(crate) fn variable_criteria() -> &'static [NodeSourceSearchCriteria] {
         },
         NodeSourceSearchCriteria {
             node_type: || TypeId::of::<BufferItem>(),
+            can_be_after: true,
+            common_parent_count: None,
+        },
+        NodeSourceSearchCriteria {
+            node_type: || TypeId::of::<ConstantItem>(),
             can_be_after: true,
             common_parent_count: None,
         },

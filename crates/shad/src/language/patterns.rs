@@ -1,7 +1,9 @@
+use crate::compilation::constant::{ConstantContext, ConstantData, ConstantValue};
 use crate::compilation::index::NodeIndex;
-use crate::compilation::node::{pattern, NodeConfig, NodeSourceSearchCriteria, NodeType};
+use crate::compilation::node::{pattern, Node, NodeConfig, NodeSourceSearchCriteria, NodeType};
 use crate::compilation::transpilation::TranspilationContext;
 use crate::compilation::validation::ValidationContext;
+use crate::language::items::type_;
 use crate::language::keywords::RESERVED_KEYWORDS;
 use crate::language::sources;
 use crate::ValidationError;
@@ -42,19 +44,11 @@ impl NodeConfig for F32Literal {
     }
 
     fn type_<'a>(&self, index: &'a NodeIndex) -> Option<NodeType<'a>> {
-        let source = index
-            .search(self, "`f32` type")
-            .expect("internal error: `f32` type not found");
-        Some(NodeType::Source(source))
+        Some(NodeType::Source(self.f32_type(index)))
     }
 
     fn validate(&self, ctx: &mut ValidationContext<'_>) {
-        if !self
-            .slice
-            .replace('_', "")
-            .parse::<f32>()
-            .is_ok_and(|value| !value.is_infinite())
-        {
+        if self.value().is_none_or(f32::is_infinite) {
             ctx.errors.push(ValidationError::error(
                 ctx,
                 self,
@@ -65,9 +59,32 @@ impl NodeConfig for F32Literal {
         }
     }
 
+    fn invalid_constant(&self, _index: &NodeIndex) -> Option<&dyn Node> {
+        None
+    }
+
+    fn evaluate_constant(&self, ctx: &mut ConstantContext<'_>) -> Option<ConstantValue> {
+        Some(ConstantValue {
+            transpiled_type_name: type_::transpile_name(self.f32_type(ctx.index)),
+            data: ConstantData::F32(self.value()?),
+        })
+    }
+
     fn transpile(&self, _ctx: &mut TranspilationContext<'_>) -> String {
         let value = self.slice.replace('_', "");
         format!("f32({value})")
+    }
+}
+
+impl F32Literal {
+    fn value(&self) -> Option<f32> {
+        self.slice.replace('_', "").parse::<f32>().ok()
+    }
+
+    fn f32_type<'a>(&self, index: &'a NodeIndex) -> &'a dyn Node {
+        index
+            .search(self, "`f32` type")
+            .expect("internal error: `f32` type not found")
     }
 }
 
@@ -88,14 +105,11 @@ impl NodeConfig for U32Literal {
     }
 
     fn type_<'a>(&self, index: &'a NodeIndex) -> Option<NodeType<'a>> {
-        let source = index
-            .search(self, "`u32` type")
-            .expect("internal error: `u32` type not found");
-        Some(NodeType::Source(source))
+        Some(NodeType::Source(self.u32_type(index)))
     }
 
     fn validate(&self, ctx: &mut ValidationContext<'_>) {
-        if self.slice.replace(['_', 'u'], "").parse::<u32>().is_err() {
+        if self.value().is_none() {
             ctx.errors.push(ValidationError::error(
                 ctx,
                 self,
@@ -104,6 +118,17 @@ impl NodeConfig for U32Literal {
                 &[],
             ));
         }
+    }
+
+    fn invalid_constant(&self, _index: &NodeIndex) -> Option<&dyn Node> {
+        None
+    }
+
+    fn evaluate_constant(&self, ctx: &mut ConstantContext<'_>) -> Option<ConstantValue> {
+        Some(ConstantValue {
+            transpiled_type_name: type_::transpile_name(self.u32_type(ctx.index)),
+            data: ConstantData::U32(self.value()?),
+        })
     }
 
     fn transpile(&self, _ctx: &mut TranspilationContext<'_>) -> String {
@@ -118,11 +143,14 @@ impl NodeConfig for U32Literal {
 }
 
 impl U32Literal {
-    pub(crate) fn to_u32(&self) -> u32 {
-        self.slice
-            .replace(['_', 'u'], "")
-            .parse::<u32>()
-            .expect("internal error: invalid u32 literal")
+    pub(crate) fn value(&self) -> Option<u32> {
+        self.slice.replace(['_', 'u'], "").parse::<u32>().ok()
+    }
+
+    fn u32_type<'a>(&self, index: &'a NodeIndex) -> &'a dyn Node {
+        index
+            .search(self, "`u32` type")
+            .expect("internal error: `u32` type not found")
     }
 }
 
@@ -143,14 +171,11 @@ impl NodeConfig for I32Literal {
     }
 
     fn type_<'a>(&self, index: &'a NodeIndex) -> Option<NodeType<'a>> {
-        let source = index
-            .search(self, "`i32` type")
-            .expect("internal error: `i32` type not found");
-        Some(NodeType::Source(source))
+        Some(NodeType::Source(self.i32_type(index)))
     }
 
     fn validate(&self, ctx: &mut ValidationContext<'_>) {
-        if self.slice.replace('_', "").parse::<i32>().is_err() {
+        if self.value().is_none() {
             ctx.errors.push(ValidationError::error(
                 ctx,
                 self,
@@ -161,6 +186,17 @@ impl NodeConfig for I32Literal {
         }
     }
 
+    fn invalid_constant(&self, _index: &NodeIndex) -> Option<&dyn Node> {
+        None
+    }
+
+    fn evaluate_constant(&self, ctx: &mut ConstantContext<'_>) -> Option<ConstantValue> {
+        Some(ConstantValue {
+            transpiled_type_name: type_::transpile_name(self.i32_type(ctx.index)),
+            data: ConstantData::I32(self.value()?),
+        })
+    }
+
     fn transpile(&self, _ctx: &mut TranspilationContext<'_>) -> String {
         let value = self.slice.replace('_', "");
         let value_without_leading_zeros = value.trim_start_matches('0');
@@ -169,6 +205,18 @@ impl NodeConfig for I32Literal {
         } else {
             format!("i32({value_without_leading_zeros})")
         }
+    }
+}
+
+impl I32Literal {
+    fn value(&self) -> Option<i32> {
+        self.slice.replace('_', "").parse::<i32>().ok()
+    }
+
+    fn i32_type<'a>(&self, index: &'a NodeIndex) -> &'a dyn Node {
+        index
+            .search(self, "`i32` type")
+            .expect("internal error: `i32` type not found")
     }
 }
 

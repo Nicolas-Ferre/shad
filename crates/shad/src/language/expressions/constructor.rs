@@ -1,3 +1,6 @@
+use crate::compilation::constant::{
+    ConstantContext, ConstantData, ConstantStructFieldData, ConstantValue,
+};
 use crate::compilation::index::NodeIndex;
 use crate::compilation::node::{
     sequence, Node, NodeConfig, NodeSourceSearchCriteria, NodeType, Repeated,
@@ -69,6 +72,30 @@ impl NodeConfig for ConstructorExpr {
                 ));
             }
         }
+    }
+
+    fn invalid_constant(&self, index: &NodeIndex) -> Option<&dyn Node> {
+        self.args().find_map(|arg| arg.invalid_constant(index))
+    }
+
+    fn evaluate_constant(&self, ctx: &mut ConstantContext<'_>) -> Option<ConstantValue> {
+        let type_ = self.type_.source(ctx.index)?;
+        Some(ConstantValue {
+            transpiled_type_name: type_::transpile_name(type_),
+            data: ConstantData::StructFields(
+                type_::fields(type_)
+                    .iter()
+                    .zip(self.args())
+                    .map(|(field, arg)| ConstantStructFieldData {
+                        name: field.ident.slice.clone(),
+                        value: arg
+                            .evaluate_constant(ctx)
+                            .expect("internal error: invalid const constructor arg"),
+                        is_alias: false,
+                    })
+                    .collect(),
+            ),
+        })
     }
 
     fn transpile(&self, ctx: &mut TranspilationContext<'_>) -> String {

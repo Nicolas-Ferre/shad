@@ -299,105 +299,105 @@ native fn mul_add(value: f32x4, factor: f32x4, addend: f32x4) -> f32x4 = "fma(va
 
 // Constructors
 
-native fn bool(value: f32) -> bool = "u32(bool(value))";
-native fn bool(value: i32) -> bool = "i32(bool(value))";
-native fn bool(value: u32) -> bool = "u32(bool(value))";
+const native fn bool(value: f32) -> bool = "u32(bool(value))";
+const native fn bool(value: i32) -> bool = "i32(bool(value))";
+const native fn bool(value: u32) -> bool = "u32(bool(value))";
 
-native fn f32(value: bool) -> f32 = "f32(value)";
-native fn f32(value: i32) -> f32 = "f32(value)";
-native fn f32(value: u32) -> f32 = "f32(value)";
+const native fn f32(value: bool) -> f32 = "f32(value)";
+const native fn f32(value: i32) -> f32 = "f32(value)";
+const native fn f32(value: u32) -> f32 = "f32(value)";
 
-native fn i32(value: bool) -> i32 = "i32(value)";
-native fn i32(value: f32) -> i32 = "i32(value)";
-native fn i32(value: u32) -> i32 = "i32(value)";
+const native fn i32(value: bool) -> i32 = "i32(value)";
+const native fn i32(value: f32) -> i32 = "i32(value)";
+const native fn i32(value: u32) -> i32 = "i32(value)";
 
-native fn u32(value: bool) -> u32 = "value";
-native fn u32(value: f32) -> u32 = "u32(value)";
-native fn u32(value: i32) -> u32 = "u32(value)";
+const native fn u32(value: bool) -> u32 = "value";
+const native fn u32(value: f32) -> u32 = "u32(value)";
+const native fn u32(value: i32) -> u32 = "u32(value)";
 
-native fn boolx2() -> boolx2 = "vec2<u32>()";
-native fn boolx2(x: bool, y: bool) -> boolx2 = "vec2<u32>(x, y)";
-native fn boolx2(value: f32x2) -> boolx2 = "vec2<u32>(vec2<bool>(value))";
-native fn boolx2(value: i32x2) -> boolx2 = "vec2<u32>(vec2<bool>(value))";
-native fn boolx2(value: u32x2) -> boolx2 = "vec2<u32>(vec2<bool>(value))";
+const native fn boolx2() -> boolx2 = "vec2<u32>()";
+const native fn boolx2(x: bool, y: bool) -> boolx2 = "vec2<u32>(x, y)";
+const native fn boolx2(value: f32x2) -> boolx2 = "vec2<u32>(vec2<bool>(value))";
+const native fn boolx2(value: i32x2) -> boolx2 = "vec2<u32>(vec2<bool>(value))";
+const native fn boolx2(value: u32x2) -> boolx2 = "vec2<u32>(vec2<bool>(value))";
 
-native fn boolx3() -> boolx3 = "vec3<u32>()";
-native fn boolx3(x: bool, y: bool, z: bool) -> boolx3 = "vec3<u32>(x, y, z)";
-native fn boolx3(xy: boolx2, z: bool) -> boolx3 = "vec3<u32>(xy, z)";
-native fn boolx3(value: f32x3) -> boolx3 = "vec3<u32>(vec3<bool>(value))";
-native fn boolx3(value: i32x3) -> boolx3 = "vec3<u32>(vec3<bool>(value))";
-native fn boolx3(value: u32x3) -> boolx3 = "vec3<u32>(vec3<bool>(value))";
+const native fn boolx3() -> boolx3 = "vec3<u32>()";
+const native fn boolx3(x: bool, y: bool, z: bool) -> boolx3 = "vec3<u32>(x, y, z)";
+const native fn boolx3(xy: boolx2, z: bool) -> boolx3 = "vec3<u32>(xy, z)";
+const native fn boolx3(value: f32x3) -> boolx3 = "vec3<u32>(vec3<bool>(value))";
+const native fn boolx3(value: i32x3) -> boolx3 = "vec3<u32>(vec3<bool>(value))";
+const native fn boolx3(value: u32x3) -> boolx3 = "vec3<u32>(vec3<bool>(value))";
 
-native fn boolx4() -> boolx4 = "vec4<u32>()";
-native fn boolx4(x: bool, y: bool, z: bool, w: bool) -> boolx4 = "vec4<u32>(x, y, z, w)";
-native fn boolx4(xy: boolx2, z: bool, w: bool) -> boolx4 = "vec4<u32>(xy, z, w)";
-native fn boolx4(xyz: boolx3, w: bool) -> boolx4 = "vec4<u32>(xyz, w)";
-native fn boolx4(value: f32x4) -> boolx4 = "vec4<u32>(vec4<bool>(value))";
-native fn boolx4(value: i32x4) -> boolx4 = "vec4<u32>(vec4<bool>(value))";
-native fn boolx4(value: u32x4) -> boolx4 = "vec4<u32>(vec4<bool>(value))";
+const native fn boolx4() -> boolx4 = "vec4<u32>()";
+const native fn boolx4(x: bool, y: bool, z: bool, w: bool) -> boolx4 = "vec4<u32>(x, y, z, w)";
+const native fn boolx4(xy: boolx2, z: bool, w: bool) -> boolx4 = "vec4<u32>(xy, z, w)";
+const native fn boolx4(xyz: boolx3, w: bool) -> boolx4 = "vec4<u32>(xyz, w)";
+const native fn boolx4(value: f32x4) -> boolx4 = "vec4<u32>(vec4<bool>(value))";
+const native fn boolx4(value: i32x4) -> boolx4 = "vec4<u32>(vec4<bool>(value))";
+const native fn boolx4(value: u32x4) -> boolx4 = "vec4<u32>(vec4<bool>(value))";
 
-native fn f32x2() -> f32x2 = "vec2<f32>()";
-native fn f32x2(x: f32, y: f32) -> f32x2 = "vec2<f32>(x, y)";
-native fn f32x2(value: boolx2) -> f32x2 = "vec2<f32>(value)";
-native fn f32x2(value: i32x2) -> f32x2 = "vec2<f32>(value)";
-native fn f32x2(value: u32x2) -> f32x2 = "vec2<f32>(value)";
+const native fn f32x2() -> f32x2 = "vec2<f32>()";
+const native fn f32x2(x: f32, y: f32) -> f32x2 = "vec2<f32>(x, y)";
+const native fn f32x2(value: boolx2) -> f32x2 = "vec2<f32>(value)";
+const native fn f32x2(value: i32x2) -> f32x2 = "vec2<f32>(value)";
+const native fn f32x2(value: u32x2) -> f32x2 = "vec2<f32>(value)";
 
-native fn f32x3() -> f32x3 = "vec3<f32>()";
-native fn f32x3(x: f32, y: f32, z: f32) -> f32x3 = "vec3<f32>(x, y, z)";
-native fn f32x3(xy: f32x2, z: f32) -> f32x3 = "vec3<f32>(xy, z)";
-native fn f32x3(value: boolx3) -> f32x3 = "vec3<f32>(value)";
-native fn f32x3(value: i32x3) -> f32x3 = "vec3<f32>(value)";
-native fn f32x3(value: u32x3) -> f32x3 = "vec3<f32>(value)";
+const native fn f32x3() -> f32x3 = "vec3<f32>()";
+const native fn f32x3(x: f32, y: f32, z: f32) -> f32x3 = "vec3<f32>(x, y, z)";
+const native fn f32x3(xy: f32x2, z: f32) -> f32x3 = "vec3<f32>(xy, z)";
+const native fn f32x3(value: boolx3) -> f32x3 = "vec3<f32>(value)";
+const native fn f32x3(value: i32x3) -> f32x3 = "vec3<f32>(value)";
+const native fn f32x3(value: u32x3) -> f32x3 = "vec3<f32>(value)";
 
-native fn f32x4() -> f32x4 = "vec4<f32>()";
-native fn f32x4(x: f32, y: f32, z: f32, w: f32) -> f32x4 = "vec4<f32>(x, y, z, w)";
-native fn f32x4(xy: f32x2, z: f32, w: f32) -> f32x4 = "vec4<f32>(xy, z, w)";
-native fn f32x4(xyz: f32x3, w: f32) -> f32x4 = "vec4<f32>(xyz, w)";
-native fn f32x4(value: boolx4) -> f32x4 = "vec4<f32>(value)";
-native fn f32x4(value: i32x4) -> f32x4 = "vec4<f32>(value)";
-native fn f32x4(value: u32x4) -> f32x4 = "vec4<f32>(value)";
+const native fn f32x4() -> f32x4 = "vec4<f32>()";
+const native fn f32x4(x: f32, y: f32, z: f32, w: f32) -> f32x4 = "vec4<f32>(x, y, z, w)";
+const native fn f32x4(xy: f32x2, z: f32, w: f32) -> f32x4 = "vec4<f32>(xy, z, w)";
+const native fn f32x4(xyz: f32x3, w: f32) -> f32x4 = "vec4<f32>(xyz, w)";
+const native fn f32x4(value: boolx4) -> f32x4 = "vec4<f32>(value)";
+const native fn f32x4(value: i32x4) -> f32x4 = "vec4<f32>(value)";
+const native fn f32x4(value: u32x4) -> f32x4 = "vec4<f32>(value)";
 
-native fn i32x2() -> i32x2 = "vec2<i32>()";
-native fn i32x2(x: i32, y: i32) -> i32x2 = "vec2<i32>(x, y)";
-native fn i32x2(value: boolx2) -> i32x2 = "vec2<i32>(value)";
-native fn i32x2(value: i32x2) -> i32x2 = "vec2<i32>(value)";
-native fn i32x2(value: u32x2) -> i32x2 = "vec2<i32>(value)";
+const native fn i32x2() -> i32x2 = "vec2<i32>()";
+const native fn i32x2(x: i32, y: i32) -> i32x2 = "vec2<i32>(x, y)";
+const native fn i32x2(value: boolx2) -> i32x2 = "vec2<i32>(value)";
+const native fn i32x2(value: f32x2) -> i32x2 = "vec2<i32>(value)";
+const native fn i32x2(value: u32x2) -> i32x2 = "vec2<i32>(value)";
 
-native fn i32x3() -> i32x3 = "vec3<i32>()";
-native fn i32x3(x: i32, y: i32, z: i32) -> i32x3 = "vec3<i32>(x, y, z)";
-native fn i32x3(xy: i32x2, z: i32) -> i32x3 = "vec3<i32>(xy, z)";
-native fn i32x3(value: boolx3) -> i32x3 = "vec3<i32>(value)";
-native fn i32x3(value: i32x3) -> i32x3 = "vec3<i32>(value)";
-native fn i32x3(value: u32x3) -> i32x3 = "vec3<i32>(value)";
+const native fn i32x3() -> i32x3 = "vec3<i32>()";
+const native fn i32x3(x: i32, y: i32, z: i32) -> i32x3 = "vec3<i32>(x, y, z)";
+const native fn i32x3(xy: i32x2, z: i32) -> i32x3 = "vec3<i32>(xy, z)";
+const native fn i32x3(value: boolx3) -> i32x3 = "vec3<i32>(value)";
+const native fn i32x3(value: f32x3) -> i32x3 = "vec3<i32>(value)";
+const native fn i32x3(value: u32x3) -> i32x3 = "vec3<i32>(value)";
 
-native fn i32x4() -> i32x4 = "vec4<i32>()";
-native fn i32x4(x: i32, y: i32, z: i32, w: i32) -> i32x4 = "vec4<i32>(x, y, z, w)";
-native fn i32x4(xy: i32x2, z: i32, w: i32) -> i32x4 = "vec4<i32>(xy, z, w)";
-native fn i32x4(xyz: i32x3, w: i32) -> i32x4 = "vec4<i32>(xyz, w)";
-native fn i32x4(value: boolx4) -> i32x4 = "vec4<i32>(value)";
-native fn i32x4(value: i32x4) -> i32x4 = "vec4<i32>(value)";
-native fn i32x4(value: u32x4) -> i32x4 = "vec4<i32>(value)";
+const native fn i32x4() -> i32x4 = "vec4<i32>()";
+const native fn i32x4(x: i32, y: i32, z: i32, w: i32) -> i32x4 = "vec4<i32>(x, y, z, w)";
+const native fn i32x4(xy: i32x2, z: i32, w: i32) -> i32x4 = "vec4<i32>(xy, z, w)";
+const native fn i32x4(xyz: i32x3, w: i32) -> i32x4 = "vec4<i32>(xyz, w)";
+const native fn i32x4(value: boolx4) -> i32x4 = "vec4<i32>(value)";
+const native fn i32x4(value: f32x4) -> i32x4 = "vec4<i32>(value)";
+const native fn i32x4(value: u32x4) -> i32x4 = "vec4<i32>(value)";
 
-native fn u32x2() -> u32x2 = "vec2<u32>()";
-native fn u32x2(x: u32, y: u32) -> u32x2 = "vec2<u32>(x, y)";
-native fn u32x2(value: boolx2) -> u32x2 = "value";
-native fn u32x2(value: f32x2) -> u32x2 = "vec2<u32>(value)";
-native fn u32x2(value: i32x2) -> u32x2 = "vec2<u32>(value)";
+const native fn u32x2() -> u32x2 = "vec2<u32>()";
+const native fn u32x2(x: u32, y: u32) -> u32x2 = "vec2<u32>(x, y)";
+const native fn u32x2(value: boolx2) -> u32x2 = "value";
+const native fn u32x2(value: f32x2) -> u32x2 = "vec2<u32>(value)";
+const native fn u32x2(value: i32x2) -> u32x2 = "vec2<u32>(value)";
 
-native fn u32x3() -> u32x3 = "vec3<u32>()";
-native fn u32x3(x: u32, y: u32, z: u32) -> u32x3 = "vec3<u32>(x, y, z)";
-native fn u32x3(xy: u32x2, z: u32) -> u32x3 = "vec3<u32>(xy, z)";
-native fn u32x3(value: boolx3) -> u32x3 = "value";
-native fn u32x3(value: f32x3) -> u32x3 = "vec3<u32>(value)";
-native fn u32x3(value: i32x3) -> u32x3 = "vec3<u32>(value)";
+const native fn u32x3() -> u32x3 = "vec3<u32>()";
+const native fn u32x3(x: u32, y: u32, z: u32) -> u32x3 = "vec3<u32>(x, y, z)";
+const native fn u32x3(xy: u32x2, z: u32) -> u32x3 = "vec3<u32>(xy, z)";
+const native fn u32x3(value: boolx3) -> u32x3 = "value";
+const native fn u32x3(value: f32x3) -> u32x3 = "vec3<u32>(value)";
+const native fn u32x3(value: i32x3) -> u32x3 = "vec3<u32>(value)";
 
-native fn u32x4() -> u32x4 = "vec4<u32>()";
-native fn u32x4(x: u32, y: u32, z: u32, w: u32) -> u32x4 = "vec4<u32>(x, y, z, w)";
-native fn u32x4(xy: u32x2, z: u32, w: u32) -> u32x4 = "vec4<u32>(xy, z, w)";
-native fn u32x4(xyz: u32x3, w: u32) -> u32x4 = "vec4<u32>(xyz, w)";
-native fn u32x4(value: boolx4) -> u32x4 = "value";
-native fn u32x4(value: f32x4) -> u32x4 = "vec4<u32>(value)";
-native fn u32x4(value: i32x4) -> u32x4 = "vec4<u32>(value)";
+const native fn u32x4() -> u32x4 = "vec4<u32>()";
+const native fn u32x4(x: u32, y: u32, z: u32, w: u32) -> u32x4 = "vec4<u32>(x, y, z, w)";
+const native fn u32x4(xy: u32x2, z: u32, w: u32) -> u32x4 = "vec4<u32>(xy, z, w)";
+const native fn u32x4(xyz: u32x3, w: u32) -> u32x4 = "vec4<u32>(xyz, w)";
+const native fn u32x4(value: boolx4) -> u32x4 = "value";
+const native fn u32x4(value: f32x4) -> u32x4 = "vec4<u32>(value)";
+const native fn u32x4(value: i32x4) -> u32x4 = "vec4<u32>(value)";
 
 // Type conversation
 

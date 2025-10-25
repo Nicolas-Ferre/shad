@@ -2,6 +2,7 @@ use crate::compilation::node::Node;
 use crate::compilation::validation::ValidationContext;
 use crate::language::items;
 use crate::language::items::type_;
+use crate::language::keywords::ConstKeyword;
 use crate::ValidationError;
 
 pub(crate) fn check_missing_source(node: &impl Node, ctx: &mut ValidationContext<'_>) {
@@ -74,5 +75,21 @@ pub(crate) fn check_invalid_expr_type(
                 )],
             ));
         }
+    }
+}
+
+pub(crate) fn check_invalid_const_scope(
+    checked: &impl Node,
+    const_kw: &ConstKeyword,
+    ctx: &mut ValidationContext<'_>,
+) {
+    if let Some(invalid_node) = checked.invalid_constant(ctx.index) {
+        ctx.errors.push(ValidationError::error(
+            ctx,
+            invalid_node,
+            "invalid `const` scope",
+            Some("cannot be used in a `const` scope"),
+            &[(const_kw, "`const` scope declared here")],
+        ));
     }
 }

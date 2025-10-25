@@ -1,4 +1,4 @@
-buf val = 20;
+const VAL = 20;
 buf operator = 200 + 5 - 7 * 9 / (10 % 11 < 11 > 12 <= 13) >= 14 == 15 != 16 && 17 || 18 && !19 || -val;
 buf operator_call = 1.__sub__(2).__sub__(3);
 

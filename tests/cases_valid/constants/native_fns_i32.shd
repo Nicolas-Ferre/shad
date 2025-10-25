@@ -1,0 +1,51 @@
+const I32_FROM_FALSE_BOOL = i32(false);
+const I32_FROM_TRUE_BOOL = i32(true);
+const I32_FROM_F32 = i32(12.0);
+const I32_FROM_U32 = i32(12u);
+
+const I32X2_DEFAULT = i32x2();
+const I32X2_FROM_I32 = i32x2(12, 120);
+const I32X2_FROM_BOOLX2 = i32x2(boolx2(false, true));
+const I32X2_FROM_F32X2 = i32x2(f32x2(12.0, 120.0));
+const I32X2_FROM_U32X2 = i32x2(u32x2(12u, 120u));
+
+const I32X3_DEFAULT = i32x3();
+const I32X3_FROM_I32 = i32x3(12, 120, 1200);
+const I32X3_FROM_I32X2_AND_I32 = i32x3(i32x2(12, 120), 1200);
+const I32X3_FROM_BOOLX3 = i32x3(boolx3(false, true, false));
+const I32X3_FROM_F32X3 = i32x3(f32x3(12.0, 120.0, 1200.0));
+const I32X3_FROM_U32X3 = i32x3(u32x3(12u, 120u, 1200u));
+
+const I32X4_DEFAULT = i32x4();
+const I32X4_FROM_I32 = i32x4(12, 120, 1200, 12_000);
+const I32X4_FROM_I32X2_AND_I32 = i32x4(i32x2(12, 120), 1200, 12_000);
+const I32X4_FROM_I32X3_AND_I32 = i32x4(i32x3(12, 120, 1200), 12_000);
+const I32X4_FROM_BOOLX4 = i32x4(boolx4(false, true, false, true));
+const I32X4_FROM_F32X4 = i32x4(f32x4(12.0, 120.0, 1200.0, 12_000.0));
+const I32X4_FROM_U32X4 = i32x4(u32x4(12u, 120u, 1200u, 12_000u));
+
+buf i32_from_false_bool = I32_FROM_FALSE_BOOL;
+buf i32_from_true_bool = I32_FROM_TRUE_BOOL;
+buf i32_from_f32 = I32_FROM_F32;
+buf i32_from_u32 = I32_FROM_U32;
+
+buf i32x2_default = I32X2_DEFAULT;
+buf i32x2_from_i32 = I32X2_FROM_I32;
+buf i32x2_from_boolx2 = I32X2_FROM_BOOLX2;
+buf i32x2_from_f32x2 = I32X2_FROM_F32X2;
+buf i32x2_from_u32x2 = I32X2_FROM_U32X2;
+
+buf i32x3_default = I32X3_DEFAULT;
+buf i32x3_from_i32 = I32X3_FROM_I32;
+buf i32x3_from_i32x2_and_i32 = I32X3_FROM_I32X2_AND_I32;
+buf i32x3_from_boolx3 = I32X3_FROM_BOOLX3;
+buf i32x3_from_f32x3 = I32X3_FROM_F32X3;
+buf i32x3_from_u32x3 = I32X3_FROM_U32X3;
+
+buf i32x4_default = I32X4_DEFAULT;
+buf i32x4_from_i32 = I32X4_FROM_I32;
+buf i32x4_from_i32x2_and_i32 = I32X4_FROM_I32X2_AND_I32;
+buf i32x4_from_i32x3_and_i32 = I32X4_FROM_I32X3_AND_I32;
+buf i32x4_from_boolx4 = I32X4_FROM_BOOLX4;
+buf i32x4_from_f32x4 = I32X4_FROM_F32X4;
+buf i32x4_from_u32x4 = I32X4_FROM_U32X4;

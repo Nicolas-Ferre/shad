@@ -1,0 +1,12 @@
+const RESULT = call_const();
+buf result = RESULT;
+
+const fn call_const() -> i32x2 {
+    var a = 42;
+    ref b = call_inner_const(13);
+    return i32x2(a, b);
+}
+
+const fn call_inner_const(value: ref i32) -> ref i32 {
+    return value;
+}

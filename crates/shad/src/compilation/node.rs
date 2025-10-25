@@ -1,3 +1,4 @@
+use crate::compilation::constant::{ConstantContext, ConstantValue};
 use crate::compilation::index::NodeIndex;
 use crate::compilation::parsing;
 use crate::compilation::parsing::ParsingContext;
@@ -36,7 +37,6 @@ pub(crate) struct NodeSourceSearchCriteria {
     pub(crate) common_parent_count: Option<usize>,
 }
 
-// TODO: convert to trait
 #[derive(Debug, Clone, Copy)]
 pub(crate) enum NodeType<'a> {
     Source(&'a dyn Node),
@@ -75,7 +75,7 @@ pub(crate) trait NodeConfig {
         unreachable!("`{}` node has no source criteria", type_name::<Self>())
     }
 
-    fn is_ref(&self, index: &NodeIndex) -> bool {
+    fn is_ref(&self, index: &NodeIndex) -> Option<bool> {
         unreachable!("`{}` node has no ref checking", type_name::<Self>())
     }
 
@@ -84,6 +84,14 @@ pub(crate) trait NodeConfig {
     }
 
     fn validate(&self, ctx: &mut ValidationContext<'_>) {}
+
+    fn invalid_constant(&self, index: &NodeIndex) -> Option<&dyn Node> {
+        unreachable!("`{}` node has no invalid constant", type_name::<Self>())
+    }
+
+    fn evaluate_constant(&self, ctx: &mut ConstantContext<'_>) -> Option<ConstantValue> {
+        unreachable!("`{}` node has no constant evaluation", type_name::<Self>())
+    }
 
     fn is_transpilable_dependency(&self, index: &NodeIndex) -> bool {
         unreachable!("`{}` node has no dependency checking", type_name::<Self>())
@@ -634,7 +642,7 @@ macro_rules! transform {
         }
 
         impl crate::compilation::node::NodeConfig for $typename {
-            fn is_ref(&self, index: &crate::compilation::index::NodeIndex) -> bool {
+            fn is_ref(&self, index: &crate::compilation::index::NodeIndex) -> Option<bool> {
                 match self {
                     Self::Parsed(child) => child.is_ref(index),
                     Self::Transformed(child) => child.is_ref(index),
@@ -648,6 +656,26 @@ macro_rules! transform {
                 match self {
                     Self::Parsed(child) => child.type_(index),
                     Self::Transformed(child) => child.type_(index),
+                }
+            }
+
+            fn invalid_constant(
+                &self,
+                index: &crate::compilation::index::NodeIndex,
+            ) -> Option<&dyn crate::compilation::node::Node> {
+                match self {
+                    Self::Parsed(child) => child.invalid_constant(index),
+                    Self::Transformed(child) => child.invalid_constant(index),
+                }
+            }
+
+            fn evaluate_constant(
+                &self,
+                ctx: &mut crate::compilation::constant::ConstantContext<'_>,
+            ) -> Option<crate::compilation::constant::ConstantValue> {
+                match self {
+                    Self::Parsed(child) => child.evaluate_constant(ctx),
+                    Self::Transformed(child) => child.evaluate_constant(ctx),
                 }
             }
 
