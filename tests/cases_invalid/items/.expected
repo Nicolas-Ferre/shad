@@ -82,18 +82,32 @@ error: item definition with circular dependency
 error: item definition with circular dependency
   --> ./cases_invalid/items/recursion.shd:11:1
    |
-11 | / fn f1() {
-12 | |     f2();
-13 | | }
-   | | ^
-   | |_|
-   |   this item is directly or indirectly referring to itself
+11 | const CONST1 = CONST2;
+   | ^^^^^^^^^^^^^^^^^^^^^^
+   | |
+   | this item is directly or indirectly referring to itself
+
+error: item definition with circular dependency
+  --> ./cases_invalid/items/recursion.shd:12:1
+   |
+12 | const CONST2 = CONST3;
+   | ^^^^^^^^^^^^^^^^^^^^^^
+   | |
+   | this item is directly or indirectly referring to itself
+
+error: item definition with circular dependency
+  --> ./cases_invalid/items/recursion.shd:13:1
+   |
+13 | const CONST3 = CONST1;
+   | ^^^^^^^^^^^^^^^^^^^^^^
+   | |
+   | this item is directly or indirectly referring to itself
 
 error: item definition with circular dependency
   --> ./cases_invalid/items/recursion.shd:15:1
    |
-15 | / fn f2() {
-16 | |     f3();
+15 | / fn f1() {
+16 | |     f2();
 17 | | }
    | | ^
    | |_|
@@ -102,8 +116,8 @@ error: item definition with circular dependency
 error: item definition with circular dependency
   --> ./cases_invalid/items/recursion.shd:19:1
    |
-19 | / fn f3() {
-20 | |     f1();
+19 | / fn f2() {
+20 | |     f3();
 21 | | }
    | | ^
    | |_|
@@ -112,8 +126,8 @@ error: item definition with circular dependency
 error: item definition with circular dependency
   --> ./cases_invalid/items/recursion.shd:23:1
    |
-23 | / struct Struct1 {
-24 | |     inner: Struct2,
+23 | / fn f3() {
+24 | |     f1();
 25 | | }
    | | ^
    | |_|
@@ -122,8 +136,8 @@ error: item definition with circular dependency
 error: item definition with circular dependency
   --> ./cases_invalid/items/recursion.shd:27:1
    |
-27 | / struct Struct2 {
-28 | |     inner: Struct3,
+27 | / struct Struct1 {
+28 | |     inner: Struct2,
 29 | | }
    | | ^
    | |_|
@@ -132,9 +146,19 @@ error: item definition with circular dependency
 error: item definition with circular dependency
   --> ./cases_invalid/items/recursion.shd:31:1
    |
-31 | / struct Struct3 {
-32 | |     inner: Struct1,
+31 | / struct Struct2 {
+32 | |     inner: Struct3,
 33 | | }
+   | | ^
+   | |_|
+   |   this item is directly or indirectly referring to itself
+
+error: item definition with circular dependency
+  --> ./cases_invalid/items/recursion.shd:35:1
+   |
+35 | / struct Struct3 {
+36 | |     inner: Struct1,
+37 | | }
    | | ^
    | |_|
    |   this item is directly or indirectly referring to itself

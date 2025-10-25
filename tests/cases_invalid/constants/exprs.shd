@@ -9,6 +9,7 @@ const FN_CALL_WITH_NON_CONST_ARG = u32(buffer);
 const ASSOCIATED_FN_CALL_WITH_NON_CONST_ARG = 5.i32x2(buffer);
 const ASSOCIATED_FN_CALL_WITH_NON_CONST_FIRST_ARG = buffer.u32();
 const CONSTRUCTOR_WITH_NON_CONST_ARG = I32Wrapper { buffer };
+const PARENTHESIZED = (buffer);
 
 struct I32Wrapper {
     inner: i32,

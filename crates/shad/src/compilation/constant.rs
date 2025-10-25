@@ -21,7 +21,7 @@ impl ConstantData {
         if let Self::StructFields(fields) = self {
             fields
         } else {
-            &[]
+            unreachable!("constant is not a struct")
         }
     }
 }

@@ -75,6 +75,23 @@ error: invalid `const` scope
    | `const` scope declared here                         cannot be used in a `const` scope
 
 error: invalid `const` scope
+  --> ./cases_invalid/constants/exprs.shd:12:24
+   |
+12 | const PARENTHESIZED = (buffer);
+   | -----                  ^^^^^^
+   | |                      |
+   | |                      cannot be used in a `const` scope
+   | `const` scope declared here
+
+error: `const` native function without constant implementation
+ --> ./cases_invalid/constants/fns.shd:3:1
+  |
+3 | const native fn no_const_impl() -> i32 = "";
+  | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  | |
+  | this function cannot be qualified with `const`
+
+error: invalid `const` scope
  --> ./cases_invalid/constants/stmts.shd:3:5
   |
 1 | const fn unsupported_assignment() {
