@@ -94,6 +94,34 @@ macro_rules! const_numeric_binary_operator {
                 $((ConstantData::$type_(left), ConstantData::$type_(right)) => {
                     ConstantData::$type_(*left $operator *right)
                 })+
+                $((ConstantData::StructFields(left), ConstantData::$type_(_)) => {
+                    ConstantData::StructFields(
+                        left.iter()
+                            .map(|left| ConstantStructFieldData {
+                                name: left.name.clone(),
+                                value: ConstantValue {
+                                    transpiled_type_name: left.value.transpiled_type_name.clone(),
+                                    data: $fn_name(&left.value, &right),
+                                },
+                                is_alias: left.is_alias,
+                            })
+                            .collect(),
+                    )
+                })+
+                $((ConstantData::$type_(_), ConstantData::StructFields(right)) => {
+                    ConstantData::StructFields(
+                        right.iter()
+                            .map(|right| ConstantStructFieldData {
+                                name: right.name.clone(),
+                                value: ConstantValue {
+                                    transpiled_type_name: right.value.transpiled_type_name.clone(),
+                                    data: $fn_name(&left, &right.value),
+                                },
+                                is_alias: right.is_alias,
+                            })
+                            .collect(),
+                    )
+                })+
                 (ConstantData::StructFields(left), ConstantData::StructFields(right)) => {
                     ConstantData::StructFields(
                         left.iter()

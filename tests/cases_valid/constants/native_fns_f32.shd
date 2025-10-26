@@ -35,13 +35,25 @@ const SUB_F32X3 = f32x3(12.0, 6.0, 3.0) - f32x3(10.0, 5.0, 1.0);
 const SUB_F32X4 = f32x4(12.0, 6.0, 3.0, 3.0) - f32x4(10.0, 5.0, 1.0, 3.0);
 
 const MUL_F32 = 12.0 * 10.0;
+const MUL_F32_F32X2 = 12.0 * f32x2(10.0, 5.0);
+const MUL_F32_F32X3 = 12.0 * f32x3(10.0, 5.0, 1.0);
+const MUL_F32_F32X4 = 12.0 * f32x4(10.0, 5.0, 1.0, 3.0);
+const MUL_F32X2_F32 = f32x2(12.0, 6.0) * 10.0;
 const MUL_F32X2 = f32x2(12.0, 6.0) * f32x2(10.0, 5.0);
+const MUL_F32X3_F32 = f32x3(12.0, 6.0, 3.0) * 10.0;
 const MUL_F32X3 = f32x3(12.0, 6.0, 3.0) * f32x3(10.0, 5.0, 1.0);
+const MUL_F32X4_F32 = f32x4(12.0, 6.0, 3.0, 3.0) * 10.0;
 const MUL_F32X4 = f32x4(12.0, 6.0, 3.0, 3.0) * f32x4(10.0, 5.0, 1.0, 3.0);
 
 const DIV_F32 = 12.0 / 10.0;
+const DIV_F32_F32X2 = 12.0 / f32x2(10.0, 5.0);
+const DIV_F32_F32X3 = 12.0 / f32x3(10.0, 5.0, 1.0);
+const DIV_F32_F32X4 = 12.0 / f32x4(10.0, 5.0, 1.0, 3.0);
+const DIV_F32X2_F32 = f32x2(12.0, 6.0) / 10.0;
 const DIV_F32X2 = f32x2(12.0, 6.0) / f32x2(10.0, 5.0);
+const DIV_F32X3_F32 = f32x3(12.0, 6.0, 3.0) / 10.0;
 const DIV_F32X3 = f32x3(12.0, 6.0, 3.0) / f32x3(10.0, 5.0, 1.0);
+const DIV_F32X4_F32 = f32x4(12.0, 6.0, 3.0, 3.0) / 10.0;
 const DIV_F32X4 = f32x4(12.0, 6.0, 3.0, 3.0) / f32x4(10.0, 5.0, 1.0, 3.0);
 
 const LT_F32 = 12.0 < 10.0;
@@ -116,13 +128,25 @@ buf sub_f32x3 = SUB_F32X3;
 buf sub_f32x4 = SUB_F32X4;
 
 buf mul_f32 = MUL_F32;
+buf mul_f32_f32x2 = MUL_F32_F32X2;
+buf mul_f32_f32x3 = MUL_F32_F32X3;
+buf mul_f32_f32x4 = MUL_F32_F32X4;
+buf mul_f32x2_f32 = MUL_F32X2_F32;
 buf mul_f32x2 = MUL_F32X2;
+buf mul_f32x3_f32 = MUL_F32X3_F32;
 buf mul_f32x3 = MUL_F32X3;
+buf mul_f32x4_f32 = MUL_F32X4_F32;
 buf mul_f32x4 = MUL_F32X4;
 
 buf div_f32 = DIV_F32;
+buf div_f32_f32x2 = DIV_F32_F32X2;
+buf div_f32_f32x3 = DIV_F32_F32X3;
+buf div_f32_f32x4 = DIV_F32_F32X4;
+buf div_f32x2_f32 = DIV_F32X2_F32;
 buf div_f32x2 = DIV_F32X2;
+buf div_f32x3_f32 = DIV_F32X3_F32;
 buf div_f32x3 = DIV_F32X3;
+buf div_f32x4_f32 = DIV_F32X4_F32;
 buf div_f32x4 = DIV_F32X4;
 
 buf lt_f32 = LT_F32;
