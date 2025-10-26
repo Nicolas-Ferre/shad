@@ -1,0 +1,8 @@
+fn f() -> i32 {
+    var conflicted_name = 2;
+    return conflicted_name;
+}
+
+const conflicted_name = 1;
+
+buf result = f();

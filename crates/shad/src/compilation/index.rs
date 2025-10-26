@@ -34,38 +34,45 @@ impl NodeIndex {
     }
 
     pub(crate) fn search(&self, node: &impl Node, key: &str) -> Option<&dyn Node> {
-        let criteria = node.source_search_criteria();
-        let parent_id = node.parent_ids.last().copied().unwrap_or(0);
         for current_path in self.lookup_paths.get(&node.path)? {
             if let Some(nodes) = self.nodes.get(current_path)?.get(key) {
-                for source_node in nodes.iter().rev() {
-                    let node_parent_id = source_node.parent_ids.last().copied().unwrap_or(0);
-                    let is_node_root_child = source_node.parent_ids.len() == 2;
-                    let is_matching = criteria.iter().any(|criteria| {
-                        let has_node_min_parent_count =
-                            criteria
-                                .common_parent_count
-                                .is_some_and(|common_parent_count| {
-                                    source_node.parent_ids.len() >= common_parent_count
-                                        && node.parent_ids.len() >= common_parent_count
-                                        && source_node.parent_ids[..common_parent_count]
-                                            == node.parent_ids[..common_parent_count]
-                                });
-                        (criteria.can_be_after
-                            || source_node.id < parent_id
-                            || &node.path != current_path)
-                            && source_node.node_type_id() == (criteria.node_type)()
-                            && (is_node_root_child
-                                || has_node_min_parent_count
-                                || node.parent_ids.contains(&node_parent_id))
-                    });
-                    if is_matching {
-                        return Some(&**source_node);
+                let mut found_source: Option<&dyn Node> = None;
+                for source in nodes.iter().rev() {
+                    if found_source
+                        .is_none_or(|found| found.parent_ids.len() < source.parent_ids.len())
+                        && Self::is_source_in_scope(node, source, current_path)
+                    {
+                        found_source = Some(&**source);
                     }
+                }
+                if found_source.is_some() {
+                    return found_source;
                 }
             }
         }
         None
+    }
+
+    fn is_source_in_scope(node: &impl Node, source: &Rc<dyn Node>, current_path: &PathBuf) -> bool {
+        let node_parent_id = node.parent_ids.last().copied().unwrap_or(0);
+        let source_parent_id = source.parent_ids.last().copied().unwrap_or(0);
+        let is_source_root = source.parent_ids.len() == 2;
+        node.source_search_criteria().iter().any(|criteria| {
+            let has_source_min_parent_count =
+                criteria
+                    .common_parent_count
+                    .is_some_and(|common_parent_count| {
+                        source.parent_ids.len() >= common_parent_count
+                            && node.parent_ids.len() >= common_parent_count
+                            && source.parent_ids[..common_parent_count]
+                                == node.parent_ids[..common_parent_count]
+                    });
+            (criteria.can_be_after || source.id < node_parent_id || &node.path != current_path)
+                && source.node_type_id() == (criteria.node_type)()
+                && (is_source_root
+                    || has_source_min_parent_count
+                    || node.parent_ids.contains(&source_parent_id))
+        })
     }
 
     fn find_lookup_paths(
