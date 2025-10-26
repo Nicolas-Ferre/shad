@@ -24,6 +24,61 @@ const F32X4_FROM_BOOLX4 = f32x4(boolx4(false, true, false, true));
 const F32X4_FROM_I32X4 = f32x4(i32x4(12, 120, 1200, 12_000));
 const F32X4_FROM_U32X4 = f32x4(u32x4(12u, 120u, 1200u, 12_000u));
 
+const ADD_F32 = 12.0 + 10.0;
+const ADD_F32X2 = f32x2(12.0, 6.0) + f32x2(10.0, 5.0);
+const ADD_F32X3 = f32x3(12.0, 6.0, 3.0) + f32x3(10.0, 5.0, 1.0);
+const ADD_F32X4 = f32x4(12.0, 6.0, 3.0, 3.0) + f32x4(10.0, 5.0, 1.0, 3.0);
+
+const SUB_F32 = 12.0 - 10.0;
+const SUB_F32X2 = f32x2(12.0, 6.0) - f32x2(10.0, 5.0);
+const SUB_F32X3 = f32x3(12.0, 6.0, 3.0) - f32x3(10.0, 5.0, 1.0);
+const SUB_F32X4 = f32x4(12.0, 6.0, 3.0, 3.0) - f32x4(10.0, 5.0, 1.0, 3.0);
+
+const MUL_F32 = 12.0 * 10.0;
+const MUL_F32X2 = f32x2(12.0, 6.0) * f32x2(10.0, 5.0);
+const MUL_F32X3 = f32x3(12.0, 6.0, 3.0) * f32x3(10.0, 5.0, 1.0);
+const MUL_F32X4 = f32x4(12.0, 6.0, 3.0, 3.0) * f32x4(10.0, 5.0, 1.0, 3.0);
+
+const DIV_F32 = 12.0 / 10.0;
+const DIV_F32X2 = f32x2(12.0, 6.0) / f32x2(10.0, 5.0);
+const DIV_F32X3 = f32x3(12.0, 6.0, 3.0) / f32x3(10.0, 5.0, 1.0);
+const DIV_F32X4 = f32x4(12.0, 6.0, 3.0, 3.0) / f32x4(10.0, 5.0, 1.0, 3.0);
+
+const LT_F32 = 12.0 < 10.0;
+const LT_F32X2 = f32x2(12.0, 6.0) < f32x2(10.0, 5.0);
+const LT_F32X3 = f32x3(12.0, 6.0, 3.0) < f32x3(10.0, 5.0, 1.0);
+const LT_F32X4 = f32x4(12.0, 6.0, 3.0, 3.0) < f32x4(10.0, 5.0, 1.0, 3.0);
+
+const GT_F32 = 12.0 > 10.0;
+const GT_F32X2 = f32x2(12.0, 6.0) > f32x2(10.0, 5.0);
+const GT_F32X3 = f32x3(12.0, 6.0, 3.0) > f32x3(10.0, 5.0, 1.0);
+const GT_F32X4 = f32x4(12.0, 6.0, 3.0, 3.0) > f32x4(10.0, 5.0, 1.0, 3.0);
+
+const LE_F32 = 12.0 <= 10.0;
+const LE_F32X2 = f32x2(12.0, 6.0) <= f32x2(10.0, 5.0);
+const LE_F32X3 = f32x3(12.0, 6.0, 3.0) <= f32x3(10.0, 5.0, 1.0);
+const LE_F32X4 = f32x4(12.0, 6.0, 3.0, 3.0) <= f32x4(10.0, 5.0, 1.0, 3.0);
+
+const GE_F32 = 12.0 >= 10.0;
+const GE_F32X2 = f32x2(12.0, 6.0) >= f32x2(10.0, 5.0);
+const GE_F32X3 = f32x3(12.0, 6.0, 3.0) >= f32x3(10.0, 5.0, 1.0);
+const GE_F32X4 = f32x4(12.0, 6.0, 3.0, 3.0) >= f32x4(10.0, 5.0, 1.0, 3.0);
+
+const EQ_F32 = 12.0 == 10.0;
+const EQ_F32X2 = f32x2(12.0, 6.0) == f32x2(10.0, 5.0);
+const EQ_F32X3 = f32x3(12.0, 6.0, 3.0) == f32x3(10.0, 5.0, 1.0);
+const EQ_F32X4 = f32x4(12.0, 6.0, 3.0, 3.0) == f32x4(10.0, 5.0, 1.0, 3.0);
+
+const NE_F32 = 12.0 != 10.0;
+const NE_F32X2 = f32x2(12.0, 6.0) != f32x2(10.0, 5.0);
+const NE_F32X3 = f32x3(12.0, 6.0, 3.0) != f32x3(10.0, 5.0, 1.0);
+const NE_F32X4 = f32x4(12.0, 6.0, 3.0, 3.0) != f32x4(10.0, 5.0, 1.0, 3.0);
+
+const NEG_F32 = -12.0;
+const NEG_F32X2 = -f32x2(12.0, 6.0);
+const NEG_F32X3 = -f32x3(12.0, 6.0, -3.0);
+const NEG_F32X4 = -f32x4(12.0, 6.0, -3.0, 1.0);
+
 buf f32_from_false_bool = F32_FROM_FALSE_BOOL;
 buf f32_from_true_bool = F32_FROM_TRUE_BOOL;
 buf f32_from_i32 = F32_FROM_I32;
@@ -49,3 +104,53 @@ buf f32x4_from_f32x3_and_f32 = F32X4_FROM_F32X3_AND_F32;
 buf f32x4_from_boolx4 = F32X4_FROM_BOOLX4;
 buf f32x4_from_i32x4 = F32X4_FROM_I32X4;
 buf f32x4_from_u32x4 = F32X4_FROM_U32X4;
+
+buf add_f32 = ADD_F32;
+buf add_f32x2 = ADD_F32X2;
+buf add_f32x3 = ADD_F32X3;
+buf add_f32x4 = ADD_F32X4;
+
+buf sub_f32 = SUB_F32;
+buf sub_f32x2 = SUB_F32X2;
+buf sub_f32x3 = SUB_F32X3;
+buf sub_f32x4 = SUB_F32X4;
+
+buf mul_f32 = MUL_F32;
+buf mul_f32x2 = MUL_F32X2;
+buf mul_f32x3 = MUL_F32X3;
+buf mul_f32x4 = MUL_F32X4;
+
+buf div_f32 = DIV_F32;
+buf div_f32x2 = DIV_F32X2;
+buf div_f32x3 = DIV_F32X3;
+buf div_f32x4 = DIV_F32X4;
+
+buf lt_f32 = LT_F32;
+buf lt_f32x2 = LT_F32X2;
+buf lt_f32x3 = LT_F32X3;
+buf lt_f32x4 = LT_F32X4;
+
+buf gt_f32 = GT_F32;
+buf gt_f32x2 = GT_F32X2;
+buf gt_f32x3 = GT_F32X3;
+buf gt_f32x4 = GT_F32X4;
+
+buf le_f32 = LE_F32;
+buf le_f32x2 = LE_F32X2;
+buf le_f32x3 = LE_F32X3;
+buf le_f32x4 = LE_F32X4;
+
+buf ge_f32 = GE_F32;
+buf ge_f32x2 = GE_F32X2;
+buf ge_f32x3 = GE_F32X3;
+buf ge_f32x4 = GE_F32X4;
+
+buf eq_f32 = EQ_F32;
+buf eq_f32x2 = EQ_F32X2;
+buf eq_f32x3 = EQ_F32X3;
+buf eq_f32x4 = EQ_F32X4;
+
+buf neg_f32 = NEG_F32;
+buf neg_f32x2 = NEG_F32X2;
+buf neg_f32x3 = NEG_F32X3;
+buf neg_f32x4 = NEG_F32X4;

@@ -28,13 +28,3 @@ struct TestType {
     value1: i32,
     value2: i32,
 }
-
-// TODO: replace with native versions
-
-const fn __neg__(value: i32) -> i32 {
-    return value;
-}
-
-const fn __add__(left: i32, right: i32) -> i32 {
-    return left;
-}

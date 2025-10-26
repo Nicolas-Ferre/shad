@@ -26,6 +26,41 @@ const BOOLX4_FROM_F32X4 = boolx4(f32x4(1.0, 0.0, 1.2, 0.0));
 const BOOLX4_FROM_I32X4 = boolx4(i32x4(1, 0, 12, 0));
 const BOOLX4_FROM_U32X4 = boolx4(u32x4(1u, 0u, 12u, 0u));
 
+const LT_BOOL = true < false;
+const LT_BOOLX2 = boolx2(true, false) < boolx2(false, false);
+const LT_BOOLX3 = boolx3(true, false, true) < boolx3(false, false, true);
+const LT_BOOLX4 = boolx4(true, false, true, false) < boolx4(false, false, true, true);
+
+const GT_BOOL = true > false;
+const GT_BOOLX2 = boolx2(true, false) > boolx2(false, false);
+const GT_BOOLX3 = boolx3(true, false, true) > boolx3(false, false, true);
+const GT_BOOLX4 = boolx4(true, false, true, false) > boolx4(false, false, true, true);
+
+const LE_BOOL = true <= false;
+const LE_BOOLX2 = boolx2(true, false) <= boolx2(false, false);
+const LE_BOOLX3 = boolx3(true, false, true) <= boolx3(false, false, true);
+const LE_BOOLX4 = boolx4(true, false, true, false) <= boolx4(false, false, true, true);
+
+const GE_BOOL = true >= false;
+const GE_BOOLX2 = boolx2(true, false) >= boolx2(false, false);
+const GE_BOOLX3 = boolx3(true, false, true) >= boolx3(false, false, true);
+const GE_BOOLX4 = boolx4(true, false, true, false) >= boolx4(false, false, true, true);
+
+const EQ_BOOL = true == false;
+const EQ_BOOLX2 = boolx2(true, false) == boolx2(false, false);
+const EQ_BOOLX3 = boolx3(true, false, true) == boolx3(false, false, true);
+const EQ_BOOLX4 = boolx4(true, false, true, false) == boolx4(false, false, true, true);
+
+const NE_BOOL = true != false;
+const NE_BOOLX2 = boolx2(true, false) != boolx2(false, false);
+const NE_BOOLX3 = boolx3(true, false, true) != boolx3(false, false, true);
+const NE_BOOLX4 = boolx4(true, false, true, false) != boolx4(false, false, true, true);
+
+const NOT_BOOL = !true;
+const NOT_BOOLX2 = !boolx2(true, false);
+const NOT_BOOLX3 = !boolx3(true, false, true);
+const NOT_BOOLX4 = !boolx4(true, false, true, false);
+
 buf bool_from_non_zero_f32 = BOOL_FROM_NON_ZERO_F32;
 buf bool_from_non_zero_i32 = BOOL_FROM_NON_ZERO_I32;
 buf bool_from_non_zero_u32 = BOOL_FROM_NON_ZERO_U32;
@@ -53,3 +88,38 @@ buf boolx4_from_boolx3_and_bool = BOOLX4_FROM_BOOLX3_AND_BOOL;
 buf boolx4_from_f32x4 = BOOLX4_FROM_F32X4;
 buf boolx4_from_i32x4 = BOOLX4_FROM_I32X4;
 buf boolx4_from_u32x4 = BOOLX4_FROM_U32X4;
+
+buf lt_bool = LT_BOOL;
+buf lt_boolx2 = LT_BOOLX2;
+buf lt_boolx3 = LT_BOOLX3;
+buf lt_boolx4 = LT_BOOLX4;
+
+buf gt_bool = GT_BOOL;
+buf gt_boolx2 = GT_BOOLX2;
+buf gt_boolx3 = GT_BOOLX3;
+buf gt_boolx4 = GT_BOOLX4;
+
+buf le_bool = LE_BOOL;
+buf le_boolx2 = LE_BOOLX2;
+buf le_boolx3 = LE_BOOLX3;
+buf le_boolx4 = LE_BOOLX4;
+
+buf ge_bool = GE_BOOL;
+buf ge_boolx2 = GE_BOOLX2;
+buf ge_boolx3 = GE_BOOLX3;
+buf ge_boolx4 = GE_BOOLX4;
+
+buf eq_bool = EQ_BOOL;
+buf eq_boolx2 = EQ_BOOLX2;
+buf eq_boolx3 = EQ_BOOLX3;
+buf eq_boolx4 = EQ_BOOLX4;
+
+buf ne_bool = NE_BOOL;
+buf ne_boolx2 = NE_BOOLX2;
+buf ne_boolx3 = NE_BOOLX3;
+buf ne_boolx4 = NE_BOOLX4;
+
+buf not_bool = NOT_BOOL;
+buf not_boolx2 = NOT_BOOLX2;
+buf not_boolx3 = NOT_BOOLX3;
+buf not_boolx4 = NOT_BOOLX4;
