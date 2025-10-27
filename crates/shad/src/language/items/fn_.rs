@@ -8,7 +8,7 @@ use crate::language::items::type_;
 use crate::language::items::type_::Type;
 use crate::language::keywords::{
     ArrowSymbol, CloseParenthesisSymbol, ColonSymbol, CommaSymbol, ConstKeyword, EqSymbol,
-    FnKeyword, NativeKeyword, OpenParenthesisSymbol, RefKeyword, SemicolonSymbol,
+    FnKeyword, NativeKeyword, OpenParenthesisSymbol, PubKeyword, RefKeyword, SemicolonSymbol,
 };
 use crate::language::patterns::{Ident, StringLiteral};
 use crate::language::{constants, sources, validations};
@@ -21,6 +21,7 @@ use std::rc::Rc;
 
 sequence!(
     struct NativeFnItem {
+        pub_: Repeated<PubKeyword, 0, 1>,
         const_: Repeated<ConstKeyword, 0, 1>,
         native: NativeKeyword,
         signature: FnSignature,
@@ -34,6 +35,10 @@ sequence!(
 impl NodeConfig for NativeFnItem {
     fn key(&self) -> Option<String> {
         Some(self.signature.fn_key())
+    }
+
+    fn is_public(&self) -> bool {
+        self.pub_.iter().len() > 0
     }
 
     fn is_ref(&self, index: &NodeIndex) -> Option<bool> {
@@ -81,6 +86,7 @@ impl NodeConfig for NativeFnItem {
 
 sequence!(
     struct FnItem {
+        pub_: Repeated<PubKeyword, 0, 1>,
         const_: Repeated<ConstKeyword, 0, 1>,
         signature: FnSignature,
         #[force_error(true)]
@@ -91,6 +97,10 @@ sequence!(
 impl NodeConfig for FnItem {
     fn key(&self) -> Option<String> {
         Some(self.signature.fn_key())
+    }
+
+    fn is_public(&self) -> bool {
+        self.pub_.iter().len() > 0
     }
 
     fn is_ref(&self, index: &NodeIndex) -> Option<bool> {

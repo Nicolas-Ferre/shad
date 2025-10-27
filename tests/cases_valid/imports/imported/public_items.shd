@@ -1,0 +1,18 @@
+pub const PUB_CONST = 1;
+pub buf pub_buf = 2;
+
+pub fn pub_fn() -> i32 {
+    return 3;
+}
+
+pub struct PubStruct {
+    pub field: i32,
+}
+
+struct PrivateStructWithPubField {
+    pub field: i32,
+}
+
+pub fn private_struct_with_pub_field() -> PrivateStructWithPubField {
+    return PrivateStructWithPubField { 4 };
+}

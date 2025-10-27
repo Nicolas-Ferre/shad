@@ -84,10 +84,11 @@ impl NodeConfig for TransformedChainExpr {
     fn source<'a>(&self, index: &'a NodeIndex) -> Option<&'a dyn Node> {
         match &**self.suffix.iter().next()? {
             ChainSuffix::FnCall(_) => index.search(self, &self.source_key(index)?),
-            ChainSuffix::StructField(suffix) => Some(type_::field(
-                self.expr.type_(index)?.source()?,
-                &suffix.ident.slice,
-            )?),
+            ChainSuffix::StructField(suffix) => {
+                let type_ = self.expr.type_(index)?.source()?;
+                let field = type_::field(type_, &suffix.ident.slice)?;
+                (field.is_public() || field.path == self.path).then_some(field)
+            }
         }
     }
 

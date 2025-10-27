@@ -1,0 +1,9 @@
+import imported.public_import;
+import imported.public_items;
+
+buf pub_item_in_pub_import = PUB_ITEM_IN_PUB_IMPORT;
+buf pub_const_result = PUB_CONST;
+buf pub_buf_result = pub_buf;
+buf pub_fn_result = pub_fn();
+buf pub_struct_result = PubStruct { 42 }.field;
+buf private_struct_with_pub_field_result = private_struct_with_pub_field().field;

@@ -1,1 +1,1 @@
-buf value1 = 1;
+pub buf value1 = 1;

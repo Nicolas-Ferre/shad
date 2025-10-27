@@ -1,10 +1,10 @@
 use crate::compilation::index::NodeIndex;
-use crate::compilation::node::{sequence, Node, NodeConfig, NodeType};
+use crate::compilation::node::{sequence, Node, NodeConfig, NodeType, Repeated};
 use crate::compilation::transpilation::TranspilationContext;
 use crate::compilation::validation::ValidationContext;
 use crate::language::expressions::TypedExpr;
 use crate::language::items::{is_item_recursive, transpiled_dependencies, type_};
-use crate::language::keywords::{BufKeyword, EqSymbol, SemicolonSymbol};
+use crate::language::keywords::{BufKeyword, EqSymbol, PubKeyword, SemicolonSymbol};
 use crate::language::patterns::Ident;
 use crate::language::{sources, validations};
 use indoc::indoc;
@@ -13,6 +13,7 @@ use std::path::Path;
 
 sequence!(
     struct BufferItem {
+        pub_: Repeated<PubKeyword, 0, 1>,
         buf: BufKeyword,
         #[force_error(true)]
         ident: Ident,
@@ -25,6 +26,10 @@ sequence!(
 impl NodeConfig for BufferItem {
     fn key(&self) -> Option<String> {
         Some(sources::variable_key(&self.ident))
+    }
+
+    fn is_public(&self) -> bool {
+        self.pub_.iter().len() > 0
     }
 
     fn type_<'a>(&self, index: &'a NodeIndex) -> Option<NodeType<'a>> {

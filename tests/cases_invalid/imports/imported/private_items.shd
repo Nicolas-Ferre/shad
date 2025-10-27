@@ -1,0 +1,25 @@
+import ~.private_import;
+
+const PRIVATE_CONST = 42;
+
+buf private_buf = 42;
+
+fn private_fn() -> i32 {
+    return 42;
+}
+
+native fn private_native_fn() -> i32 = "42";
+
+struct PrivateStruct {
+    field: i32,
+}
+
+pub struct PrivateStructField {
+    field: i32,
+}
+
+pub fn private_struct_field() -> PrivateStructField {
+    return PrivateStructField { 42 };
+}
+
+native struct PrivateNativeStruct = "i32", 4u, 4u {}

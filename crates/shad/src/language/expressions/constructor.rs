@@ -55,6 +55,18 @@ impl NodeConfig for ConstructorExpr {
                 ));
                 return;
             }
+            if source.path != self.path
+                && type_::fields(source).iter().any(|field| !field.is_public())
+            {
+                ctx.errors.push(ValidationError::error(
+                    ctx,
+                    self,
+                    "cannot call constructor for a type with at least one private field",
+                    Some("constructor called here"),
+                    &[],
+                ));
+                return;
+            }
             let fields = type_::fields(source);
             let expected_field_count = fields.len();
             let actual_field_count = self.args().count();

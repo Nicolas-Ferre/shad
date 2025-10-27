@@ -1,4 +1,4 @@
-use crate::compilation::node::Node;
+use crate::compilation::node::{Node, NodeConfig};
 use crate::compilation::PRELUDE_PATH;
 use crate::language::items::Root;
 use std::collections::{HashMap, HashSet};
@@ -35,7 +35,11 @@ impl NodeIndex {
 
     pub(crate) fn search(&self, node: &impl Node, key: &str) -> Option<&dyn Node> {
         for current_path in self.lookup_paths.get(&node.path)? {
-            if let Some(nodes) = self.nodes.get(current_path)?.get(key) {
+            if let Some(nodes) = self
+                .nodes
+                .get(current_path)
+                .and_then(|paths| paths.get(key))
+            {
                 let mut found_source: Option<&dyn Node> = None;
                 for source in nodes.iter().rev() {
                     if found_source
@@ -67,7 +71,10 @@ impl NodeIndex {
                             && source.parent_ids[..common_parent_count]
                                 == node.parent_ids[..common_parent_count]
                     });
-            (criteria.can_be_after || source.id < node_parent_id || &node.path != current_path)
+            (&node.path == current_path || source.is_public())
+                && (criteria.can_be_after
+                    || source.id < node_parent_id
+                    || &node.path != current_path)
                 && source.node_type_id() == (criteria.node_type)()
                 && (is_source_root
                     || has_source_min_parent_count
@@ -84,7 +91,7 @@ impl NodeIndex {
         let mut paths = vec![path.clone()];
         let mut unique_paths = HashSet::new();
         unique_paths.insert(path.clone());
-        Self::find_inner_lookup_paths(path, root_path, roots, &mut paths, &mut unique_paths);
+        Self::find_inner_lookup_paths(path, true, root_path, roots, &mut paths, &mut unique_paths);
         if !unique_paths.contains(Path::new(PRELUDE_PATH)) {
             paths.push(PRELUDE_PATH.into());
         }
@@ -93,6 +100,7 @@ impl NodeIndex {
 
     fn find_inner_lookup_paths(
         path: &Path,
+        is_current_path: bool,
         root_path: &Path,
         roots: &HashMap<PathBuf, Root>,
         registered_paths: &mut Vec<PathBuf>,
@@ -105,11 +113,12 @@ impl NodeIndex {
             .rev()
         {
             let import_path = import.import_path(root_path);
-            if !unique_paths.contains(&import_path) {
+            if (is_current_path || import.is_public()) && !unique_paths.contains(&import_path) {
                 unique_paths.insert(import_path.clone());
                 registered_paths.push(import_path.clone());
                 Self::find_inner_lookup_paths(
                     &import_path,
+                    false,
                     root_path,
                     roots,
                     registered_paths,

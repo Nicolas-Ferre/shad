@@ -1,17 +1,18 @@
 use crate::compilation::constant::{ConstantContext, ConstantData, ConstantValue};
 use crate::compilation::index::NodeIndex;
-use crate::compilation::node::{sequence, NodeConfig, NodeType};
+use crate::compilation::node::{sequence, NodeConfig, NodeType, Repeated};
 use crate::compilation::transpilation::TranspilationContext;
 use crate::compilation::validation::ValidationContext;
 use crate::language::expressions::TypedExpr;
 use crate::language::items::is_item_recursive;
-use crate::language::keywords::{ConstKeyword, EqSymbol, SemicolonSymbol};
+use crate::language::keywords::{ConstKeyword, EqSymbol, PubKeyword, SemicolonSymbol};
 use crate::language::patterns::Ident;
 use crate::language::{sources, validations};
 use itertools::Itertools;
 
 sequence!(
     struct ConstantItem {
+        pub_: Repeated<PubKeyword, 0, 1>,
         const_: ConstKeyword,
         ident: Ident,
         #[force_error(true)]
@@ -24,6 +25,10 @@ sequence!(
 impl NodeConfig for ConstantItem {
     fn key(&self) -> Option<String> {
         Some(sources::variable_key(&self.ident))
+    }
+
+    fn is_public(&self) -> bool {
+        self.pub_.iter().len() > 0
     }
 
     fn type_<'a>(&self, index: &'a NodeIndex) -> Option<NodeType<'a>> {

@@ -63,6 +63,10 @@ pub(crate) trait NodeConfig {
         None
     }
 
+    fn is_public(&self) -> bool {
+        true
+    }
+
     fn source_key(&self, index: &NodeIndex) -> Option<String> {
         None
     }

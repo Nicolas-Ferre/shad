@@ -29,3 +29,83 @@ error: imported file not found
   | ^^^^^^^^^^^^^^^^^^^^^^^
   | |
   | no file found at `./cases_invalid/imports/inner/unknown.shd`
+
+error: undefined item
+ --> ./cases_invalid/imports/private_visibility.shd:3:29
+  |
+3 | buf private_import_result = PUB_ITEM_IN_PRIVATE_IMPORT;
+  |                             ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |                             |
+  |                             `PUB_ITEM_IN_PRIVATE_IMPORT` variable is undefined
+
+error: undefined item
+ --> ./cases_invalid/imports/private_visibility.shd:4:28
+  |
+4 | buf private_const_result = PRIVATE_CONST;
+  |                            ^^^^^^^^^^^^^
+  |                            |
+  |                            `PRIVATE_CONST` variable is undefined
+
+error: undefined item
+ --> ./cases_invalid/imports/private_visibility.shd:5:26
+  |
+5 | buf private_buf_result = PRIVATE_BUF;
+  |                          ^^^^^^^^^^^
+  |                          |
+  |                          `PRIVATE_BUF` variable is undefined
+
+error: undefined item
+ --> ./cases_invalid/imports/private_visibility.shd:6:25
+  |
+6 | buf private_fn_result = private_fn();
+  |                         ^^^^^^^^^^^^
+  |                         |
+  |                         `private_fn()` function is undefined
+
+error: undefined item
+ --> ./cases_invalid/imports/private_visibility.shd:7:32
+  |
+7 | buf private_native_fn_result = private_native_fn();
+  |                                ^^^^^^^^^^^^^^^^^^^
+  |                                |
+  |                                `private_native_fn()` function is undefined
+
+error: undefined item
+ --> ./cases_invalid/imports/private_visibility.shd:8:29
+  |
+8 | buf private_struct_result = PrivateStruct { 42 };
+  |                             ^^^^^^^^^^^^^
+  |                             |
+  |                             `PrivateStruct` type is undefined
+
+error: undefined item
+ --> ./cases_invalid/imports/private_visibility.shd:9:35
+  |
+9 | buf private_struct_field_result = private_struct_field().field;
+  |                                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |                                   |
+  |                                   `field` field of `PrivateStructField` type is undefined
+
+error: cannot call constructor for a type with at least one private field
+  --> ./cases_invalid/imports/private_visibility.shd:10:47
+   |
+10 | buf private_struct_field_constructor_result = PrivateStructField { 42 };
+   |                                               ^^^^^^^^^^^^^^^^^^^^^^^^^
+   |                                               |
+   |                                               constructor called here
+
+error: undefined item
+  --> ./cases_invalid/imports/private_visibility.shd:12:46
+   |
+12 | fn private_struct_result_in_signature(param: PrivateStruct) {}
+   |                                              ^^^^^^^^^^^^^
+   |                                              |
+   |                                              `PrivateStruct` type is undefined
+
+error: undefined item
+  --> ./cases_invalid/imports/private_visibility.shd:13:53
+   |
+13 | fn private_native_struct_result_in_signature(param: PrivateNativeStruct) {}
+   |                                                     ^^^^^^^^^^^^^^^^^^^
+   |                                                     |
+   |                                                     `PrivateNativeStruct` type is undefined

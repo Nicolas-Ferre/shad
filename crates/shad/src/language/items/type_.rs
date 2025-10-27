@@ -6,7 +6,7 @@ use crate::compilation::transpilation::TranspilationContext;
 use crate::compilation::validation::ValidationContext;
 use crate::language::keywords::{
     CloseCurlyBracketSymbol, ColonSymbol, CommaSymbol, EqSymbol, NativeKeyword,
-    OpenCurlyBracketSymbol, StructKeyword,
+    OpenCurlyBracketSymbol, PubKeyword, StructKeyword,
 };
 use crate::language::patterns::{Ident, StringLiteral, U32Literal};
 use crate::language::{sources, validations};
@@ -20,6 +20,7 @@ pub(crate) const NO_RETURN_TYPE: &str = "<no return>";
 
 sequence!(
     struct NativeStructItem {
+        pub_: Repeated<PubKeyword, 0, 1>,
         native: NativeKeyword,
         struct_: StructKeyword,
         #[force_error(true)]
@@ -41,6 +42,10 @@ impl NodeConfig for NativeStructItem {
         Some(sources::type_key(&self.ident))
     }
 
+    fn is_public(&self) -> bool {
+        self.pub_.iter().len() > 0
+    }
+
     fn validate(&self, ctx: &mut ValidationContext<'_>) {
         validations::check_duplicated_items(self, ctx);
     }
@@ -54,6 +59,7 @@ impl NativeStructItem {}
 
 sequence!(
     struct StructItem {
+        pub_: Repeated<PubKeyword, 0, 1>,
         struct_: StructKeyword,
         #[force_error(true)]
         ident: Ident,
@@ -66,6 +72,10 @@ sequence!(
 impl NodeConfig for StructItem {
     fn key(&self) -> Option<String> {
         Some(sources::type_key(&self.ident))
+    }
+
+    fn is_public(&self) -> bool {
+        self.pub_.iter().len() > 0
     }
 
     fn validate(&self, ctx: &mut ValidationContext<'_>) {
@@ -135,6 +145,7 @@ impl StructFieldGroup {
 
 sequence!(
     struct StructField {
+        pub_: Repeated<PubKeyword, 0, 1>,
         ident: Ident,
         #[force_error(true)]
         colon: ColonSymbol,
@@ -145,6 +156,10 @@ sequence!(
 impl NodeConfig for StructField {
     fn is_ref(&self, _index: &NodeIndex) -> Option<bool> {
         Some(true)
+    }
+
+    fn is_public(&self) -> bool {
+        self.pub_.iter().len() > 0
     }
 
     fn type_<'a>(&self, index: &'a NodeIndex) -> Option<NodeType<'a>> {
@@ -293,11 +308,8 @@ pub(crate) fn name_or_no_return(type_: NodeType<'_>) -> String {
 }
 
 pub(crate) fn fields(type_: &dyn Node) -> Vec<&StructField> {
-    if (type_ as &dyn Any)
-        .downcast_ref::<NativeStructItem>()
-        .is_some()
-    {
-        unreachable!("never called for native structs")
+    if let Some(type_) = (type_ as &dyn Any).downcast_ref::<NativeStructItem>() {
+        type_.fields.iter().flat_map(|f| f.iter()).collect()
     } else if let Some(type_) = (type_ as &dyn Any).downcast_ref::<StructItem>() {
         type_.fields.iter().collect()
     } else {
