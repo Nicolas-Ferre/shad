@@ -308,8 +308,11 @@ pub(crate) fn name_or_no_return(type_: NodeType<'_>) -> String {
 }
 
 pub(crate) fn fields(type_: &dyn Node) -> Vec<&StructField> {
-    if let Some(type_) = (type_ as &dyn Any).downcast_ref::<NativeStructItem>() {
-        type_.fields.iter().flat_map(|f| f.iter()).collect()
+    if (type_ as &dyn Any)
+        .downcast_ref::<NativeStructItem>()
+        .is_some()
+    {
+        unreachable!("never called for native structs")
     } else if let Some(type_) = (type_ as &dyn Any).downcast_ref::<StructItem>() {
         type_.fields.iter().collect()
     } else {
