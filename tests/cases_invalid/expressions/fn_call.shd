@@ -14,4 +14,6 @@ run {
     0.func();
     func2(func2(func2()));
     0.func2().func2().func2(1).func2();
+    func(0, a: 0u);
+    0.func(a: 0u);
 }

@@ -3,6 +3,7 @@ use crate::compilation::validation::ValidationContext;
 use crate::language::items;
 use crate::language::items::type_;
 use crate::language::keywords::ConstKeyword;
+use crate::language::patterns::Ident;
 use crate::ValidationError;
 
 pub(crate) fn check_missing_source(node: &impl Node, ctx: &mut ValidationContext<'_>) {
@@ -91,5 +92,23 @@ pub(crate) fn check_invalid_const_scope(
             Some("cannot be used in a `const` scope"),
             &[(const_kw, "`const` scope declared here")],
         ));
+    }
+}
+
+pub(crate) fn check_arg_name(
+    arg_name: Option<&Ident>,
+    expected_name: &Ident,
+    ctx: &mut ValidationContext<'_>,
+) {
+    if let Some(arg_name) = arg_name {
+        if arg_name.slice != expected_name.slice {
+            ctx.errors.push(ValidationError::error(
+                ctx,
+                arg_name,
+                "invalid argument name",
+                Some("the invalid argument name"),
+                &[(expected_name, "expected name")],
+            ));
+        }
     }
 }

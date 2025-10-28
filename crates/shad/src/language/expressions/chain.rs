@@ -7,7 +7,9 @@ use crate::compilation::transpilation::TranspilationContext;
 use crate::compilation::validation::ValidationContext;
 use crate::language::expressions::binary::MaybeBinaryExpr;
 use crate::language::expressions::constructor::ConstructorExpr;
-use crate::language::expressions::fn_call::{transpile_fn_call, FnArgGroup, FnCallExpr};
+use crate::language::expressions::fn_call::{
+    check_arg_names, transpile_fn_call, FnArgGroup, FnCallExpr,
+};
 use crate::language::expressions::simple::{BoolLiteral, ParenthesizedExpr, VarIdentExpr};
 use crate::language::expressions::unary::UnaryExpr;
 use crate::language::items::{fn_, type_};
@@ -115,6 +117,23 @@ impl NodeConfig for TransformedChainExpr {
     fn validate(&self, ctx: &mut ValidationContext<'_>) {
         debug_assert!(self.suffix.iter().len() <= 1);
         validations::check_missing_source(self, ctx);
+        if let Some(suffix) = self.suffix.iter().next() {
+            match &**suffix {
+                ChainSuffix::FnCall(suffix) => {
+                    if let Some(source) = self.source(ctx.index) {
+                        let arg_names = iter::once(None).chain(
+                            suffix
+                                .args
+                                .iter()
+                                .flat_map(|args| args.args())
+                                .map(|arg| arg.name.iter().map(|arg| &*arg.ident).next()),
+                        );
+                        check_arg_names(source, arg_names, ctx);
+                    }
+                }
+                ChainSuffix::StructField(_) => {}
+            }
+        }
     }
 
     fn invalid_constant(&self, index: &NodeIndex) -> Option<&dyn Node> {
@@ -204,7 +223,7 @@ impl TransformedChainExpr {
             suffix
                 .args
                 .iter()
-                .flat_map(|args| args.args().map(|arg| &**arg)),
+                .flat_map(|args| args.args().map(|arg| &*arg.expr)),
         )
     }
 }

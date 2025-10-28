@@ -7,8 +7,7 @@ use crate::compilation::node::{
 };
 use crate::compilation::transpilation::TranspilationContext;
 use crate::compilation::validation::ValidationContext;
-use crate::language::expressions::binary::MaybeBinaryExpr;
-use crate::language::expressions::fn_call::FnArgGroup;
+use crate::language::expressions::fn_call::{FnArg, FnArgGroup};
 use crate::language::items::type_;
 use crate::language::items::type_::Type;
 use crate::language::keywords::{CloseCurlyBracketSymbol, OpenCurlyBracketSymbol};
@@ -72,7 +71,9 @@ impl NodeConfig for ConstructorExpr {
             let actual_field_count = self.args().count();
             if expected_field_count == actual_field_count {
                 for (arg, field) in self.args().zip(fields) {
+                    let arg_name = arg.name.iter().next().map(|name| &*name.ident);
                     validations::check_invalid_expr_type(field, arg, true, ctx);
+                    validations::check_arg_name(arg_name, &field.ident, ctx);
                 }
             } else {
                 ctx.errors.push(ValidationError::error(
@@ -122,7 +123,7 @@ impl NodeConfig for ConstructorExpr {
 }
 
 impl ConstructorExpr {
-    fn args(&self) -> impl Iterator<Item = &MaybeBinaryExpr> {
+    fn args(&self) -> impl Iterator<Item = &FnArg> {
         self.args
             .iter()
             .flat_map(|args| args.args().map(|arg| &**arg))

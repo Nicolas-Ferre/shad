@@ -8,7 +8,9 @@ use crate::compilation::validation::ValidationContext;
 use crate::language::expressions::binary::MaybeBinaryExpr;
 use crate::language::items::fn_;
 use crate::language::items::fn_::{FnItem, NativeFnItem};
-use crate::language::keywords::{CloseParenthesisSymbol, CommaSymbol, OpenParenthesisSymbol};
+use crate::language::keywords::{
+    CloseParenthesisSymbol, ColonSymbol, CommaSymbol, OpenParenthesisSymbol,
+};
 use crate::language::patterns::Ident;
 use crate::language::validations;
 use crate::language::{constants, sources};
@@ -50,6 +52,14 @@ impl NodeConfig for FnCallExpr {
 
     fn validate(&self, ctx: &mut ValidationContext<'_>) {
         validations::check_missing_source(self, ctx);
+        if let Some(source) = self.source(ctx.index) {
+            let arg_names = self
+                .args
+                .iter()
+                .flat_map(|args| args.args())
+                .map(|arg| arg.name.iter().map(|arg| &*arg.ident).next());
+            check_arg_names(source, arg_names, ctx);
+        }
     }
 
     fn invalid_constant(&self, index: &NodeIndex) -> Option<&dyn Node> {
@@ -78,13 +88,13 @@ impl FnCallExpr {
     fn args(&self) -> impl Iterator<Item = &MaybeBinaryExpr> {
         self.args
             .iter()
-            .flat_map(|args| args.args().map(|arg| &**arg))
+            .flat_map(|args| args.args().map(|arg| &*arg.expr))
     }
 }
 
 sequence!(
     struct FnArgGroup {
-        first_arg: MaybeBinaryExpr,
+        first_arg: FnArg,
         #[force_error(true)]
         other_args: Repeated<FnOtherArg, 0, { usize::MAX }>,
         final_comma: Repeated<CommaSymbol, 0, 1>,
@@ -94,7 +104,7 @@ sequence!(
 impl NodeConfig for FnArgGroup {}
 
 impl FnArgGroup {
-    pub(crate) fn args(&self) -> impl Iterator<Item = &Rc<MaybeBinaryExpr>> {
+    pub(crate) fn args(&self) -> impl Iterator<Item = &Rc<FnArg>> {
         iter::once(&self.first_arg).chain(self.other_args.iter().map(|other| &other.arg))
     }
 }
@@ -103,11 +113,57 @@ sequence!(
     #[allow(unused_mut)]
     struct FnOtherArg {
         comma: CommaSymbol,
-        arg: MaybeBinaryExpr,
+        arg: FnArg,
     }
 );
 
 impl NodeConfig for FnOtherArg {}
+
+sequence!(
+    #[allow(unused_mut)]
+    struct FnArg {
+        name: Repeated<FnArgName, 0, 1>,
+        expr: MaybeBinaryExpr,
+    }
+);
+
+impl NodeConfig for FnArg {
+    fn type_<'a>(&self, index: &'a NodeIndex) -> Option<NodeType<'a>> {
+        self.expr.type_(index)
+    }
+
+    fn invalid_constant(&self, index: &NodeIndex) -> Option<&dyn Node> {
+        self.expr.invalid_constant(index)
+    }
+
+    fn evaluate_constant(&self, ctx: &mut ConstantContext<'_>) -> Option<ConstantValue> {
+        self.expr.evaluate_constant(ctx)
+    }
+
+    fn transpile(&self, ctx: &mut TranspilationContext<'_>) -> String {
+        self.expr.transpile(ctx)
+    }
+}
+
+sequence!(
+    #[allow(unused_mut)]
+    struct FnArgName {
+        ident: Ident,
+        colon: ColonSymbol,
+    }
+);
+
+impl NodeConfig for FnArgName {}
+
+pub(crate) fn check_arg_names<'a>(
+    fn_: &dyn Node,
+    arg_names: impl Iterator<Item = Option<&'a Ident>>,
+    ctx: &mut ValidationContext<'_>,
+) {
+    for (arg_name, param) in arg_names.zip(fn_::signature(fn_).params()) {
+        validations::check_arg_name(arg_name, &param.ident, ctx);
+    }
+}
 
 pub(crate) fn transpile_fn_call<'a>(
     ctx: &mut TranspilationContext<'_>,

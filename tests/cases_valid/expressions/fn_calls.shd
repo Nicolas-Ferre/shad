@@ -1,4 +1,4 @@
-buf result = return_value_with_side_effect(5, 10);
+buf return_with_side_effect = return_value_with_side_effect(5, 10);
 buf side_effect = 0;
 
 fn return_value_with_side_effect(side_effect_value: i32, returned_value: i32) -> i32 {
@@ -38,4 +38,12 @@ fn associated_return_value(value: i32) -> i32 {
 
 fn associated_no_return_value(value: bool) {
     no_return_associated_fn_run = value;
+}
+
+buf call_with_all_arg_names = fn_with_params(param1: 2, param2: 5u);
+buf call_with_partial_arg_names = fn_with_params(param1: 2, 5u);
+buf associated_call_with_arg_names = 2.fn_with_params(param2: 5u);
+
+fn fn_with_params(param1: i32, param2: u32) -> i32 {
+    return param1 + i32(param2);
 }

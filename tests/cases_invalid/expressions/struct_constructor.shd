@@ -1,9 +1,8 @@
-run {
-    var invalid_arg_count = TestStruct { 1, 2, 3 };
-    var invalid_arg_type = TestStruct { 1, 2 };
-    var call_for_native_type = i32x2 { 1, 2 };
-    var call_for_unknown_type = unknown { 1, 2 };
-}
+buf invalid_arg_count = TestStruct { 1, 2, 3 };
+buf invalid_arg_type = TestStruct { 1, 2 };
+buf call_for_native_type = i32x2 { 1, 2 };
+buf call_for_unknown_type = unknown { 1, 2 };
+buf invalid_arg_name = TestStruct { 1, a: 2u };
 
 struct TestStruct {
     a: i32,
