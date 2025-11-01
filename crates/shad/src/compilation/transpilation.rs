@@ -101,7 +101,7 @@ impl Program {
 #[derive(Debug)]
 pub struct Buffer {
     /// The buffer size in bytes.
-    pub size_bytes: u64,
+    pub size_bytes: u32,
     /// The buffer type name in Shad.
     pub type_name: String,
 }
@@ -173,14 +173,6 @@ pub(crate) struct TranspilationContext<'a> {
     next_node_id: u32,
 }
 
-#[derive(Debug, Clone)]
-pub(crate) struct InlineState {
-    pub(crate) is_inlined: bool,
-    pub(crate) is_returning_ref: bool,
-    pub(crate) return_var_id: Option<u32>,
-    pub(crate) returned_ref: Option<String>,
-}
-
 impl TranspilationContext<'_> {
     pub(crate) fn next_binding(&mut self) -> u32 {
         let binding = self.next_binding;
@@ -214,4 +206,12 @@ impl TranspilationContext<'_> {
         let last_block = self.block_inline_mappings.len() - 1;
         self.block_inline_mappings[last_block].insert(id, mapping.into());
     }
+}
+
+#[derive(Debug, Clone)]
+pub(crate) struct InlineState {
+    pub(crate) is_inlined: bool,
+    pub(crate) is_returning_ref: bool,
+    pub(crate) return_var_id: Option<u32>,
+    pub(crate) returned_ref: Option<String>,
 }

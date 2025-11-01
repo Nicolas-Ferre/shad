@@ -8,10 +8,11 @@ use crate::language::expressions::MaybeBinaryExpr;
 use crate::language::items::constant::ConstantItem;
 use crate::language::items::fn_::FnParam;
 use crate::language::items::type_;
+use crate::language::items::type_::Type;
 use crate::language::keywords::{
-    CloseParenthesisSymbol, FalseKeyword, OpenParenthesisSymbol, TrueKeyword,
+    AlignofKeyword, CloseParenthesisSymbol, FalseKeyword, OpenParenthesisSymbol, TrueKeyword,
 };
-use crate::language::patterns::Ident;
+use crate::language::patterns::{Ident, U32Literal};
 use crate::language::sources;
 use crate::language::statements::{LocalRefDefStmt, LocalVarDefStmt};
 use crate::language::validations;
@@ -159,5 +160,45 @@ impl NodeConfig for ParenthesizedExpr {
     fn transpile(&self, ctx: &mut TranspilationContext<'_>) -> String {
         let expr = self.expr.transpile(ctx);
         format!("({expr})")
+    }
+}
+
+sequence!(
+    struct AlignofExpr {
+        alignof: AlignofKeyword,
+        #[force_error(true)]
+        start: OpenParenthesisSymbol,
+        type_: Type,
+        end: CloseParenthesisSymbol,
+    }
+);
+
+impl NodeConfig for AlignofExpr {
+    fn type_<'a>(&self, index: &'a NodeIndex) -> Option<NodeType<'a>> {
+        Some(NodeType::Source(U32Literal::u32_type(self, index)))
+    }
+
+    fn invalid_constant(&self, _index: &NodeIndex) -> Option<&dyn Node> {
+        None
+    }
+
+    fn evaluate_constant(&self, ctx: &mut ConstantContext<'_>) -> Option<ConstantValue> {
+        Some(ConstantValue {
+            transpiled_type_name: "u32".to_string(),
+            data: ConstantData::U32(self.value(ctx.index)?),
+        })
+    }
+
+    fn transpile(&self, ctx: &mut TranspilationContext<'_>) -> String {
+        let value = self
+            .value(ctx.index)
+            .expect("internal error: cannot calculate alignment of invalid type");
+        format!("{value}u")
+    }
+}
+
+impl AlignofExpr {
+    fn value(&self, index: &NodeIndex) -> Option<u32> {
+        Some(type_::alignment(self.type_.source(index)?, index))
     }
 }
