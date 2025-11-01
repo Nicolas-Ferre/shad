@@ -9,4 +9,5 @@
 mod code_invalid;
 mod code_valid;
 mod compilation;
+mod examples;
 mod runner;

@@ -1,4 +1,4 @@
-buf val_imported = 0;
+pub buf val_imported = 0;
 
 init {
     val_imported = 1;
