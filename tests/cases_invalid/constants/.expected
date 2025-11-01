@@ -107,6 +107,14 @@ error: invalid `const` scope
    | |                      cannot be used in a `const` scope
    | `const` scope declared here
 
+error: undefined item
+  --> ./cases_invalid/constants/exprs.shd:16:38
+   |
+16 | const ALIGNOF_INVALID_TYPE = alignof(unknown);
+   |                                      ^^^^^^^
+   |                                      |
+   |                                      `unknown` type is undefined
+
 error: `const` native function without constant implementation
  --> ./cases_invalid/constants/fns.shd:3:1
   |

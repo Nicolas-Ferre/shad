@@ -231,13 +231,12 @@ pub(crate) fn is_native(type_: &dyn Node) -> bool {
         .is_some()
 }
 
-pub(crate) fn size(type_: &dyn Node, index: &NodeIndex) -> u64 {
+pub(crate) fn size(type_: &dyn Node, index: &NodeIndex) -> u32 {
     if let Some(type_) = (type_ as &dyn Any).downcast_ref::<NativeStructItem>() {
         type_
             .size
             .value()
             .expect("internal error: invalid u32 literal for struct size")
-            .into()
     } else if let Some(type_) = (type_ as &dyn Any).downcast_ref::<StructItem>() {
         let fields: Vec<_> = type_.fields.iter().collect();
         let last_field_size = size(fields[fields.len() - 1].type_source(index), index);
@@ -250,13 +249,12 @@ pub(crate) fn size(type_: &dyn Node, index: &NodeIndex) -> u64 {
     }
 }
 
-fn alignment(type_: &dyn Node, index: &NodeIndex) -> u64 {
+pub(crate) fn alignment(type_: &dyn Node, index: &NodeIndex) -> u32 {
     if let Some(type_) = (type_ as &dyn Any).downcast_ref::<NativeStructItem>() {
         type_
             .alignment
             .value()
             .expect("internal error: invalid u32 literal for struct alignment")
-            .into()
     } else if let Some(type_) = (type_ as &dyn Any).downcast_ref::<StructItem>() {
         type_
             .fields
@@ -269,7 +267,7 @@ fn alignment(type_: &dyn Node, index: &NodeIndex) -> u64 {
     }
 }
 
-fn field_offset(fields: &[&StructField], index: &NodeIndex) -> u64 {
+fn field_offset(fields: &[&StructField], index: &NodeIndex) -> u32 {
     if fields.len() == 1 {
         0
     } else {
@@ -353,6 +351,6 @@ pub(crate) fn transpile_field_name(type_: &dyn Node, field_name: &str) -> String
     }
 }
 
-fn round_up(k: u64, n: u64) -> u64 {
+fn round_up(k: u32, n: u32) -> u32 {
     n.div_ceil(k) * k
 }

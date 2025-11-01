@@ -134,7 +134,12 @@ impl Runner {
             self.resources.program.buffers.get(buffer_name),
             self.resources.buffers.get(buffer_name),
         ) {
-            utils::read_buffer(&self.device, &self.queue, buffer, buffer_props.size_bytes)
+            utils::read_buffer(
+                &self.device,
+                &self.queue,
+                buffer,
+                buffer_props.size_bytes.into(),
+            )
         } else {
             vec![]
         }

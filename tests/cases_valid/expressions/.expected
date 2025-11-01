@@ -1,3 +1,5 @@
+alignof.alignof_custom_struct=8
+alignof.alignof_native_struct=16
 binary_custom.add=1
 binary_custom.and=12
 binary_custom.div=4

@@ -1,0 +1,1 @@
+buf alignof_invalid_type = alignof(unknown);

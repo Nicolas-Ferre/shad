@@ -1,10 +1,11 @@
 use crate::compilation::node::keyword;
 
 pub(crate) const RESERVED_KEYWORDS: &[&str] = &[
-    "buf", "const", "false", "fn", "import", "init", "native", "pub", "ref", "run", "return",
-    "struct", "var", "true", "prio",
+    "alignof", "buf", "const", "false", "fn", "import", "init", "native", "prio", "pub", "ref",
+    "run", "return", "struct", "var", "true",
 ];
 
+keyword!(AlignofKeyword, "alignof");
 keyword!(BufKeyword, "buf");
 keyword!(ConstKeyword, "const");
 keyword!(FalseKeyword, "false");

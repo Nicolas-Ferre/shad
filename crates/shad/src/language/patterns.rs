@@ -104,7 +104,7 @@ pattern!(
 
 impl NodeConfig for U32Literal {
     fn type_<'a>(&self, index: &'a NodeIndex) -> Option<NodeType<'a>> {
-        Some(NodeType::Source(self.u32_type(index)))
+        Some(NodeType::Source(Self::u32_type(self, index)))
     }
 
     fn validate(&self, ctx: &mut ValidationContext<'_>) {
@@ -125,7 +125,7 @@ impl NodeConfig for U32Literal {
 
     fn evaluate_constant(&self, ctx: &mut ConstantContext<'_>) -> Option<ConstantValue> {
         Some(ConstantValue {
-            transpiled_type_name: type_::transpile_name(self.u32_type(ctx.index)),
+            transpiled_type_name: type_::transpile_name(Self::u32_type(self, ctx.index)),
             data: ConstantData::U32(self.value()?),
         })
     }
@@ -142,19 +142,19 @@ impl NodeConfig for U32Literal {
 }
 
 impl U32Literal {
-    pub(crate) fn value(&self) -> Option<u32> {
-        self.slice.replace(['_', 'u'], "").parse::<u32>().ok()
-    }
-
-    fn u32_type<'a>(&self, index: &'a NodeIndex) -> &'a dyn Node {
+    pub(crate) fn u32_type<'a>(node: &impl Node, index: &'a NodeIndex) -> &'a dyn Node {
         index
             .search_in_path(
                 Path::new(PRELUDE_PATH),
-                self,
+                node,
                 "`u32` type",
                 sources::type_criteria(),
             )
             .expect("internal error: `u32` type not found")
+    }
+
+    pub(crate) fn value(&self) -> Option<u32> {
+        self.slice.replace(['_', 'u'], "").parse::<u32>().ok()
     }
 }
 

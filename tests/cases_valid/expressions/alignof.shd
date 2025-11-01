@@ -1,0 +1,7 @@
+buf alignof_custom_struct = alignof(Custom);
+buf alignof_native_struct = alignof(u32x3);
+
+struct Custom {
+    field1: u32x2,
+    field2: u32,
+}

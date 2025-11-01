@@ -1,3 +1,4 @@
+exprs.alignof_type=16
 exprs.associated_fn_call=6
 exprs.binary=6
 exprs.constructor=[2, 0, 0, 0, 4, 0, 0, 0]

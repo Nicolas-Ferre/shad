@@ -20,7 +20,7 @@ impl ProgramResources {
             .map(|(name, buffer)| {
                 (
                     name.clone(),
-                    utils::create_buffer(device, name, buffer.size_bytes),
+                    utils::create_buffer(device, name, buffer.size_bytes.into()),
                 )
             })
             .collect();
