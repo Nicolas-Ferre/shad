@@ -1,0 +1,7 @@
+buf buffer = 0;
+
+init prio(2.5) {}
+init prio(buffer) {}
+
+run prio(2.5) {}
+run prio(buffer) {}

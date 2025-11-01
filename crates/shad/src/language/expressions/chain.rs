@@ -1,8 +1,6 @@
 use crate::compilation::constant::{ConstantContext, ConstantData, ConstantValue};
 use crate::compilation::index::NodeIndex;
-use crate::compilation::node::{
-    choice, sequence, transform, Node, NodeConfig, NodeSourceSearchCriteria, NodeType, Repeated,
-};
+use crate::compilation::node::{choice, sequence, transform, Node, NodeConfig, NodeType, Repeated};
 use crate::compilation::transpilation::TranspilationContext;
 use crate::compilation::validation::ValidationContext;
 use crate::language::expressions::binary::MaybeBinaryExpr;
@@ -85,17 +83,15 @@ impl NodeConfig for TransformedChainExpr {
 
     fn source<'a>(&self, index: &'a NodeIndex) -> Option<&'a dyn Node> {
         match &**self.suffix.iter().next()? {
-            ChainSuffix::FnCall(_) => index.search(self, &self.source_key(index)?),
+            ChainSuffix::FnCall(_) => {
+                index.search(self, &self.source_key(index)?, sources::fn_criteria())
+            }
             ChainSuffix::StructField(suffix) => {
                 let type_ = self.expr.type_(index)?.source()?;
                 let field = type_::field(type_, &suffix.ident.slice)?;
                 (field.is_public() || field.path == self.path).then_some(field)
             }
         }
-    }
-
-    fn source_search_criteria(&self) -> &'static [NodeSourceSearchCriteria] {
-        sources::fn_criteria()
     }
 
     fn is_ref(&self, index: &NodeIndex) -> Option<bool> {

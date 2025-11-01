@@ -1,8 +1,7 @@
-use crate::compilation::node::Node;
+use crate::compilation::node::{Node, NodeType};
 use crate::compilation::validation::ValidationContext;
 use crate::language::items;
 use crate::language::items::type_;
-use crate::language::keywords::ConstKeyword;
 use crate::language::patterns::Ident;
 use crate::ValidationError;
 
@@ -79,9 +78,31 @@ pub(crate) fn check_invalid_expr_type(
     }
 }
 
+pub(crate) fn check_invalid_const_expr_type(
+    expected_type: NodeType<'_>,
+    actual: &dyn Node,
+    ctx: &mut ValidationContext<'_>,
+) {
+    if let Some(actual_type) = actual.type_(ctx.index) {
+        let expected_type_name = type_::name_or_no_return(expected_type);
+        let actual_type_name = type_::name_or_no_return(actual_type);
+        if actual_type.source().map(|s| s.id) != expected_type.source().map(|s| s.id) {
+            ctx.errors.push(ValidationError::error(
+                ctx,
+                actual,
+                "invalid expression type",
+                Some(&format!(
+                    "expression type is `{actual_type_name}` but expected type is `{expected_type_name}`"
+                )),
+                &[],
+            ));
+        }
+    }
+}
+
 pub(crate) fn check_invalid_const_scope(
     checked: &impl Node,
-    const_kw: &ConstKeyword,
+    const_declaration: &dyn Node,
     ctx: &mut ValidationContext<'_>,
 ) {
     if let Some(invalid_node) = checked.invalid_constant(ctx.index) {
@@ -90,7 +111,7 @@ pub(crate) fn check_invalid_const_scope(
             invalid_node,
             "invalid `const` scope",
             Some("cannot be used in a `const` scope"),
-            &[(const_kw, "`const` scope declared here")],
+            &[(const_declaration, "`const` scope declared here")],
         ));
     }
 }

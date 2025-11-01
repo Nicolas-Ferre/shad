@@ -1,4 +1,4 @@
-use crate::compilation::node::{Node, NodeConfig};
+use crate::compilation::node::{Node, NodeConfig, NodeSourceSearchCriteria};
 use crate::compilation::PRELUDE_PATH;
 use crate::language::items::Root;
 use std::collections::{HashMap, HashSet};
@@ -33,7 +33,12 @@ impl NodeIndex {
             .push(node.clone());
     }
 
-    pub(crate) fn search(&self, node: &impl Node, key: &str) -> Option<&dyn Node> {
+    pub(crate) fn search(
+        &self,
+        node: &impl Node,
+        key: &str,
+        source_criteria: &'static [NodeSourceSearchCriteria],
+    ) -> Option<&dyn Node> {
         for current_path in self.lookup_paths.get(&node.path)? {
             if let Some(nodes) = self
                 .nodes
@@ -44,7 +49,7 @@ impl NodeIndex {
                 for source in nodes.iter().rev() {
                     if found_source
                         .is_none_or(|found| found.parent_ids.len() < source.parent_ids.len())
-                        && Self::is_source_in_scope(node, source, current_path)
+                        && Self::is_source_in_scope(node, source_criteria, source, current_path)
                     {
                         found_source = Some(&**source);
                     }
@@ -57,11 +62,16 @@ impl NodeIndex {
         None
     }
 
-    fn is_source_in_scope(node: &impl Node, source: &Rc<dyn Node>, current_path: &PathBuf) -> bool {
+    fn is_source_in_scope(
+        node: &impl Node,
+        source_criteria: &'static [NodeSourceSearchCriteria],
+        source: &Rc<dyn Node>,
+        current_path: &PathBuf,
+    ) -> bool {
         let node_parent_id = node.parent_ids.last().copied().unwrap_or(0);
         let source_parent_id = source.parent_ids.last().copied().unwrap_or(0);
         let is_source_root = source.parent_ids.len() == 2;
-        node.source_search_criteria().iter().any(|criteria| {
+        source_criteria.iter().any(|criteria| {
             let has_source_min_parent_count =
                 criteria
                     .common_parent_count

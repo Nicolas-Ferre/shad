@@ -1,8 +1,6 @@
 use crate::compilation::constant::{ConstantContext, ConstantValue};
 use crate::compilation::index::NodeIndex;
-use crate::compilation::node::{
-    sequence, Node, NodeConfig, NodeSourceSearchCriteria, NodeType, Repeated,
-};
+use crate::compilation::node::{sequence, Node, NodeConfig, NodeType, Repeated};
 use crate::compilation::transpilation::TranspilationContext;
 use crate::compilation::validation::ValidationContext;
 use crate::language::expressions::binary::MaybeBinaryExpr;
@@ -35,11 +33,7 @@ impl NodeConfig for FnCallExpr {
     }
 
     fn source<'a>(&self, index: &'a NodeIndex) -> Option<&'a dyn Node> {
-        index.search(self, &self.source_key(index)?)
-    }
-
-    fn source_search_criteria(&self) -> &'static [NodeSourceSearchCriteria] {
-        sources::fn_criteria()
+        index.search(self, &self.source_key(index)?, sources::fn_criteria())
     }
 
     fn is_ref(&self, index: &NodeIndex) -> Option<bool> {

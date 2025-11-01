@@ -2,8 +2,11 @@ buf buffer = 0;
 
 const NON_CONST_FN_CALL = non_const();
 const NON_CONST_ASSOCIATED_FN_CALL = 5.__not__();
-const NON_CONST_UNARY = !5;
-const NON_CONST_BINARY = true + false;
+const NON_CONST_UNARY_OPERATOR = !5;
+const NON_CONST_UNARY_OPERAND = -buffer;
+const NON_CONST_BINARY_OPERATOR = true + false;
+const NON_CONST_BINARY_LEFT_OPERAND = buffer + 0;
+const NON_CONST_BINARY_RIGHT_OPERAND = 0 + buffer;
 const BUF_IDENT = buffer;
 const FN_CALL_WITH_NON_CONST_ARG = u32(buffer);
 const ASSOCIATED_FN_CALL_WITH_NON_CONST_ARG = 5.i32x2(buffer);

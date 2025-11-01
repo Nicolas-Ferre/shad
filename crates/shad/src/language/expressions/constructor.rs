@@ -2,9 +2,7 @@ use crate::compilation::constant::{
     ConstantContext, ConstantData, ConstantStructFieldData, ConstantValue,
 };
 use crate::compilation::index::NodeIndex;
-use crate::compilation::node::{
-    sequence, Node, NodeConfig, NodeSourceSearchCriteria, NodeType, Repeated,
-};
+use crate::compilation::node::{sequence, Node, NodeConfig, NodeType, Repeated};
 use crate::compilation::transpilation::TranspilationContext;
 use crate::compilation::validation::ValidationContext;
 use crate::language::expressions::fn_call::{FnArg, FnArgGroup};
@@ -31,11 +29,7 @@ impl NodeConfig for ConstructorExpr {
     }
 
     fn source<'a>(&self, index: &'a NodeIndex) -> Option<&'a dyn Node> {
-        index.search(self, &self.source_key(index)?)
-    }
-
-    fn source_search_criteria(&self) -> &'static [NodeSourceSearchCriteria] {
-        sources::type_criteria()
+        index.search(self, &self.source_key(index)?, sources::type_criteria())
     }
 
     fn type_<'a>(&self, index: &'a NodeIndex) -> Option<NodeType<'a>> {

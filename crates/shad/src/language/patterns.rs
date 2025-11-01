@@ -1,6 +1,6 @@
 use crate::compilation::constant::{ConstantContext, ConstantData, ConstantValue};
 use crate::compilation::index::NodeIndex;
-use crate::compilation::node::{pattern, Node, NodeConfig, NodeSourceSearchCriteria, NodeType};
+use crate::compilation::node::{pattern, Node, NodeConfig, NodeType};
 use crate::compilation::transpilation::TranspilationContext;
 use crate::compilation::validation::ValidationContext;
 use crate::language::items::type_;
@@ -39,10 +39,6 @@ pattern!(
 );
 
 impl NodeConfig for F32Literal {
-    fn source_search_criteria(&self) -> &'static [NodeSourceSearchCriteria] {
-        sources::type_criteria()
-    }
-
     fn type_<'a>(&self, index: &'a NodeIndex) -> Option<NodeType<'a>> {
         Some(NodeType::Source(self.f32_type(index)))
     }
@@ -83,7 +79,7 @@ impl F32Literal {
 
     fn f32_type<'a>(&self, index: &'a NodeIndex) -> &'a dyn Node {
         index
-            .search(self, "`f32` type")
+            .search(self, "`f32` type", sources::type_criteria())
             .expect("internal error: `f32` type not found")
     }
 }
@@ -100,10 +96,6 @@ pattern!(
 );
 
 impl NodeConfig for U32Literal {
-    fn source_search_criteria(&self) -> &'static [NodeSourceSearchCriteria] {
-        sources::type_criteria()
-    }
-
     fn type_<'a>(&self, index: &'a NodeIndex) -> Option<NodeType<'a>> {
         Some(NodeType::Source(self.u32_type(index)))
     }
@@ -149,7 +141,7 @@ impl U32Literal {
 
     fn u32_type<'a>(&self, index: &'a NodeIndex) -> &'a dyn Node {
         index
-            .search(self, "`u32` type")
+            .search(self, "`u32` type", sources::type_criteria())
             .expect("internal error: `u32` type not found")
     }
 }
@@ -166,12 +158,8 @@ pattern!(
 );
 
 impl NodeConfig for I32Literal {
-    fn source_search_criteria(&self) -> &'static [NodeSourceSearchCriteria] {
-        sources::type_criteria()
-    }
-
     fn type_<'a>(&self, index: &'a NodeIndex) -> Option<NodeType<'a>> {
-        Some(NodeType::Source(self.i32_type(index)))
+        Some(NodeType::Source(Self::i32_type(self, index)))
     }
 
     fn validate(&self, ctx: &mut ValidationContext<'_>) {
@@ -192,7 +180,7 @@ impl NodeConfig for I32Literal {
 
     fn evaluate_constant(&self, ctx: &mut ConstantContext<'_>) -> Option<ConstantValue> {
         Some(ConstantValue {
-            transpiled_type_name: type_::transpile_name(self.i32_type(ctx.index)),
+            transpiled_type_name: type_::transpile_name(Self::i32_type(self, ctx.index)),
             data: ConstantData::I32(self.value()?),
         })
     }
@@ -209,14 +197,14 @@ impl NodeConfig for I32Literal {
 }
 
 impl I32Literal {
-    fn value(&self) -> Option<i32> {
-        self.slice.replace('_', "").parse::<i32>().ok()
+    pub(crate) fn i32_type<'a>(node: &impl Node, index: &'a NodeIndex) -> &'a dyn Node {
+        index
+            .search(node, "`i32` type", sources::type_criteria())
+            .expect("internal error: `i32` type not found")
     }
 
-    fn i32_type<'a>(&self, index: &'a NodeIndex) -> &'a dyn Node {
-        index
-            .search(self, "`i32` type")
-            .expect("internal error: `i32` type not found")
+    fn value(&self) -> Option<i32> {
+        self.slice.replace('_', "").parse::<i32>().ok()
     }
 }
 

@@ -1,8 +1,6 @@
 use crate::compilation::constant::{ConstantContext, ConstantValue};
 use crate::compilation::index::NodeIndex;
-use crate::compilation::node::{
-    choice, sequence, transform, Node, NodeConfig, NodeSourceSearchCriteria, NodeType, Repeated,
-};
+use crate::compilation::node::{choice, sequence, transform, Node, NodeConfig, NodeType, Repeated};
 use crate::compilation::transpilation::TranspilationContext;
 use crate::compilation::validation::ValidationContext;
 use crate::language::expressions::chain::ChainExpr;
@@ -91,11 +89,7 @@ impl NodeConfig for BinaryExpr {
     }
 
     fn source<'a>(&self, index: &'a NodeIndex) -> Option<&'a dyn Node> {
-        index.search(self, &self.source_key(index)?)
-    }
-
-    fn source_search_criteria(&self) -> &'static [NodeSourceSearchCriteria] {
-        sources::fn_criteria()
+        index.search(self, &self.source_key(index)?, sources::fn_criteria())
     }
 
     fn is_ref(&self, index: &NodeIndex) -> Option<bool> {
@@ -111,7 +105,10 @@ impl NodeConfig for BinaryExpr {
     }
 
     fn invalid_constant(&self, index: &NodeIndex) -> Option<&dyn Node> {
-        (!fn_::is_const(self.source(index)?)).then_some(self)
+        (!fn_::is_const(self.source(index)?))
+            .then_some(self as _)
+            .or_else(|| self.left.invalid_constant(index))
+            .or_else(|| self.right.invalid_constant(index))
     }
 
     fn evaluate_constant(&self, ctx: &mut ConstantContext<'_>) -> Option<ConstantValue> {

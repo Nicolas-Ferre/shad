@@ -115,7 +115,7 @@ impl NodeConfig for FnItem {
         validations::check_duplicated_items(self, ctx);
         validations::check_recursive_items(self, ctx);
         if let Some(const_kw) = self.const_.iter().next() {
-            validations::check_invalid_const_scope(&*self.body, const_kw, ctx);
+            validations::check_invalid_const_scope(&*self.body, &**const_kw, ctx);
         }
         let return_stmt = self.body.last_stmt().and_then(|stmt| stmt.as_return());
         let return_type = self.signature.return_type.iter().next();

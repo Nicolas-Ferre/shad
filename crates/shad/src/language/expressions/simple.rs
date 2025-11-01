@@ -1,8 +1,6 @@
 use crate::compilation::constant::{ConstantContext, ConstantData, ConstantValue};
 use crate::compilation::index::NodeIndex;
-use crate::compilation::node::{
-    choice, sequence, Node, NodeConfig, NodeSourceSearchCriteria, NodeType,
-};
+use crate::compilation::node::{choice, sequence, Node, NodeConfig, NodeType};
 use crate::compilation::transpilation::TranspilationContext;
 use crate::compilation::validation::ValidationContext;
 use crate::language::expressions::MaybeBinaryExpr;
@@ -26,10 +24,6 @@ choice!(
 );
 
 impl NodeConfig for BoolLiteral {
-    fn source_search_criteria(&self) -> &'static [NodeSourceSearchCriteria] {
-        sources::type_criteria()
-    }
-
     fn type_<'a>(&self, index: &'a NodeIndex) -> Option<NodeType<'a>> {
         Some(NodeType::Source(self.bool_type(index)))
     }
@@ -60,7 +54,7 @@ impl NodeConfig for BoolLiteral {
 impl BoolLiteral {
     fn bool_type<'a>(&self, index: &'a NodeIndex) -> &'a dyn Node {
         index
-            .search(self, "`bool` type")
+            .search(self, "`bool` type", sources::type_criteria())
             .expect("internal error: `bool` type not found")
     }
 }
@@ -78,11 +72,7 @@ impl NodeConfig for VarIdentExpr {
     }
 
     fn source<'a>(&self, index: &'a NodeIndex) -> Option<&'a dyn Node> {
-        index.search(self, &self.source_key(index)?)
-    }
-
-    fn source_search_criteria(&self) -> &'static [NodeSourceSearchCriteria] {
-        sources::variable_criteria()
+        index.search(self, &self.source_key(index)?, sources::variable_criteria())
     }
 
     fn is_ref(&self, index: &NodeIndex) -> Option<bool> {
@@ -148,7 +138,7 @@ impl NodeConfig for ParenthesizedExpr {
     }
 
     fn source<'a>(&self, index: &'a NodeIndex) -> Option<&'a dyn Node> {
-        index.search(self, &self.source_key(index)?)
+        self.expr.source(index)
     }
 
     fn type_<'a>(&self, index: &'a NodeIndex) -> Option<NodeType<'a>> {

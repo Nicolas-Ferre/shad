@@ -75,10 +75,6 @@ pub(crate) trait NodeConfig {
         None
     }
 
-    fn source_search_criteria(&self) -> &'static [NodeSourceSearchCriteria] {
-        unreachable!("`{}` node has no source criteria", type_name::<Self>())
-    }
-
     fn is_ref(&self, index: &NodeIndex) -> Option<bool> {
         unreachable!("`{}` node has no ref checking", type_name::<Self>())
     }

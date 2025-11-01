@@ -1,17 +1,22 @@
-buf value1 = 0;
-buf value2 = 0;
+buf result = 0;
 
 run {
-    value1 = 2;
-    value2 = 1;
+    result = result * 2;
 }
 
 // should be executed before `run` blocks
 init {
-    value1 = 3;
-    value2 = 3;
+    result = 2;
+}
+
+run prio(10) {
+    result = result + 5;
+}
+
+run prio(-10) {
+    result = result * 3;
 }
 
 run {
-    value2 = 2;
+    result = result + 2;
 }

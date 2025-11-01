@@ -42,7 +42,7 @@ impl NodeConfig for ConstantItem {
     fn validate(&self, ctx: &mut ValidationContext<'_>) {
         validations::check_duplicated_items(self, ctx);
         validations::check_recursive_items(self, ctx);
-        validations::check_invalid_const_scope(&*self.expr, &self.const_, ctx);
+        validations::check_invalid_const_scope(&*self.expr, &*self.const_, ctx);
     }
 
     fn evaluate_constant(&self, ctx: &mut ConstantContext<'_>) -> Option<ConstantValue> {

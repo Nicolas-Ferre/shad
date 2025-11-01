@@ -3,6 +3,7 @@ use crate::compilation::node::Node;
 use crate::language::items::buffer::BufferItem;
 use crate::language::items::compute::{InitItem, RunItem};
 use crate::language::items::{type_, Root};
+use itertools::Itertools;
 use petgraph::graphmap::DiGraphMap;
 use std::any::Any;
 use std::collections::HashMap;
@@ -42,8 +43,7 @@ impl Program {
             next_node_id,
         };
         Self {
-            buffers: roots
-                .values()
+            buffers: Self::sorted_roots(roots)
                 .flat_map(|root| root.items.iter().filter_map(|item| item.as_buffer()))
                 .map(|buffer| (buffer.item_path(root_path), Buffer::new(buffer, index)))
                 .collect(),
@@ -52,24 +52,21 @@ impl Program {
                 .map(|item| Shader::from_buffer_item(item, &mut ctx))
                 .collect::<Vec<_>>()
                 .into_iter()
-                .chain(roots.values().flat_map(|root| {
-                    root.items
-                        .iter()
-                        .filter_map(|item| item.as_init())
-                        .map(|item| Shader::from_init_item(item, &mut ctx))
-                        .collect::<Vec<_>>()
-                }))
+                .chain(
+                    Self::sorted_roots(roots)
+                        .flat_map(|root| root.items.iter().filter_map(|item| item.as_init()))
+                        .enumerate()
+                        .sorted_by_key(|(position, item)| (-item.priority(index), *position))
+                        .map(|(_, item)| Shader::from_init_item(item, &mut ctx))
+                        .collect::<Vec<_>>(),
+                )
                 .collect(),
-            run_shaders: roots
-                .values()
-                .flat_map(|root| {
-                    root.items
-                        .iter()
-                        .filter_map(|item| item.as_run())
-                        .map(|item| Shader::from_run_item(item, &mut ctx))
-                        .collect::<Vec<_>>()
-                })
-                .collect(),
+            run_shaders: Self::sorted_roots(roots)
+                .flat_map(|root| root.items.iter().filter_map(|item| item.as_run()))
+                .enumerate()
+                .sorted_by_key(|(position, item)| (-item.priority(index), *position))
+                .map(|(_, item)| Shader::from_run_item(item, &mut ctx))
+                .collect::<Vec<_>>(),
         }
     }
 
@@ -90,6 +87,13 @@ impl Program {
             }
         }
         petgraph::algo::toposort(&graph, None).expect("internal error: buffer cycle detected")
+    }
+
+    fn sorted_roots(roots: &HashMap<PathBuf, Root>) -> impl Iterator<Item = &Root> {
+        roots
+            .iter()
+            .sorted_by_key(|(path, _)| *path)
+            .map(|(_, root)| root)
     }
 }
 
