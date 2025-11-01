@@ -133,10 +133,6 @@ sequence!(
 );
 
 impl NodeConfig for ParenthesizedExpr {
-    fn source_key(&self, index: &NodeIndex) -> Option<String> {
-        self.expr.source_key(index)
-    }
-
     fn source<'a>(&self, index: &'a NodeIndex) -> Option<&'a dyn Node> {
         self.expr.source(index)
     }

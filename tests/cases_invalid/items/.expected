@@ -34,22 +34,38 @@ error: invalid `const` scope
   |      |    cannot be used in a `const` scope
   |      `const` scope declared here
 
-error: invalid expression type
- --> ./cases_invalid/items/compute.shd:6:10
+error: undefined item
+ --> ./cases_invalid/items/compute.shd:5:11
   |
-6 | run prio(2.5) {}
+5 | init prio(unknown) {}
+  |           ^^^^^^^
+  |           |
+  |           `unknown` variable is undefined
+
+error: invalid expression type
+ --> ./cases_invalid/items/compute.shd:7:10
+  |
+7 | run prio(2.5) {}
   |          ^^^
   |          |
   |          expression type is `f32` but expected type is `i32`
 
 error: invalid `const` scope
- --> ./cases_invalid/items/compute.shd:7:10
+ --> ./cases_invalid/items/compute.shd:8:10
   |
-7 | run prio(buffer) {}
+8 | run prio(buffer) {}
   |     ---- ^^^^^^
   |     |    |
   |     |    cannot be used in a `const` scope
   |     `const` scope declared here
+
+error: undefined item
+ --> ./cases_invalid/items/compute.shd:9:10
+  |
+9 | run prio(unknown) {}
+  |          ^^^^^^^
+  |          |
+  |          `unknown` variable is undefined
 
 error: function parameter defined multiple times
  --> ./cases_invalid/items/function_definition.shd:1:42

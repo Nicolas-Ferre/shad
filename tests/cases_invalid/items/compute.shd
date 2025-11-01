@@ -2,6 +2,8 @@ buf buffer = 0;
 
 init prio(2.5) {}
 init prio(buffer) {}
+init prio(unknown) {}
 
 run prio(2.5) {}
 run prio(buffer) {}
+run prio(unknown) {}
