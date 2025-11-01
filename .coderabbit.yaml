@@ -1,0 +1,71 @@
+reviews:
+  profile: chill
+  sequence_diagrams: false
+  poem: false
+  high_level_summary: false
+  auto_review:
+    drafts: true
+  finishing_touches:
+    docstrings:
+      enabled: false
+    unit_tests:
+      enabled: false
+  tools:
+    biome:
+      enabled: false
+    brakeman:
+      enabled: false
+    buf:
+      enabled: false
+    checkmake:
+      enabled: false
+    checkov:
+      enabled: false
+    circleci:
+      enabled: false
+    clang:
+      enabled: false
+    clippy:
+      enabled: false
+    cppcheck:
+      enabled: false
+    detekt:
+      enabled: false
+    dotenvLint:
+      enabled: false
+    eslint:
+      enabled: false
+    flake8:
+      enabled: false
+    golangci-lint:
+      enabled: false
+    hadolint:
+      enabled: false
+    luacheck:
+      enabled: false
+    oxc:
+      enabled: false
+    phpcs:
+      enabled: false
+    phpmd:
+      enabled: false
+    phpstan:
+      enabled: false
+    pmd:
+      enabled: false
+    prismaLint:
+      enabled: false
+    pylint:
+      enabled: false
+    regal:
+      enabled: false
+    rubocop:
+      enabled: false
+    ruff:
+      enabled: false
+    shopifyThemeCheck:
+      enabled: false
+    sqlfluff:
+      enabled: false
+    swiftlint:
+      enabled: false
