@@ -39,24 +39,30 @@ impl NodeIndex {
         key: &str,
         source_criteria: &'static [NodeSourceSearchCriteria],
     ) -> Option<&dyn Node> {
-        for current_path in self.lookup_paths.get(&node.path)? {
-            if let Some(nodes) = self
-                .nodes
-                .get(current_path)
-                .and_then(|paths| paths.get(key))
-            {
-                let mut found_source: Option<&dyn Node> = None;
-                for source in nodes.iter().rev() {
-                    if found_source
-                        .is_none_or(|found| found.parent_ids.len() < source.parent_ids.len())
-                        && Self::is_source_in_scope(node, source_criteria, source, current_path)
-                    {
-                        found_source = Some(&**source);
-                    }
+        self.lookup_paths
+            .get(&node.path)?
+            .iter()
+            .find_map(|path| self.search_in_path(path, node, key, source_criteria))
+    }
+
+    pub(crate) fn search_in_path(
+        &self,
+        path: &Path,
+        node: &impl Node,
+        key: &str,
+        source_criteria: &'static [NodeSourceSearchCriteria],
+    ) -> Option<&dyn Node> {
+        if let Some(nodes) = self.nodes.get(path).and_then(|paths| paths.get(key)) {
+            let mut found_source: Option<&dyn Node> = None;
+            for source in nodes.iter().rev() {
+                if found_source.is_none_or(|found| found.parent_ids.len() < source.parent_ids.len())
+                    && Self::is_source_in_scope(node, source_criteria, source, path)
+                {
+                    found_source = Some(&**source);
                 }
-                if found_source.is_some() {
-                    return found_source;
-                }
+            }
+            if found_source.is_some() {
+                return found_source;
             }
         }
         None
@@ -66,7 +72,7 @@ impl NodeIndex {
         node: &impl Node,
         source_criteria: &'static [NodeSourceSearchCriteria],
         source: &Rc<dyn Node>,
-        current_path: &PathBuf,
+        current_path: &Path,
     ) -> bool {
         let node_parent_id = node.parent_ids.last().copied().unwrap_or(0);
         let source_parent_id = source.parent_ids.last().copied().unwrap_or(0);
@@ -81,10 +87,10 @@ impl NodeIndex {
                             && source.parent_ids[..common_parent_count]
                                 == node.parent_ids[..common_parent_count]
                     });
-            (&node.path == current_path || source.is_public())
+            (node.path == current_path || source.is_public())
                 && (criteria.can_be_after
                     || source.id < node_parent_id
-                    || &node.path != current_path)
+                    || node.path != current_path)
                 && source.node_type_id() == (criteria.node_type)()
                 && (is_source_root
                     || has_source_min_parent_count

@@ -3,6 +3,7 @@ use crate::compilation::index::NodeIndex;
 use crate::compilation::node::{choice, sequence, Node, NodeConfig, NodeType};
 use crate::compilation::transpilation::TranspilationContext;
 use crate::compilation::validation::ValidationContext;
+use crate::compilation::PRELUDE_PATH;
 use crate::language::expressions::MaybeBinaryExpr;
 use crate::language::items::constant::ConstantItem;
 use crate::language::items::fn_::FnParam;
@@ -15,6 +16,7 @@ use crate::language::sources;
 use crate::language::statements::{LocalRefDefStmt, LocalVarDefStmt};
 use crate::language::validations;
 use std::any::TypeId;
+use std::path::Path;
 
 choice!(
     enum BoolLiteral {
@@ -54,7 +56,12 @@ impl NodeConfig for BoolLiteral {
 impl BoolLiteral {
     fn bool_type<'a>(&self, index: &'a NodeIndex) -> &'a dyn Node {
         index
-            .search(self, "`bool` type", sources::type_criteria())
+            .search_in_path(
+                Path::new(PRELUDE_PATH),
+                self,
+                "`bool` type",
+                sources::type_criteria(),
+            )
             .expect("internal error: `bool` type not found")
     }
 }

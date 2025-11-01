@@ -3,10 +3,12 @@ use crate::compilation::index::NodeIndex;
 use crate::compilation::node::{pattern, Node, NodeConfig, NodeType};
 use crate::compilation::transpilation::TranspilationContext;
 use crate::compilation::validation::ValidationContext;
+use crate::compilation::PRELUDE_PATH;
 use crate::language::items::type_;
 use crate::language::keywords::RESERVED_KEYWORDS;
 use crate::language::sources;
 use crate::ValidationError;
+use std::path::Path;
 
 pattern!(
     Ident,
@@ -79,7 +81,12 @@ impl F32Literal {
 
     fn f32_type<'a>(&self, index: &'a NodeIndex) -> &'a dyn Node {
         index
-            .search(self, "`f32` type", sources::type_criteria())
+            .search_in_path(
+                Path::new(PRELUDE_PATH),
+                self,
+                "`f32` type",
+                sources::type_criteria(),
+            )
             .expect("internal error: `f32` type not found")
     }
 }
@@ -141,7 +148,12 @@ impl U32Literal {
 
     fn u32_type<'a>(&self, index: &'a NodeIndex) -> &'a dyn Node {
         index
-            .search(self, "`u32` type", sources::type_criteria())
+            .search_in_path(
+                Path::new(PRELUDE_PATH),
+                self,
+                "`u32` type",
+                sources::type_criteria(),
+            )
             .expect("internal error: `u32` type not found")
     }
 }
@@ -199,7 +211,12 @@ impl NodeConfig for I32Literal {
 impl I32Literal {
     pub(crate) fn i32_type<'a>(node: &impl Node, index: &'a NodeIndex) -> &'a dyn Node {
         index
-            .search(node, "`i32` type", sources::type_criteria())
+            .search_in_path(
+                Path::new(PRELUDE_PATH),
+                node,
+                "`i32` type",
+                sources::type_criteria(),
+            )
             .expect("internal error: `i32` type not found")
     }
 

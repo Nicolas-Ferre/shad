@@ -14,7 +14,7 @@ pub(crate) mod transpilation;
 pub(crate) mod validation;
 
 pub(crate) const FILE_EXT: &str = "shd";
-const PRELUDE_PATH: &str = "prelude.shd";
+pub(crate) const PRELUDE_PATH: &str = "prelude.shd";
 const PRELUDE_CODE: &str = include_str!(concat!(
     env!("CARGO_MANIFEST_DIR"),
     "/resources/prelude.shd"
