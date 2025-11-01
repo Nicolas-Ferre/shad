@@ -1,4 +1,12 @@
 error: undefined item
+ --> ./cases_invalid/expressions/alignof.shd:1:36
+  |
+1 | buf alignof_invalid_type = alignof(unknown);
+  |                                    ^^^^^^^
+  |                                    |
+  |                                    `unknown` type is undefined
+
+error: undefined item
  --> ./cases_invalid/expressions/custom_operators.shd:2:28
   |
 2 |     var not_found_binary = true + false;
