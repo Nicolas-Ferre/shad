@@ -1,7 +1,7 @@
 use std::path::{Path, PathBuf};
 
 #[rstest::rstest]
-fn run_valid_code(
+fn compile_example(
     #[dirs]
     #[files("../examples/*")]
     path: PathBuf,
