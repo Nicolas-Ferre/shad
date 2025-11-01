@@ -1,0 +1,14 @@
+buf result_buf = 0;
+buf result_var = 0;
+
+buf buffer_var = 5;
+
+run {
+    var local_var = 0; // shouldn't be used in next block
+}
+
+run {
+    var local_var = 10;
+    result_buf = buffer_var;
+    result_var = local_var;
+}

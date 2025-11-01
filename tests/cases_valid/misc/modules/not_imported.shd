@@ -1,5 +1,0 @@
-import state;
-
-run {
-    state = select(0, 4, state == 3);
-}

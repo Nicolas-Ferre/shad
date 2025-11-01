@@ -1,0 +1,22 @@
+import imported;
+
+buf result = 0;
+
+run {
+    result = 2;
+    var arg = 42;
+    var returned = my_func(arg, 42u);
+    imported_func(true);
+}
+
+fn my_func(param1: i32, param2: u32) -> u32 {
+    var variable = param1;
+    result = variable;
+    param1 = 10;
+    my_func_2();
+    return param2;
+}
+
+fn my_func_2() {
+    result = 3;
+}

@@ -1,0 +1,4 @@
+buf b = c;
+buf d = 1;
+buf c = d;
+buf a = b;

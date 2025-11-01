@@ -4,4 +4,4 @@
 
 ### Added
 
-- First version of Shad interpreter
+- First version of Shad

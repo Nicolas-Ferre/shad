@@ -1,0 +1,22 @@
+buf result = 0;
+
+run {
+    result = result * 2;
+}
+
+// should be executed before `run` blocks
+init {
+    result = 2;
+}
+
+run prio(10) {
+    result = result + 5;
+}
+
+run prio(-10) {
+    result = result * 3;
+}
+
+run {
+    result = result + 2;
+}

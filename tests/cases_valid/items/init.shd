@@ -1,0 +1,17 @@
+buf result = 0;
+
+init {
+    result = result * 2;
+}
+
+init prio(10) {
+    result = 2;
+}
+
+init prio(-10) {
+    result = result * 3;
+}
+
+init {
+    result = result + 2;
+}

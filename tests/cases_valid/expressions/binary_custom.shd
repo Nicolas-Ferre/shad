@@ -1,0 +1,68 @@
+buf add = 4 + 2;
+buf sub = 4 - 2;
+buf mul = 4 * 2;
+buf div = 4 / 2;
+buf mod = 4 % 2;
+buf lt = 4 < 2;
+buf gt = 4 > 2;
+buf le = 4 <= 2;
+buf ge = 4 >= 2;
+buf eq = 4 == 2;
+buf ne = 4 != 2;
+buf and = 4 && 2;
+buf or = 4 || 2;
+buf priority1 = 4 + add - 7;
+buf priority2 = 4 + add * 7;
+buf priority3 = 4 + (add - 7);
+
+fn __add__(left: i32, right: i32) -> i32 {
+    return 1;
+}
+
+fn __sub__(left: i32, right: i32) -> i32 {
+    return 2;
+}
+
+fn __mul__(left: i32, right: i32) -> i32 {
+    return 3;
+}
+
+fn __div__(left: i32, right: i32) -> i32 {
+    return 4;
+}
+
+fn __mod__(left: i32, right: i32) -> i32 {
+    return 5;
+}
+
+fn __lt__(left: i32, right: i32) -> i32 {
+    return 6;
+}
+
+fn __gt__(left: i32, right: i32) -> i32 {
+    return 7;
+}
+
+fn __le__(left: i32, right: i32) -> i32 {
+    return 8;
+}
+
+fn __ge__(left: i32, right: i32) -> i32 {
+    return 9;
+}
+
+fn __eq__(left: i32, right: i32) -> i32 {
+    return 10;
+}
+
+fn __ne__(left: i32, right: i32) -> i32 {
+    return 11;
+}
+
+fn __and__(left: i32, right: i32) -> i32 {
+    return 12;
+}
+
+fn __or__(left: i32, right: i32) -> i32 {
+    return 13;
+}

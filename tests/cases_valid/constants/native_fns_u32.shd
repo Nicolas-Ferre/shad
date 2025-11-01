@@ -1,0 +1,197 @@
+const U32_FROM_FALSE_BOOL = u32(false);
+const U32_FROM_TRUE_BOOL = u32(true);
+const U32_FROM_F32 = u32(12.0);
+const U32_FROM_I32 = u32(12);
+
+const U32X2_DEFAULT = u32x2();
+const U32X2_FROM_U32 = u32x2(12u, 120u);
+const U32X2_FROM_BOOLX2 = u32x2(boolx2(false, true));
+const U32X2_FROM_F32X2 = u32x2(f32x2(12.0, 120.0));
+const U32X2_FROM_I32X2 = u32x2(i32x2(12, 120));
+
+const U32X3_DEFAULT = u32x3();
+const U32X3_FROM_U32 = u32x3(12u, 120u, 1200u);
+const U32X3_FROM_U32X2_AND_U32 = u32x3(u32x2(12u, 120u), 1200u);
+const U32X3_FROM_BOOLX3 = u32x3(boolx3(false, true, false));
+const U32X3_FROM_F32X3 = u32x3(f32x3(12.0, 120.0, 1200.0));
+const U32X3_FROM_I32X3 = u32x3(i32x3(12, 120, 1200));
+
+const U32X4_DEFAULT = u32x4();
+const U32X4_FROM_U32 = u32x4(12u, 120u, 1200u, 12_000u);
+const U32X4_FROM_U32X2_AND_U32 = u32x4(u32x2(12u, 120u), 1200u, 12_000u);
+const U32X4_FROM_U32X3_AND_U32 = u32x4(u32x3(12u, 120u, 1200u), 12_000u);
+const U32X4_FROM_BOOLX4 = u32x4(boolx4(false, true, false, true));
+const U32X4_FROM_F32X4 = u32x4(f32x4(12.0, 120.0, 1200.0, 12_000.0));
+const U32X4_FROM_I32X4 = u32x4(i32x4(12, 120, 1200, 12_000));
+
+const ADD_U32 = 12u + 10u;
+const ADD_U32X2 = u32x2(12u, 6u) + u32x2(10u, 5u);
+const ADD_U32X3 = u32x3(12u, 6u, 3u) + u32x3(10u, 5u, 1u);
+const ADD_U32X4 = u32x4(12u, 6u, 3u, 3u) + u32x4(10u, 5u, 1u, 3u);
+
+const SUB_U32 = 12u - 10u;
+const SUB_U32X2 = u32x2(12u, 6u) - u32x2(10u, 5u);
+const SUB_U32X3 = u32x3(12u, 6u, 3u) - u32x3(10u, 5u, 1u);
+const SUB_U32X4 = u32x4(12u, 6u, 3u, 3u) - u32x4(10u, 5u, 1u, 3u);
+
+const MUL_U32 = 12u * 10u;
+const MUL_U32_U32X2 = 12u * u32x2(10u, 5u);
+const MUL_U32_U32X3 = 12u * u32x3(10u, 5u, 1u);
+const MUL_U32_U32X4 = 12u * u32x4(10u, 5u, 1u, 3u);
+const MUL_U32X2_U32 = u32x2(12u, 6u) * 10u;
+const MUL_U32X2 = u32x2(12u, 6u) * u32x2(10u, 5u);
+const MUL_U32X3_U32 = u32x3(12u, 6u, 3u) * 10u;
+const MUL_U32X3 = u32x3(12u, 6u, 3u) * u32x3(10u, 5u, 1u);
+const MUL_U32X4_U32 = u32x4(12u, 6u, 3u, 3u) * 10u;
+const MUL_U32X4 = u32x4(12u, 6u, 3u, 3u) * u32x4(10u, 5u, 1u, 3u);
+
+const DIV_U32 = 12u / 10u;
+const DIV_U32_U32X2 = 12u / u32x2(10u, 5u);
+const DIV_U32_U32X3 = 12u / u32x3(10u, 5u, 1u);
+const DIV_U32_U32X4 = 12u / u32x4(10u, 5u, 1u, 3u);
+const DIV_U32X2_U32 = u32x2(12u, 6u) / 10u;
+const DIV_U32X2 = u32x2(12u, 6u) / u32x2(10u, 5u);
+const DIV_U32X3_U32 = u32x3(12u, 6u, 3u) / 10u;
+const DIV_U32X3 = u32x3(12u, 6u, 3u) / u32x3(10u, 5u, 1u);
+const DIV_U32X4_U32 = u32x4(12u, 6u, 3u, 3u) / 10u;
+const DIV_U32X4 = u32x4(12u, 6u, 3u, 3u) / u32x4(10u, 5u, 1u, 3u);
+
+const MOD_U32 = 12u % 10u;
+const MOD_U32_U32X2 = 12u % u32x2(10u, 5u);
+const MOD_U32_U32X3 = 12u % u32x3(10u, 5u, 1u);
+const MOD_U32_U32X4 = 12u % u32x4(10u, 5u, 1u, 3u);
+const MOD_U32X2_U32 = u32x2(12u, 6u) % 10u;
+const MOD_U32X2 = u32x2(12u, 6u) % u32x2(10u, 5u);
+const MOD_U32X3_U32 = u32x3(12u, 6u, 3u) % 10u;
+const MOD_U32X3 = u32x3(12u, 6u, 3u) % u32x3(10u, 5u, 1u);
+const MOD_U32X4_U32 = u32x4(12u, 6u, 3u, 3u) % 10u;
+const MOD_U32X4 = u32x4(12u, 6u, 3u, 3u) % u32x4(10u, 5u, 1u, 3u);
+
+const LT_U32 = 12u < 10u;
+const LT_U32X2 = u32x2(12u, 6u) < u32x2(10u, 5u);
+const LT_U32X3 = u32x3(12u, 6u, 3u) < u32x3(10u, 5u, 1u);
+const LT_U32X4 = u32x4(12u, 6u, 3u, 3u) < u32x4(10u, 5u, 1u, 3u);
+
+const GT_U32 = 12u > 10u;
+const GT_U32X2 = u32x2(12u, 6u) > u32x2(10u, 5u);
+const GT_U32X3 = u32x3(12u, 6u, 3u) > u32x3(10u, 5u, 1u);
+const GT_U32X4 = u32x4(12u, 6u, 3u, 3u) > u32x4(10u, 5u, 1u, 3u);
+
+const LE_U32 = 12u <= 10u;
+const LE_U32X2 = u32x2(12u, 6u) <= u32x2(10u, 5u);
+const LE_U32X3 = u32x3(12u, 6u, 3u) <= u32x3(10u, 5u, 1u);
+const LE_U32X4 = u32x4(12u, 6u, 3u, 3u) <= u32x4(10u, 5u, 1u, 3u);
+
+const GE_U32 = 12u >= 10u;
+const GE_U32X2 = u32x2(12u, 6u) >= u32x2(10u, 5u);
+const GE_U32X3 = u32x3(12u, 6u, 3u) >= u32x3(10u, 5u, 1u);
+const GE_U32X4 = u32x4(12u, 6u, 3u, 3u) >= u32x4(10u, 5u, 1u, 3u);
+
+const EQ_U32 = 12u == 10u;
+const EQ_U32X2 = u32x2(12u, 6u) == u32x2(10u, 5u);
+const EQ_U32X3 = u32x3(12u, 6u, 3u) == u32x3(10u, 5u, 1u);
+const EQ_U32X4 = u32x4(12u, 6u, 3u, 3u) == u32x4(10u, 5u, 1u, 3u);
+
+const NE_U32 = 12u != 10u;
+const NE_U32X2 = u32x2(12u, 6u) != u32x2(10u, 5u);
+const NE_U32X3 = u32x3(12u, 6u, 3u) != u32x3(10u, 5u, 1u);
+const NE_U32X4 = u32x4(12u, 6u, 3u, 3u) != u32x4(10u, 5u, 1u, 3u);
+
+buf u32_from_false_bool = U32_FROM_FALSE_BOOL;
+buf u32_from_true_bool = U32_FROM_TRUE_BOOL;
+buf u32_from_f32 = U32_FROM_F32;
+buf u32_from_i32 = U32_FROM_I32;
+
+buf u32x2_default = U32X2_DEFAULT;
+buf u32x2_from_u32 = U32X2_FROM_U32;
+buf u32x2_from_boolx2 = U32X2_FROM_BOOLX2;
+buf u32x2_from_f32x2 = U32X2_FROM_F32X2;
+buf u32x2_from_i32x2 = U32X2_FROM_I32X2;
+
+buf u32x3_default = U32X3_DEFAULT;
+buf u32x3_from_u32 = U32X3_FROM_U32;
+buf u32x3_from_u32x2_and_u32 = U32X3_FROM_U32X2_AND_U32;
+buf u32x3_from_boolx3 = U32X3_FROM_BOOLX3;
+buf u32x3_from_f32x3 = U32X3_FROM_F32X3;
+buf u32x3_from_i32x3 = U32X3_FROM_I32X3;
+
+buf u32x4_default = U32X4_DEFAULT;
+buf u32x4_from_u32 = U32X4_FROM_U32;
+buf u32x4_from_u32x2_and_u32 = U32X4_FROM_U32X2_AND_U32;
+buf u32x4_from_u32x3_and_u32 = U32X4_FROM_U32X3_AND_U32;
+buf u32x4_from_boolx4 = U32X4_FROM_BOOLX4;
+buf u32x4_from_f32x4 = U32X4_FROM_F32X4;
+buf u32x4_from_i32x4 = U32X4_FROM_I32X4;
+
+buf add_u32 = ADD_U32;
+buf add_u32x2 = ADD_U32X2;
+buf add_u32x3 = ADD_U32X3;
+buf add_u32x4 = ADD_U32X4;
+
+buf sub_u32 = SUB_U32;
+buf sub_u32x2 = SUB_U32X2;
+buf sub_u32x3 = SUB_U32X3;
+buf sub_u32x4 = SUB_U32X4;
+
+buf mul_u32 = MUL_U32;
+buf mul_u32_u32x2 = MUL_U32_U32X2;
+buf mul_u32_u32x3 = MUL_U32_U32X3;
+buf mul_u32_u32x4 = MUL_U32_U32X4;
+buf mul_u32x2_u32 = MUL_U32X2_U32;
+buf mul_u32x2 = MUL_U32X2;
+buf mul_u32x3_u32 = MUL_U32X3_U32;
+buf mul_u32x3 = MUL_U32X3;
+buf mul_u32x4_u32 = MUL_U32X4_U32;
+buf mul_u32x4 = MUL_U32X4;
+
+buf div_u32 = DIV_U32;
+buf div_u32_u32x2 = DIV_U32_U32X2;
+buf div_u32_u32x3 = DIV_U32_U32X3;
+buf div_u32_u32x4 = DIV_U32_U32X4;
+buf div_u32x2_u32 = DIV_U32X2_U32;
+buf div_u32x2 = DIV_U32X2;
+buf div_u32x3_u32 = DIV_U32X3_U32;
+buf div_u32x3 = DIV_U32X3;
+buf div_u32x4_u32 = DIV_U32X4_U32;
+buf div_u32x4 = DIV_U32X4;
+
+buf mod_u32 = MOD_U32;
+buf mod_u32_u32x2 = MOD_U32_U32X2;
+buf mod_u32_u32x3 = MOD_U32_U32X3;
+buf mod_u32_u32x4 = MOD_U32_U32X4;
+buf mod_u32x2_u32 = MOD_U32X2_U32;
+buf mod_u32x2 = MOD_U32X2;
+buf mod_u32x3_u32 = MOD_U32X3_U32;
+buf mod_u32x3 = MOD_U32X3;
+buf mod_u32x4_u32 = MOD_U32X4_U32;
+buf mod_u32x4 = MOD_U32X4;
+
+buf lt_u32 = LT_U32;
+buf lt_u32x2 = LT_U32X2;
+buf lt_u32x3 = LT_U32X3;
+buf lt_u32x4 = LT_U32X4;
+
+buf gt_u32 = GT_U32;
+buf gt_u32x2 = GT_U32X2;
+buf gt_u32x3 = GT_U32X3;
+buf gt_u32x4 = GT_U32X4;
+
+buf le_u32 = LE_U32;
+buf le_u32x2 = LE_U32X2;
+buf le_u32x3 = LE_U32X3;
+buf le_u32x4 = LE_U32X4;
+
+buf ge_u32 = GE_U32;
+buf ge_u32x2 = GE_U32X2;
+buf ge_u32x3 = GE_U32X3;
+buf ge_u32x4 = GE_U32X4;
+
+buf eq_u32 = EQ_U32;
+buf eq_u32x2 = EQ_U32X2;
+buf eq_u32x3 = EQ_U32X3;
+buf eq_u32x4 = EQ_U32X4;
+
+buf ne_u32 = NE_U32;
+buf ne_u32x2 = NE_U32X2;
+buf ne_u32x3 = NE_U32X3;
+buf ne_u32x4 = NE_U32X4;

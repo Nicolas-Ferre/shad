@@ -1,0 +1,3 @@
+const fn_without_const_impl_call = no_const_impl();
+
+const native fn no_const_impl() -> i32 = "";

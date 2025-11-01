@@ -1,0 +1,17 @@
+import imported;
+
+buf assigned_buf = 0;
+buf buf_value = true;
+
+run {
+    var var_value = 0u;
+    var assigned_var = 0;
+    assigned_var = imported;
+    assigned_var = 1.0;
+    assigned_var = buf_value;
+    assigned_var = var_value;
+    assigned_buf = 1.0;
+    assigned_buf = buf_value;
+    assigned_buf = var_value;
+    assigned_buf + 1 = 2;
+}

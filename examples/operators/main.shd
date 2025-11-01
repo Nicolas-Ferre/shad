@@ -1,0 +1,63 @@
+const VAL = 20;
+buf operator = 200 + 5 - 7 * 9 / (10 % 11 < 11 > 12 <= 13) >= 14 == 15 != 16 && 17 || 18 && !19 || -VAL;
+buf operator_call = 1.__sub__(2).__sub__(3);
+
+fn __add__(left: i32, right: i32) -> i32 {
+    return 0;
+}
+
+fn __sub__(left: i32, right: i32) -> i32 {
+    return 1;
+}
+
+fn __mul__(left: i32, right: i32) -> i32 {
+    return left;
+}
+
+fn __div__(left: i32, right: i32) -> i32 {
+    return left;
+}
+
+fn __mod__(left: i32, right: i32) -> i32 {
+    return left;
+}
+
+fn __lt__(left: i32, right: i32) -> i32 {
+    return left;
+}
+
+fn __gt__(left: i32, right: i32) -> i32 {
+    return left;
+}
+
+fn __le__(left: i32, right: i32) -> i32 {
+    return left;
+}
+
+fn __ge__(left: i32, right: i32) -> i32 {
+    return left;
+}
+
+fn __eq__(left: i32, right: i32) -> i32 {
+    return left;
+}
+
+fn __ne__(left: i32, right: i32) -> i32 {
+    return left;
+}
+
+fn __and__(left: i32, right: i32) -> i32 {
+    return left;
+}
+
+fn __or__(left: i32, right: i32) -> i32 {
+    return left;
+}
+
+fn __neg__(value: i32) -> i32 {
+    return 10;
+}
+
+fn __not__(value: i32) -> i32 {
+    return 20;
+}

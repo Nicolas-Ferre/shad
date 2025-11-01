@@ -1,0 +1,13 @@
+import imported.private_items;
+
+buf private_import_result = PUB_ITEM_IN_PRIVATE_IMPORT;
+buf private_const_result = PRIVATE_CONST;
+buf private_buf_result = PRIVATE_BUF;
+buf private_fn_result = private_fn();
+buf private_native_fn_result = private_native_fn();
+buf private_struct_result = PrivateStruct { 42 };
+buf private_struct_field_result = private_struct_field().field;
+buf private_struct_field_constructor_result = PrivateStructField { 42 };
+
+fn private_struct_result_in_signature(param: PrivateStruct) {}
+fn private_native_struct_result_in_signature(param: PrivateNativeStruct) {}

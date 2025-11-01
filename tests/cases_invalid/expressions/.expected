@@ -1,0 +1,177 @@
+error: undefined item
+ --> ./cases_invalid/expressions/custom_operators.shd:2:28
+  |
+2 |     var not_found_binary = true + false;
+  |                            ^^^^^^^^^^^^
+  |                            |
+  |                            `__add__(bool, bool)` function is undefined
+
+error: undefined item
+ --> ./cases_invalid/expressions/custom_operators.shd:3:27
+  |
+3 |     var not_found_unary = !1.0;
+  |                           ^^^^
+  |                           |
+  |                           `__not__(f32)` function is undefined
+
+error: undefined item
+ --> ./cases_invalid/expressions/field.shd:3:13
+  |
+3 |     var z = vec.z;
+  |             ^^^^^
+  |             |
+  |             `z` field of `i32x2` type is undefined
+
+error: undefined item
+  --> ./cases_invalid/expressions/fn_call.shd:10:5
+   |
+10 |     func(0, 0);
+   |     ^^^^^^^^^^
+   |     |
+   |     `func(i32, i32)` function is undefined
+
+error: undefined item
+  --> ./cases_invalid/expressions/fn_call.shd:11:5
+   |
+11 |     func(0);
+   |     ^^^^^^^
+   |     |
+   |     `func(i32)` function is undefined
+
+error: undefined item
+  --> ./cases_invalid/expressions/fn_call.shd:12:5
+   |
+12 |     other_func();
+   |     ^^^^^^^^^^^^
+   |     |
+   |     `other_func()` function is undefined
+
+error: undefined item
+  --> ./cases_invalid/expressions/fn_call.shd:14:5
+   |
+14 |     0.func();
+   |     ^^^^^^^^
+   |     |
+   |     `func(i32)` function is undefined
+
+error: undefined item
+  --> ./cases_invalid/expressions/fn_call.shd:15:17
+   |
+15 |     func2(func2(func2()));
+   |                 ^^^^^^^
+   |                 |
+   |                 `func2()` function is undefined
+
+error: undefined item
+  --> ./cases_invalid/expressions/fn_call.shd:16:5
+   |
+16 |     0.func2().func2().func2(1).func2();
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |     |
+   |     `func2(i32, i32)` function is undefined
+
+error: invalid argument name
+  --> ./cases_invalid/expressions/fn_call.shd:17:13
+   |
+ 1 | fn func(a: i32, b: u32) {
+   |                 - expected name
+...
+17 |     func(0, a: 0u);
+   |             ^
+   |             |
+   |             the invalid argument name
+
+error: invalid argument name
+  --> ./cases_invalid/expressions/fn_call.shd:18:12
+   |
+ 1 | fn func(a: i32, b: u32) {
+   |                 - expected name
+...
+18 |     0.func(a: 0u);
+   |            ^
+   |            |
+   |            the invalid argument name
+
+error: invalid expression type
+ --> ./cases_invalid/expressions/no_return_type.shd:1:14
+  |
+1 | buf buffer = no_return();
+  |              ^^^^^^^^^^^
+  |              |
+  |              this function does not return a value
+
+error: invalid expression type
+ --> ./cases_invalid/expressions/no_return_type.shd:4:13
+  |
+4 |     var a = no_return();
+  |             ^^^^^^^^^^^
+  |             |
+  |             this function does not return a value
+
+error: invalid expression type
+ --> ./cases_invalid/expressions/no_return_type.shd:5:9
+  |
+5 |     a = no_return();
+  |         ^^^^^^^^^^^
+  |         |
+  |         this function does not return a value
+
+error: invalid expression type
+ --> ./cases_invalid/expressions/no_return_type.shd:6:12
+  |
+6 |     return no_return();
+  |            ^^^^^^^^^^^
+  |            |
+  |            this function does not return a value
+
+error: invalid number of fields
+  --> ./cases_invalid/expressions/struct_constructor.shd:1:25
+   |
+ 1 |   buf invalid_arg_count = TestStruct { 1, 2, 3 };
+   |                           ^^^^^^^^^^^^^^^^^^^^^^
+   |                           |
+   |                           3 fields specified here
+...
+ 7 | / struct TestStruct {
+ 8 | |     a: i32,
+ 9 | |     b: u32,
+10 | | }
+   | |_- 2 fields expected
+
+error: invalid expression type
+ --> ./cases_invalid/expressions/struct_constructor.shd:2:40
+  |
+2 | buf invalid_arg_type = TestStruct { 1, 2 };
+  |                                        ^
+  |                                        |
+  |                                        expression type is `i32`
+...
+9 |     b: u32,
+  |     ------ expected type is `u32`
+
+error: cannot call constructor for a native type
+ --> ./cases_invalid/expressions/struct_constructor.shd:3:28
+  |
+3 | buf call_for_native_type = i32x2 { 1, 2 };
+  |                            ^^^^^^^^^^^^^^
+  |                            |
+  |                            constructor called here
+
+error: undefined item
+ --> ./cases_invalid/expressions/struct_constructor.shd:4:29
+  |
+4 | buf call_for_unknown_type = unknown { 1, 2 };
+  |                             ^^^^^^^
+  |                             |
+  |                             `unknown` type is undefined
+
+error: invalid argument name
+ --> ./cases_invalid/expressions/struct_constructor.shd:5:40
+  |
+5 | buf invalid_arg_name = TestStruct { 1, a: 2u };
+  |                                        ^
+  |                                        |
+  |                                        the invalid argument name
+...
+9 |     b: u32,
+  |     - expected name

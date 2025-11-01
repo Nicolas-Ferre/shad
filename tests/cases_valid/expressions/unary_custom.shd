@@ -1,0 +1,11 @@
+buf not = !4;
+buf neg = -not;
+buf double_neg = --2;
+
+fn __neg__(value: i32) -> i32 {
+    return 1;
+}
+
+fn __not__(value: i32) -> i32 {
+    return 2;
+}

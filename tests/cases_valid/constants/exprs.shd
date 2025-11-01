@@ -1,0 +1,30 @@
+const UNARY = -(2);
+const BINARY = 2 + 4;
+const IDENT = BINARY;
+const FN_CALL = __add__(2, 4);
+const ASSOCIATED_FN_CALL = 2.__add__(4);
+const CONSTRUCTOR = TestType { 2, 4 };
+const FIELD = CONSTRUCTOR.value2;
+const TRUE_BOOL_LITERAL = true;
+const FALSE_BOOL_LITERAL = false;
+const F32_LITERAL = 12.0;
+const I32_LITERAL = 12;
+const U32_LITERAL = 12u;
+
+buf unary = UNARY;
+buf binary = BINARY;
+buf ident = IDENT;
+buf fn_call = FN_CALL;
+buf associated_fn_call = ASSOCIATED_FN_CALL;
+buf constructor = CONSTRUCTOR;
+buf field = FIELD;
+buf true_bool_literal = TRUE_BOOL_LITERAL;
+buf false_bool_literal = FALSE_BOOL_LITERAL;
+buf f32_literal = F32_LITERAL;
+buf i32_literal = I32_LITERAL;
+buf u32_literal = U32_LITERAL;
+
+struct TestType {
+    value1: i32,
+    value2: i32,
+}

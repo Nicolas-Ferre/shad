@@ -1,0 +1,9 @@
+import inner.imported1;
+import ~.imported2;
+import ~.~.inner.imported3;
+import ~.~.inner.~.inner.imported4;
+
+buf result1 = value1;
+buf result2 = value2;
+buf result3 = value3;
+buf result4 = value4;

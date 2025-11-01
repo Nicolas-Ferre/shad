@@ -1,0 +1,163 @@
+use crate::compilation::constant::{ConstantContext, ConstantData, ConstantValue};
+use crate::compilation::index::NodeIndex;
+use crate::compilation::node::{choice, sequence, Node, NodeConfig, NodeType};
+use crate::compilation::transpilation::TranspilationContext;
+use crate::compilation::validation::ValidationContext;
+use crate::compilation::PRELUDE_PATH;
+use crate::language::expressions::MaybeBinaryExpr;
+use crate::language::items::constant::ConstantItem;
+use crate::language::items::fn_::FnParam;
+use crate::language::items::type_;
+use crate::language::keywords::{
+    CloseParenthesisSymbol, FalseKeyword, OpenParenthesisSymbol, TrueKeyword,
+};
+use crate::language::patterns::Ident;
+use crate::language::sources;
+use crate::language::statements::{LocalRefDefStmt, LocalVarDefStmt};
+use crate::language::validations;
+use std::any::TypeId;
+use std::path::Path;
+
+choice!(
+    enum BoolLiteral {
+        True(TrueKeyword),
+        False(FalseKeyword),
+    }
+);
+
+impl NodeConfig for BoolLiteral {
+    fn type_<'a>(&self, index: &'a NodeIndex) -> Option<NodeType<'a>> {
+        Some(NodeType::Source(self.bool_type(index)))
+    }
+
+    fn invalid_constant(&self, _index: &NodeIndex) -> Option<&dyn Node> {
+        None
+    }
+
+    fn evaluate_constant(&self, ctx: &mut ConstantContext<'_>) -> Option<ConstantValue> {
+        Some(ConstantValue {
+            transpiled_type_name: type_::transpile_name(self.bool_type(ctx.index)),
+            data: ConstantData::Bool(match self {
+                Self::True(_) => true,
+                Self::False(_) => false,
+            }),
+        })
+    }
+
+    fn transpile(&self, _ctx: &mut TranspilationContext<'_>) -> String {
+        let value = match self {
+            Self::True(_) => "true",
+            Self::False(_) => "false",
+        };
+        format!("u32({value})")
+    }
+}
+
+impl BoolLiteral {
+    fn bool_type<'a>(&self, index: &'a NodeIndex) -> &'a dyn Node {
+        index
+            .search_in_path(
+                Path::new(PRELUDE_PATH),
+                self,
+                "`bool` type",
+                sources::type_criteria(),
+            )
+            .expect("internal error: `bool` type not found")
+    }
+}
+
+sequence!(
+    #[allow(unused_mut)]
+    struct VarIdentExpr {
+        ident: Ident,
+    }
+);
+
+impl NodeConfig for VarIdentExpr {
+    fn source_key(&self, _index: &NodeIndex) -> Option<String> {
+        Some(sources::variable_key(&self.ident))
+    }
+
+    fn source<'a>(&self, index: &'a NodeIndex) -> Option<&'a dyn Node> {
+        index.search(self, &self.source_key(index)?, sources::variable_criteria())
+    }
+
+    fn is_ref(&self, index: &NodeIndex) -> Option<bool> {
+        self.source(index)
+            .map(|source| source.node_type_id() != TypeId::of::<ConstantItem>())
+    }
+
+    fn type_<'a>(&self, index: &'a NodeIndex) -> Option<NodeType<'a>> {
+        self.source(index)?.type_(index)
+    }
+
+    fn validate(&self, ctx: &mut ValidationContext<'_>) {
+        validations::check_missing_source(self, ctx);
+    }
+
+    fn invalid_constant(&self, index: &NodeIndex) -> Option<&dyn Node> {
+        let source = self.source(index)?;
+        if source.node_type_id() == TypeId::of::<ConstantItem>()
+            || source.node_type_id() == TypeId::of::<LocalVarDefStmt>()
+            || source.node_type_id() == TypeId::of::<LocalRefDefStmt>()
+            || source.node_type_id() == TypeId::of::<FnParam>()
+        {
+            None
+        } else {
+            Some(self)
+        }
+    }
+
+    fn evaluate_constant(&self, ctx: &mut ConstantContext<'_>) -> Option<ConstantValue> {
+        let source = self.source(ctx.index)?;
+        if source.node_type_id() == TypeId::of::<ConstantItem>() {
+            self.source(ctx.index)?.evaluate_constant(ctx)
+        } else {
+            ctx.var_value(source.id).cloned()
+        }
+    }
+
+    fn transpile(&self, ctx: &mut TranspilationContext<'_>) -> String {
+        let source_id = self
+            .source(ctx.index)
+            .expect("internal error: var ident source not found")
+            .id;
+        if let Some(mapping) = ctx.inline_mapping(source_id) {
+            mapping.to_string()
+        } else {
+            format!("_{source_id}")
+        }
+    }
+}
+
+sequence!(
+    struct ParenthesizedExpr {
+        open: OpenParenthesisSymbol,
+        #[force_error(true)]
+        expr: MaybeBinaryExpr,
+        close: CloseParenthesisSymbol,
+    }
+);
+
+impl NodeConfig for ParenthesizedExpr {
+    fn source<'a>(&self, index: &'a NodeIndex) -> Option<&'a dyn Node> {
+        self.expr.source(index)
+    }
+
+    fn type_<'a>(&self, index: &'a NodeIndex) -> Option<NodeType<'a>> {
+        self.expr.type_(index)
+    }
+
+    fn invalid_constant(&self, index: &NodeIndex) -> Option<&dyn Node> {
+        self.expr.invalid_constant(index)
+    }
+
+    fn evaluate_constant(&self, ctx: &mut ConstantContext<'_>) -> Option<ConstantValue> {
+        self.expr.evaluate_constant(ctx)
+    }
+
+    fn transpile(&self, ctx: &mut TranspilationContext<'_>) -> String {
+        let expr = self.expr.transpile(ctx);
+        format!("({expr})")
+    }
+}

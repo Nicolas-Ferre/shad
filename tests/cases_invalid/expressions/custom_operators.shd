@@ -1,0 +1,4 @@
+run {
+    var not_found_binary = true + false;
+    var not_found_unary = !1.0;
+}

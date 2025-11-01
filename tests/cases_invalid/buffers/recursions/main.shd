@@ -1,5 +1,0 @@
-import other;
-
-pub buf recursive_direct = recursive_direct;
-pub buf recursive1_indirect = recursive2_indirect;
-pub buf recursive4_indirect = recursive1_indirect;

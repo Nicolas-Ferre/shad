@@ -1,0 +1,10 @@
+run {
+    var unused_value = 0; // shouldn't be used in next block
+}
+
+run {
+    var var_value = missing;
+    var_value = missing;
+    var_value = unused_value;
+    missing = 10;
+}

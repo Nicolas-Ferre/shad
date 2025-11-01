@@ -1,0 +1,49 @@
+buf return_with_side_effect = return_value_with_side_effect(5, 10);
+buf side_effect = 0;
+
+fn return_value_with_side_effect(side_effect_value: i32, returned_value: i32) -> i32 {
+    returned_value = 2;
+    var result = returned_value;
+    side_effect = side_effect_value;
+    return result;
+}
+
+buf return_fn_run = false;
+buf no_return_fn_run = false;
+
+run {
+    return_value();
+    no_return_value();
+}
+
+fn return_value() -> i32 {
+    return_fn_run = true;
+    return 2;
+}
+
+fn no_return_value() {
+    no_return_fn_run = true;
+}
+
+buf return_associated_fn_expr = 42.associated_return_value();
+buf no_return_associated_fn_run = false;
+
+run {
+    true.associated_no_return_value();
+}
+
+fn associated_return_value(value: i32) -> i32 {
+    return value;
+}
+
+fn associated_no_return_value(value: bool) {
+    no_return_associated_fn_run = value;
+}
+
+buf call_with_all_arg_names = fn_with_params(param1: 2, param2: 5u);
+buf call_with_partial_arg_names = fn_with_params(param1: 2, 5u);
+buf associated_call_with_arg_names = 2.fn_with_params(param2: 5u);
+
+fn fn_with_params(param1: i32, param2: u32) -> i32 {
+    return param1 + i32(param2);
+}

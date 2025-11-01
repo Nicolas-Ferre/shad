@@ -1,0 +1,15 @@
+imported.public_items.pub_buf=2
+inner.imported1.value1=1
+inner.imported2.value2=2
+inner.imported3.value3=3
+inner.imported4.value4=4
+inner.main.result1=1
+inner.main.result2=2
+inner.main.result3=3
+inner.main.result4=4
+public_visibility.private_struct_with_pub_field_result=4
+public_visibility.pub_buf_result=2
+public_visibility.pub_const_result=1
+public_visibility.pub_fn_result=3
+public_visibility.pub_item_in_pub_import=5
+public_visibility.pub_struct_result=42

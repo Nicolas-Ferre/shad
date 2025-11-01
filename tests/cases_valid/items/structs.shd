@@ -1,0 +1,27 @@
+buf result = TestStruct {
+    i32x2(2, 5),
+    i32x3(6, 8, 9),
+    42,
+    InnerTestStruct { 100u },
+};
+buf constructor_with_arg_names = TestStruct {
+    field1: i32x2(2, 5),
+    i32x3(6, 8, 9),
+    field3: 42,
+    InnerTestStruct { 100u },
+};
+
+run {
+    result.field2.y = 10;
+}
+
+struct TestStruct {
+    field1: i32x2,
+    field2: i32x3,
+    field3: i32,
+    inner: InnerTestStruct
+}
+
+struct InnerTestStruct {
+    field: u32,
+}

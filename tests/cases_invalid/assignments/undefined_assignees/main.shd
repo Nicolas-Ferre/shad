@@ -1,5 +1,0 @@
-buf value = 0.;
-
-run {
-    undefined = value;
-}

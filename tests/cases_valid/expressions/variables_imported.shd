@@ -1,0 +1,8 @@
+import inner.not_imported;
+import inner.imported1;
+import inner.imported2;
+
+buf not_imported = 4;
+
+buf result_imported = imported;
+buf result_not_imported = not_imported;

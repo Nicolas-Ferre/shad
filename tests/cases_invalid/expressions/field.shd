@@ -1,0 +1,4 @@
+run {
+    var vec = i32x2(2, 5);
+    var z = vec.z;
+}

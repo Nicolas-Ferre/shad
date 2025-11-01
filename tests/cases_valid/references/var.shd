@@ -1,0 +1,27 @@
+buf direct_ref_result = 2;
+buf indirect_ref_result = 4;
+buf not_ref_result = 0;
+
+run {
+    ref direct_ref = direct_ref_result;
+    direct_ref = direct_ref + 1;
+    increment(direct_ref);
+
+    ref indirect_ref = incremented(indirect_ref_result);
+    indirect_ref = indirect_ref + 1;
+    increment(indirect_ref);
+
+    ref not_ref = 4 + 5;
+    not_ref = not_ref + 1;
+    increment(not_ref);
+    not_ref_result = not_ref;
+}
+
+fn increment(value: ref i32) {
+    value = value + 1;
+}
+
+fn incremented(value: ref i32) -> ref i32 {
+    value = value + 1;
+    return value;
+}

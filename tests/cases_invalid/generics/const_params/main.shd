@@ -1,8 +1,0 @@
-fn modified_constant<C: u32>() {
-    C = 0u;
-}
-
-fn invalid_constant_type<C: u32>() {
-    var value = true;
-    value = C;
-}

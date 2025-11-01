@@ -1,0 +1,1 @@
+pub const PUB_ITEM_IN_PRIVATE_IMPORT = 42;

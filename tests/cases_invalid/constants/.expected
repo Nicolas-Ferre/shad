@@ -1,0 +1,138 @@
+error: invalid `const` scope
+ --> ./cases_invalid/constants/exprs.shd:3:27
+  |
+3 | const NON_CONST_FN_CALL = non_const();
+  | -----                     ^^^^^^^^^^^
+  | |                         |
+  | |                         cannot be used in a `const` scope
+  | `const` scope declared here
+
+error: invalid `const` scope
+ --> ./cases_invalid/constants/exprs.shd:4:38
+  |
+4 | const NON_CONST_ASSOCIATED_FN_CALL = 5.__not__();
+  | -----                                ^^^^^^^^^^^
+  | |                                    |
+  | `const` scope declared here          cannot be used in a `const` scope
+
+error: invalid `const` scope
+ --> ./cases_invalid/constants/exprs.shd:5:34
+  |
+5 | const NON_CONST_UNARY_OPERATOR = !5;
+  | -----                            ^^
+  | |                                |
+  | |                                cannot be used in a `const` scope
+  | `const` scope declared here
+
+error: invalid `const` scope
+ --> ./cases_invalid/constants/exprs.shd:6:34
+  |
+6 | const NON_CONST_UNARY_OPERAND = -buffer;
+  | -----                            ^^^^^^
+  | |                                |
+  | |                                cannot be used in a `const` scope
+  | `const` scope declared here
+
+error: invalid `const` scope
+ --> ./cases_invalid/constants/exprs.shd:7:35
+  |
+7 | const NON_CONST_BINARY_OPERATOR = true + false;
+  | -----                             ^^^^^^^^^^^^
+  | |                                 |
+  | `const` scope declared here       cannot be used in a `const` scope
+
+error: invalid `const` scope
+ --> ./cases_invalid/constants/exprs.shd:8:39
+  |
+8 | const NON_CONST_BINARY_LEFT_OPERAND = buffer + 0;
+  | -----                                 ^^^^^^
+  | |                                     |
+  | `const` scope declared here           cannot be used in a `const` scope
+
+error: invalid `const` scope
+ --> ./cases_invalid/constants/exprs.shd:9:44
+  |
+9 | const NON_CONST_BINARY_RIGHT_OPERAND = 0 + buffer;
+  | -----                                      ^^^^^^
+  | |                                          |
+  | `const` scope declared here                cannot be used in a `const` scope
+
+error: invalid `const` scope
+  --> ./cases_invalid/constants/exprs.shd:10:19
+   |
+10 | const BUF_IDENT = buffer;
+   | -----             ^^^^^^
+   | |                 |
+   | |                 cannot be used in a `const` scope
+   | `const` scope declared here
+
+error: invalid `const` scope
+  --> ./cases_invalid/constants/exprs.shd:11:40
+   |
+11 | const FN_CALL_WITH_NON_CONST_ARG = u32(buffer);
+   | -----                                  ^^^^^^
+   | |                                      |
+   | `const` scope declared here            cannot be used in a `const` scope
+
+error: invalid `const` scope
+  --> ./cases_invalid/constants/exprs.shd:12:55
+   |
+12 | const ASSOCIATED_FN_CALL_WITH_NON_CONST_ARG = 5.i32x2(buffer);
+   | -----                                                 ^^^^^^
+   | |                                                     |
+   | `const` scope declared here                           cannot be used in a `const` scope
+
+error: invalid `const` scope
+  --> ./cases_invalid/constants/exprs.shd:13:53
+   |
+13 | const ASSOCIATED_FN_CALL_WITH_NON_CONST_FIRST_ARG = buffer.u32();
+   | -----                                               ^^^^^^
+   | |                                                   |
+   | `const` scope declared here                         cannot be used in a `const` scope
+
+error: invalid `const` scope
+  --> ./cases_invalid/constants/exprs.shd:14:53
+   |
+14 | const CONSTRUCTOR_WITH_NON_CONST_ARG = I32Wrapper { buffer };
+   | -----                                               ^^^^^^
+   | |                                                   |
+   | `const` scope declared here                         cannot be used in a `const` scope
+
+error: invalid `const` scope
+  --> ./cases_invalid/constants/exprs.shd:15:24
+   |
+15 | const PARENTHESIZED = (buffer);
+   | -----                  ^^^^^^
+   | |                      |
+   | |                      cannot be used in a `const` scope
+   | `const` scope declared here
+
+error: `const` native function without constant implementation
+ --> ./cases_invalid/constants/fns.shd:3:1
+  |
+3 | const native fn no_const_impl() -> i32 = "";
+  | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  | |
+  | this function cannot be qualified with `const`
+
+error: invalid `const` scope
+ --> ./cases_invalid/constants/stmts.shd:3:5
+  |
+1 | const fn unsupported_assignment() {
+  | ----- `const` scope declared here
+2 |     var a = 0;
+3 |     a = 1;
+  |     ^^^^^^
+  |     |
+  |     cannot be used in a `const` scope
+
+error: invalid `const` scope
+ --> ./cases_invalid/constants/stmts.shd:8:5
+  |
+6 | const fn unsupported_expression() {
+  | ----- `const` scope declared here
+7 |     var a = 0;
+8 |     a;
+  |     ^^
+  |     |
+  |     cannot be used in a `const` scope

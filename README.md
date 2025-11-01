@@ -8,21 +8,21 @@ Shad is a programming language to run applications almost entirely on the GPU.
 
 It is particularly well suited for graphics applications like games.
 
-## ⚠️ Warning ⚠️
+## ⚠️ Warning
 
 Before you consider using this language, please keep in mind that:
 
 - It is developed by a single person in his spare time.
 - The language is highly experimental, so it shouldn't be used for production applications.
 
-## Main language features
+## 🚀 Main language features
 
 - 🔥 Maximize execution on GPU side
 - 💪 Strongly typed
 - 🔀 Data race free
 - 🔄 Hot reloadable
 
-## Supported platforms
+## 💻 Supported platforms
 
 - Windows
 - Linux
@@ -32,7 +32,7 @@ Before you consider using this language, please keep in mind that:
 
 Shad may also work on some other platforms, but they have not been tested.
 
-## Getting started
+## 🏁 Getting started
 
 Shad scripts can be run with the following command:
 
@@ -42,7 +42,7 @@ cargo run --release --bin shad -- run <script path>
 
 Examples of Shad scripts are located in the `examples` folder.
 
-## License
+## 📜 License
 
 Licensed under either of
 
@@ -52,7 +52,7 @@ Licensed under either of
 
 at your option.
 
-### Contribution
+### 🤝 Contribution
 
 Unless you explicitly state otherwise, any contribution intentionally submitted for inclusion in the
 work by you, as

@@ -1,0 +1,10 @@
+buf buffer = no_return();
+
+fn invalid_type_() {
+    var a = no_return();
+    a = no_return();
+    return no_return();
+}
+
+fn no_return() {
+}

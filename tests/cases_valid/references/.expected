@@ -1,0 +1,12 @@
+buffer_init.buffer=6
+fn_return.initial_value=3
+fn_return.other_result=4
+fn_return.result=4
+lvalue.result=7
+param.assigned_value=3
+param.incremented_result=5
+param.inlined_result=42
+param.result=4
+var.direct_ref_result=4
+var.indirect_ref_result=7
+var.not_ref_result=11

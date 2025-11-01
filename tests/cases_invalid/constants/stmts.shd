@@ -1,0 +1,9 @@
+const fn unsupported_assignment() {
+    var a = 0;
+    a = 1;
+}
+
+const fn unsupported_expression() {
+    var a = 0;
+    a;
+}

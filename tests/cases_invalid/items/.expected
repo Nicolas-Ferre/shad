@@ -1,0 +1,225 @@
+error: undefined item
+ --> ./cases_invalid/items/buffer_expr_var_missing_source.shd:1:14
+  |
+1 | buf buffer = missing;
+  |              ^^^^^^^
+  |              |
+  |              `missing` variable is undefined
+
+error: `buffer1` variable defined multiple times
+ --> ./cases_invalid/items/buffer_not_unique.shd:3:1
+  |
+1 | buf buffer1 = 0;
+  | ---------------- same item defined here
+2 | buf buffer2 = 0;
+3 | buf buffer1 = 0;
+  | ^^^^^^^^^^^^^^^^
+  | |
+  | duplicated item
+
+error: invalid expression type
+ --> ./cases_invalid/items/compute.shd:3:11
+  |
+3 | init prio(2.5) {}
+  |           ^^^
+  |           |
+  |           expression type is `f32` but expected type is `i32`
+
+error: invalid `const` scope
+ --> ./cases_invalid/items/compute.shd:4:11
+  |
+4 | init prio(buffer) {}
+  |      ---- ^^^^^^
+  |      |    |
+  |      |    cannot be used in a `const` scope
+  |      `const` scope declared here
+
+error: undefined item
+ --> ./cases_invalid/items/compute.shd:5:11
+  |
+5 | init prio(unknown) {}
+  |           ^^^^^^^
+  |           |
+  |           `unknown` variable is undefined
+
+error: invalid expression type
+ --> ./cases_invalid/items/compute.shd:7:10
+  |
+7 | run prio(2.5) {}
+  |          ^^^
+  |          |
+  |          expression type is `f32` but expected type is `i32`
+
+error: invalid `const` scope
+ --> ./cases_invalid/items/compute.shd:8:10
+  |
+8 | run prio(buffer) {}
+  |     ---- ^^^^^^
+  |     |    |
+  |     |    cannot be used in a `const` scope
+  |     `const` scope declared here
+
+error: undefined item
+ --> ./cases_invalid/items/compute.shd:9:10
+  |
+9 | run prio(unknown) {}
+  |          ^^^^^^^
+  |          |
+  |          `unknown` variable is undefined
+
+error: function parameter defined multiple times
+ --> ./cases_invalid/items/function_definition.shd:1:42
+  |
+1 | fn duplicated_param_name(a: u32, b: u32, a: i32) {
+  |                          ------          ^^^^^^
+  |                          |               |
+  |                          |               duplicated parameter name
+  |                          same parameter name defined here
+
+error: `func(u32, i32)` function defined multiple times
+ --> ./cases_invalid/items/function_not_unique.shd:5:1
+  |
+1 | fn func(a: u32, b: i32) {}
+  | -------------------------- same item defined here
+...
+5 | fn func(a: u32, b: i32) {}
+  | ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  | |
+  | duplicated item
+
+error: item definition with circular dependency
+ --> ./cases_invalid/items/recursion.shd:1:1
+  |
+1 | buf buffer = f();
+  | ^^^^^^^^^^^^^^^^^
+  | |
+  | this item is directly or indirectly referring to itself
+
+error: item definition with circular dependency
+ --> ./cases_invalid/items/recursion.shd:3:1
+  |
+3 | / fn f() -> i32 {
+4 | |     return buffer;
+5 | | }
+  | | ^
+  | |_|
+  |   this item is directly or indirectly referring to itself
+
+error: item definition with circular dependency
+ --> ./cases_invalid/items/recursion.shd:7:1
+  |
+7 | buf buffer1 = buffer2;
+  | ^^^^^^^^^^^^^^^^^^^^^^
+  | |
+  | this item is directly or indirectly referring to itself
+
+error: item definition with circular dependency
+ --> ./cases_invalid/items/recursion.shd:8:1
+  |
+8 | buf buffer2 = buffer3;
+  | ^^^^^^^^^^^^^^^^^^^^^^
+  | |
+  | this item is directly or indirectly referring to itself
+
+error: item definition with circular dependency
+ --> ./cases_invalid/items/recursion.shd:9:1
+  |
+9 | buf buffer3 = buffer1;
+  | ^^^^^^^^^^^^^^^^^^^^^^
+  | |
+  | this item is directly or indirectly referring to itself
+
+error: item definition with circular dependency
+  --> ./cases_invalid/items/recursion.shd:11:1
+   |
+11 | const CONST1 = CONST2;
+   | ^^^^^^^^^^^^^^^^^^^^^^
+   | |
+   | this item is directly or indirectly referring to itself
+
+error: item definition with circular dependency
+  --> ./cases_invalid/items/recursion.shd:12:1
+   |
+12 | const CONST2 = CONST3;
+   | ^^^^^^^^^^^^^^^^^^^^^^
+   | |
+   | this item is directly or indirectly referring to itself
+
+error: item definition with circular dependency
+  --> ./cases_invalid/items/recursion.shd:13:1
+   |
+13 | const CONST3 = CONST1;
+   | ^^^^^^^^^^^^^^^^^^^^^^
+   | |
+   | this item is directly or indirectly referring to itself
+
+error: item definition with circular dependency
+  --> ./cases_invalid/items/recursion.shd:15:1
+   |
+15 | / fn f1() {
+16 | |     f2();
+17 | | }
+   | | ^
+   | |_|
+   |   this item is directly or indirectly referring to itself
+
+error: item definition with circular dependency
+  --> ./cases_invalid/items/recursion.shd:19:1
+   |
+19 | / fn f2() {
+20 | |     f3();
+21 | | }
+   | | ^
+   | |_|
+   |   this item is directly or indirectly referring to itself
+
+error: item definition with circular dependency
+  --> ./cases_invalid/items/recursion.shd:23:1
+   |
+23 | / fn f3() {
+24 | |     f1();
+25 | | }
+   | | ^
+   | |_|
+   |   this item is directly or indirectly referring to itself
+
+error: item definition with circular dependency
+  --> ./cases_invalid/items/recursion.shd:27:1
+   |
+27 | / struct Struct1 {
+28 | |     inner: Struct2,
+29 | | }
+   | | ^
+   | |_|
+   |   this item is directly or indirectly referring to itself
+
+error: item definition with circular dependency
+  --> ./cases_invalid/items/recursion.shd:31:1
+   |
+31 | / struct Struct2 {
+32 | |     inner: Struct3,
+33 | | }
+   | | ^
+   | |_|
+   |   this item is directly or indirectly referring to itself
+
+error: item definition with circular dependency
+  --> ./cases_invalid/items/recursion.shd:35:1
+   |
+35 | / struct Struct3 {
+36 | |     inner: Struct1,
+37 | | }
+   | | ^
+   | |_|
+   |   this item is directly or indirectly referring to itself
+
+error: struct field defined multiple times
+ --> ./cases_invalid/items/struct_definition.shd:4:5
+  |
+2 |     a: i32,
+  |     ------ same field defined here
+3 |     b: i32,
+4 |     a: i32,
+  |     ^^^^^^
+  |     |
+  |     duplicated field

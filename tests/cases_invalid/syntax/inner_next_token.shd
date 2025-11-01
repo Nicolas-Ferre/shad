@@ -1,0 +1,6 @@
+buf buf_value = true;
+
+run {
+    var assigned = 0;
+    assigned = ;
+}

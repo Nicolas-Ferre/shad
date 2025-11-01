@@ -1,0 +1,5 @@
+buf result = i32x2(2, 5).y.squared();
+
+fn squared(value: i32) -> i32 {
+    return value * value;
+}

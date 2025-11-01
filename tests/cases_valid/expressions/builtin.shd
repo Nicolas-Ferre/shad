@@ -1,0 +1,4 @@
+buf binary = 4 + 2;
+buf unary = -4;
+buf fn_call = select(true, 2, 1);
+buf associated_fn_call = true.select(2, 1);
