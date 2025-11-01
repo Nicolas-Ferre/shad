@@ -4,14 +4,14 @@ use wgpu::{
     Adapter, BackendOptions, Backends, BindGroupLayout, BindGroupLayoutEntry, BindingType, Buffer,
     BufferBindingType, BufferDescriptor, BufferUsages, Color, CommandEncoder,
     CommandEncoderDescriptor, CompositeAlphaMode, ComputePass, ComputePassDescriptor,
-    ComputePipeline, ComputePipelineDescriptor, Device, DeviceDescriptor, Extent3d, Features,
-    Instance, InstanceFlags, Limits, LoadOp, MapMode, MemoryBudgetThresholds, MemoryHints,
-    Operations, PipelineCompilationOptions, PipelineLayoutDescriptor, PollType, PowerPreference,
-    Queue, RenderPass, RenderPassColorAttachment, RenderPassDepthStencilAttachment,
-    RenderPassDescriptor, RequestAdapterOptions, ShaderModuleDescriptor, ShaderStages, StoreOp,
-    Surface, SurfaceConfiguration, SurfaceTexture, TexelCopyBufferInfo, TexelCopyBufferLayout,
-    Texture, TextureDescriptor, TextureDimension, TextureFormat, TextureUsages, TextureView,
-    TextureViewDescriptor, Trace,
+    ComputePipeline, ComputePipelineDescriptor, Device, DeviceDescriptor, ExperimentalFeatures,
+    Extent3d, Features, Instance, InstanceFlags, Limits, LoadOp, MapMode, MemoryBudgetThresholds,
+    MemoryHints, Operations, PipelineCompilationOptions, PipelineLayoutDescriptor, PollType,
+    PowerPreference, Queue, RenderPass, RenderPassColorAttachment,
+    RenderPassDepthStencilAttachment, RenderPassDescriptor, RequestAdapterOptions,
+    ShaderModuleDescriptor, ShaderStages, StoreOp, Surface, SurfaceConfiguration, SurfaceTexture,
+    TexelCopyBufferInfo, TexelCopyBufferLayout, Texture, TextureDescriptor, TextureDimension,
+    TextureFormat, TextureUsages, TextureView, TextureViewDescriptor, Trace,
 };
 use winit::window::Window;
 
@@ -58,6 +58,7 @@ pub(crate) async fn create_device(adapter: &Adapter) -> (Device, Queue) {
         label: Some("shad:device"),
         required_features: Features::default(),
         required_limits: Limits::default(),
+        experimental_features: ExperimentalFeatures::default(),
         memory_hints: MemoryHints::Performance,
         trace: Trace::Off,
     };
@@ -261,7 +262,10 @@ pub(crate) fn read_buffer(device: &Device, queue: &Queue, buffer: &Buffer, size:
     let slice = read_buffer.slice(..);
     slice.map_async(MapMode::Read, |_| ());
     device
-        .poll(PollType::WaitForSubmissionIndex(submission_index))
+        .poll(PollType::Wait {
+            submission_index: Some(submission_index),
+            timeout: None,
+        })
         .expect("cannot read buffer");
     let view = slice.get_mapped_range();
     let content = view.to_vec();
@@ -304,7 +308,10 @@ pub(crate) fn read_texture(
     let slice = tmp_buffer.slice(..);
     slice.map_async(MapMode::Read, |_| ());
     device
-        .poll(PollType::WaitForSubmissionIndex(submission_index))
+        .poll(PollType::Wait {
+            submission_index: Some(submission_index),
+            timeout: None,
+        })
         .expect("cannot read target buffer");
     let view = slice.get_mapped_range();
     let (padded_row_bytes, unpadded_row_bytes) = padded_unpadded_row_bytes(size.0);
