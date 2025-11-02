@@ -78,5 +78,3 @@ choice!(
         Ident(Ident),
     }
 );
-
-impl NodeConfig for ImportPathSegment {}

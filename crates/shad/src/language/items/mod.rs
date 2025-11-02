@@ -41,8 +41,6 @@ choice!(
     }
 );
 
-impl NodeConfig for Item {}
-
 pub(crate) fn is_item_recursive(item: &impl Node, index: &NodeIndex) -> bool {
     item.nested_sources(index)
         .iter()

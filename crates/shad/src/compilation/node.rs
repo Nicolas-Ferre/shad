@@ -595,6 +595,50 @@ macro_rules! choice {
             }
         }
 
+        impl crate::compilation::node::NodeConfig for $typename {
+            fn is_ref(&self, index: &crate::compilation::index::NodeIndex) -> Option<bool> {
+                match self {
+                    $(Self::$child(child) => child.is_ref(index),)*
+                }
+            }
+
+            fn type_<'a>(
+                &self,
+                index: &'a crate::compilation::index::NodeIndex,
+            ) -> Option<crate::compilation::node::NodeType<'a>> {
+                match self {
+                    $(Self::$child(child) => child.type_(index),)*
+                }
+            }
+
+            fn invalid_constant(
+                &self,
+                index: &crate::compilation::index::NodeIndex,
+            ) -> Option<&dyn crate::compilation::node::Node> {
+                match self {
+                    $(Self::$child(child) => child.invalid_constant(index),)*
+                }
+            }
+
+            fn evaluate_constant(
+                &self,
+                ctx: &mut crate::compilation::constant::ConstantContext<'_>,
+            ) -> Option<crate::compilation::constant::ConstantValue> {
+                match self {
+                    $(Self::$child(child) => child.evaluate_constant(ctx),)*
+                }
+            }
+
+            fn transpile(
+                &self,
+                ctx: &mut crate::compilation::transpilation::TranspilationContext<'_>,
+            ) -> std::string::String {
+                match self {
+                    $(Self::$child(child) => child.transpile(ctx),)*
+                }
+            }
+        }
+
         #[allow(unused)]
         impl $typename {
             pub(crate) fn inner(&self) -> &dyn crate::compilation::node::Node {

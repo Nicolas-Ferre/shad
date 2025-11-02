@@ -24,6 +24,10 @@ sequence!(
 );
 
 impl NodeConfig for ConstructorExpr {
+    fn is_ref(&self, _index: &NodeIndex) -> Option<bool> {
+        Some(false)
+    }
+
     fn source_key(&self, _index: &NodeIndex) -> Option<String> {
         Some(sources::type_key(&self.type_.ident))
     }

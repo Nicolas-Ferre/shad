@@ -41,6 +41,10 @@ pattern!(
 );
 
 impl NodeConfig for F32Literal {
+    fn is_ref(&self, _index: &NodeIndex) -> Option<bool> {
+        Some(false)
+    }
+
     fn type_<'a>(&self, index: &'a NodeIndex) -> Option<NodeType<'a>> {
         Some(NodeType::Source(self.f32_type(index)))
     }
@@ -103,6 +107,10 @@ pattern!(
 );
 
 impl NodeConfig for U32Literal {
+    fn is_ref(&self, _index: &NodeIndex) -> Option<bool> {
+        Some(false)
+    }
+
     fn type_<'a>(&self, index: &'a NodeIndex) -> Option<NodeType<'a>> {
         Some(NodeType::Source(Self::u32_type(self, index)))
     }
@@ -170,6 +178,10 @@ pattern!(
 );
 
 impl NodeConfig for I32Literal {
+    fn is_ref(&self, _index: &NodeIndex) -> Option<bool> {
+        Some(false)
+    }
+
     fn type_<'a>(&self, index: &'a NodeIndex) -> Option<NodeType<'a>> {
         Some(NodeType::Source(Self::i32_type(self, index)))
     }
