@@ -2,7 +2,7 @@ use crate::compilation::node::keyword;
 
 pub(crate) const RESERVED_KEYWORDS: &[&str] = &[
     "alignof", "buf", "const", "false", "fn", "import", "init", "native", "prio", "pub", "ref",
-    "run", "return", "struct", "var", "true",
+    "run", "return", "sizeof", "struct", "var", "true",
 ];
 
 keyword!(AlignofKeyword, "alignof");
@@ -18,6 +18,7 @@ keyword!(PubKeyword, "pub");
 keyword!(RefKeyword, "ref");
 keyword!(RunKeyword, "run");
 keyword!(ReturnKeyword, "return");
+keyword!(SizeofKeyword, "sizeof");
 keyword!(StructKeyword, "struct");
 keyword!(VarKeyword, "var");
 keyword!(TrueKeyword, "true");

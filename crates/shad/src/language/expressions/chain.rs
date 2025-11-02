@@ -9,7 +9,7 @@ use crate::language::expressions::fn_call::{
     check_arg_names, transpile_fn_call, FnArgGroup, FnCallExpr,
 };
 use crate::language::expressions::simple::{
-    AlignofExpr, BoolLiteral, ParenthesizedExpr, VarIdentExpr,
+    AlignofExpr, BoolLiteral, ParenthesizedExpr, SizeofExpr, VarIdentExpr,
 };
 use crate::language::expressions::unary::UnaryExpr;
 use crate::language::items::{fn_, type_};
@@ -239,6 +239,7 @@ choice!(
         Unary(UnaryExpr),
         Parenthesized(ParenthesizedExpr),
         Alignof(AlignofExpr),
+        Sizeof(SizeofExpr),
     }
 );
 
@@ -251,7 +252,8 @@ impl NodeConfig for ChainPrefix {
             | Self::I32(_)
             | Self::Parenthesized(_)
             | Self::Constructor(_)
-            | Self::Alignof(_) => Some(false),
+            | Self::Alignof(_)
+            | Self::Sizeof(_) => Some(false),
             Self::Var(child) => child.is_ref(index),
             Self::FnCall(child) => child.is_ref(index),
             Self::Unary(child) => child.is_ref(index),
@@ -270,6 +272,7 @@ impl NodeConfig for ChainPrefix {
             Self::Parenthesized(child) => child.type_(index),
             Self::Constructor(child) => child.type_(index),
             Self::Alignof(child) => child.type_(index),
+            Self::Sizeof(child) => child.type_(index),
         }
     }
 
@@ -285,6 +288,7 @@ impl NodeConfig for ChainPrefix {
             Self::Unary(child) => child.invalid_constant(index),
             Self::Parenthesized(child) => child.invalid_constant(index),
             Self::Alignof(child) => child.invalid_constant(index),
+            Self::Sizeof(child) => child.invalid_constant(index),
         }
     }
 
@@ -300,6 +304,7 @@ impl NodeConfig for ChainPrefix {
             Self::Unary(child) => child.evaluate_constant(ctx),
             Self::Parenthesized(child) => child.evaluate_constant(ctx),
             Self::Alignof(child) => child.evaluate_constant(ctx),
+            Self::Sizeof(child) => child.evaluate_constant(ctx),
         }
     }
 
@@ -315,6 +320,7 @@ impl NodeConfig for ChainPrefix {
             Self::Parenthesized(child) => child.transpile(ctx),
             Self::Constructor(child) => child.transpile(ctx),
             Self::Alignof(child) => child.transpile(ctx),
+            Self::Sizeof(child) => child.transpile(ctx),
         }
     }
 }

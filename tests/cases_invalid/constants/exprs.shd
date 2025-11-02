@@ -14,6 +14,7 @@ const ASSOCIATED_FN_CALL_WITH_NON_CONST_FIRST_ARG = buffer.u32();
 const CONSTRUCTOR_WITH_NON_CONST_ARG = I32Wrapper { buffer };
 const PARENTHESIZED = (buffer);
 const ALIGNOF_INVALID_TYPE = alignof(unknown);
+const SIZEOF_INVALID_TYPE = sizeof(unknown);
 
 struct I32Wrapper {
     inner: i32,

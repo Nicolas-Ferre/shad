@@ -8,6 +8,7 @@ exprs.field=4
 exprs.fn_call=6
 exprs.i32_literal=12
 exprs.ident=6
+exprs.sizeof_type=12
 exprs.true_bool_literal=1
 exprs.u32_literal=12
 exprs.unary=-2
