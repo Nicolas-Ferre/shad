@@ -2,7 +2,7 @@ use crate::compilation::index::NodeIndex;
 use crate::compilation::node::Node;
 use crate::language::items::buffer::BufferItem;
 use crate::language::items::compute::{InitItem, RunItem};
-use crate::language::items::{type_, Root};
+use crate::language::items::Root;
 use itertools::Itertools;
 use petgraph::graphmap::DiGraphMap;
 use std::any::Any;
@@ -110,8 +110,8 @@ impl Buffer {
     fn new(item: &BufferItem, index: &NodeIndex) -> Self {
         let type_ = item.buffer_type(index);
         Self {
-            size_bytes: type_::size(type_, index),
-            type_name: type_::name(type_),
+            size_bytes: type_.size(index),
+            type_name: type_.ident().slice.clone(),
         }
     }
 }

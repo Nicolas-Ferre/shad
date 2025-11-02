@@ -25,12 +25,12 @@ impl NodeConfig for TypedExpr {
         self.expr.is_ref(index)
     }
 
-    fn type_<'a>(&self, index: &'a NodeIndex) -> Option<NodeType<'a>> {
+    fn type_<'a>(&'a self, index: &'a NodeIndex) -> Option<NodeType<'a>> {
         self.expr.type_(index)
     }
 
     fn validate(&self, ctx: &mut ValidationContext<'_>) {
-        if self.type_(ctx.index).is_some_and(NodeType::is_no_return) {
+        if self.type_(ctx.index).is_some_and(|t| t.is_no_return()) {
             ctx.errors.push(ValidationError::error(
                 ctx,
                 self,

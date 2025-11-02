@@ -31,7 +31,7 @@ impl NodeConfig for ConstantItem {
         self.pub_.iter().len() > 0
     }
 
-    fn type_<'a>(&self, index: &'a NodeIndex) -> Option<NodeType<'a>> {
+    fn type_<'a>(&'a self, index: &'a NodeIndex) -> Option<NodeType<'a>> {
         if is_item_recursive(self, index) {
             None
         } else {

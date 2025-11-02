@@ -36,7 +36,7 @@ impl NodeConfig for LocalVarDefStmt {
         Some(sources::variable_key(&self.ident))
     }
 
-    fn type_<'a>(&self, index: &'a NodeIndex) -> Option<NodeType<'a>> {
+    fn type_<'a>(&'a self, index: &'a NodeIndex) -> Option<NodeType<'a>> {
         self.expr.type_(index)
     }
 
@@ -84,7 +84,7 @@ impl NodeConfig for LocalRefDefStmt {
         Some(sources::variable_key(&self.ident))
     }
 
-    fn type_<'a>(&self, index: &'a NodeIndex) -> Option<NodeType<'a>> {
+    fn type_<'a>(&'a self, index: &'a NodeIndex) -> Option<NodeType<'a>> {
         self.expr.type_(index)
     }
 
@@ -166,11 +166,7 @@ impl NodeConfig for ExprStmt {
 
     fn transpile(&self, ctx: &mut TranspilationContext<'_>) -> String {
         let expr = self.expr.transpile(ctx);
-        if self
-            .expr
-            .type_(ctx.index)
-            .is_some_and(NodeType::is_no_return)
-        {
+        if self.expr.type_(ctx.index).is_some_and(|t| t.is_no_return()) {
             format!("{expr};")
         } else {
             let id = ctx.next_node_id();
@@ -189,7 +185,7 @@ sequence!(
 );
 
 impl NodeConfig for ReturnStmt {
-    fn type_<'a>(&self, index: &'a NodeIndex) -> Option<NodeType<'a>> {
+    fn type_<'a>(&'a self, index: &'a NodeIndex) -> Option<NodeType<'a>> {
         self.expr.type_(index)
     }
 

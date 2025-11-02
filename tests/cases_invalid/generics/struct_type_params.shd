@@ -1,0 +1,33 @@
+struct SameParamName<T: type, T: type> {
+    field: i32,
+}
+
+fn invalid_return() -> MultipleParams<u32, i32> {
+    return MultipleParams<f32, bool> { 0 };
+}
+
+const UNEXPECTED_ARGS = alignof(NoParam<u32>);
+const EXPECTED_ARGS = alignof(MultipleParams);
+const INVALID_ARG_COUNT = alignof(MultipleParams<u32>);
+const INVALID_ARG = alignof(MultipleParams<i32, unknown>);
+
+run {
+    var value = create_with_some_params();
+    value = create_with_other_params();
+}
+
+struct NoParam {
+    field: i32,
+}
+
+struct MultipleParams<T: type, U: type> {
+    field: i32,
+}
+
+fn create_with_some_params() -> MultipleParams<u32, i32> {
+    return MultipleParams<u32, i32> { 0 };
+}
+
+fn create_with_other_params() -> MultipleParams<f32, bool> {
+    return MultipleParams<f32, bool> { 0 };
+}

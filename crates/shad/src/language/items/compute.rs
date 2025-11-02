@@ -1,6 +1,6 @@
 use crate::compilation::constant::{ConstantContext, ConstantData, ConstantValue};
 use crate::compilation::index::NodeIndex;
-use crate::compilation::node::{sequence, NodeConfig, NodeType, Repeated};
+use crate::compilation::node::{sequence, NodeConfig, NodeType, NodeTypeSource, Repeated};
 use crate::compilation::transpilation::TranspilationContext;
 use crate::compilation::validation::ValidationContext;
 use crate::language::expressions::binary::MaybeBinaryExpr;
@@ -99,7 +99,10 @@ sequence!(
 
 impl NodeConfig for Priority {
     fn validate(&self, ctx: &mut ValidationContext<'_>) {
-        let expected_type = NodeType::Source(I32Literal::i32_type(self, ctx.index));
+        let expected_type = NodeType::Source(NodeTypeSource {
+            item: I32Literal::i32_type(self, ctx.index),
+            generics: None,
+        });
         validations::check_invalid_const_expr_type(expected_type, &*self.value, ctx);
         validations::check_invalid_const_scope(&*self.value, &*self.prio, ctx);
     }

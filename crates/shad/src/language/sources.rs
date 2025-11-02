@@ -4,7 +4,6 @@ use crate::language::expressions::binary::MaybeBinaryExpr;
 use crate::language::items::buffer::BufferItem;
 use crate::language::items::constant::ConstantItem;
 use crate::language::items::fn_::{FnItem, FnParam, FnParamGroup, NativeFnItem};
-use crate::language::items::type_;
 use crate::language::items::type_::{NativeStructItem, StructItem};
 use crate::language::patterns::Ident;
 use crate::language::statements::{LocalRefDefStmt, LocalVarDefStmt};
@@ -38,7 +37,7 @@ pub(crate) fn fn_key_from_args<'a>(
 ) -> Option<String> {
     let name = &ident.slice;
     let arg_types = args
-        .map(|arg| arg.type_(index).map(type_::name_or_no_return))
+        .map(|arg| arg.type_(index).map(|type_| type_.name_or_no_return(index)))
         .collect::<Option<Vec<_>>>()?
         .join(", ");
     Some(format!("`{name}({arg_types})` function"))
@@ -47,10 +46,11 @@ pub(crate) fn fn_key_from_args<'a>(
 pub(crate) fn fn_key_from_operator<'a>(
     name: &str,
     arg_types: impl IntoIterator<Item = NodeType<'a>>,
+    index: &NodeIndex,
 ) -> String {
     let arg_types = arg_types
         .into_iter()
-        .map(type_::name_or_no_return)
+        .map(|type_| type_.name_or_no_return(index))
         .join(", ");
     format!("`{name}({arg_types})` function")
 }

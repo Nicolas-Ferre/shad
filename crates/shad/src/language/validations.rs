@@ -1,7 +1,6 @@
 use crate::compilation::node::{Node, NodeType};
 use crate::compilation::validation::ValidationContext;
 use crate::language::items;
-use crate::language::items::type_;
 use crate::language::patterns::Ident;
 use crate::ValidationError;
 
@@ -58,12 +57,12 @@ pub(crate) fn check_invalid_expr_type(
     if let (Some(expected_type), Some(actual_type)) =
         (expected.type_(ctx.index), actual.type_(ctx.index))
     {
-        let expected_type_name = type_::name_or_no_return(expected_type);
-        let actual_type_name = type_::name_or_no_return(actual_type);
         if (actual_type.is_no_return() || expected_type.is_no_return()) && !check_no_return {
             return;
         }
-        if actual_type.source().map(|s| s.id) != expected_type.source().map(|s| s.id) {
+        if !actual_type.are_same(&expected_type, ctx.index) {
+            let expected_type_name = expected_type.name_or_no_return(ctx.index);
+            let actual_type_name = actual_type.name_or_no_return(ctx.index);
             ctx.errors.push(ValidationError::error(
                 ctx,
                 actual,
@@ -84,9 +83,9 @@ pub(crate) fn check_invalid_const_expr_type(
     ctx: &mut ValidationContext<'_>,
 ) {
     if let Some(actual_type) = actual.type_(ctx.index) {
-        let expected_type_name = type_::name_or_no_return(expected_type);
-        let actual_type_name = type_::name_or_no_return(actual_type);
-        if actual_type.source().map(|s| s.id) != expected_type.source().map(|s| s.id) {
+        if !actual_type.are_same(&expected_type, ctx.index) {
+            let expected_type_name = expected_type.name_or_no_return(ctx.index);
+            let actual_type_name = actual_type.name_or_no_return(ctx.index);
             ctx.errors.push(ValidationError::error(
                 ctx,
                 actual,

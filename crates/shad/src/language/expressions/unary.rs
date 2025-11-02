@@ -26,10 +26,10 @@ impl NodeConfig for UnaryExpr {
             UnaryOperator::Not(_) => "__not__",
         };
         let arg_type = self.operand.type_(index)?;
-        Some(sources::fn_key_from_operator(fn_name, [arg_type]))
+        Some(sources::fn_key_from_operator(fn_name, [arg_type], index))
     }
 
-    fn source<'a>(&self, index: &'a NodeIndex) -> Option<&'a dyn Node> {
+    fn source<'a>(&'a self, index: &'a NodeIndex) -> Option<&'a dyn Node> {
         index.search(self, &self.source_key(index)?, sources::fn_criteria())
     }
 
@@ -37,7 +37,7 @@ impl NodeConfig for UnaryExpr {
         self.source(index).and_then(|source| source.is_ref(index))
     }
 
-    fn type_<'a>(&self, index: &'a NodeIndex) -> Option<NodeType<'a>> {
+    fn type_<'a>(&'a self, index: &'a NodeIndex) -> Option<NodeType<'a>> {
         self.source(index)?.type_(index)
     }
 

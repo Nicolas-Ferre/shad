@@ -4,6 +4,7 @@ use crate::compilation::parsing;
 use crate::compilation::parsing::ParsingContext;
 use crate::compilation::transpilation::TranspilationContext;
 use crate::compilation::validation::ValidationContext;
+use crate::language::items::type_::TypeItem;
 use crate::ParsingError;
 use derive_where::derive_where;
 use itertools::Itertools;
@@ -15,6 +16,8 @@ use std::path::PathBuf;
 use std::rc::Rc;
 use std::slice::Iter;
 use std::{iter, mem};
+
+pub(crate) const NO_RETURN_TYPE: &str = "<no return>";
 
 #[derive(Debug, Clone)]
 #[derive_where(PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -37,23 +40,72 @@ pub(crate) struct NodeSourceSearchCriteria {
     pub(crate) common_parent_count: Option<usize>,
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 pub(crate) enum NodeType<'a> {
-    Source(&'a dyn Node),
+    Source(NodeTypeSource<'a>),
     NoReturn,
 }
 
 impl<'a> NodeType<'a> {
-    pub(crate) fn is_no_return(self) -> bool {
+    pub(crate) fn is_no_return(&self) -> bool {
         matches!(self, Self::NoReturn)
     }
 
-    pub(crate) fn source(self) -> Option<&'a dyn Node> {
+    pub(crate) fn source(&self) -> Option<&NodeTypeSource<'a>> {
         match self {
             NodeType::Source(source) => Some(source),
             NodeType::NoReturn => None,
         }
     }
+
+    pub(crate) fn name_or_no_return(&self, index: &NodeIndex) -> String {
+        match self {
+            NodeType::Source(source) => {
+                let ident_name = source.item.ident().slice.clone();
+                let generic_names = source
+                    .generics
+                    .iter()
+                    .flat_map(|g| g.args())
+                    .map(|type_| {
+                        type_.type_(index).map_or_else(
+                            || "<unknown>".into(),
+                            |type_| type_.name_or_no_return(index),
+                        )
+                    })
+                    .join(", ");
+                if generic_names.is_empty() {
+                    ident_name
+                } else {
+                    format!("{ident_name}<{generic_names}>")
+                }
+            }
+            NodeType::NoReturn => NO_RETURN_TYPE.into(),
+        }
+    }
+
+    pub(crate) fn are_same(&self, other: &NodeType<'_>, index: &NodeIndex) -> bool {
+        match (self, other) {
+            (Self::Source(source1), NodeType::Source(source2)) => {
+                let generics1 = source1.generics.iter().flat_map(|g| g.args());
+                let generics2 = source2.generics.iter().flat_map(|g| g.args());
+                source1.item.id == source2.item.id
+                    && generics1.zip(generics2).all(|(arg1, arg2)| {
+                        if let (Some(type1), Some(type2)) = (arg1.type_(index), arg2.type_(index)) {
+                            type1.are_same(&type2, index)
+                        } else {
+                            false
+                        }
+                    })
+            }
+            (_, _) => false,
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
+pub(crate) struct NodeTypeSource<'a> {
+    pub(crate) item: &'a dyn TypeItem,
+    pub(crate) generics: Option<&'a TypeGenericArgs>,
 }
 
 // coverage: off (most default implementations are unreachable)
@@ -71,7 +123,7 @@ pub(crate) trait NodeConfig {
         None
     }
 
-    fn source<'a>(&self, index: &'a NodeIndex) -> Option<&'a dyn Node> {
+    fn source<'a>(&'a self, index: &'a NodeIndex) -> Option<&'a dyn Node> {
         None
     }
 
@@ -79,7 +131,7 @@ pub(crate) trait NodeConfig {
         unreachable!("`{}` node has no ref checking", type_name::<Self>())
     }
 
-    fn type_<'a>(&self, index: &'a NodeIndex) -> Option<NodeType<'a>> {
+    fn type_<'a>(&'a self, index: &'a NodeIndex) -> Option<NodeType<'a>> {
         unreachable!("`{}` node has no type", type_name::<Self>())
     }
 
@@ -112,7 +164,7 @@ pub(crate) trait Node: Any + NodeConfig + Debug + Deref<Target = NodeProps> {
 
     fn validate_nested(&self, ctx: &mut ValidationContext<'_>);
 
-    fn direct_nested_sources<'a>(&self, index: &'a NodeIndex) -> Vec<&'a dyn Node>;
+    fn direct_nested_sources<'a>(&'a self, index: &'a NodeIndex) -> Vec<&'a dyn Node>;
 
     fn props(&self) -> &NodeProps {
         self
@@ -122,7 +174,7 @@ pub(crate) trait Node: Any + NodeConfig + Debug + Deref<Target = NodeProps> {
         TypeId::of::<Self>()
     }
 
-    fn nested_sources<'a>(&self, index: &'a NodeIndex) -> Vec<&'a dyn Node>
+    fn nested_sources<'a>(&'a self, index: &'a NodeIndex) -> Vec<&'a dyn Node>
     where
         Self: Sized,
     {
@@ -221,7 +273,7 @@ impl<T: Node, const MIN: usize, const MAX: usize> Node for Repeated<T, MIN, MAX>
         }
     }
 
-    fn direct_nested_sources<'a>(&self, index: &'a NodeIndex) -> Vec<&'a dyn Node> {
+    fn direct_nested_sources<'a>(&'a self, index: &'a NodeIndex) -> Vec<&'a dyn Node> {
         self.nodes
             .iter()
             .flat_map(|node| node.direct_nested_sources(index))
@@ -261,7 +313,7 @@ impl Node for EndOfFile {
     fn validate_nested(&self, _ctx: &mut ValidationContext<'_>) {}
 
     // coverage: off (unused by needed by `Node` trait)
-    fn direct_nested_sources<'a>(&self, _index: &'a NodeIndex) -> Vec<&'a dyn Node> {
+    fn direct_nested_sources<'a>(&'a self, _index: &'a NodeIndex) -> Vec<&'a dyn Node> {
         vec![]
     }
     // coverage: on
@@ -306,7 +358,7 @@ macro_rules! keyword {
             }
 
             fn direct_nested_sources<'a>(
-                &self,
+                &'a self,
                 _index: &'a crate::compilation::index::NodeIndex,
             ) -> Vec<&'a dyn crate::compilation::node::Node> {
                 vec![]
@@ -363,7 +415,7 @@ macro_rules! pattern {
             }
 
             fn direct_nested_sources<'a>(
-                &self,
+                &'a self,
                 index: &'a crate::compilation::index::NodeIndex
             ) -> Vec<&'a dyn crate::compilation::node::Node> {
                 self.source(index).into_iter().collect()
@@ -490,7 +542,7 @@ macro_rules! sequence {
             }
 
             fn direct_nested_sources<'a>(
-                &self,
+                &'a self,
                 index: &'a crate::compilation::index::NodeIndex
             ) -> Vec<&'a dyn crate::compilation::node::Node> {
                 let mut sources = vec![];
@@ -586,7 +638,7 @@ macro_rules! choice {
             }
 
             fn direct_nested_sources<'a>(
-                &self,
+                &'a self,
                 index: &'a crate::compilation::index::NodeIndex
             ) -> Vec<&'a dyn crate::compilation::node::Node> {
                 match self {
@@ -603,7 +655,7 @@ macro_rules! choice {
             }
 
             fn type_<'a>(
-                &self,
+                &'a self,
                 index: &'a crate::compilation::index::NodeIndex,
             ) -> Option<crate::compilation::node::NodeType<'a>> {
                 match self {
@@ -694,7 +746,7 @@ macro_rules! transform {
             }
 
             fn type_<'a>(
-                &self,
+                &'a self,
                 index: &'a crate::compilation::index::NodeIndex,
             ) -> Option<crate::compilation::node::NodeType<'a>> {
                 match self {
@@ -776,7 +828,7 @@ macro_rules! transform {
             }
 
             fn direct_nested_sources<'a>(
-                &self,
+                &'a self,
                 index: &'a crate::compilation::index::NodeIndex,
             ) -> Vec<&'a dyn crate::compilation::node::Node> {
                 match self {
@@ -788,6 +840,7 @@ macro_rules! transform {
     };
 }
 
+use crate::language::type_ref::TypeGenericArgs;
 pub(crate) use choice;
 pub(crate) use keyword;
 pub(crate) use pattern;
