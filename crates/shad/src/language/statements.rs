@@ -144,10 +144,6 @@ impl NodeConfig for AssignmentStmt {
         Some(self)
     }
 
-    fn evaluate_constant(&self, _ctx: &mut ConstantContext<'_>) -> Option<ConstantValue> {
-        unreachable!("unsupported const stmt")
-    }
-
     fn transpile(&self, ctx: &mut TranspilationContext<'_>) -> String {
         let left = self.left.transpile(ctx);
         let right = self.right.transpile(ctx);
@@ -166,10 +162,6 @@ sequence!(
 impl NodeConfig for ExprStmt {
     fn invalid_constant(&self, _index: &NodeIndex) -> Option<&dyn Node> {
         Some(self)
-    }
-
-    fn evaluate_constant(&self, _ctx: &mut ConstantContext<'_>) -> Option<ConstantValue> {
-        unreachable!("unsupported const stmt")
     }
 
     fn transpile(&self, ctx: &mut TranspilationContext<'_>) -> String {

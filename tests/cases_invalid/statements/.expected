@@ -88,24 +88,48 @@ error: invalid assignment left value
 error: invalid assignment left value
   --> ./cases_invalid/statements/assignment.shd:19:5
    |
-19 |     true = false;
-   |     ^^^^
+19 |     sizeof(CustomStruct) = 2u;
+   |     ^^^^^^^^^^^^^^^^^^^^
    |     |
    |     this should be a valid reference
 
 error: invalid assignment left value
   --> ./cases_invalid/statements/assignment.shd:20:5
    |
-20 |     false = true;
-   |     ^^^^^
+20 |     true = false;
+   |     ^^^^
    |     |
    |     this should be a valid reference
 
 error: invalid assignment left value
   --> ./cases_invalid/statements/assignment.shd:21:5
    |
-21 |     sizeof(CustomStruct) = 2u;
-   |     ^^^^^^^^^^^^^^^^^^^^
+21 |     false = true;
+   |     ^^^^^
+   |     |
+   |     this should be a valid reference
+
+error: invalid assignment left value
+  --> ./cases_invalid/statements/assignment.shd:22:5
+   |
+22 |     1 = 2;
+   |     ^
+   |     |
+   |     this should be a valid reference
+
+error: invalid assignment left value
+  --> ./cases_invalid/statements/assignment.shd:23:5
+   |
+23 |     1u = 2u;
+   |     ^^
+   |     |
+   |     this should be a valid reference
+
+error: invalid assignment left value
+  --> ./cases_invalid/statements/assignment.shd:24:5
+   |
+24 |     1.0 = 2.0;
+   |     ^^^
    |     |
    |     this should be a valid reference
 
