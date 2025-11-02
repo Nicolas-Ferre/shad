@@ -177,7 +177,7 @@ error: invalid argument name
   |     - expected name
 
 error: undefined item
- --> ./cases_invalid/expressions/type_operators.shd:1:36
+ --> ./cases_invalid/expressions/type_operations.shd:1:36
   |
 1 | buf alignof_invalid_type = alignof(unknown);
   |                                    ^^^^^^^
@@ -185,7 +185,7 @@ error: undefined item
   |                                    `unknown` type is undefined
 
 error: undefined item
- --> ./cases_invalid/expressions/type_operators.shd:2:34
+ --> ./cases_invalid/expressions/type_operations.shd:2:34
   |
 2 | buf sizeof_invalid_type = sizeof(unknown);
   |                                  ^^^^^^^

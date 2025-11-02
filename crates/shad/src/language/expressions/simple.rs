@@ -165,8 +165,8 @@ impl NodeConfig for ParenthesizedExpr {
 }
 
 sequence!(
-    struct AlignofExpr {
-        alignof: AlignofKeyword,
+    struct TypeOperationExpr {
+        operator: TypeOperator,
         #[force_error(true)]
         start: OpenParenthesisSymbol,
         type_: Type,
@@ -174,7 +174,7 @@ sequence!(
     }
 );
 
-impl NodeConfig for AlignofExpr {
+impl NodeConfig for TypeOperationExpr {
     fn type_<'a>(&self, index: &'a NodeIndex) -> Option<NodeType<'a>> {
         Some(NodeType::Source(U32Literal::u32_type(self, index)))
     }
@@ -193,53 +193,25 @@ impl NodeConfig for AlignofExpr {
     fn transpile(&self, ctx: &mut TranspilationContext<'_>) -> String {
         let value = self
             .value(ctx.index)
-            .expect("internal error: cannot calculate alignment of invalid type");
+            .expect("internal error: cannot run type operation on an invalid type");
         format!("{value}u")
     }
 }
 
-impl AlignofExpr {
+impl TypeOperationExpr {
     fn value(&self, index: &NodeIndex) -> Option<u32> {
-        Some(type_::alignment(self.type_.source(index)?, index))
+        Some(match *self.operator {
+            TypeOperator::Alignof(_) => type_::alignment(self.type_.source(index)?, index),
+            TypeOperator::Sizeof(_) => type_::size(self.type_.source(index)?, index),
+        })
     }
 }
 
-sequence!(
-    struct SizeofExpr {
-        sizeof: SizeofKeyword,
-        #[force_error(true)]
-        start: OpenParenthesisSymbol,
-        type_: Type,
-        end: CloseParenthesisSymbol,
+choice!(
+    enum TypeOperator {
+        Alignof(AlignofKeyword),
+        Sizeof(SizeofKeyword),
     }
 );
 
-impl NodeConfig for SizeofExpr {
-    fn type_<'a>(&self, index: &'a NodeIndex) -> Option<NodeType<'a>> {
-        Some(NodeType::Source(U32Literal::u32_type(self, index)))
-    }
-
-    fn invalid_constant(&self, _index: &NodeIndex) -> Option<&dyn Node> {
-        None
-    }
-
-    fn evaluate_constant(&self, ctx: &mut ConstantContext<'_>) -> Option<ConstantValue> {
-        Some(ConstantValue {
-            transpiled_type_name: "u32".to_string(),
-            data: ConstantData::U32(self.value(ctx.index)?),
-        })
-    }
-
-    fn transpile(&self, ctx: &mut TranspilationContext<'_>) -> String {
-        let value = self
-            .value(ctx.index)
-            .expect("internal error: cannot calculate alignment of invalid type");
-        format!("{value}u")
-    }
-}
-
-impl SizeofExpr {
-    fn value(&self, index: &NodeIndex) -> Option<u32> {
-        Some(type_::size(self.type_.source(index)?, index))
-    }
-}
+impl NodeConfig for TypeOperator {}
