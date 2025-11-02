@@ -158,5 +158,3 @@ choice!(
         Or(OrSymbol),
     }
 );
-
-impl NodeConfig for BinaryOperator {}

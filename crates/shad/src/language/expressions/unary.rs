@@ -74,5 +74,3 @@ choice!(
         Not(ExclamationSymbol),
     }
 );
-
-impl NodeConfig for UnaryOperator {}

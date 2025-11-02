@@ -20,36 +20,6 @@ choice!(
     }
 );
 
-impl NodeConfig for Stmt {
-    fn invalid_constant(&self, index: &NodeIndex) -> Option<&dyn Node> {
-        match self {
-            Self::LocalVarDef(child) => child.invalid_constant(index),
-            Self::LocalRefDef(child) => child.invalid_constant(index),
-            Self::Return(child) => child.invalid_constant(index),
-            Self::Assignment(_) | Self::Expr(_) => Some(self),
-        }
-    }
-
-    fn evaluate_constant(&self, ctx: &mut ConstantContext<'_>) -> Option<ConstantValue> {
-        match self {
-            Self::LocalVarDef(child) => child.evaluate_constant(ctx),
-            Self::LocalRefDef(child) => child.evaluate_constant(ctx),
-            Self::Return(child) => child.evaluate_constant(ctx),
-            Self::Assignment(_) | Self::Expr(_) => unreachable!("unsupported const stmt"),
-        }
-    }
-
-    fn transpile(&self, ctx: &mut TranspilationContext<'_>) -> String {
-        match self {
-            Self::LocalVarDef(child) => child.transpile(ctx),
-            Self::LocalRefDef(child) => child.transpile(ctx),
-            Self::Assignment(child) => child.transpile(ctx),
-            Self::Expr(child) => child.transpile(ctx),
-            Self::Return(child) => child.transpile(ctx),
-        }
-    }
-}
-
 sequence!(
     struct LocalVarDefStmt {
         var: VarKeyword,
@@ -170,6 +140,10 @@ impl NodeConfig for AssignmentStmt {
         validations::check_invalid_expr_type(&*self.left, &*self.right, false, ctx);
     }
 
+    fn invalid_constant(&self, _index: &NodeIndex) -> Option<&dyn Node> {
+        Some(self)
+    }
+
     fn transpile(&self, ctx: &mut TranspilationContext<'_>) -> String {
         let left = self.left.transpile(ctx);
         let right = self.right.transpile(ctx);
@@ -186,6 +160,10 @@ sequence!(
 );
 
 impl NodeConfig for ExprStmt {
+    fn invalid_constant(&self, _index: &NodeIndex) -> Option<&dyn Node> {
+        Some(self)
+    }
+
     fn transpile(&self, ctx: &mut TranspilationContext<'_>) -> String {
         let expr = self.expr.transpile(ctx);
         if self

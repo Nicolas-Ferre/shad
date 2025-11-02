@@ -9,7 +9,7 @@ use crate::language::expressions::fn_call::{
     check_arg_names, transpile_fn_call, FnArgGroup, FnCallExpr,
 };
 use crate::language::expressions::simple::{
-    AlignofExpr, BoolLiteral, ParenthesizedExpr, VarIdentExpr,
+    FalseLiteral, ParenthesizedExpr, TrueLiteral, TypeOperationExpr, VarIdentExpr,
 };
 use crate::language::expressions::unary::UnaryExpr;
 use crate::language::items::{fn_, type_};
@@ -229,7 +229,8 @@ impl TransformedChainExpr {
 choice!(
     #[allow(clippy::large_enum_variant)]
     enum ChainPrefix {
-        Bool(BoolLiteral),
+        True(TrueLiteral),
+        False(FalseLiteral),
         F32(F32Literal),
         U32(U32Literal),
         I32(I32Literal),
@@ -238,86 +239,9 @@ choice!(
         Var(VarIdentExpr),
         Unary(UnaryExpr),
         Parenthesized(ParenthesizedExpr),
-        Alignof(AlignofExpr),
+        TypeOperation(TypeOperationExpr),
     }
 );
-
-impl NodeConfig for ChainPrefix {
-    fn is_ref(&self, index: &NodeIndex) -> Option<bool> {
-        match self {
-            Self::Bool(_)
-            | Self::F32(_)
-            | Self::U32(_)
-            | Self::I32(_)
-            | Self::Parenthesized(_)
-            | Self::Constructor(_)
-            | Self::Alignof(_) => Some(false),
-            Self::Var(child) => child.is_ref(index),
-            Self::FnCall(child) => child.is_ref(index),
-            Self::Unary(child) => child.is_ref(index),
-        }
-    }
-
-    fn type_<'a>(&self, index: &'a NodeIndex) -> Option<NodeType<'a>> {
-        match self {
-            Self::Bool(child) => child.type_(index),
-            Self::F32(child) => child.type_(index),
-            Self::U32(child) => child.type_(index),
-            Self::I32(child) => child.type_(index),
-            Self::FnCall(child) => child.type_(index),
-            Self::Var(child) => child.type_(index),
-            Self::Unary(child) => child.type_(index),
-            Self::Parenthesized(child) => child.type_(index),
-            Self::Constructor(child) => child.type_(index),
-            Self::Alignof(child) => child.type_(index),
-        }
-    }
-
-    fn invalid_constant(&self, index: &NodeIndex) -> Option<&dyn Node> {
-        match self {
-            Self::Bool(child) => child.invalid_constant(index),
-            Self::F32(child) => child.invalid_constant(index),
-            Self::U32(child) => child.invalid_constant(index),
-            Self::I32(child) => child.invalid_constant(index),
-            Self::FnCall(child) => child.invalid_constant(index),
-            Self::Constructor(child) => child.invalid_constant(index),
-            Self::Var(child) => child.invalid_constant(index),
-            Self::Unary(child) => child.invalid_constant(index),
-            Self::Parenthesized(child) => child.invalid_constant(index),
-            Self::Alignof(child) => child.invalid_constant(index),
-        }
-    }
-
-    fn evaluate_constant(&self, ctx: &mut ConstantContext<'_>) -> Option<ConstantValue> {
-        match self {
-            Self::Bool(child) => child.evaluate_constant(ctx),
-            Self::F32(child) => child.evaluate_constant(ctx),
-            Self::U32(child) => child.evaluate_constant(ctx),
-            Self::I32(child) => child.evaluate_constant(ctx),
-            Self::FnCall(child) => child.evaluate_constant(ctx),
-            Self::Constructor(child) => child.evaluate_constant(ctx),
-            Self::Var(child) => child.evaluate_constant(ctx),
-            Self::Unary(child) => child.evaluate_constant(ctx),
-            Self::Parenthesized(child) => child.evaluate_constant(ctx),
-            Self::Alignof(child) => child.evaluate_constant(ctx),
-        }
-    }
-
-    fn transpile(&self, ctx: &mut TranspilationContext<'_>) -> String {
-        match self {
-            Self::Bool(child) => child.transpile(ctx),
-            Self::F32(child) => child.transpile(ctx),
-            Self::U32(child) => child.transpile(ctx),
-            Self::I32(child) => child.transpile(ctx),
-            Self::FnCall(child) => child.transpile(ctx),
-            Self::Var(child) => child.transpile(ctx),
-            Self::Unary(child) => child.transpile(ctx),
-            Self::Parenthesized(child) => child.transpile(ctx),
-            Self::Constructor(child) => child.transpile(ctx),
-            Self::Alignof(child) => child.transpile(ctx),
-        }
-    }
-}
 
 choice!(
     enum ChainSuffix {
@@ -325,8 +249,6 @@ choice!(
         StructField(AssociatedStructField),
     }
 );
-
-impl NodeConfig for ChainSuffix {}
 
 sequence!(
     struct AssociatedFnCallSuffix {

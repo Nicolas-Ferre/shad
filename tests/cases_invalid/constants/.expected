@@ -115,6 +115,14 @@ error: undefined item
    |                                      |
    |                                      `unknown` type is undefined
 
+error: undefined item
+  --> ./cases_invalid/constants/exprs.shd:17:36
+   |
+17 | const SIZEOF_INVALID_TYPE = sizeof(unknown);
+   |                                    ^^^^^^^
+   |                                    |
+   |                                    `unknown` type is undefined
+
 error: `const` native function without constant implementation
  --> ./cases_invalid/constants/fns.shd:3:1
   |

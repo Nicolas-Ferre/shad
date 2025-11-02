@@ -11,6 +11,7 @@ const F32_LITERAL = 12.0;
 const I32_LITERAL = 12;
 const U32_LITERAL = 12u;
 const ALIGNOF_TYPE = alignof(i32x3);
+const SIZEOF_TYPE = sizeof(i32x3);
 
 buf unary = UNARY;
 buf binary = BINARY;
@@ -25,6 +26,7 @@ buf f32_literal = F32_LITERAL;
 buf i32_literal = I32_LITERAL;
 buf u32_literal = U32_LITERAL;
 buf alignof_type = ALIGNOF_TYPE;
+buf sizeof_type = SIZEOF_TYPE;
 
 struct TestType {
     value1: i32,

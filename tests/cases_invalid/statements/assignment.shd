@@ -14,4 +14,16 @@ run {
     assigned_buf = buf_value;
     assigned_buf = var_value;
     assigned_buf + 1 = 2;
+    (assigned_buf) = 2;
+    CustomStruct { 1u } = CustomStruct { 2u };
+    sizeof(CustomStruct) = 2u;
+    true = false;
+    false = true;
+    1 = 2;
+    1u = 2u;
+    1.0 = 2.0;
+}
+
+struct CustomStruct {
+    field: u32,
 }

@@ -10,7 +10,8 @@ use crate::language::items::fn_::FnParam;
 use crate::language::items::type_;
 use crate::language::items::type_::Type;
 use crate::language::keywords::{
-    AlignofKeyword, CloseParenthesisSymbol, FalseKeyword, OpenParenthesisSymbol, TrueKeyword,
+    AlignofKeyword, CloseParenthesisSymbol, FalseKeyword, OpenParenthesisSymbol, SizeofKeyword,
+    TrueKeyword,
 };
 use crate::language::patterns::{Ident, U32Literal};
 use crate::language::sources;
@@ -19,16 +20,20 @@ use crate::language::validations;
 use std::any::TypeId;
 use std::path::Path;
 
-choice!(
-    enum BoolLiteral {
-        True(TrueKeyword),
-        False(FalseKeyword),
+sequence!(
+    #[allow(unused_mut)]
+    struct TrueLiteral {
+        keyword: TrueKeyword,
     }
 );
 
-impl NodeConfig for BoolLiteral {
+impl NodeConfig for TrueLiteral {
+    fn is_ref(&self, _index: &NodeIndex) -> Option<bool> {
+        Some(false)
+    }
+
     fn type_<'a>(&self, index: &'a NodeIndex) -> Option<NodeType<'a>> {
-        Some(NodeType::Source(self.bool_type(index)))
+        Some(NodeType::Source(bool_type(self, index)))
     }
 
     fn invalid_constant(&self, _index: &NodeIndex) -> Option<&dyn Node> {
@@ -37,34 +42,57 @@ impl NodeConfig for BoolLiteral {
 
     fn evaluate_constant(&self, ctx: &mut ConstantContext<'_>) -> Option<ConstantValue> {
         Some(ConstantValue {
-            transpiled_type_name: type_::transpile_name(self.bool_type(ctx.index)),
-            data: ConstantData::Bool(match self {
-                Self::True(_) => true,
-                Self::False(_) => false,
-            }),
+            transpiled_type_name: type_::transpile_name(bool_type(self, ctx.index)),
+            data: ConstantData::Bool(true),
         })
     }
 
     fn transpile(&self, _ctx: &mut TranspilationContext<'_>) -> String {
-        let value = match self {
-            Self::True(_) => "true",
-            Self::False(_) => "false",
-        };
-        format!("u32({value})")
+        "u32(true)".into()
     }
 }
 
-impl BoolLiteral {
-    fn bool_type<'a>(&self, index: &'a NodeIndex) -> &'a dyn Node {
-        index
-            .search_in_path(
-                Path::new(PRELUDE_PATH),
-                self,
-                "`bool` type",
-                sources::type_criteria(),
-            )
-            .expect("internal error: `bool` type not found")
+sequence!(
+    #[allow(unused_mut)]
+    struct FalseLiteral {
+        keyword: FalseKeyword,
     }
+);
+
+impl NodeConfig for FalseLiteral {
+    fn is_ref(&self, _index: &NodeIndex) -> Option<bool> {
+        Some(false)
+    }
+
+    fn type_<'a>(&self, index: &'a NodeIndex) -> Option<NodeType<'a>> {
+        Some(NodeType::Source(bool_type(self, index)))
+    }
+
+    fn invalid_constant(&self, _index: &NodeIndex) -> Option<&dyn Node> {
+        None
+    }
+
+    fn evaluate_constant(&self, ctx: &mut ConstantContext<'_>) -> Option<ConstantValue> {
+        Some(ConstantValue {
+            transpiled_type_name: type_::transpile_name(bool_type(self, ctx.index)),
+            data: ConstantData::Bool(false),
+        })
+    }
+
+    fn transpile(&self, _ctx: &mut TranspilationContext<'_>) -> String {
+        "u32(false)".into()
+    }
+}
+
+fn bool_type<'a>(node: &impl Node, index: &'a NodeIndex) -> &'a dyn Node {
+    index
+        .search_in_path(
+            Path::new(PRELUDE_PATH),
+            node,
+            "`bool` type",
+            sources::type_criteria(),
+        )
+        .expect("internal error: `bool` type not found")
 }
 
 sequence!(
@@ -145,6 +173,10 @@ impl NodeConfig for ParenthesizedExpr {
         self.expr.source(index)
     }
 
+    fn is_ref(&self, _index: &NodeIndex) -> Option<bool> {
+        Some(false)
+    }
+
     fn type_<'a>(&self, index: &'a NodeIndex) -> Option<NodeType<'a>> {
         self.expr.type_(index)
     }
@@ -164,8 +196,8 @@ impl NodeConfig for ParenthesizedExpr {
 }
 
 sequence!(
-    struct AlignofExpr {
-        alignof: AlignofKeyword,
+    struct TypeOperationExpr {
+        operator: TypeOperator,
         #[force_error(true)]
         start: OpenParenthesisSymbol,
         type_: Type,
@@ -173,7 +205,11 @@ sequence!(
     }
 );
 
-impl NodeConfig for AlignofExpr {
+impl NodeConfig for TypeOperationExpr {
+    fn is_ref(&self, _index: &NodeIndex) -> Option<bool> {
+        Some(false)
+    }
+
     fn type_<'a>(&self, index: &'a NodeIndex) -> Option<NodeType<'a>> {
         Some(NodeType::Source(U32Literal::u32_type(self, index)))
     }
@@ -192,13 +228,23 @@ impl NodeConfig for AlignofExpr {
     fn transpile(&self, ctx: &mut TranspilationContext<'_>) -> String {
         let value = self
             .value(ctx.index)
-            .expect("internal error: cannot calculate alignment of invalid type");
+            .expect("internal error: cannot run type operation on an invalid type");
         format!("{value}u")
     }
 }
 
-impl AlignofExpr {
+impl TypeOperationExpr {
     fn value(&self, index: &NodeIndex) -> Option<u32> {
-        Some(type_::alignment(self.type_.source(index)?, index))
+        Some(match *self.operator {
+            TypeOperator::Alignof(_) => type_::alignment(self.type_.source(index)?, index),
+            TypeOperator::Sizeof(_) => type_::size(self.type_.source(index)?, index),
+        })
     }
 }
+
+choice!(
+    enum TypeOperator {
+        Alignof(AlignofKeyword),
+        Sizeof(SizeofKeyword),
+    }
+);

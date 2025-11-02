@@ -69,6 +69,70 @@ error: invalid assignment left value
    |     |
    |     this should be a valid reference
 
+error: invalid assignment left value
+  --> ./cases_invalid/statements/assignment.shd:17:5
+   |
+17 |     (assigned_buf) = 2;
+   |     ^^^^^^^^^^^^^^
+   |     |
+   |     this should be a valid reference
+
+error: invalid assignment left value
+  --> ./cases_invalid/statements/assignment.shd:18:5
+   |
+18 |     CustomStruct { 1u } = CustomStruct { 2u };
+   |     ^^^^^^^^^^^^^^^^^^^
+   |     |
+   |     this should be a valid reference
+
+error: invalid assignment left value
+  --> ./cases_invalid/statements/assignment.shd:19:5
+   |
+19 |     sizeof(CustomStruct) = 2u;
+   |     ^^^^^^^^^^^^^^^^^^^^
+   |     |
+   |     this should be a valid reference
+
+error: invalid assignment left value
+  --> ./cases_invalid/statements/assignment.shd:20:5
+   |
+20 |     true = false;
+   |     ^^^^
+   |     |
+   |     this should be a valid reference
+
+error: invalid assignment left value
+  --> ./cases_invalid/statements/assignment.shd:21:5
+   |
+21 |     false = true;
+   |     ^^^^^
+   |     |
+   |     this should be a valid reference
+
+error: invalid assignment left value
+  --> ./cases_invalid/statements/assignment.shd:22:5
+   |
+22 |     1 = 2;
+   |     ^
+   |     |
+   |     this should be a valid reference
+
+error: invalid assignment left value
+  --> ./cases_invalid/statements/assignment.shd:23:5
+   |
+23 |     1u = 2u;
+   |     ^^
+   |     |
+   |     this should be a valid reference
+
+error: invalid assignment left value
+  --> ./cases_invalid/statements/assignment.shd:24:5
+   |
+24 |     1.0 = 2.0;
+   |     ^^^
+   |     |
+   |     this should be a valid reference
+
 error: missing return statement
  --> ./cases_invalid/statements/return.shd:1:38
   |

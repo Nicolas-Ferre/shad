@@ -1,12 +1,4 @@
 error: undefined item
- --> ./cases_invalid/expressions/alignof.shd:1:36
-  |
-1 | buf alignof_invalid_type = alignof(unknown);
-  |                                    ^^^^^^^
-  |                                    |
-  |                                    `unknown` type is undefined
-
-error: undefined item
  --> ./cases_invalid/expressions/custom_operators.shd:2:28
   |
 2 |     var not_found_binary = true + false;
@@ -183,3 +175,19 @@ error: invalid argument name
 ...
 9 |     b: u32,
   |     - expected name
+
+error: undefined item
+ --> ./cases_invalid/expressions/type_operations.shd:1:36
+  |
+1 | buf alignof_invalid_type = alignof(unknown);
+  |                                    ^^^^^^^
+  |                                    |
+  |                                    `unknown` type is undefined
+
+error: undefined item
+ --> ./cases_invalid/expressions/type_operations.shd:2:34
+  |
+2 | buf sizeof_invalid_type = sizeof(unknown);
+  |                                  ^^^^^^^
+  |                                  |
+  |                                  `unknown` type is undefined

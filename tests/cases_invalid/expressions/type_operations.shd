@@ -1,1 +1,2 @@
 buf alignof_invalid_type = alignof(unknown);
+buf sizeof_invalid_type = sizeof(unknown);
