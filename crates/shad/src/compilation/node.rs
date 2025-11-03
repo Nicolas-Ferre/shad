@@ -18,6 +18,7 @@ use std::slice::Iter;
 use std::{iter, mem};
 
 pub(crate) const NO_RETURN_TYPE: &str = "<no return>";
+pub(crate) const UNKNOWN_TYPE: &str = "<unknown>";
 
 #[derive(Debug, Clone)]
 #[derive_where(PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -68,7 +69,7 @@ impl<'a> NodeType<'a> {
                     .flat_map(|g| g.args())
                     .map(|type_| {
                         type_.type_(index).map_or_else(
-                            || "<unknown>".into(),
+                            || UNKNOWN_TYPE.into(),
                             |type_| type_.name_or_no_return(index),
                         )
                     })
@@ -93,7 +94,7 @@ impl<'a> NodeType<'a> {
                         if let (Some(type1), Some(type2)) = (arg1.type_(index), arg2.type_(index)) {
                             type1.are_same(&type2, index)
                         } else {
-                            false
+                            true
                         }
                     })
             }

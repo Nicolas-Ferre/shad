@@ -2,7 +2,7 @@ use crate::compilation::index::NodeIndex;
 use crate::compilation::node::{sequence, NodeConfig, NodeType, Repeated};
 use crate::compilation::transpilation::TranspilationContext;
 use crate::compilation::validation::ValidationContext;
-use crate::language::expressions::TypedExpr;
+use crate::language::expressions::binary::MaybeBinaryExpr;
 use crate::language::items::type_::TypeItem;
 use crate::language::items::{is_item_recursive, transpiled_dependencies};
 use crate::language::keywords::{BufKeyword, EqSymbol, PubKeyword, SemicolonSymbol};
@@ -19,7 +19,7 @@ sequence!(
         #[force_error(true)]
         ident: Ident,
         eq: EqSymbol,
-        expr: TypedExpr,
+        expr: MaybeBinaryExpr,
         semicolon: SemicolonSymbol,
     }
 );
@@ -44,6 +44,7 @@ impl NodeConfig for BufferItem {
     fn validate(&self, ctx: &mut ValidationContext<'_>) {
         validations::check_duplicated_items(self, ctx);
         validations::check_recursive_items(self, ctx);
+        validations::check_no_return_type(&*self.expr, ctx);
     }
 
     fn is_transpilable_dependency(&self, _index: &NodeIndex) -> bool {

@@ -133,6 +133,9 @@ impl NodeConfig for TransformedChainExpr {
                 ChainSuffix::StructField(_) => {}
             }
         }
+        if self.suffix.iter().len() > 0 {
+            validations::check_no_return_type(&*self.expr, ctx);
+        }
     }
 
     fn invalid_constant(&self, index: &NodeIndex) -> Option<&dyn Node> {

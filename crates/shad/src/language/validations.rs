@@ -132,3 +132,15 @@ pub(crate) fn check_arg_name(
         }
     }
 }
+
+pub(crate) fn check_no_return_type(expr: &impl Node, ctx: &mut ValidationContext<'_>) {
+    if expr.type_(ctx.index).is_some_and(|t| t.is_no_return()) {
+        ctx.errors.push(ValidationError::error(
+            ctx,
+            expr,
+            "invalid expression type",
+            Some("this function does not return a value"),
+            &[],
+        ));
+    }
+}

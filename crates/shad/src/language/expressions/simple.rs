@@ -4,7 +4,7 @@ use crate::compilation::node::{choice, sequence, Node, NodeConfig, NodeType, Nod
 use crate::compilation::transpilation::TranspilationContext;
 use crate::compilation::validation::ValidationContext;
 use crate::compilation::PRELUDE_PATH;
-use crate::language::expressions::MaybeBinaryExpr;
+use crate::language::expressions::binary::MaybeBinaryExpr;
 use crate::language::items::constant::ConstantItem;
 use crate::language::items::fn_::FnParam;
 use crate::language::items::type_;

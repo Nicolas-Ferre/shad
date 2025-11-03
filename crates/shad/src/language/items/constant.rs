@@ -3,7 +3,7 @@ use crate::compilation::index::NodeIndex;
 use crate::compilation::node::{sequence, NodeConfig, NodeType, Repeated};
 use crate::compilation::transpilation::TranspilationContext;
 use crate::compilation::validation::ValidationContext;
-use crate::language::expressions::TypedExpr;
+use crate::language::expressions::binary::MaybeBinaryExpr;
 use crate::language::items::is_item_recursive;
 use crate::language::keywords::{ConstKeyword, EqSymbol, PubKeyword, SemicolonSymbol};
 use crate::language::patterns::Ident;
@@ -17,7 +17,7 @@ sequence!(
         ident: Ident,
         #[force_error(true)]
         eq: EqSymbol,
-        expr: TypedExpr,
+        expr: MaybeBinaryExpr,
         semicolon: SemicolonSymbol,
     }
 );
@@ -43,6 +43,7 @@ impl NodeConfig for ConstantItem {
         validations::check_duplicated_items(self, ctx);
         validations::check_recursive_items(self, ctx);
         validations::check_invalid_const_scope(&*self.expr, &*self.const_, ctx);
+        validations::check_no_return_type(&*self.expr, ctx);
     }
 
     fn evaluate_constant(&self, ctx: &mut ConstantContext<'_>) -> Option<ConstantValue> {
