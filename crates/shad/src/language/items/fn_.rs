@@ -129,7 +129,9 @@ impl NodeConfig for FnItem {
         }
         if let (Some(return_stmt), Some(expected_type)) = (return_stmt, self.type_(ctx.index)) {
             if let Some(actual_type) = return_stmt.type_(ctx.index) {
-                if !actual_type.is_no_return() && !actual_type.are_same(&expected_type, ctx.index) {
+                if !actual_type.is_no_return()
+                    && actual_type.are_same(&expected_type, ctx.index) == Some(false)
+                {
                     let actual_type_name = actual_type.name_or_no_return(ctx.index);
                     let expected_type_name = expected_type.name_or_no_return(ctx.index);
                     ctx.errors.push(ValidationError::error(

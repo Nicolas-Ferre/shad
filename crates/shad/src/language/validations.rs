@@ -60,7 +60,7 @@ pub(crate) fn check_invalid_expr_type(
         if (actual_type.is_no_return() || expected_type.is_no_return()) && !check_no_return {
             return;
         }
-        if !actual_type.are_same(&expected_type, ctx.index) {
+        if actual_type.are_same(&expected_type, ctx.index) == Some(false) {
             let expected_type_name = expected_type.name_or_no_return(ctx.index);
             let actual_type_name = actual_type.name_or_no_return(ctx.index);
             ctx.errors.push(ValidationError::error(
@@ -83,7 +83,7 @@ pub(crate) fn check_invalid_const_expr_type(
     ctx: &mut ValidationContext<'_>,
 ) {
     if let Some(actual_type) = actual.type_(ctx.index) {
-        if !actual_type.are_same(&expected_type, ctx.index) {
+        if actual_type.are_same(&expected_type, ctx.index) == Some(false) {
             let expected_type_name = expected_type.name_or_no_return(ctx.index);
             let actual_type_name = actual_type.name_or_no_return(ctx.index);
             ctx.errors.push(ValidationError::error(

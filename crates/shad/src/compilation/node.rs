@@ -84,25 +84,26 @@ impl<'a> NodeType<'a> {
         }
     }
 
-    pub(crate) fn are_same(&self, other: &NodeType<'_>, index: &NodeIndex) -> bool {
+    pub(crate) fn are_same(&self, other: &NodeType<'_>, index: &NodeIndex) -> Option<bool> {
         match (self, other) {
             (Self::Source(source1), NodeType::Source(source2)) => {
-                let generics_count1 = source1.generics.map_or(0, |g| g.args().count());
-                let generics_count2 = source2.generics.map_or(0, |g| g.args().count());
-                let generics1 = source1.generics.iter().flat_map(|g| g.args());
-                let generics2 = source2.generics.iter().flat_map(|g| g.args());
-                source1.item.id == source2.item.id
-                    && generics_count1 == generics_count2
-                    && generics1.zip(generics2).all(|(arg1, arg2)| {
-                        if let (Some(type1), Some(type2)) = (arg1.type_(index), arg2.type_(index)) {
-                            type1.are_same(&type2, index)
-                        } else {
-                            true
-                        }
-                    })
+                // Comparison of generic count is already done outside this function
+                if source1.item.id != source2.item.id {
+                    return Some(false);
+                }
+                let args1 = source1.generics.iter().flat_map(|g| g.args());
+                let args2 = source2.generics.iter().flat_map(|g| g.args());
+                for (arg1, arg2) in args1.zip(args2) {
+                    let type1 = arg1.type_(index)?;
+                    let type2 = arg2.type_(index)?;
+                    if !type1.are_same(&type2, index)? {
+                        return Some(false);
+                    }
+                }
+                Some(true)
             }
             (Self::NoReturn, NodeType::NoReturn) => unreachable!("cannot compare two <no return>"),
-            (_, _) => false,
+            (_, _) => Some(false),
         }
     }
 }
