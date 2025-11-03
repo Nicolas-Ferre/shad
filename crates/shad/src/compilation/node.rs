@@ -87,9 +87,12 @@ impl<'a> NodeType<'a> {
     pub(crate) fn are_same(&self, other: &NodeType<'_>, index: &NodeIndex) -> bool {
         match (self, other) {
             (Self::Source(source1), NodeType::Source(source2)) => {
+                let generics_count1 = source1.generics.map_or(0, |g| g.args().count());
+                let generics_count2 = source2.generics.map_or(0, |g| g.args().count());
                 let generics1 = source1.generics.iter().flat_map(|g| g.args());
                 let generics2 = source2.generics.iter().flat_map(|g| g.args());
                 source1.item.id == source2.item.id
+                    && generics_count1 == generics_count2
                     && generics1.zip(generics2).all(|(arg1, arg2)| {
                         if let (Some(type1), Some(type2)) = (arg1.type_(index), arg2.type_(index)) {
                             type1.are_same(&type2, index)
@@ -98,6 +101,7 @@ impl<'a> NodeType<'a> {
                         }
                     })
             }
+            (Self::NoReturn, NodeType::NoReturn) => unreachable!("cannot compare two <no return>"),
             (_, _) => false,
         }
     }

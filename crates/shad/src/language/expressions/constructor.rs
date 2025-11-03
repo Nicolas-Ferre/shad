@@ -113,11 +113,11 @@ impl NodeConfig for ConstructorExpr {
     }
 
     fn transpile(&self, ctx: &mut TranspilationContext<'_>) -> String {
-        let source = self
+        let type_name = self
             .type_
             .item(ctx.index)
-            .expect("internal error: constructor source not found");
-        let type_name = source.transpiled_name();
+            .expect("internal error: constructor source not found")
+            .transpiled_name();
         let args = self.args().map(|arg| arg.transpile(ctx)).join(", ");
         format!("{type_name}({args})")
     }
