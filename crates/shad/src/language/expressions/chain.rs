@@ -12,7 +12,7 @@ use crate::language::expressions::simple::{
     FalseLiteral, ParenthesizedExpr, TrueLiteral, TypeOperationExpr, VarIdentExpr,
 };
 use crate::language::expressions::unary::UnaryExpr;
-use crate::language::items::{fn_, type_};
+use crate::language::items::fn_;
 use crate::language::keywords::{CloseParenthesisSymbol, DotSymbol, OpenParenthesisSymbol};
 use crate::language::patterns::{F32Literal, I32Literal, Ident, U32Literal};
 use crate::language::transformations;
@@ -40,7 +40,7 @@ impl NodeConfig for ParsedChainExpr {
         self.expr.is_ref(index)
     }
 
-    fn type_<'a>(&self, index: &'a NodeIndex) -> Option<NodeType<'a>> {
+    fn type_<'a>(&'a self, index: &'a NodeIndex) -> Option<NodeType<'a>> {
         self.expr.type_(index)
     }
 
@@ -76,21 +76,22 @@ impl NodeConfig for TransformedChainExpr {
                 sources::fn_key_from_args(&suffix.ident, self.args(suffix), index)
             }
             ChainSuffix::StructField(suffix) => {
-                let prefix_type_key = self.expr.type_(index)?.source()?.key()?;
+                let prefix_type_key = self.expr.type_(index)?.source()?.item.key()?;
                 let field_name = &suffix.ident.slice;
                 Some(format!("`{field_name}` field of {prefix_type_key}"))
             }
         }
     }
 
-    fn source<'a>(&self, index: &'a NodeIndex) -> Option<&'a dyn Node> {
+    fn source<'a>(&'a self, index: &'a NodeIndex) -> Option<&'a dyn Node> {
         match &**self.suffix.iter().next()? {
             ChainSuffix::FnCall(_) => {
                 index.search(self, &self.source_key(index)?, sources::fn_criteria())
             }
             ChainSuffix::StructField(suffix) => {
-                let type_ = self.expr.type_(index)?.source()?;
-                let field = type_::field(type_, &suffix.ident.slice)?;
+                let expr_type = self.expr.type_(index)?;
+                let type_ = expr_type.source()?;
+                let field = type_.item.field(&suffix.ident.slice)?;
                 (field.is_public() || field.path == self.path).then_some(field)
             }
         }
@@ -104,7 +105,7 @@ impl NodeConfig for TransformedChainExpr {
         }
     }
 
-    fn type_<'a>(&self, index: &'a NodeIndex) -> Option<NodeType<'a>> {
+    fn type_<'a>(&'a self, index: &'a NodeIndex) -> Option<NodeType<'a>> {
         if self.suffix.iter().next().is_some() {
             self.source(index)?.type_(index)
         } else {
@@ -131,6 +132,9 @@ impl NodeConfig for TransformedChainExpr {
                 }
                 ChainSuffix::StructField(_) => {}
             }
+        }
+        if self.suffix.iter().len() > 0 {
+            validations::check_no_return_type(&*self.expr, ctx);
         }
     }
 
@@ -197,14 +201,15 @@ impl NodeConfig for TransformedChainExpr {
                 transpile_fn_call(ctx, source, self.args(suffix))
             }
             Some(ChainSuffix::StructField(suffix)) => {
-                let type_ = self
+                let expr_type = self
                     .expr
                     .type_(ctx.index)
-                    .expect("internal error: chain prefix type not found")
+                    .expect("internal error: chain prefix type not found");
+                let type_ = expr_type
                     .source()
                     .expect("internal error: invalid chain prefix");
                 let prefix = self.expr.transpile(ctx);
-                let suffix = type_::transpile_field_name(type_, &suffix.ident.slice);
+                let suffix = type_.item.transpiled_field_name(&suffix.ident.slice);
                 format!("{prefix}.{suffix}")
             }
             None => self.expr.transpile(ctx),

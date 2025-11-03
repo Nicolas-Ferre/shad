@@ -117,9 +117,17 @@ error: invalid expression type
   |         this function does not return a value
 
 error: invalid expression type
- --> ./cases_invalid/expressions/no_return_type.shd:6:12
+ --> ./cases_invalid/expressions/no_return_type.shd:6:9
   |
-6 |     return no_return();
+6 |     a = no_return().field;
+  |         ^^^^^^^^^^^^^^^^^
+  |         |
+  |         this function does not return a value
+
+error: invalid expression type
+ --> ./cases_invalid/expressions/no_return_type.shd:7:12
+  |
+7 |     return no_return();
   |            ^^^^^^^^^^^
   |            |
   |            this function does not return a value

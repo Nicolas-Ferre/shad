@@ -1,14 +1,14 @@
 use crate::compilation::constant::{ConstantContext, ConstantData, ConstantValue};
 use crate::compilation::index::NodeIndex;
-use crate::compilation::node::{choice, sequence, Node, NodeConfig, NodeType};
+use crate::compilation::node::{choice, sequence, Node, NodeConfig, NodeType, NodeTypeSource};
 use crate::compilation::transpilation::TranspilationContext;
 use crate::compilation::validation::ValidationContext;
 use crate::compilation::PRELUDE_PATH;
-use crate::language::expressions::MaybeBinaryExpr;
+use crate::language::expressions::binary::MaybeBinaryExpr;
 use crate::language::items::constant::ConstantItem;
 use crate::language::items::fn_::FnParam;
 use crate::language::items::type_;
-use crate::language::items::type_::Type;
+use crate::language::items::type_::TypeItem;
 use crate::language::keywords::{
     AlignofKeyword, CloseParenthesisSymbol, FalseKeyword, OpenParenthesisSymbol, SizeofKeyword,
     TrueKeyword,
@@ -16,6 +16,7 @@ use crate::language::keywords::{
 use crate::language::patterns::{Ident, U32Literal};
 use crate::language::sources;
 use crate::language::statements::{LocalRefDefStmt, LocalVarDefStmt};
+use crate::language::type_ref::Type;
 use crate::language::validations;
 use std::any::TypeId;
 use std::path::Path;
@@ -32,8 +33,11 @@ impl NodeConfig for TrueLiteral {
         Some(false)
     }
 
-    fn type_<'a>(&self, index: &'a NodeIndex) -> Option<NodeType<'a>> {
-        Some(NodeType::Source(bool_type(self, index)))
+    fn type_<'a>(&'a self, index: &'a NodeIndex) -> Option<NodeType<'a>> {
+        Some(NodeType::Source(NodeTypeSource {
+            item: bool_type(self, index),
+            generics: None,
+        }))
     }
 
     fn invalid_constant(&self, _index: &NodeIndex) -> Option<&dyn Node> {
@@ -42,7 +46,7 @@ impl NodeConfig for TrueLiteral {
 
     fn evaluate_constant(&self, ctx: &mut ConstantContext<'_>) -> Option<ConstantValue> {
         Some(ConstantValue {
-            transpiled_type_name: type_::transpile_name(bool_type(self, ctx.index)),
+            transpiled_type_name: bool_type(self, ctx.index).transpiled_name(),
             data: ConstantData::Bool(true),
         })
     }
@@ -64,8 +68,11 @@ impl NodeConfig for FalseLiteral {
         Some(false)
     }
 
-    fn type_<'a>(&self, index: &'a NodeIndex) -> Option<NodeType<'a>> {
-        Some(NodeType::Source(bool_type(self, index)))
+    fn type_<'a>(&'a self, index: &'a NodeIndex) -> Option<NodeType<'a>> {
+        Some(NodeType::Source(NodeTypeSource {
+            item: bool_type(self, index),
+            generics: None,
+        }))
     }
 
     fn invalid_constant(&self, _index: &NodeIndex) -> Option<&dyn Node> {
@@ -74,7 +81,7 @@ impl NodeConfig for FalseLiteral {
 
     fn evaluate_constant(&self, ctx: &mut ConstantContext<'_>) -> Option<ConstantValue> {
         Some(ConstantValue {
-            transpiled_type_name: type_::transpile_name(bool_type(self, ctx.index)),
+            transpiled_type_name: bool_type(self, ctx.index).transpiled_name(),
             data: ConstantData::Bool(false),
         })
     }
@@ -84,15 +91,17 @@ impl NodeConfig for FalseLiteral {
     }
 }
 
-fn bool_type<'a>(node: &impl Node, index: &'a NodeIndex) -> &'a dyn Node {
-    index
-        .search_in_path(
-            Path::new(PRELUDE_PATH),
-            node,
-            "`bool` type",
-            sources::type_criteria(),
-        )
-        .expect("internal error: `bool` type not found")
+fn bool_type<'a>(node: &impl Node, index: &'a NodeIndex) -> &'a dyn TypeItem {
+    type_::to_item(
+        index
+            .search_in_path(
+                Path::new(PRELUDE_PATH),
+                node,
+                "`bool` type",
+                sources::type_criteria(),
+            )
+            .expect("internal error: `bool` type not found"),
+    )
 }
 
 sequence!(
@@ -107,7 +116,7 @@ impl NodeConfig for VarIdentExpr {
         Some(sources::variable_key(&self.ident))
     }
 
-    fn source<'a>(&self, index: &'a NodeIndex) -> Option<&'a dyn Node> {
+    fn source<'a>(&'a self, index: &'a NodeIndex) -> Option<&'a dyn Node> {
         index.search(self, &self.source_key(index)?, sources::variable_criteria())
     }
 
@@ -116,7 +125,7 @@ impl NodeConfig for VarIdentExpr {
             .map(|source| source.node_type_id() != TypeId::of::<ConstantItem>())
     }
 
-    fn type_<'a>(&self, index: &'a NodeIndex) -> Option<NodeType<'a>> {
+    fn type_<'a>(&'a self, index: &'a NodeIndex) -> Option<NodeType<'a>> {
         self.source(index)?.type_(index)
     }
 
@@ -169,7 +178,7 @@ sequence!(
 );
 
 impl NodeConfig for ParenthesizedExpr {
-    fn source<'a>(&self, index: &'a NodeIndex) -> Option<&'a dyn Node> {
+    fn source<'a>(&'a self, index: &'a NodeIndex) -> Option<&'a dyn Node> {
         self.expr.source(index)
     }
 
@@ -177,7 +186,7 @@ impl NodeConfig for ParenthesizedExpr {
         Some(false)
     }
 
-    fn type_<'a>(&self, index: &'a NodeIndex) -> Option<NodeType<'a>> {
+    fn type_<'a>(&'a self, index: &'a NodeIndex) -> Option<NodeType<'a>> {
         self.expr.type_(index)
     }
 
@@ -210,8 +219,11 @@ impl NodeConfig for TypeOperationExpr {
         Some(false)
     }
 
-    fn type_<'a>(&self, index: &'a NodeIndex) -> Option<NodeType<'a>> {
-        Some(NodeType::Source(U32Literal::u32_type(self, index)))
+    fn type_<'a>(&'a self, index: &'a NodeIndex) -> Option<NodeType<'a>> {
+        Some(NodeType::Source(NodeTypeSource {
+            item: U32Literal::u32_type(self, index),
+            generics: None,
+        }))
     }
 
     fn invalid_constant(&self, _index: &NodeIndex) -> Option<&dyn Node> {
@@ -235,9 +247,10 @@ impl NodeConfig for TypeOperationExpr {
 
 impl TypeOperationExpr {
     fn value(&self, index: &NodeIndex) -> Option<u32> {
+        let type_item = self.type_.item(index)?;
         Some(match *self.operator {
-            TypeOperator::Alignof(_) => type_::alignment(self.type_.source(index)?, index),
-            TypeOperator::Sizeof(_) => type_::size(self.type_.source(index)?, index),
+            TypeOperator::Alignof(_) => type_item.alignment(index),
+            TypeOperator::Sizeof(_) => type_item.size(index),
         })
     }
 }

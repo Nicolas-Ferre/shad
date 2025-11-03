@@ -3,10 +3,12 @@ use crate::compilation::node::{sequence, Node, NodeConfig, NodeType, Repeated};
 use crate::compilation::transpilation::TranspilationContext;
 use crate::compilation::validation::ValidationContext;
 use crate::language::keywords::{
-    CloseCurlyBracketSymbol, ColonSymbol, CommaSymbol, EqSymbol, NativeKeyword,
-    OpenCurlyBracketSymbol, PubKeyword, StructKeyword,
+    CloseAngleBracketSymbol, CloseCurlyBracketSymbol, ColonSymbol, CommaSymbol, EqSymbol,
+    NativeKeyword, OpenAngleBracketSymbol, OpenCurlyBracketSymbol, PubKeyword, StructKeyword,
+    TypeKeyword,
 };
 use crate::language::patterns::{Ident, StringLiteral, U32Literal};
+use crate::language::type_ref::Type;
 use crate::language::{sources, validations};
 use crate::ValidationError;
 use indoc::indoc;
@@ -14,7 +16,25 @@ use itertools::Itertools;
 use std::any::Any;
 use std::iter;
 
-pub(crate) const NO_RETURN_TYPE: &str = "<no return>";
+pub(crate) trait TypeItem: Node {
+    fn is_native(&self) -> bool;
+
+    fn ident(&self) -> &Ident;
+
+    fn generic_params(&self) -> Vec<&GenericParam>;
+
+    fn fields(&self) -> Vec<&StructField>;
+
+    fn field(&self, field_name: &str) -> Option<&StructField>;
+
+    fn size(&self, index: &NodeIndex) -> u32;
+
+    fn alignment(&self, index: &NodeIndex) -> u32;
+
+    fn transpiled_name(&self) -> String;
+
+    fn transpiled_field_name(&self, field_name: &str) -> String;
+}
 
 sequence!(
     struct NativeStructItem {
@@ -23,6 +43,7 @@ sequence!(
         struct_: StructKeyword,
         #[force_error(true)]
         ident: Ident,
+        generics: Repeated<GenericParams, 0, 1>,
         eq: EqSymbol,
         transpilation: StringLiteral,
         comma1: CommaSymbol,
@@ -53,7 +74,57 @@ impl NodeConfig for NativeStructItem {
     }
 }
 
-impl NativeStructItem {}
+impl TypeItem for NativeStructItem {
+    fn is_native(&self) -> bool {
+        true
+    }
+
+    fn ident(&self) -> &Ident {
+        &self.ident
+    }
+
+    fn generic_params(&self) -> Vec<&GenericParam> {
+        self.generics
+            .iter()
+            .flat_map(|params| params.params())
+            .collect()
+    }
+
+    // coverage: off (never call in practice)
+    fn fields(&self) -> Vec<&StructField> {
+        self.fields
+            .iter()
+            .flat_map(|fields| fields.iter())
+            .collect()
+    }
+    // coverage: on
+
+    fn field(&self, field_name: &str) -> Option<&StructField> {
+        self.fields
+            .iter()
+            .find_map(|fields| fields.field(field_name))
+    }
+
+    fn size(&self, _index: &NodeIndex) -> u32 {
+        self.size
+            .value()
+            .expect("internal error: invalid u32 literal for struct size")
+    }
+
+    fn alignment(&self, _index: &NodeIndex) -> u32 {
+        self.alignment
+            .value()
+            .expect("internal error: invalid u32 literal for struct alignment")
+    }
+
+    fn transpiled_name(&self) -> String {
+        self.transpilation.as_str().to_string()
+    }
+
+    fn transpiled_field_name(&self, field_name: &str) -> String {
+        field_name.into()
+    }
+}
 
 sequence!(
     struct StructItem {
@@ -61,6 +132,7 @@ sequence!(
         struct_: StructKeyword,
         #[force_error(true)]
         ident: Ident,
+        generics: Repeated<GenericParams, 0, 1>,
         fields_start: OpenCurlyBracketSymbol,
         fields: StructFieldGroup,
         fields_end: CloseCurlyBracketSymbol,
@@ -118,6 +190,115 @@ impl NodeConfig for StructItem {
     }
 }
 
+impl TypeItem for StructItem {
+    fn is_native(&self) -> bool {
+        false
+    }
+
+    fn ident(&self) -> &Ident {
+        &self.ident
+    }
+
+    fn generic_params(&self) -> Vec<&GenericParam> {
+        self.generics
+            .iter()
+            .flat_map(|params| params.params())
+            .collect()
+    }
+
+    fn fields(&self) -> Vec<&StructField> {
+        self.fields.iter().collect()
+    }
+
+    fn field(&self, field_name: &str) -> Option<&StructField> {
+        self.fields.field(field_name)
+    }
+
+    fn size(&self, index: &NodeIndex) -> u32 {
+        let fields: Vec<_> = self.fields.iter().collect();
+        let last_field_size = fields[fields.len() - 1].type_item(index).size(index);
+        round_up(
+            self.alignment(index),
+            field_offset(&fields, index) + last_field_size,
+        )
+    }
+
+    fn alignment(&self, index: &NodeIndex) -> u32 {
+        self.fields
+            .iter()
+            .map(|field| field.type_item(index).alignment(index))
+            .max()
+            .expect("internal error: custom structs should have at least one field")
+    }
+
+    fn transpiled_name(&self) -> String {
+        format!("_{}", self.id)
+    }
+
+    fn transpiled_field_name(&self, field_name: &str) -> String {
+        let field = self
+            .field(field_name)
+            .expect("internal error: field not found");
+        format!("_{}", field.id)
+    }
+}
+
+sequence!(
+    struct GenericParams {
+        start: OpenAngleBracketSymbol,
+        #[force_error(true)]
+        first_param: GenericParam,
+        other_params: Repeated<OtherGenericParam, 0, { usize::MAX }>,
+        final_comma: Repeated<CommaSymbol, 0, 1>,
+        end: CloseAngleBracketSymbol,
+    }
+);
+
+impl NodeConfig for GenericParams {
+    fn validate(&self, ctx: &mut ValidationContext<'_>) {
+        for param1 in self.params() {
+            for param2 in self.params() {
+                if param1.id < param2.id && param1.ident.slice == param2.ident.slice {
+                    ctx.errors.push(ValidationError::error(
+                        ctx,
+                        param2,
+                        "generic parameter defined multiple times",
+                        Some("duplicated generic parameter name"),
+                        &[(param1, "same generic parameter name defined here")],
+                    ));
+                }
+            }
+        }
+    }
+}
+
+impl GenericParams {
+    fn params(&self) -> impl Iterator<Item = &GenericParam> {
+        iter::once(&*self.first_param).chain(self.other_params.iter().map(|other| &*other.param))
+    }
+}
+
+sequence!(
+    struct GenericParam {
+        #[force_error(true)]
+        ident: Ident,
+        colon: ColonSymbol,
+        type_: TypeKeyword,
+    }
+);
+
+impl NodeConfig for GenericParam {}
+
+sequence!(
+    #[allow(unused_mut)]
+    struct OtherGenericParam {
+        comma: CommaSymbol,
+        param: GenericParam,
+    }
+);
+
+impl NodeConfig for OtherGenericParam {}
+
 sequence!(
     struct StructFieldGroup {
         first_field: StructField,
@@ -152,15 +333,15 @@ sequence!(
 );
 
 impl NodeConfig for StructField {
-    fn is_ref(&self, _index: &NodeIndex) -> Option<bool> {
-        Some(true)
-    }
-
     fn is_public(&self) -> bool {
         self.pub_.iter().len() > 0
     }
 
-    fn type_<'a>(&self, index: &'a NodeIndex) -> Option<NodeType<'a>> {
+    fn is_ref(&self, _index: &NodeIndex) -> Option<bool> {
+        Some(true)
+    }
+
+    fn type_<'a>(&'a self, index: &'a NodeIndex) -> Option<NodeType<'a>> {
         self.type_.type_(index)
     }
 
@@ -176,9 +357,9 @@ impl NodeConfig for StructField {
 }
 
 impl StructField {
-    fn type_source<'a>(&self, index: &'a NodeIndex) -> &'a dyn Node {
+    fn type_item<'a>(&self, index: &'a NodeIndex) -> &'a dyn TypeItem {
         self.type_
-            .source(index)
+            .item(index)
             .expect("internal error: invalid field type")
     }
 }
@@ -193,77 +374,13 @@ sequence!(
 
 impl NodeConfig for StructOtherField {}
 
-sequence!(
-    #[allow(unused_mut)]
-    struct Type {
-        ident: Ident,
-    }
-);
-
-impl NodeConfig for Type {
-    fn source_key(&self, _index: &NodeIndex) -> Option<String> {
-        Some(sources::type_key(&self.ident))
-    }
-
-    fn source<'a>(&self, index: &'a NodeIndex) -> Option<&'a dyn Node> {
-        index.search(self, &self.source_key(index)?, sources::type_criteria())
-    }
-
-    fn type_<'a>(&self, index: &'a NodeIndex) -> Option<NodeType<'a>> {
-        self.source(index).map(NodeType::Source)
-    }
-
-    fn validate(&self, ctx: &mut ValidationContext<'_>) {
-        validations::check_missing_source(self, ctx);
-    }
-
-    fn transpile(&self, ctx: &mut TranspilationContext<'_>) -> String {
-        transpile_name(
-            self.source(ctx.index)
-                .expect("internal error: type not found"),
-        )
-    }
-}
-
-pub(crate) fn is_native(type_: &dyn Node) -> bool {
-    (type_ as &dyn Any)
-        .downcast_ref::<NativeStructItem>()
-        .is_some()
-}
-
-pub(crate) fn size(type_: &dyn Node, index: &NodeIndex) -> u32 {
-    if let Some(type_) = (type_ as &dyn Any).downcast_ref::<NativeStructItem>() {
+pub(crate) fn to_item(node: &dyn Node) -> &dyn TypeItem {
+    if let Some(type_) = (node as &dyn Any).downcast_ref::<NativeStructItem>() {
         type_
-            .size
-            .value()
-            .expect("internal error: invalid u32 literal for struct size")
-    } else if let Some(type_) = (type_ as &dyn Any).downcast_ref::<StructItem>() {
-        let fields: Vec<_> = type_.fields.iter().collect();
-        let last_field_size = size(fields[fields.len() - 1].type_source(index), index);
-        round_up(
-            alignment(type_, index),
-            field_offset(&fields, index) + last_field_size,
-        )
+    } else if let Some(type_) = (node as &dyn Any).downcast_ref::<StructItem>() {
+        type_
     } else {
-        unreachable!("unknown type size")
-    }
-}
-
-pub(crate) fn alignment(type_: &dyn Node, index: &NodeIndex) -> u32 {
-    if let Some(type_) = (type_ as &dyn Any).downcast_ref::<NativeStructItem>() {
-        type_
-            .alignment
-            .value()
-            .expect("internal error: invalid u32 literal for struct alignment")
-    } else if let Some(type_) = (type_ as &dyn Any).downcast_ref::<StructItem>() {
-        type_
-            .fields
-            .iter()
-            .map(|field| alignment(field.type_source(index), index))
-            .max()
-            .expect("internal error: custom structs should have at least one field")
-    } else {
-        unreachable!("unknown type size")
+        unreachable!("unknown type item")
     }
 }
 
@@ -271,83 +388,14 @@ fn field_offset(fields: &[&StructField], index: &NodeIndex) -> u32 {
     if fields.len() == 1 {
         0
     } else {
-        let last_field_type = fields[fields.len() - 1].type_source(index);
-        let before_last_field_type = fields[fields.len() - 2].type_source(index);
-        let last_field_alignment = alignment(last_field_type, index);
-        let before_last_field_size = size(before_last_field_type, index);
+        let last_field_type = fields[fields.len() - 1].type_item(index);
+        let before_last_field_type = fields[fields.len() - 2].type_item(index);
+        let last_field_alignment = last_field_type.alignment(index);
+        let before_last_field_size = before_last_field_type.size(index);
         round_up(
             last_field_alignment,
             field_offset(&fields[..fields.len() - 1], index) + before_last_field_size,
         )
-    }
-}
-
-pub(crate) fn name(type_: &dyn Node) -> String {
-    if let Some(type_) = (type_ as &dyn Any).downcast_ref::<NativeStructItem>() {
-        type_.ident.slice.clone()
-    } else if let Some(type_) = (type_ as &dyn Any).downcast_ref::<StructItem>() {
-        type_.ident.slice.clone()
-    } else {
-        unreachable!("unknown type item")
-    }
-}
-
-pub(crate) fn name_or_no_return(type_: NodeType<'_>) -> String {
-    match type_ {
-        NodeType::Source(source) => name(source),
-        NodeType::NoReturn => NO_RETURN_TYPE.into(),
-    }
-}
-
-pub(crate) fn fields(type_: &dyn Node) -> Vec<&StructField> {
-    if (type_ as &dyn Any)
-        .downcast_ref::<NativeStructItem>()
-        .is_some()
-    {
-        unreachable!("never called for native structs")
-    } else if let Some(type_) = (type_ as &dyn Any).downcast_ref::<StructItem>() {
-        type_.fields.iter().collect()
-    } else {
-        unreachable!("unknown type item")
-    }
-}
-
-pub(crate) fn field<'a>(type_: &'a dyn Node, field_name: &str) -> Option<&'a StructField> {
-    if let Some(type_) = (type_ as &dyn Any).downcast_ref::<NativeStructItem>() {
-        Some(
-            type_
-                .fields
-                .iter()
-                .find_map(|fields| fields.field(field_name))?,
-        )
-    } else if let Some(type_) = (type_ as &dyn Any).downcast_ref::<StructItem>() {
-        type_.fields.field(field_name)
-    } else {
-        unreachable!("unknown type item")
-    }
-}
-
-pub(crate) fn transpile_name(type_: &dyn Node) -> String {
-    if let Some(type_) = (type_ as &dyn Any).downcast_ref::<NativeStructItem>() {
-        type_.transpilation.as_str().to_string()
-    } else if let Some(type_) = (type_ as &dyn Any).downcast_ref::<StructItem>() {
-        format!("_{}", type_.id)
-    } else {
-        unreachable!("unknown type item")
-    }
-}
-
-pub(crate) fn transpile_field_name(type_: &dyn Node, field_name: &str) -> String {
-    if (type_ as &dyn Any)
-        .downcast_ref::<NativeStructItem>()
-        .is_some()
-    {
-        field_name.into()
-    } else if let Some(type_) = (type_ as &dyn Any).downcast_ref::<StructItem>() {
-        let field = field(type_, field_name).expect("internal error: field not found");
-        format!("_{}", field.id)
-    } else {
-        unreachable!("unknown type item")
     }
 }
 

@@ -4,13 +4,12 @@ use crate::compilation::node::{sequence, Node, NodeConfig, NodeType, Repeated};
 use crate::compilation::transpilation::TranspilationContext;
 use crate::compilation::validation::ValidationContext;
 use crate::language::items::block::Block;
-use crate::language::items::type_;
-use crate::language::items::type_::Type;
 use crate::language::keywords::{
     ArrowSymbol, CloseParenthesisSymbol, ColonSymbol, CommaSymbol, ConstKeyword, EqSymbol,
     FnKeyword, NativeKeyword, OpenParenthesisSymbol, PubKeyword, RefKeyword, SemicolonSymbol,
 };
 use crate::language::patterns::{Ident, StringLiteral};
+use crate::language::type_ref::Type;
 use crate::language::{constants, sources, validations};
 use crate::ValidationError;
 use indoc::indoc;
@@ -45,7 +44,7 @@ impl NodeConfig for NativeFnItem {
         self.signature.is_ref(index)
     }
 
-    fn type_<'a>(&self, index: &'a NodeIndex) -> Option<NodeType<'a>> {
+    fn type_<'a>(&'a self, index: &'a NodeIndex) -> Option<NodeType<'a>> {
         self.signature.type_(index)
     }
 
@@ -74,7 +73,7 @@ impl NodeConfig for NativeFnItem {
             })
             .collect::<Vec<_>>();
         Some(ConstantValue {
-            transpiled_type_name: type_::transpile_name(self.type_(ctx.index)?.source()?),
+            transpiled_type_name: self.type_(ctx.index)?.source()?.item.transpiled_name(),
             data: constants::native_fn_runner(&self.key()?)?(&params),
         })
     }
@@ -107,7 +106,7 @@ impl NodeConfig for FnItem {
         self.signature.is_ref(index)
     }
 
-    fn type_<'a>(&self, index: &'a NodeIndex) -> Option<NodeType<'a>> {
+    fn type_<'a>(&'a self, index: &'a NodeIndex) -> Option<NodeType<'a>> {
         self.signature.type_(index)
     }
 
@@ -131,10 +130,10 @@ impl NodeConfig for FnItem {
         if let (Some(return_stmt), Some(expected_type)) = (return_stmt, self.type_(ctx.index)) {
             if let Some(actual_type) = return_stmt.type_(ctx.index) {
                 if !actual_type.is_no_return()
-                    && actual_type.source().map(|s| s.id) != expected_type.source().map(|s| s.id)
+                    && actual_type.are_same(&expected_type, ctx.index) == Some(false)
                 {
-                    let actual_type_name = type_::name_or_no_return(actual_type);
-                    let expected_type_name = type_::name_or_no_return(expected_type);
+                    let actual_type_name = actual_type.name_or_no_return(ctx.index);
+                    let expected_type_name = expected_type.name_or_no_return(ctx.index);
                     ctx.errors.push(ValidationError::error(
                         ctx,
                         &*return_stmt.expr,
@@ -208,7 +207,7 @@ impl NodeConfig for FnSignature {
         )
     }
 
-    fn type_<'a>(&self, index: &'a NodeIndex) -> Option<NodeType<'a>> {
+    fn type_<'a>(&'a self, index: &'a NodeIndex) -> Option<NodeType<'a>> {
         if let Some(return_type) = &self.return_type.iter().next() {
             return_type.type_(index)
         } else {
@@ -291,7 +290,7 @@ impl NodeConfig for FnParam {
         Some(self.ref_.iter().len() == 1)
     }
 
-    fn type_<'a>(&self, index: &'a NodeIndex) -> Option<NodeType<'a>> {
+    fn type_<'a>(&'a self, index: &'a NodeIndex) -> Option<NodeType<'a>> {
         self.type_.type_(index)
     }
 
@@ -326,7 +325,7 @@ sequence!(
 );
 
 impl NodeConfig for FnReturnType {
-    fn type_<'a>(&self, index: &'a NodeIndex) -> Option<NodeType<'a>> {
+    fn type_<'a>(&'a self, index: &'a NodeIndex) -> Option<NodeType<'a>> {
         self.type_.type_(index)
     }
 

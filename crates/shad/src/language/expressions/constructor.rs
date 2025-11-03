@@ -6,9 +6,8 @@ use crate::compilation::node::{sequence, Node, NodeConfig, NodeType, Repeated};
 use crate::compilation::transpilation::TranspilationContext;
 use crate::compilation::validation::ValidationContext;
 use crate::language::expressions::fn_call::{FnArg, FnArgGroup};
-use crate::language::items::type_;
-use crate::language::items::type_::Type;
 use crate::language::keywords::{CloseCurlyBracketSymbol, OpenCurlyBracketSymbol};
+use crate::language::type_ref::Type;
 use crate::language::{sources, validations};
 use crate::ValidationError;
 use itertools::Itertools;
@@ -24,25 +23,25 @@ sequence!(
 );
 
 impl NodeConfig for ConstructorExpr {
-    fn is_ref(&self, _index: &NodeIndex) -> Option<bool> {
-        Some(false)
-    }
-
     fn source_key(&self, _index: &NodeIndex) -> Option<String> {
         Some(sources::type_key(&self.type_.ident))
     }
 
-    fn source<'a>(&self, index: &'a NodeIndex) -> Option<&'a dyn Node> {
+    fn source<'a>(&'a self, index: &'a NodeIndex) -> Option<&'a dyn Node> {
         index.search(self, &self.source_key(index)?, sources::type_criteria())
     }
 
-    fn type_<'a>(&self, index: &'a NodeIndex) -> Option<NodeType<'a>> {
-        Some(NodeType::Source(self.type_.source(index)?))
+    fn is_ref(&self, _index: &NodeIndex) -> Option<bool> {
+        Some(false)
+    }
+
+    fn type_<'a>(&'a self, index: &'a NodeIndex) -> Option<NodeType<'a>> {
+        self.type_.type_(index)
     }
 
     fn validate(&self, ctx: &mut ValidationContext<'_>) {
-        if let Some(source) = self.source(ctx.index) {
-            if type_::is_native(source) {
+        if let Some(type_item) = self.type_.item(ctx.index) {
+            if type_item.is_native() {
                 ctx.errors.push(ValidationError::error(
                     ctx,
                     self,
@@ -52,8 +51,8 @@ impl NodeConfig for ConstructorExpr {
                 ));
                 return;
             }
-            if source.path != self.path
-                && type_::fields(source).iter().any(|field| !field.is_public())
+            if type_item.path != self.path
+                && type_item.fields().iter().any(|field| !field.is_public())
             {
                 ctx.errors.push(ValidationError::error(
                     ctx,
@@ -64,7 +63,7 @@ impl NodeConfig for ConstructorExpr {
                 ));
                 return;
             }
-            let fields = type_::fields(source);
+            let fields = type_item.fields();
             let expected_field_count = fields.len();
             let actual_field_count = self.args().count();
             if expected_field_count == actual_field_count {
@@ -79,7 +78,10 @@ impl NodeConfig for ConstructorExpr {
                     self,
                     "invalid number of fields",
                     Some(&format!("{actual_field_count} fields specified here")),
-                    &[(source, &format!("{expected_field_count} fields expected"))],
+                    &[(
+                        type_item,
+                        &format!("{expected_field_count} fields expected"),
+                    )],
                 ));
             }
         }
@@ -90,11 +92,12 @@ impl NodeConfig for ConstructorExpr {
     }
 
     fn evaluate_constant(&self, ctx: &mut ConstantContext<'_>) -> Option<ConstantValue> {
-        let type_ = self.type_.source(ctx.index)?;
+        let type_ = self.type_.item(ctx.index)?;
         Some(ConstantValue {
-            transpiled_type_name: type_::transpile_name(type_),
+            transpiled_type_name: type_.transpiled_name(),
             data: ConstantData::StructFields(
-                type_::fields(type_)
+                type_
+                    .fields()
                     .iter()
                     .zip(self.args())
                     .map(|(field, arg)| ConstantStructFieldData {
@@ -110,11 +113,11 @@ impl NodeConfig for ConstructorExpr {
     }
 
     fn transpile(&self, ctx: &mut TranspilationContext<'_>) -> String {
-        let source = self
+        let type_name = self
             .type_
-            .source(ctx.index)
-            .expect("internal error: constructor source not found");
-        let type_name = type_::transpile_name(source);
+            .item(ctx.index)
+            .expect("internal error: constructor source not found")
+            .transpiled_name();
         let args = self.args().map(|arg| arg.transpile(ctx)).join(", ");
         format!("{type_name}({args})")
     }

@@ -32,7 +32,7 @@ impl NodeConfig for FnCallExpr {
         sources::fn_key_from_args(&self.ident, self.args(), index)
     }
 
-    fn source<'a>(&self, index: &'a NodeIndex) -> Option<&'a dyn Node> {
+    fn source<'a>(&'a self, index: &'a NodeIndex) -> Option<&'a dyn Node> {
         index.search(self, &self.source_key(index)?, sources::fn_criteria())
     }
 
@@ -40,7 +40,7 @@ impl NodeConfig for FnCallExpr {
         self.source(index).and_then(|source| source.is_ref(index))
     }
 
-    fn type_<'a>(&self, index: &'a NodeIndex) -> Option<NodeType<'a>> {
+    fn type_<'a>(&'a self, index: &'a NodeIndex) -> Option<NodeType<'a>> {
         self.source(index)?.type_(index)
     }
 
@@ -122,7 +122,7 @@ sequence!(
 );
 
 impl NodeConfig for FnArg {
-    fn type_<'a>(&self, index: &'a NodeIndex) -> Option<NodeType<'a>> {
+    fn type_<'a>(&'a self, index: &'a NodeIndex) -> Option<NodeType<'a>> {
         self.expr.type_(index)
     }
 

@@ -4,7 +4,6 @@ use crate::compilation::node::{choice, sequence, Node, NodeConfig, NodeType};
 use crate::compilation::transpilation::TranspilationContext;
 use crate::compilation::validation::ValidationContext;
 use crate::language::expressions::binary::MaybeBinaryExpr;
-use crate::language::expressions::TypedExpr;
 use crate::language::keywords::{EqSymbol, RefKeyword, ReturnKeyword, SemicolonSymbol, VarKeyword};
 use crate::language::patterns::Ident;
 use crate::language::{sources, validations};
@@ -26,7 +25,7 @@ sequence!(
         #[force_error(true)]
         ident: Ident,
         eq: EqSymbol,
-        expr: TypedExpr,
+        expr: MaybeBinaryExpr,
         semicolon: SemicolonSymbol,
     }
 );
@@ -36,8 +35,12 @@ impl NodeConfig for LocalVarDefStmt {
         Some(sources::variable_key(&self.ident))
     }
 
-    fn type_<'a>(&self, index: &'a NodeIndex) -> Option<NodeType<'a>> {
+    fn type_<'a>(&'a self, index: &'a NodeIndex) -> Option<NodeType<'a>> {
         self.expr.type_(index)
+    }
+
+    fn validate(&self, ctx: &mut ValidationContext<'_>) {
+        validations::check_no_return_type(&*self.expr, ctx);
     }
 
     fn invalid_constant(&self, index: &NodeIndex) -> Option<&dyn Node> {
@@ -74,7 +77,7 @@ sequence!(
         #[force_error(true)]
         ident: Ident,
         eq: EqSymbol,
-        expr: TypedExpr,
+        expr: MaybeBinaryExpr,
         semicolon: SemicolonSymbol,
     }
 );
@@ -84,8 +87,12 @@ impl NodeConfig for LocalRefDefStmt {
         Some(sources::variable_key(&self.ident))
     }
 
-    fn type_<'a>(&self, index: &'a NodeIndex) -> Option<NodeType<'a>> {
+    fn type_<'a>(&'a self, index: &'a NodeIndex) -> Option<NodeType<'a>> {
         self.expr.type_(index)
+    }
+
+    fn validate(&self, ctx: &mut ValidationContext<'_>) {
+        validations::check_no_return_type(&*self.expr, ctx);
     }
 
     fn invalid_constant(&self, index: &NodeIndex) -> Option<&dyn Node> {
@@ -121,7 +128,7 @@ sequence!(
         left: MaybeBinaryExpr,
         eq: EqSymbol,
         #[force_error(true)]
-        right: TypedExpr,
+        right: MaybeBinaryExpr,
         semicolon: SemicolonSymbol,
     }
 );
@@ -138,6 +145,7 @@ impl NodeConfig for AssignmentStmt {
             ));
         }
         validations::check_invalid_expr_type(&*self.left, &*self.right, false, ctx);
+        validations::check_no_return_type(&*self.right, ctx);
     }
 
     fn invalid_constant(&self, _index: &NodeIndex) -> Option<&dyn Node> {
@@ -166,11 +174,7 @@ impl NodeConfig for ExprStmt {
 
     fn transpile(&self, ctx: &mut TranspilationContext<'_>) -> String {
         let expr = self.expr.transpile(ctx);
-        if self
-            .expr
-            .type_(ctx.index)
-            .is_some_and(NodeType::is_no_return)
-        {
+        if self.expr.type_(ctx.index).is_some_and(|t| t.is_no_return()) {
             format!("{expr};")
         } else {
             let id = ctx.next_node_id();
@@ -183,14 +187,18 @@ sequence!(
     struct ReturnStmt {
         return_: ReturnKeyword,
         #[force_error(true)]
-        expr: TypedExpr,
+        expr: MaybeBinaryExpr,
         semicolon: SemicolonSymbol,
     }
 );
 
 impl NodeConfig for ReturnStmt {
-    fn type_<'a>(&self, index: &'a NodeIndex) -> Option<NodeType<'a>> {
+    fn type_<'a>(&'a self, index: &'a NodeIndex) -> Option<NodeType<'a>> {
         self.expr.type_(index)
+    }
+
+    fn validate(&self, ctx: &mut ValidationContext<'_>) {
+        validations::check_no_return_type(&*self.expr, ctx);
     }
 
     fn invalid_constant(&self, index: &NodeIndex) -> Option<&dyn Node> {

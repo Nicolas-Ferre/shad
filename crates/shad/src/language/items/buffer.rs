@@ -1,9 +1,10 @@
 use crate::compilation::index::NodeIndex;
-use crate::compilation::node::{sequence, Node, NodeConfig, NodeType, Repeated};
+use crate::compilation::node::{sequence, NodeConfig, NodeType, Repeated};
 use crate::compilation::transpilation::TranspilationContext;
 use crate::compilation::validation::ValidationContext;
-use crate::language::expressions::TypedExpr;
-use crate::language::items::{is_item_recursive, transpiled_dependencies, type_};
+use crate::language::expressions::binary::MaybeBinaryExpr;
+use crate::language::items::type_::TypeItem;
+use crate::language::items::{is_item_recursive, transpiled_dependencies};
 use crate::language::keywords::{BufKeyword, EqSymbol, PubKeyword, SemicolonSymbol};
 use crate::language::patterns::Ident;
 use crate::language::{sources, validations};
@@ -18,7 +19,7 @@ sequence!(
         #[force_error(true)]
         ident: Ident,
         eq: EqSymbol,
-        expr: TypedExpr,
+        expr: MaybeBinaryExpr,
         semicolon: SemicolonSymbol,
     }
 );
@@ -32,7 +33,7 @@ impl NodeConfig for BufferItem {
         self.pub_.iter().len() > 0
     }
 
-    fn type_<'a>(&self, index: &'a NodeIndex) -> Option<NodeType<'a>> {
+    fn type_<'a>(&'a self, index: &'a NodeIndex) -> Option<NodeType<'a>> {
         if is_item_recursive(self, index) {
             None
         } else {
@@ -43,6 +44,7 @@ impl NodeConfig for BufferItem {
     fn validate(&self, ctx: &mut ValidationContext<'_>) {
         validations::check_duplicated_items(self, ctx);
         validations::check_recursive_items(self, ctx);
+        validations::check_no_return_type(&*self.expr, ctx);
     }
 
     fn is_transpilable_dependency(&self, _index: &NodeIndex) -> bool {
@@ -56,18 +58,19 @@ impl NodeConfig for BufferItem {
                 var<storage, read_write> _{id}: {type_};"
             ),
             id = self.id,
-            type_ = type_::transpile_name(self.buffer_type(ctx.index)),
+            type_ = self.buffer_type(ctx.index).transpiled_name(),
             next_binding = ctx.next_binding(),
         )
     }
 }
 
 impl BufferItem {
-    pub(crate) fn buffer_type<'a>(&self, index: &'a NodeIndex) -> &'a dyn Node {
+    pub(crate) fn buffer_type<'a>(&'a self, index: &'a NodeIndex) -> &'a dyn TypeItem {
         self.type_(index)
             .expect("internal error: buffer type not found")
             .source()
             .expect("internal error: buffer has <no return> type")
+            .item
     }
 
     pub(crate) fn transpile_shader(&self, ctx: &mut TranspilationContext<'_>) -> String {

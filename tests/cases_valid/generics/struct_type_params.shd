@@ -1,0 +1,9 @@
+buf generic_value = create_generic_value();
+
+struct GenericStruct<T: type> {
+    field: i32,
+}
+
+fn create_generic_value() -> GenericStruct<u32> {
+    return GenericStruct<u32> { 42 };
+}

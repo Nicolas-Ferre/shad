@@ -1,0 +1,91 @@
+error: generic parameter defined multiple times
+ --> ./cases_invalid/generics/struct_type_params.shd:1:31
+  |
+1 | struct SameParamName<T: type, T: type> {
+  |                      -------  ^^^^^^^
+  |                      |        |
+  |                      |        duplicated generic parameter name
+  |                      same generic parameter name defined here
+
+error: invalid returned type
+ --> ./cases_invalid/generics/struct_type_params.shd:6:12
+  |
+5 | fn invalid_return() -> MultipleParams<u32, i32> {
+  |                    ---------------------------- expected type is `MultipleParams<u32, i32>`
+6 |     return MultipleParams<f32, bool> { 0 };
+  |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |            |
+  |            returned type is `MultipleParams<f32, bool>`
+
+error: undefined item
+ --> ./cases_invalid/generics/struct_type_params.shd:9:43
+  |
+9 | fn unknown_param() -> MultipleParams<f32, unknown> {
+  |                                           ^^^^^^^
+  |                                           |
+  |                                           `unknown` type is undefined
+
+error: undefined item
+  --> ./cases_invalid/generics/struct_type_params.shd:10:32
+   |
+10 |     return MultipleParams<f32, unknown> { 0 };
+   |                                ^^^^^^^
+   |                                |
+   |                                `unknown` type is undefined
+
+error: invalid number of generic parameters
+  --> ./cases_invalid/generics/struct_type_params.shd:13:33
+   |
+13 |   const UNEXPECTED_ARGS = alignof(NoParam<u32>);
+   |                                   ^^^^^^^^^^^^
+   |                                   |
+   |                                   1 parameter(s) specified here
+...
+24 | / struct NoParam {
+25 | |     field: i32,
+26 | | }
+   | |_- 0 parameter(s) expected
+
+error: invalid number of generic parameters
+  --> ./cases_invalid/generics/struct_type_params.shd:14:31
+   |
+14 |   const EXPECTED_ARGS = alignof(MultipleParams);
+   |                                 ^^^^^^^^^^^^^^
+   |                                 |
+   |                                 0 parameter(s) specified here
+...
+28 | / struct MultipleParams<T: type, U: type> {
+29 | |     field: i32,
+30 | | }
+   | |_- 2 parameter(s) expected
+
+error: invalid number of generic parameters
+  --> ./cases_invalid/generics/struct_type_params.shd:15:35
+   |
+15 |   const INVALID_ARG_COUNT = alignof(MultipleParams<u32>);
+   |                                     ^^^^^^^^^^^^^^^^^^^
+   |                                     |
+   |                                     1 parameter(s) specified here
+...
+28 | / struct MultipleParams<T: type, U: type> {
+29 | |     field: i32,
+30 | | }
+   | |_- 2 parameter(s) expected
+
+error: invalid expression type
+  --> ./cases_invalid/generics/struct_type_params.shd:19:26
+   |
+19 |     mismatching_params = some_other_params();
+   |     ------------------   ^^^^^^^^^^^^^^^^^^^
+   |     |                    |
+   |     |                    expression type is `MultipleParams<f32, bool>`
+   |     expected type is `MultipleParams<u32, i32>`
+
+error: invalid expression type
+  --> ./cases_invalid/generics/struct_type_params.shd:21:21
+   |
+21 |     unknown_param = unknown_param();
+   |     -------------   ^^^^^^^^^^^^^^^
+   |     |               |
+   |     |               expression type is `MultipleParams<f32, <unknown>>`
+   |     expected type is `MultipleParams<u32, i32>`

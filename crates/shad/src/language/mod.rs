@@ -6,4 +6,5 @@ pub(crate) mod patterns;
 mod sources;
 pub(crate) mod statements;
 mod transformations;
+pub(crate) mod type_ref;
 mod validations;
