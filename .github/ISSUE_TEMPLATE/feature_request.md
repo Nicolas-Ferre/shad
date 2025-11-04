@@ -7,11 +7,11 @@ assignees: ''
 
 ---
 
-**Description**
+## Description
 A description of the feature you propose, and the reason why it is needed.
 
-**Examples**
+## Examples
 One or more code examples that shows the feature in action.
 
-**Additional context**
+## Additional context
 Any other information about the feature.

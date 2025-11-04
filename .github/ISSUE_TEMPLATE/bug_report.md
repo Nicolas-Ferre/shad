@@ -7,23 +7,23 @@ assignees: ''
 
 ---
 
-**Description**
+## Description
 A description of the bug.
 
-**Example**
+## Example
 A [minimal reproducible code example](https://stackoverflow.com/help/minimal-reproducible-example) where the bug happens.
 
-**Expected behavior**
+## Expected behavior
 A description of what you expected to happen.
 
-**Actual behavior**
+## Actual behavior
 A description of what actually happens.
 
-**Environment**
+## Environment
  - OS: [e.g. Windows 10]
  - Shad version: [e.g. 0.1.0]
  - Rust version: [e.g. 1.50.0]
  - [Any other dependency version if needed]
 
-**Additional context**
+## Additional context
 Any other context about the bug.

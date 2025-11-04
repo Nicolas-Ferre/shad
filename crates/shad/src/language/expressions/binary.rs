@@ -1,4 +1,4 @@
-use crate::compilation::constant::{ConstantContext, ConstantValue};
+use crate::compilation::constant::{ConstantContext, ConstantData, ConstantValue};
 use crate::compilation::index::NodeIndex;
 use crate::compilation::node::{choice, sequence, transform, Node, NodeConfig, NodeType, Repeated};
 use crate::compilation::transpilation::TranspilationContext;
@@ -21,6 +21,33 @@ transform!(
     BinaryExpr,
     transformations::transform_binary_expr
 );
+
+impl MaybeBinaryExpr {
+    pub(crate) fn parse_const_i32(&self, index: &NodeIndex) -> i32 {
+        let mut ctx = ConstantContext::new(index);
+        let Some(ConstantValue {
+            data: ConstantData::I32(value),
+            ..
+        }) = self.evaluate_constant(&mut ctx)
+        else {
+            unreachable!("priority should be an `i32` `const` expression");
+        };
+        value
+    }
+
+    pub(crate) fn parse_const_u32(&self, index: &NodeIndex) -> u32 {
+        let mut ctx = ConstantContext::new(index);
+        if let Some(ConstantValue {
+            data: ConstantData::U32(value),
+            ..
+        }) = self.evaluate_constant(&mut ctx)
+        {
+            value
+        } else {
+            unreachable!("priority should be an `u32` `const` expression");
+        }
+    }
+}
 
 sequence!(
     struct ParsedMaybeBinaryExpr {
