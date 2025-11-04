@@ -25,14 +25,15 @@ transform!(
 impl MaybeBinaryExpr {
     pub(crate) fn parse_const_i32(&self, index: &NodeIndex) -> i32 {
         let mut ctx = ConstantContext::new(index);
-        let Some(ConstantValue {
+        if let Some(ConstantValue {
             data: ConstantData::I32(value),
             ..
         }) = self.evaluate_constant(&mut ctx)
-        else {
-            unreachable!("priority should be an `i32` `const` expression");
-        };
-        value
+        {
+            value
+        } else {
+            unreachable!("expression should be a constant `i32`");
+        }
     }
 
     pub(crate) fn parse_const_u32(&self, index: &NodeIndex) -> u32 {
@@ -44,7 +45,7 @@ impl MaybeBinaryExpr {
         {
             value
         } else {
-            unreachable!("priority should be an `u32` `const` expression");
+            unreachable!("expression should be a constant `u32`");
         }
     }
 }
