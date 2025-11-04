@@ -1,4 +1,3 @@
-use crate::compilation::constant::{ConstantContext, ConstantData, ConstantValue};
 use crate::compilation::index::NodeIndex;
 use crate::compilation::node::{sequence, NodeConfig, NodeType, NodeTypeSource, Repeated};
 use crate::compilation::transpilation::TranspilationContext;
@@ -44,7 +43,7 @@ impl InitItem {
     pub(crate) fn priority(&self, index: &NodeIndex) -> i32 {
         self.priority
             .iter()
-            .map(|priority| priority.value(index))
+            .map(|priority| priority.value.parse_const_i32(index))
             .next()
             .unwrap_or(0)
     }
@@ -81,7 +80,7 @@ impl RunItem {
     pub(crate) fn priority(&self, index: &NodeIndex) -> i32 {
         self.priority
             .iter()
-            .map(|priority| priority.value(index))
+            .map(|priority| priority.value.parse_const_i32(index))
             .next()
             .unwrap_or(0)
     }
@@ -99,26 +98,11 @@ sequence!(
 
 impl NodeConfig for Priority {
     fn validate(&self, ctx: &mut ValidationContext<'_>) {
-        let expected_type = NodeType::Source(NodeTypeSource {
+        let i32_type = NodeType::Source(NodeTypeSource {
             item: I32Literal::i32_type(self, ctx.index),
             generics: None,
         });
-        validations::check_invalid_const_expr_type(expected_type, &*self.value, ctx);
+        validations::check_invalid_const_expr_type(&i32_type, &*self.value, ctx);
         validations::check_invalid_const_scope(&*self.value, &*self.prio, ctx);
-    }
-}
-
-impl Priority {
-    fn value(&self, index: &NodeIndex) -> i32 {
-        let mut ctx = ConstantContext::new(index);
-        if let Some(ConstantValue {
-            data: ConstantData::I32(value),
-            ..
-        }) = self.value.evaluate_constant(&mut ctx)
-        {
-            value
-        } else {
-            unreachable!("priority should be a `const` expression");
-        }
     }
 }

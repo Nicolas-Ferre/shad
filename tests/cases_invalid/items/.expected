@@ -223,3 +223,35 @@ error: struct field defined multiple times
   |     ^^^^^^
   |     |
   |     duplicated field
+
+error: invalid `const` scope
+  --> ./cases_invalid/items/struct_definition.shd:10:42
+   |
+10 | native struct NotConstAlignment = "u32", not_const_value, 4u {}
+   | ------                                   ^^^^^^^^^^^^^^^
+   | |                                        |
+   | `const` scope declared here              cannot be used in a `const` scope
+
+error: invalid `const` scope
+  --> ./cases_invalid/items/struct_definition.shd:11:42
+   |
+11 | native struct NotConstSize = "u32", 4u, (not_const_value) {}
+   | ------                                   ^^^^^^^^^^^^^^^
+   | |                                        |
+   | `const` scope declared here              cannot be used in a `const` scope
+
+error: invalid expression type
+  --> ./cases_invalid/items/struct_definition.shd:12:40
+   |
+12 | native struct NotU32Alignment = "u32", NOT_U32_VALUE, 4u {}
+   |                                        ^^^^^^^^^^^^^
+   |                                        |
+   |                                        expression type is `i32` but expected type is `u32`
+
+error: invalid expression type
+  --> ./cases_invalid/items/struct_definition.shd:13:39
+   |
+13 | native struct NotU32Size = "u32", 4u, (NOT_U32_VALUE) {}
+   |                                       ^^^^^^^^^^^^^^^
+   |                                       |
+   |                                       expression type is `i32` but expected type is `u32`

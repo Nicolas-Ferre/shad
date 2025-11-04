@@ -78,12 +78,12 @@ pub(crate) fn check_invalid_expr_type(
 }
 
 pub(crate) fn check_invalid_const_expr_type(
-    expected_type: NodeType<'_>,
+    expected_type: &NodeType<'_>,
     actual: &dyn Node,
     ctx: &mut ValidationContext<'_>,
 ) {
     if let Some(actual_type) = actual.type_(ctx.index) {
-        if actual_type.are_same(&expected_type, ctx.index) == Some(false) {
+        if actual_type.are_same(expected_type, ctx.index) == Some(false) {
             let expected_type_name = expected_type.name_or_no_return(ctx.index);
             let actual_type_name = actual_type.name_or_no_return(ctx.index);
             ctx.errors.push(ValidationError::error(

@@ -1,7 +1,8 @@
 use crate::compilation::index::NodeIndex;
-use crate::compilation::node::{sequence, Node, NodeConfig, NodeType, Repeated};
+use crate::compilation::node::{sequence, Node, NodeConfig, NodeType, NodeTypeSource, Repeated};
 use crate::compilation::transpilation::TranspilationContext;
 use crate::compilation::validation::ValidationContext;
+use crate::language::expressions::binary::MaybeBinaryExpr;
 use crate::language::keywords::{
     CloseAngleBracketSymbol, CloseCurlyBracketSymbol, ColonSymbol, CommaSymbol, EqSymbol,
     NativeKeyword, OpenAngleBracketSymbol, OpenCurlyBracketSymbol, PubKeyword, StructKeyword,
@@ -47,9 +48,9 @@ sequence!(
         eq: EqSymbol,
         transpilation: StringLiteral,
         comma1: CommaSymbol,
-        alignment: U32Literal,
+        alignment: MaybeBinaryExpr,
         comma2: CommaSymbol,
-        size: U32Literal,
+        size: MaybeBinaryExpr,
         fields_start: OpenCurlyBracketSymbol,
         fields: Repeated<StructFieldGroup, 0, 1>,
         fields_end: CloseCurlyBracketSymbol,
@@ -66,7 +67,15 @@ impl NodeConfig for NativeStructItem {
     }
 
     fn validate(&self, ctx: &mut ValidationContext<'_>) {
+        let u32_type = NodeType::Source(NodeTypeSource {
+            item: U32Literal::u32_type(self, ctx.index),
+            generics: None,
+        });
         validations::check_duplicated_items(self, ctx);
+        validations::check_invalid_const_expr_type(&u32_type, &*self.alignment, ctx);
+        validations::check_invalid_const_scope(&*self.alignment, &*self.native, ctx);
+        validations::check_invalid_const_expr_type(&u32_type, &*self.size, ctx);
+        validations::check_invalid_const_scope(&*self.size, &*self.native, ctx);
     }
 
     fn is_transpilable_dependency(&self, _index: &NodeIndex) -> bool {
@@ -105,16 +114,12 @@ impl TypeItem for NativeStructItem {
             .find_map(|fields| fields.field(field_name))
     }
 
-    fn size(&self, _index: &NodeIndex) -> u32 {
-        self.size
-            .value()
-            .expect("internal error: invalid u32 literal for struct size")
+    fn size(&self, index: &NodeIndex) -> u32 {
+        self.size.parse_const_u32(index)
     }
 
-    fn alignment(&self, _index: &NodeIndex) -> u32 {
-        self.alignment
-            .value()
-            .expect("internal error: invalid u32 literal for struct alignment")
+    fn alignment(&self, index: &NodeIndex) -> u32 {
+        self.alignment.parse_const_u32(index)
     }
 
     fn transpiled_name(&self) -> String {
