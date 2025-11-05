@@ -72,6 +72,7 @@ impl NodeConfig for NativeStructItem {
             generics: None,
         });
         validations::check_duplicated_items(self, ctx);
+        validations::check_recursive_items(self, ctx);
         validations::check_invalid_const_expr_type(&u32_type, &*self.alignment, ctx);
         validations::check_invalid_const_scope(&*self.alignment, &*self.native, ctx);
         validations::check_invalid_const_expr_type(&u32_type, &*self.size, ctx);

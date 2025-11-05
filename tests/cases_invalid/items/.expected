@@ -213,6 +213,14 @@ error: item definition with circular dependency
    | |_|
    |   this item is directly or indirectly referring to itself
 
+error: item definition with circular dependency
+  --> ./cases_invalid/items/recursion.shd:39:1
+   |
+39 | native struct NativeStruct = "u32", 4u, sizeof(NativeStruct) {}
+   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   | |
+   | this item is directly or indirectly referring to itself
+
 error: struct field defined multiple times
  --> ./cases_invalid/items/struct_definition.shd:4:5
   |
