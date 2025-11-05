@@ -142,8 +142,6 @@ impl TypeItem for NativeStructItem {
     }
 }
 
-impl NativeStructItem {}
-
 sequence!(
     struct StructItem {
         pub_: Repeated<PubKeyword, 0, 1>,

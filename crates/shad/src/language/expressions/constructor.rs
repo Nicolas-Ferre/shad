@@ -98,7 +98,7 @@ impl NodeConfig for ConstructorExpr {
             data: ConstantData::StructFields(
                 type_
                     .source()
-                    .expect("internal error: type reference shouldn't be <no return>")
+                    .expect("internal error: type reference must not be <no return>")
                     .item
                     .fields()
                     .iter()
