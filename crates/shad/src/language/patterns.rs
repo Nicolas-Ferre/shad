@@ -71,7 +71,7 @@ impl NodeConfig for F32Literal {
 
     fn evaluate_constant(&self, ctx: &mut ConstantContext<'_>) -> Option<ConstantValue> {
         Some(ConstantValue {
-            transpiled_type_name: self.f32_type(ctx.index).transpiled_name(),
+            transpiled_type_name: self.f32_type(ctx.index).transpiled_name(None, ctx.index),
             data: ConstantData::F32(self.value()?),
         })
     }
@@ -142,7 +142,7 @@ impl NodeConfig for U32Literal {
 
     fn evaluate_constant(&self, ctx: &mut ConstantContext<'_>) -> Option<ConstantValue> {
         Some(ConstantValue {
-            transpiled_type_name: Self::u32_type(self, ctx.index).transpiled_name(),
+            transpiled_type_name: Self::u32_type(self, ctx.index).transpiled_name(None, ctx.index),
             data: ConstantData::U32(self.value()?),
         })
     }
@@ -218,7 +218,7 @@ impl NodeConfig for I32Literal {
 
     fn evaluate_constant(&self, ctx: &mut ConstantContext<'_>) -> Option<ConstantValue> {
         Some(ConstantValue {
-            transpiled_type_name: Self::i32_type(self, ctx.index).transpiled_name(),
+            transpiled_type_name: Self::i32_type(self, ctx.index).transpiled_name(None, ctx.index),
             data: ConstantData::I32(self.value()?),
         })
     }

@@ -108,7 +108,7 @@ pub struct Buffer {
 
 impl Buffer {
     fn new(item: &BufferItem, index: &NodeIndex) -> Self {
-        let type_ = item.buffer_type(index);
+        let type_ = item.buffer_type_item(index);
         Self {
             size_bytes: type_.size(index),
             type_name: type_.ident().slice.clone(),

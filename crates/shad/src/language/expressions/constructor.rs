@@ -92,11 +92,14 @@ impl NodeConfig for ConstructorExpr {
     }
 
     fn evaluate_constant(&self, ctx: &mut ConstantContext<'_>) -> Option<ConstantValue> {
-        let type_ = self.type_.item(ctx.index)?;
+        let type_ = self.type_.type_(ctx.index)?;
         Some(ConstantValue {
-            transpiled_type_name: type_.transpiled_name(),
+            transpiled_type_name: type_.transpiled_name(ctx.index),
             data: ConstantData::StructFields(
                 type_
+                    .source()
+                    .expect("internal error: type reference shouldn't be <no return>")
+                    .item
                     .fields()
                     .iter()
                     .zip(self.args())
@@ -115,9 +118,9 @@ impl NodeConfig for ConstructorExpr {
     fn transpile(&self, ctx: &mut TranspilationContext<'_>) -> String {
         let type_name = self
             .type_
-            .item(ctx.index)
+            .type_(ctx.index)
             .expect("internal error: constructor source not found")
-            .transpiled_name();
+            .transpiled_name(ctx.index);
         let args = self.args().map(|arg| arg.transpile(ctx)).join(", ");
         format!("{type_name}({args})")
     }

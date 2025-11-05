@@ -72,10 +72,15 @@ impl NodeConfig for NativeFnItem {
                     .expect("internal error: not found const fn arg variable")
             })
             .collect::<Vec<_>>();
-        Some(ConstantValue {
-            transpiled_type_name: self.type_(ctx.index)?.source()?.item.transpiled_name(),
-            data: constants::native_fn_runner(&self.key()?)?(&params),
-        })
+        let return_type = self.type_(ctx.index)?;
+        if return_type.is_no_return() {
+            unreachable!("constant expressions always return a value")
+        } else {
+            Some(ConstantValue {
+                transpiled_type_name: return_type.transpiled_name(ctx.index),
+                data: constants::native_fn_runner(&self.key()?)?(&params),
+            })
+        }
     }
 
     fn is_transpilable_dependency(&self, _index: &NodeIndex) -> bool {
@@ -130,7 +135,7 @@ impl NodeConfig for FnItem {
         if let (Some(return_stmt), Some(expected_type)) = (return_stmt, self.type_(ctx.index)) {
             if let Some(actual_type) = return_stmt.type_(ctx.index) {
                 if !actual_type.is_no_return()
-                    && actual_type.are_same(&expected_type, ctx.index) == Some(false)
+                    && actual_type.are_same(expected_type, ctx.index) == Some(false)
                 {
                     let actual_type_name = actual_type.name_or_no_return(ctx.index);
                     let expected_type_name = expected_type.name_or_no_return(ctx.index);

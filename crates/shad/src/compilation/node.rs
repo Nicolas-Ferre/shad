@@ -41,25 +41,25 @@ pub(crate) struct NodeSourceSearchCriteria {
     pub(crate) common_parent_count: Option<usize>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy)]
 pub(crate) enum NodeType<'a> {
     Source(NodeTypeSource<'a>),
     NoReturn,
 }
 
 impl<'a> NodeType<'a> {
-    pub(crate) fn is_no_return(&self) -> bool {
+    pub(crate) fn is_no_return(self) -> bool {
         matches!(self, Self::NoReturn)
     }
 
-    pub(crate) fn source(&self) -> Option<&NodeTypeSource<'a>> {
+    pub(crate) fn source(self) -> Option<NodeTypeSource<'a>> {
         match self {
             NodeType::Source(source) => Some(source),
             NodeType::NoReturn => None,
         }
     }
 
-    pub(crate) fn name_or_no_return(&self, index: &NodeIndex) -> String {
+    pub(crate) fn name_or_no_return(self, index: &NodeIndex) -> String {
         match self {
             NodeType::Source(source) => {
                 let ident_name = source.item.ident().slice.clone();
@@ -84,7 +84,7 @@ impl<'a> NodeType<'a> {
         }
     }
 
-    pub(crate) fn are_same(&self, other: &NodeType<'_>, index: &NodeIndex) -> Option<bool> {
+    pub(crate) fn are_same(self, other: NodeType<'_>, index: &NodeIndex) -> Option<bool> {
         match (self, other) {
             (Self::Source(source1), NodeType::Source(source2)) => {
                 // Comparison of generic count is already done outside this function
@@ -96,7 +96,7 @@ impl<'a> NodeType<'a> {
                 for (arg1, arg2) in args1.zip(args2) {
                     let type1 = arg1.type_(index)?;
                     let type2 = arg2.type_(index)?;
-                    if !type1.are_same(&type2, index)? {
+                    if !type1.are_same(type2, index)? {
                         return Some(false);
                     }
                 }
@@ -106,9 +106,16 @@ impl<'a> NodeType<'a> {
             (_, _) => Some(false),
         }
     }
+
+    pub(crate) fn transpiled_name(self, index: &NodeIndex) -> String {
+        match self {
+            NodeType::Source(source) => source.item.transpiled_name(source.generics, index),
+            NodeType::NoReturn => unreachable!("<no return> is not transpilable"),
+        }
+    }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy)]
 pub(crate) struct NodeTypeSource<'a> {
     pub(crate) item: &'a dyn TypeItem,
     pub(crate) generics: Option<&'a TypeGenericArgs>,

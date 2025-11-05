@@ -60,7 +60,7 @@ pub(crate) fn check_invalid_expr_type(
         if (actual_type.is_no_return() || expected_type.is_no_return()) && !check_no_return {
             return;
         }
-        if actual_type.are_same(&expected_type, ctx.index) == Some(false) {
+        if actual_type.are_same(expected_type, ctx.index) == Some(false) {
             let expected_type_name = expected_type.name_or_no_return(ctx.index);
             let actual_type_name = actual_type.name_or_no_return(ctx.index);
             ctx.errors.push(ValidationError::error(
@@ -78,7 +78,7 @@ pub(crate) fn check_invalid_expr_type(
 }
 
 pub(crate) fn check_invalid_const_expr_type(
-    expected_type: &NodeType<'_>,
+    expected_type: NodeType<'_>,
     actual: &dyn Node,
     ctx: &mut ValidationContext<'_>,
 ) {
@@ -134,7 +134,7 @@ pub(crate) fn check_arg_name(
 }
 
 pub(crate) fn check_no_return_type(expr: &impl Node, ctx: &mut ValidationContext<'_>) {
-    if expr.type_(ctx.index).is_some_and(|t| t.is_no_return()) {
+    if expr.type_(ctx.index).is_some_and(NodeType::is_no_return) {
         ctx.errors.push(ValidationError::error(
             ctx,
             expr,

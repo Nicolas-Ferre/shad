@@ -1,1 +1,2 @@
-struct_type_params.generic_value=[42, 0, 0, 0]
+struct_type_params.custom_generic_value=[42, 0, 0, 0]
+struct_type_params.native_generic_value=[10, 0, 0, 0, 20, 0, 0, 0]

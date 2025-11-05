@@ -9,7 +9,7 @@ use crate::language::keywords::{
     TypeKeyword,
 };
 use crate::language::patterns::{Ident, StringLiteral, U32Literal};
-use crate::language::type_ref::Type;
+use crate::language::type_ref::{Type, TypeGenericArgs};
 use crate::language::{sources, validations};
 use crate::ValidationError;
 use indoc::indoc;
@@ -32,7 +32,7 @@ pub(crate) trait TypeItem: Node {
 
     fn alignment(&self, index: &NodeIndex) -> u32;
 
-    fn transpiled_name(&self) -> String;
+    fn transpiled_name(&self, generics: Option<&TypeGenericArgs>, index: &NodeIndex) -> String;
 
     fn transpiled_field_name(&self, field_name: &str) -> String;
 }
@@ -73,9 +73,9 @@ impl NodeConfig for NativeStructItem {
         });
         validations::check_duplicated_items(self, ctx);
         validations::check_recursive_items(self, ctx);
-        validations::check_invalid_const_expr_type(&u32_type, &*self.alignment, ctx);
+        validations::check_invalid_const_expr_type(u32_type, &*self.alignment, ctx);
         validations::check_invalid_const_scope(&*self.alignment, &*self.native, ctx);
-        validations::check_invalid_const_expr_type(&u32_type, &*self.size, ctx);
+        validations::check_invalid_const_expr_type(u32_type, &*self.size, ctx);
         validations::check_invalid_const_scope(&*self.size, &*self.native, ctx);
     }
 
@@ -123,14 +123,26 @@ impl TypeItem for NativeStructItem {
         self.alignment.parse_const_u32(index)
     }
 
-    fn transpiled_name(&self) -> String {
-        self.transpilation.as_str().to_string()
+    fn transpiled_name(&self, generics: Option<&TypeGenericArgs>, index: &NodeIndex) -> String {
+        let mut transpilation = self.transpilation.as_str().to_string();
+        let args = generics.iter().flat_map(|args| args.args());
+        let params = self.generics.iter().flat_map(|param| param.params());
+        for (arg, param) in args.zip(params) {
+            let transpiled_arg = arg
+                .type_(index)
+                .expect("internal error: invalid generic type argument")
+                .transpiled_name(index);
+            transpilation = transpilation.replace(&param.ident.slice, &transpiled_arg);
+        }
+        transpilation
     }
 
     fn transpiled_field_name(&self, field_name: &str) -> String {
         field_name.into()
     }
 }
+
+impl NativeStructItem {}
 
 sequence!(
     struct StructItem {
@@ -237,7 +249,7 @@ impl TypeItem for StructItem {
             .expect("internal error: custom structs should have at least one field")
     }
 
-    fn transpiled_name(&self) -> String {
+    fn transpiled_name(&self, _generics: Option<&TypeGenericArgs>, _index: &NodeIndex) -> String {
         format!("_{}", self.id)
     }
 

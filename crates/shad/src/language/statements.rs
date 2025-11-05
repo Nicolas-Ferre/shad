@@ -174,7 +174,11 @@ impl NodeConfig for ExprStmt {
 
     fn transpile(&self, ctx: &mut TranspilationContext<'_>) -> String {
         let expr = self.expr.transpile(ctx);
-        if self.expr.type_(ctx.index).is_some_and(|t| t.is_no_return()) {
+        if self
+            .expr
+            .type_(ctx.index)
+            .is_some_and(NodeType::is_no_return)
+        {
             format!("{expr};")
         } else {
             let id = ctx.next_node_id();
