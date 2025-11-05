@@ -46,7 +46,7 @@ impl NodeConfig for TrueLiteral {
 
     fn evaluate_constant(&self, ctx: &mut ConstantContext<'_>) -> Option<ConstantValue> {
         Some(ConstantValue {
-            transpiled_type_name: bool_type(self, ctx.index).transpiled_name(),
+            transpiled_type_name: bool_type(self, ctx.index).transpiled_name(None, ctx.index),
             data: ConstantData::Bool(true),
         })
     }
@@ -81,7 +81,7 @@ impl NodeConfig for FalseLiteral {
 
     fn evaluate_constant(&self, ctx: &mut ConstantContext<'_>) -> Option<ConstantValue> {
         Some(ConstantValue {
-            transpiled_type_name: bool_type(self, ctx.index).transpiled_name(),
+            transpiled_type_name: bool_type(self, ctx.index).transpiled_name(None, ctx.index),
             data: ConstantData::Bool(false),
         })
     }

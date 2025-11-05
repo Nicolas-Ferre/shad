@@ -1,9 +1,14 @@
-buf generic_value = create_generic_value();
+buf custom_generic_value = custom_generic_value();
+buf native_generic_value = native_generic_value(10, 20);
 
-struct GenericStruct<T: type> {
+struct GenericCustomStruct<T: type> {
     field: i32,
 }
 
-fn create_generic_value() -> GenericStruct<u32> {
-    return GenericStruct<u32> { 42 };
+fn custom_generic_value() -> GenericCustomStruct<u32> {
+    return GenericCustomStruct<u32> { 42 };
 }
+
+native struct GenericNativeStruct<T: type> = "array<T, 2>", 4u, 8u {}
+
+native fn native_generic_value(val1: i32, val2: i32) -> GenericNativeStruct<i32> = "array<i32, 2>(val1, val2)";

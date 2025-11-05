@@ -102,7 +102,7 @@ impl NodeConfig for Priority {
             item: I32Literal::i32_type(self, ctx.index),
             generics: None,
         });
-        validations::check_invalid_const_expr_type(&i32_type, &*self.value, ctx);
+        validations::check_invalid_const_expr_type(i32_type, &*self.value, ctx);
         validations::check_invalid_const_scope(&*self.value, &*self.prio, ctx);
     }
 }

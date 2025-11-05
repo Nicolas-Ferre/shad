@@ -60,9 +60,9 @@ impl NodeConfig for Type {
     }
 
     fn transpile(&self, ctx: &mut TranspilationContext<'_>) -> String {
-        self.item(ctx.index)
+        self.type_(ctx.index)
             .expect("internal error: type not found")
-            .transpiled_name()
+            .transpiled_name(ctx.index)
     }
 }
 

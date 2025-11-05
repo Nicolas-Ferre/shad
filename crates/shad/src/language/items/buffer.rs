@@ -58,16 +58,15 @@ impl NodeConfig for BufferItem {
                 var<storage, read_write> _{id}: {type_};"
             ),
             id = self.id,
-            type_ = self.buffer_type(ctx.index).transpiled_name(),
+            type_ = self.buffer_type(ctx.index).transpiled_name(ctx.index),
             next_binding = ctx.next_binding(),
         )
     }
 }
 
 impl BufferItem {
-    pub(crate) fn buffer_type<'a>(&'a self, index: &'a NodeIndex) -> &'a dyn TypeItem {
-        self.type_(index)
-            .expect("internal error: buffer type not found")
+    pub(crate) fn buffer_type_item<'a>(&'a self, index: &'a NodeIndex) -> &'a dyn TypeItem {
+        self.buffer_type(index)
             .source()
             .expect("internal error: buffer has <no return> type")
             .item
@@ -107,5 +106,10 @@ impl BufferItem {
                 .join("."),
             self.ident.slice
         )
+    }
+
+    fn buffer_type<'a>(&'a self, index: &'a NodeIndex) -> NodeType<'a> {
+        self.type_(index)
+            .expect("internal error: buffer type not found")
     }
 }
