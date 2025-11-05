@@ -35,3 +35,5 @@ struct Struct2 {
 struct Struct3 {
     inner: Struct1,
 }
+
+native struct NativeStruct = "u32", 4u, sizeof(NativeStruct) {}
