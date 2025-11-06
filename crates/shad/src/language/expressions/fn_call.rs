@@ -10,8 +10,8 @@ use crate::language::keywords::{
     CloseParenthesisSymbol, ColonSymbol, CommaSymbol, OpenParenthesisSymbol,
 };
 use crate::language::patterns::Ident;
-use crate::language::validations;
 use crate::language::{constants, sources};
+use crate::language::{transpilation, validations};
 use itertools::Itertools;
 use std::any::Any;
 use std::iter;
@@ -165,12 +165,9 @@ pub(crate) fn transpile_fn_call<'a>(
     args: impl Iterator<Item = &'a impl Node>,
 ) -> String {
     if let Some(native_fn) = (fn_ as &dyn Any).downcast_ref::<NativeFnItem>() {
-        let mut transpilation = native_fn.transpilation.as_str().to_string();
-        for (arg, param) in args.zip(native_fn.signature.params()) {
-            let placeholder = format!("${{{}}}", param.ident.slice);
-            transpilation = transpilation.replace(&placeholder, &arg.transpile(ctx));
-        }
-        transpilation
+        let params = native_fn.signature.params().map(|p| &p.ident.slice);
+        let args = args.map(|a| a.transpile(ctx));
+        transpilation::construct_native_code(native_fn.transpilation.as_str(), params, args)
     } else if let Some(fn_) = (fn_ as &dyn Any).downcast_ref::<FnItem>() {
         if fn_.is_inlined(ctx.index) {
             transpile_inlined_fn_call(ctx, fn_, args)
