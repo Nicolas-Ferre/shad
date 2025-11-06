@@ -167,7 +167,8 @@ pub(crate) fn transpile_fn_call<'a>(
     if let Some(native_fn) = (fn_ as &dyn Any).downcast_ref::<NativeFnItem>() {
         let mut transpilation = native_fn.transpilation.as_str().to_string();
         for (arg, param) in args.zip(native_fn.signature.params()) {
-            transpilation = transpilation.replace(&param.ident.slice, &arg.transpile(ctx));
+            let placeholder = format!("${}", &param.ident.slice);
+            transpilation = transpilation.replace(&placeholder, &arg.transpile(ctx));
         }
         transpilation
     } else if let Some(fn_) = (fn_ as &dyn Any).downcast_ref::<FnItem>() {
