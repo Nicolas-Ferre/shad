@@ -132,7 +132,7 @@ impl TypeItem for NativeStructItem {
                 .type_(index)
                 .expect("internal error: invalid generic type argument")
                 .transpiled_name(index);
-            let placeholder = format!("${}", &param.ident.slice);
+            let placeholder = format!("${{{}}}", param.ident.slice);
             transpilation = transpilation.replace(&placeholder, &transpiled_arg);
         }
         transpilation

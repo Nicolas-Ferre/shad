@@ -167,7 +167,7 @@ pub(crate) fn transpile_fn_call<'a>(
     if let Some(native_fn) = (fn_ as &dyn Any).downcast_ref::<NativeFnItem>() {
         let mut transpilation = native_fn.transpilation.as_str().to_string();
         for (arg, param) in args.zip(native_fn.signature.params()) {
-            let placeholder = format!("${}", &param.ident.slice);
+            let placeholder = format!("${{{}}}", param.ident.slice);
             transpilation = transpilation.replace(&placeholder, &arg.transpile(ctx));
         }
         transpilation
