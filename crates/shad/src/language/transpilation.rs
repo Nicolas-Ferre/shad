@@ -1,4 +1,4 @@
-pub(crate) fn construct_native_code(
+pub(crate) fn resolve_placeholders(
     code_template: impl Into<String>,
     params: impl Iterator<Item = impl AsRef<str>>,
     args: impl Iterator<Item = impl AsRef<str>>,

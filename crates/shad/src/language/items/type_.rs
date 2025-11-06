@@ -134,7 +134,7 @@ impl TypeItem for NativeStructItem {
                 .expect("internal error: invalid generic type argument")
                 .transpiled_name(index)
         });
-        transpilation::construct_native_code(self.transpilation.as_str(), params, args)
+        transpilation::resolve_placeholders(self.transpilation.as_str(), params, args)
     }
 
     fn transpiled_field_name(&self, field_name: &str) -> String {

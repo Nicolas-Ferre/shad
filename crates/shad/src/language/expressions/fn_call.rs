@@ -167,7 +167,7 @@ pub(crate) fn transpile_fn_call<'a>(
     if let Some(native_fn) = (fn_ as &dyn Any).downcast_ref::<NativeFnItem>() {
         let params = native_fn.signature.params().map(|p| &p.ident.slice);
         let args = args.map(|a| a.transpile(ctx));
-        transpilation::construct_native_code(native_fn.transpilation.as_str(), params, args)
+        transpilation::resolve_placeholders(native_fn.transpilation.as_str(), params, args)
     } else if let Some(fn_) = (fn_ as &dyn Any).downcast_ref::<FnItem>() {
         if fn_.is_inlined(ctx.index) {
             transpile_inlined_fn_call(ctx, fn_, args)
