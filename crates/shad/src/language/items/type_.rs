@@ -10,7 +10,7 @@ use crate::language::keywords::{
 };
 use crate::language::patterns::{Ident, StringLiteral, U32Literal};
 use crate::language::type_ref::{Type, TypeGenericArgs};
-use crate::language::{sources, validations};
+use crate::language::{sources, transpilation, validations};
 use crate::ValidationError;
 use indoc::indoc;
 use itertools::Itertools;
@@ -124,17 +124,17 @@ impl TypeItem for NativeStructItem {
     }
 
     fn transpiled_name(&self, generics: Option<&TypeGenericArgs>, index: &NodeIndex) -> String {
-        let mut transpilation = self.transpilation.as_str().to_string();
-        let args = generics.iter().flat_map(|args| args.args());
-        let params = self.generics.iter().flat_map(|param| param.params());
-        for (arg, param) in args.zip(params) {
-            let transpiled_arg = arg
-                .type_(index)
+        let params = self
+            .generics
+            .iter()
+            .flat_map(|param| param.params())
+            .map(|p| &p.ident.slice);
+        let args = generics.iter().flat_map(|args| args.args()).map(|a| {
+            a.type_(index)
                 .expect("internal error: invalid generic type argument")
-                .transpiled_name(index);
-            transpilation = transpilation.replace(&param.ident.slice, &transpiled_arg);
-        }
-        transpilation
+                .transpiled_name(index)
+        });
+        transpilation::resolve_placeholders(self.transpilation.as_str(), params, args)
     }
 
     fn transpiled_field_name(&self, field_name: &str) -> String {
