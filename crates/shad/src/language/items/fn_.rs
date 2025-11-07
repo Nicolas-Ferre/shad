@@ -49,7 +49,9 @@ impl NodeConfig for NativeFnItem {
     }
 
     fn validate(&self, ctx: &mut ValidationContext<'_>) {
+        let params = self.signature.params().map(|p| p.ident.slice.as_str());
         validations::check_duplicated_items(self, ctx);
+        validations::check_native_code(&self.transpilation, params, ctx);
         if self.const_.iter().len() > 0
             && constants::native_fn_runner(&self.signature.fn_key()).is_none()
         {
@@ -247,7 +249,7 @@ impl NodeConfig for FnSignature {
 }
 
 impl FnSignature {
-    pub(crate) fn params(&self) -> impl Iterator<Item = &FnParam> {
+    pub(crate) fn params(&self) -> impl Iterator<Item = &FnParam> + Clone {
         self.params
             .iter()
             .flat_map(|params| params.params())
@@ -271,7 +273,7 @@ sequence!(
 impl NodeConfig for FnParamGroup {}
 
 impl FnParamGroup {
-    pub(crate) fn params(&self) -> impl Iterator<Item = &Rc<FnParam>> {
+    pub(crate) fn params(&self) -> impl Iterator<Item = &Rc<FnParam>> + Clone {
         iter::once(&self.first_param).chain(self.other_params.iter().map(|other| &other.param))
     }
 }

@@ -11,3 +11,4 @@ native struct NotConstAlignment = "u32", not_const_value, 4u {}
 native struct NotConstSize = "u32", 4u, (not_const_value) {}
 native struct NotU32Alignment = "u32", NOT_U32_VALUE, 4u {}
 native struct NotU32Size = "u32", 4u, (NOT_U32_VALUE) {}
+native struct InvalidTranspilationPlaceholder<T: type> = "type<{U}>", 4u, 4u {}
