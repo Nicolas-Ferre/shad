@@ -1,4 +1,4 @@
 fn duplicated_param_name(a: u32, b: u32, a: i32) {
 }
 
-native fn invalid_transpilation_placeholder(param1: i32) = "f({param2})";
+native fn invalid_transpilation_placeholder(param1: i32) = "f(${param2})";

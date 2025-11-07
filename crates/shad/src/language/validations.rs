@@ -3,7 +3,6 @@ use crate::compilation::validation::ValidationContext;
 use crate::language::items;
 use crate::language::patterns::{Ident, StringLiteral};
 use crate::ValidationError;
-use itertools::Itertools;
 
 pub(crate) fn check_missing_source(node: &impl Node, ctx: &mut ValidationContext<'_>) {
     if let Some(key) = node.source_key(ctx.index) {
@@ -146,31 +145,41 @@ pub(crate) fn check_no_return_type(expr: &impl Node, ctx: &mut ValidationContext
     }
 }
 
+// Checks that the string literal contains only `${param}` placeholders for known parameters.
 pub(crate) fn check_native_code<'a>(
     string_literal: &StringLiteral,
     params: impl Iterator<Item = &'a str> + Clone,
     ctx: &mut ValidationContext<'_>,
 ) {
-    let string = string_literal.as_str();
-    let mut next_pos = 0;
-    while let Some(relative_open_pos) = string[next_pos..].find('{') {
-        let open_pos = next_pos + relative_open_pos;
-        if let Some(relative_close_pos) = string[open_pos + 1..].find('}') {
-            let close_pos = open_pos + relative_close_pos + 1;
-            let key = &string[open_pos + 1..close_pos];
-            if !params.clone().contains(key) {
-                ctx.errors.push(ValidationError::error(
-                    ctx,
-                    string_literal,
-                    "invalid native code",
-                    Some("this code contains an invalid placeholder"),
-                    &[],
-                ));
-                return;
+    let mut state = PlaceholderState::None;
+    for char in string_literal.as_str().chars() {
+        state = match (state, char) {
+            (_, '$') => PlaceholderState::DollarFound,
+            (PlaceholderState::DollarFound, '{') => PlaceholderState::Started(String::new()),
+            (PlaceholderState::Started(key), '}') => {
+                if !params.clone().any(|param| param == key) {
+                    ctx.errors.push(ValidationError::error(
+                        ctx,
+                        string_literal,
+                        "invalid native code",
+                        Some("this code contains an invalid placeholder"),
+                        &[],
+                    ));
+                    return;
+                }
+                PlaceholderState::None
             }
-            next_pos = close_pos + 1;
-        } else {
-            break;
+            (PlaceholderState::Started(mut key), char) => {
+                key.push(char);
+                PlaceholderState::Started(key)
+            }
+            (PlaceholderState::DollarFound | PlaceholderState::None, _) => PlaceholderState::None,
         }
     }
+}
+
+enum PlaceholderState {
+    DollarFound,
+    Started(String),
+    None,
 }
