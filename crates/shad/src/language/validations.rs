@@ -1,8 +1,10 @@
 use crate::compilation::node::{Node, NodeType};
 use crate::compilation::validation::ValidationContext;
 use crate::language::items;
-use crate::language::patterns::Ident;
+use crate::language::patterns::{Ident, StringLiteral};
 use crate::ValidationError;
+use regex::Regex;
+use std::sync::OnceLock;
 
 pub(crate) fn check_missing_source(node: &impl Node, ctx: &mut ValidationContext<'_>) {
     if let Some(key) = node.source_key(ctx.index) {
@@ -140,6 +142,33 @@ pub(crate) fn check_no_return_type(expr: &impl Node, ctx: &mut ValidationContext
             expr,
             "invalid expression type",
             Some("this function does not return a value"),
+            &[],
+        ));
+    }
+}
+
+// Checks that the string literal contains only `${param}` placeholders for known parameters.
+pub(crate) fn check_native_code<'a>(
+    string_literal: &StringLiteral,
+    params: impl Iterator<Item = &'a str> + Clone,
+    ctx: &mut ValidationContext<'_>,
+) {
+    static PLACEHOLDER_REGEX: OnceLock<Regex> = OnceLock::new();
+    let placeholder_regex = PLACEHOLDER_REGEX.get_or_init(|| {
+        Regex::new(r"\$\{([^}]*)}").expect("internal error: invalid placeholder regex")
+    });
+    let has_invalid_placeholder_key = placeholder_regex
+        .captures_iter(string_literal.as_str())
+        .any(|c| params.clone().all(|param| param != &c[1]));
+    let has_not_closed_placeholder = placeholder_regex
+        .replace_all(string_literal.as_str(), "")
+        .contains("${");
+    if has_invalid_placeholder_key || has_not_closed_placeholder {
+        ctx.errors.push(ValidationError::error(
+            ctx,
+            string_literal,
+            "invalid native code",
+            Some("this code contains an invalid placeholder"),
             &[],
         ));
     }

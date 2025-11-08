@@ -76,6 +76,14 @@ error: function parameter defined multiple times
   |                          |               duplicated parameter name
   |                          same parameter name defined here
 
+error: invalid native code
+ --> ./cases_invalid/items/function_definition.shd:4:60
+  |
+4 | native fn invalid_transpilation_placeholder(param1: i32) = "f(${param2})";
+  |                                                            ^^^^^^^^^^^^^^
+  |                                                            |
+  |                                                            this code contains an invalid placeholder
+
 error: `func(u32, i32)` function defined multiple times
  --> ./cases_invalid/items/function_not_unique.shd:5:1
   |
@@ -263,3 +271,11 @@ error: invalid expression type
    |                                       ^^^^^^^^^^^^^^^
    |                                       |
    |                                       expression type is `i32` but expected type is `u32`
+
+error: invalid native code
+  --> ./cases_invalid/items/struct_definition.shd:14:58
+   |
+14 | native struct InvalidTranspilationPlaceholder<T: type> = "type<${U}>", 4u, 4u {}
+   |                                                          ^^^^^^^^^^^^
+   |                                                          |
+   |                                                          this code contains an invalid placeholder

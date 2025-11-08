@@ -71,8 +71,14 @@ impl NodeConfig for NativeStructItem {
             item: U32Literal::u32_type(self, ctx.index),
             generics: None,
         });
+        let params = self
+            .generics
+            .iter()
+            .flat_map(|param| param.params())
+            .map(|p| p.ident.slice.as_str());
         validations::check_duplicated_items(self, ctx);
         validations::check_recursive_items(self, ctx);
+        validations::check_native_code(&self.transpilation, params, ctx);
         validations::check_invalid_const_expr_type(u32_type, &*self.alignment, ctx);
         validations::check_invalid_const_scope(&*self.alignment, &*self.native, ctx);
         validations::check_invalid_const_expr_type(u32_type, &*self.size, ctx);
@@ -289,7 +295,7 @@ impl NodeConfig for GenericParams {
 }
 
 impl GenericParams {
-    fn params(&self) -> impl Iterator<Item = &GenericParam> {
+    fn params(&self) -> impl Iterator<Item = &GenericParam> + Clone {
         iter::once(&*self.first_param).chain(self.other_params.iter().map(|other| &*other.param))
     }
 }
