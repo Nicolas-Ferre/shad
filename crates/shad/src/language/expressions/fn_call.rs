@@ -1,6 +1,8 @@
 use crate::compilation::constant::{ConstantContext, ConstantValue};
 use crate::compilation::index::NodeIndex;
-use crate::compilation::node::{sequence, Node, NodeConfig, NodeType, Repeated};
+use crate::compilation::node::{
+    sequence, GenericArgs, Node, NodeConfig, NodeRef, NodeSource, Repeated,
+};
 use crate::compilation::transpilation::TranspilationContext;
 use crate::compilation::validation::ValidationContext;
 use crate::language::expressions::binary::MaybeBinaryExpr;
@@ -32,16 +34,21 @@ impl NodeConfig for FnCallExpr {
         sources::fn_key_from_args(&self.ident, self.args(), index)
     }
 
-    fn source<'a>(&'a self, index: &'a NodeIndex) -> Option<&'a dyn Node> {
-        index.search(self, &self.source_key(index)?, sources::fn_criteria())
+    fn source<'a>(&'a self, index: &'a NodeIndex) -> Option<NodeSource<'a>> {
+        let source = index.search(self, &self.source_key(index)?, sources::fn_criteria())?;
+        Some(NodeSource {
+            node: NodeRef::Other(source),
+            generic_args: vec![],
+        })
     }
 
     fn is_ref(&self, index: &NodeIndex) -> Option<bool> {
-        self.source(index).and_then(|source| source.is_ref(index))
+        self.source(index)
+            .and_then(|source| source.as_node().is_ref(index))
     }
 
-    fn type_<'a>(&'a self, index: &'a NodeIndex) -> Option<NodeType<'a>> {
-        self.source(index)?.type_(index)
+    fn type_<'a>(&'a self, index: &'a NodeIndex) -> Option<NodeSource<'a>> {
+        self.source(index)?.as_node().type_(index)
     }
 
     fn validate(&self, ctx: &mut ValidationContext<'_>) {
@@ -52,29 +59,34 @@ impl NodeConfig for FnCallExpr {
                 .iter()
                 .flat_map(|args| args.args())
                 .map(|arg| arg.name.iter().map(|arg| &*arg.ident).next());
-            check_arg_names(source, arg_names, ctx);
+            check_arg_names(&source, arg_names, ctx);
         }
     }
 
     fn invalid_constant(&self, index: &NodeIndex) -> Option<&dyn Node> {
         self.args()
             .find_map(|arg| arg.invalid_constant(index))
-            .or_else(|| (!fn_::is_const(self.source(index)?)).then_some(self))
+            .or_else(|| (!fn_::is_const(self.source(index)?.as_node())).then_some(self))
     }
 
     fn evaluate_constant(&self, ctx: &mut ConstantContext<'_>) -> Option<ConstantValue> {
-        let args = constants::evaluate_fn_args(self.source(ctx.index)?, self.args(), ctx);
+        let fn_ = self.source(ctx.index)?.as_node();
+        let args = constants::evaluate_fn_args(fn_, self.args(), ctx);
         ctx.start_fn(args);
-        let value = self.source(ctx.index)?.evaluate_constant(ctx);
+        let value = fn_.evaluate_constant(ctx);
         ctx.end_fn();
         value
     }
 
-    fn transpile(&self, ctx: &mut TranspilationContext<'_>) -> String {
+    fn transpile(
+        &self,
+        ctx: &mut TranspilationContext<'_>,
+        generic_args: &GenericArgs<'_>,
+    ) -> String {
         let source = self
             .source(ctx.index)
             .expect("internal error: fn call source not found");
-        transpile_fn_call(ctx, source, self.args())
+        transpile_fn_call(ctx, &source, self.args(), generic_args)
     }
 }
 
@@ -122,7 +134,7 @@ sequence!(
 );
 
 impl NodeConfig for FnArg {
-    fn type_<'a>(&'a self, index: &'a NodeIndex) -> Option<NodeType<'a>> {
+    fn type_<'a>(&'a self, index: &'a NodeIndex) -> Option<NodeSource<'a>> {
         self.expr.type_(index)
     }
 
@@ -134,8 +146,12 @@ impl NodeConfig for FnArg {
         self.expr.evaluate_constant(ctx)
     }
 
-    fn transpile(&self, ctx: &mut TranspilationContext<'_>) -> String {
-        self.expr.transpile(ctx)
+    fn transpile(
+        &self,
+        ctx: &mut TranspilationContext<'_>,
+        generic_args: &GenericArgs<'_>,
+    ) -> String {
+        self.expr.transpile(ctx, generic_args)
     }
 }
 
@@ -150,30 +166,32 @@ sequence!(
 impl NodeConfig for FnArgName {}
 
 pub(crate) fn check_arg_names<'a>(
-    fn_: &dyn Node,
+    fn_: &NodeSource<'_>,
     arg_names: impl Iterator<Item = Option<&'a Ident>>,
     ctx: &mut ValidationContext<'_>,
 ) {
-    for (arg_name, param) in arg_names.zip(fn_::signature(fn_).params()) {
+    for (arg_name, param) in arg_names.zip(fn_::signature(fn_.as_node()).params()) {
         validations::check_arg_name(arg_name, &param.ident, ctx);
     }
 }
 
 pub(crate) fn transpile_fn_call<'a>(
     ctx: &mut TranspilationContext<'_>,
-    fn_: &dyn Node,
+    fn_: &NodeSource<'_>,
     args: impl Iterator<Item = &'a impl Node>,
+    generic_args: &GenericArgs<'_>,
 ) -> String {
-    if let Some(native_fn) = (fn_ as &dyn Any).downcast_ref::<NativeFnItem>() {
+    let node = fn_.as_node() as &dyn Any;
+    if let Some(native_fn) = node.downcast_ref::<NativeFnItem>() {
         let params = native_fn.signature.params().map(|p| &p.ident.slice);
-        let args = args.map(|a| a.transpile(ctx));
+        let args = args.map(|arg| arg.transpile(ctx, generic_args));
         transpilation::resolve_placeholders(native_fn.transpilation.as_str(), params, args)
-    } else if let Some(fn_) = (fn_ as &dyn Any).downcast_ref::<FnItem>() {
+    } else if let Some(fn_) = node.downcast_ref::<FnItem>() {
         if fn_.is_inlined(ctx.index) {
-            transpile_inlined_fn_call(ctx, fn_, args)
+            transpile_inlined_fn_call(ctx, fn_, args, generic_args)
         } else {
             let fn_id = fn_.id;
-            let args = args.map(|arg| arg.transpile(ctx)).join(", ");
+            let args = args.map(|arg| arg.transpile(ctx, generic_args)).join(", ");
             format!("_{fn_id}({args})")
         }
     } else {
@@ -185,6 +203,7 @@ pub(crate) fn transpile_inlined_fn_call<'a>(
     ctx: &mut TranspilationContext<'_>,
     fn_: &FnItem,
     args: impl Iterator<Item = &'a impl Node>,
+    generic_args: &GenericArgs<'_>,
 ) -> String {
     let old_state = ctx.inline_state.clone();
     ctx.inline_state.is_inlined = true;
@@ -195,7 +214,7 @@ pub(crate) fn transpile_inlined_fn_call<'a>(
     } else if let Some(return_type) = fn_.signature.return_type.iter().next() {
         let return_var_id = ctx.next_node_id();
         let return_var_name = format!("_{return_var_id}");
-        let return_type = return_type.type_.transpile(ctx);
+        let return_type = return_type.type_.transpile(ctx, generic_args);
         ctx.generated_stmts
             .push(format!("var {return_var_name}: {return_type};"));
         ctx.inline_state.return_var_id = Some(return_var_id);
@@ -205,7 +224,7 @@ pub(crate) fn transpile_inlined_fn_call<'a>(
         None
     };
     for (param, arg) in fn_.signature.params().zip(args) {
-        let transpiled_arg = arg.transpile(ctx);
+        let transpiled_arg = arg.transpile(ctx, generic_args);
         if param.is_ref(ctx.index) == Some(true) && arg.is_ref(ctx.index) == Some(true) {
             ctx.add_inline_mapping(param.id, transpiled_arg);
         } else {
@@ -216,7 +235,7 @@ pub(crate) fn transpile_inlined_fn_call<'a>(
             ctx.add_inline_mapping(param.id, var_name);
         }
     }
-    let inlined_stmts = fn_.body.transpile(ctx);
+    let inlined_stmts = fn_.body.transpile(ctx, &vec![]);
     ctx.generated_stmts.push(inlined_stmts);
     ctx.end_block();
     let returned_ref = ctx.inline_state.returned_ref.take();

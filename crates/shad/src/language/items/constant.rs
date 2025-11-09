@@ -1,6 +1,6 @@
 use crate::compilation::constant::{ConstantContext, ConstantData, ConstantValue};
 use crate::compilation::index::NodeIndex;
-use crate::compilation::node::{sequence, NodeConfig, NodeType, Repeated};
+use crate::compilation::node::{sequence, GenericArgs, NodeConfig, NodeSource, Repeated};
 use crate::compilation::transpilation::TranspilationContext;
 use crate::compilation::validation::ValidationContext;
 use crate::language::expressions::binary::MaybeBinaryExpr;
@@ -31,7 +31,7 @@ impl NodeConfig for ConstantItem {
         self.pub_.iter().len() > 0
     }
 
-    fn type_<'a>(&'a self, index: &'a NodeIndex) -> Option<NodeType<'a>> {
+    fn type_<'a>(&'a self, index: &'a NodeIndex) -> Option<NodeSource<'a>> {
         if is_item_recursive(self, index) {
             None
         } else {
@@ -54,7 +54,11 @@ impl NodeConfig for ConstantItem {
         true
     }
 
-    fn transpile(&self, ctx: &mut TranspilationContext<'_>) -> String {
+    fn transpile(
+        &self,
+        ctx: &mut TranspilationContext<'_>,
+        _generic_args: &GenericArgs<'_>,
+    ) -> String {
         let value = self
             .expr
             .evaluate_constant(&mut ConstantContext::new(ctx.index))

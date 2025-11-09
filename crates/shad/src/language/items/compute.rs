@@ -1,5 +1,5 @@
 use crate::compilation::index::NodeIndex;
-use crate::compilation::node::{sequence, NodeConfig, NodeType, NodeTypeSource, Repeated};
+use crate::compilation::node::{sequence, NodeConfig, NodeRef, NodeSource, Repeated};
 use crate::compilation::transpilation::TranspilationContext;
 use crate::compilation::validation::ValidationContext;
 use crate::language::expressions::binary::MaybeBinaryExpr;
@@ -36,7 +36,7 @@ impl InitItem {
                 }}"
             ),
             dependencies = transpiled_dependencies(ctx, self),
-            block = self.block.transpile(ctx),
+            block = self.block.transpile(ctx, &vec![]),
         )
     }
 
@@ -73,7 +73,7 @@ impl RunItem {
                 }}"
             ),
             dependencies = transpiled_dependencies(ctx, self),
-            block = self.block.transpile(ctx),
+            block = self.block.transpile(ctx, &vec![]),
         )
     }
 
@@ -98,11 +98,11 @@ sequence!(
 
 impl NodeConfig for Priority {
     fn validate(&self, ctx: &mut ValidationContext<'_>) {
-        let i32_type = NodeType::Source(NodeTypeSource {
-            item: I32Literal::i32_type(self, ctx.index),
-            generics: None,
-        });
-        validations::check_invalid_const_expr_type(i32_type, &*self.value, ctx);
+        let i32_type = NodeSource {
+            node: NodeRef::Type(I32Literal::i32_type(self, ctx.index)),
+            generic_args: vec![],
+        };
+        validations::check_invalid_const_expr_type(&i32_type, &*self.value, ctx);
         validations::check_invalid_const_scope(&*self.value, &*self.prio, ctx);
     }
 }

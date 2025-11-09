@@ -1,6 +1,6 @@
 use crate::compilation::constant::{ConstantContext, ConstantValue};
 use crate::compilation::index::NodeIndex;
-use crate::compilation::node::{choice, sequence, Node, NodeConfig, NodeType};
+use crate::compilation::node::{choice, sequence, GenericArgs, Node, NodeConfig, NodeSource};
 use crate::compilation::transpilation::TranspilationContext;
 use crate::compilation::validation::ValidationContext;
 use crate::language::expressions::binary::MaybeBinaryExpr;
@@ -35,7 +35,7 @@ impl NodeConfig for LocalVarDefStmt {
         Some(sources::variable_key(&self.ident))
     }
 
-    fn type_<'a>(&'a self, index: &'a NodeIndex) -> Option<NodeType<'a>> {
+    fn type_<'a>(&'a self, index: &'a NodeIndex) -> Option<NodeSource<'a>> {
         self.expr.type_(index)
     }
 
@@ -57,7 +57,11 @@ impl NodeConfig for LocalVarDefStmt {
         false
     }
 
-    fn transpile(&self, ctx: &mut TranspilationContext<'_>) -> String {
+    fn transpile(
+        &self,
+        ctx: &mut TranspilationContext<'_>,
+        generic_args: &GenericArgs<'_>,
+    ) -> String {
         let var_name = if ctx.inline_state.is_inlined {
             let id = ctx.next_node_id();
             let var_name = format!("_{id}");
@@ -66,7 +70,7 @@ impl NodeConfig for LocalVarDefStmt {
         } else {
             format!("_{}", self.id)
         };
-        let expr = self.expr.transpile(ctx);
+        let expr = self.expr.transpile(ctx, generic_args);
         format!("var {var_name} = {expr};")
     }
 }
@@ -87,7 +91,7 @@ impl NodeConfig for LocalRefDefStmt {
         Some(sources::variable_key(&self.ident))
     }
 
-    fn type_<'a>(&'a self, index: &'a NodeIndex) -> Option<NodeType<'a>> {
+    fn type_<'a>(&'a self, index: &'a NodeIndex) -> Option<NodeSource<'a>> {
         self.expr.type_(index)
     }
 
@@ -109,8 +113,12 @@ impl NodeConfig for LocalRefDefStmt {
         false
     }
 
-    fn transpile(&self, ctx: &mut TranspilationContext<'_>) -> String {
-        let expr = self.expr.transpile(ctx);
+    fn transpile(
+        &self,
+        ctx: &mut TranspilationContext<'_>,
+        generic_args: &GenericArgs<'_>,
+    ) -> String {
+        let expr = self.expr.transpile(ctx, generic_args);
         if self.expr.is_ref(ctx.index) == Some(true) {
             ctx.add_inline_mapping(self.id, expr);
             String::new()
@@ -152,9 +160,13 @@ impl NodeConfig for AssignmentStmt {
         Some(self)
     }
 
-    fn transpile(&self, ctx: &mut TranspilationContext<'_>) -> String {
-        let left = self.left.transpile(ctx);
-        let right = self.right.transpile(ctx);
+    fn transpile(
+        &self,
+        ctx: &mut TranspilationContext<'_>,
+        generic_args: &GenericArgs<'_>,
+    ) -> String {
+        let left = self.left.transpile(ctx, generic_args);
+        let right = self.right.transpile(ctx, generic_args);
         format!("{left} = {right};")
     }
 }
@@ -172,13 +184,13 @@ impl NodeConfig for ExprStmt {
         Some(self)
     }
 
-    fn transpile(&self, ctx: &mut TranspilationContext<'_>) -> String {
-        let expr = self.expr.transpile(ctx);
-        if self
-            .expr
-            .type_(ctx.index)
-            .is_some_and(NodeType::is_no_return)
-        {
+    fn transpile(
+        &self,
+        ctx: &mut TranspilationContext<'_>,
+        generic_args: &GenericArgs<'_>,
+    ) -> String {
+        let expr = self.expr.transpile(ctx, generic_args);
+        if self.expr.type_(ctx.index).is_some_and(|t| t.is_no_return()) {
             format!("{expr};")
         } else {
             let id = ctx.next_node_id();
@@ -197,7 +209,7 @@ sequence!(
 );
 
 impl NodeConfig for ReturnStmt {
-    fn type_<'a>(&'a self, index: &'a NodeIndex) -> Option<NodeType<'a>> {
+    fn type_<'a>(&'a self, index: &'a NodeIndex) -> Option<NodeSource<'a>> {
         self.expr.type_(index)
     }
 
@@ -213,8 +225,12 @@ impl NodeConfig for ReturnStmt {
         self.expr.evaluate_constant(ctx)
     }
 
-    fn transpile(&self, ctx: &mut TranspilationContext<'_>) -> String {
-        let expr = self.expr.transpile(ctx);
+    fn transpile(
+        &self,
+        ctx: &mut TranspilationContext<'_>,
+        generic_args: &GenericArgs<'_>,
+    ) -> String {
+        let expr = self.expr.transpile(ctx, generic_args);
         if ctx.inline_state.is_returning_ref {
             if self.expr.is_ref(ctx.index) == Some(true) {
                 ctx.inline_state.returned_ref = Some(expr);

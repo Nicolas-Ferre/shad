@@ -1,6 +1,8 @@
 use crate::compilation::constant::{ConstantContext, ConstantValue};
 use crate::compilation::index::NodeIndex;
-use crate::compilation::node::{sequence, Node, NodeConfig, NodeType, Repeated};
+use crate::compilation::node::{
+    sequence, GenericArgs, Node, NodeConfig, NodeRef, NodeSource, Repeated,
+};
 use crate::compilation::transpilation::TranspilationContext;
 use crate::compilation::validation::ValidationContext;
 use crate::language::items::block::Block;
@@ -44,7 +46,7 @@ impl NodeConfig for NativeFnItem {
         self.signature.is_ref(index)
     }
 
-    fn type_<'a>(&'a self, index: &'a NodeIndex) -> Option<NodeType<'a>> {
+    fn type_<'a>(&'a self, index: &'a NodeIndex) -> Option<NodeSource<'a>> {
         self.signature.type_(index)
     }
 
@@ -79,7 +81,7 @@ impl NodeConfig for NativeFnItem {
             unreachable!("constant expressions always return a value")
         } else {
             Some(ConstantValue {
-                transpiled_type_name: return_type.transpiled_name(ctx.index),
+                transpiled_type_name: return_type.transpiled_type_name(ctx.index),
                 data: constants::native_fn_runner(&self.key()?)?(&params),
             })
         }
@@ -113,7 +115,7 @@ impl NodeConfig for FnItem {
         self.signature.is_ref(index)
     }
 
-    fn type_<'a>(&'a self, index: &'a NodeIndex) -> Option<NodeType<'a>> {
+    fn type_<'a>(&'a self, index: &'a NodeIndex) -> Option<NodeSource<'a>> {
         self.signature.type_(index)
     }
 
@@ -137,10 +139,10 @@ impl NodeConfig for FnItem {
         if let (Some(return_stmt), Some(expected_type)) = (return_stmt, self.type_(ctx.index)) {
             if let Some(actual_type) = return_stmt.type_(ctx.index) {
                 if !actual_type.is_no_return()
-                    && actual_type.are_same(expected_type, ctx.index) == Some(false)
+                    && actual_type.are_same_types(&expected_type) == Some(false)
                 {
-                    let actual_type_name = actual_type.name_or_no_return(ctx.index);
-                    let expected_type_name = expected_type.name_or_no_return(ctx.index);
+                    let actual_type_name = actual_type.name_or_no_return();
+                    let expected_type_name = expected_type.name_or_no_return();
                     ctx.errors.push(ValidationError::error(
                         ctx,
                         &*return_stmt.expr,
@@ -164,7 +166,11 @@ impl NodeConfig for FnItem {
         !self.is_inlined(index)
     }
 
-    fn transpile(&self, ctx: &mut TranspilationContext<'_>) -> String {
+    fn transpile(
+        &self,
+        ctx: &mut TranspilationContext<'_>,
+        generic_args: &GenericArgs<'_>,
+    ) -> String {
         format!(
             indoc!(
                 "{signature} {{
@@ -172,13 +178,13 @@ impl NodeConfig for FnItem {
                 {body}
                 }}"
             ),
-            signature = self.signature.transpile(ctx),
+            signature = self.signature.transpile(ctx, generic_args),
             param_vars = self
                 .signature
                 .params()
                 .map(|param| format!("var _{id} = _p{id};", id = param.id))
                 .join("\n"),
-            body = self.body.transpile(ctx),
+            body = self.body.transpile(ctx, generic_args),
         )
     }
 }
@@ -214,11 +220,14 @@ impl NodeConfig for FnSignature {
         )
     }
 
-    fn type_<'a>(&'a self, index: &'a NodeIndex) -> Option<NodeType<'a>> {
+    fn type_<'a>(&'a self, index: &'a NodeIndex) -> Option<NodeSource<'a>> {
         if let Some(return_type) = &self.return_type.iter().next() {
             return_type.type_(index)
         } else {
-            Some(NodeType::NoReturn)
+            Some(NodeSource {
+                node: NodeRef::NoReturn,
+                generic_args: vec![],
+            })
         }
     }
 
@@ -238,12 +247,19 @@ impl NodeConfig for FnSignature {
         }
     }
 
-    fn transpile(&self, ctx: &mut TranspilationContext<'_>) -> String {
+    fn transpile(
+        &self,
+        ctx: &mut TranspilationContext<'_>,
+        generic_args: &GenericArgs<'_>,
+    ) -> String {
         format!(
             "fn _{fn_id}({params}) {return_type}",
             fn_id = self.parent_ids[self.parent_ids.len() - 1],
-            params = self.params().map(|param| param.transpile(ctx)).join(", "),
-            return_type = self.return_type.transpile(ctx),
+            params = self
+                .params()
+                .map(|param| param.transpile(ctx, generic_args))
+                .join(", "),
+            return_type = self.return_type.transpile(ctx, generic_args),
         )
     }
 }
@@ -297,7 +313,7 @@ impl NodeConfig for FnParam {
         Some(self.ref_.iter().len() == 1)
     }
 
-    fn type_<'a>(&'a self, index: &'a NodeIndex) -> Option<NodeType<'a>> {
+    fn type_<'a>(&'a self, index: &'a NodeIndex) -> Option<NodeSource<'a>> {
         self.type_.type_(index)
     }
 
@@ -305,9 +321,13 @@ impl NodeConfig for FnParam {
         false
     }
 
-    fn transpile(&self, ctx: &mut TranspilationContext<'_>) -> String {
+    fn transpile(
+        &self,
+        ctx: &mut TranspilationContext<'_>,
+        generic_args: &GenericArgs<'_>,
+    ) -> String {
         let id = &self.id;
-        let type_ = &self.type_.transpile(ctx);
+        let type_ = &self.type_.transpile(ctx, generic_args);
         format!("_p{id}: {type_}")
     }
 }
@@ -332,12 +352,16 @@ sequence!(
 );
 
 impl NodeConfig for FnReturnType {
-    fn type_<'a>(&'a self, index: &'a NodeIndex) -> Option<NodeType<'a>> {
+    fn type_<'a>(&'a self, index: &'a NodeIndex) -> Option<NodeSource<'a>> {
         self.type_.type_(index)
     }
 
-    fn transpile(&self, ctx: &mut TranspilationContext<'_>) -> String {
-        let type_ = self.type_.transpile(ctx);
+    fn transpile(
+        &self,
+        ctx: &mut TranspilationContext<'_>,
+        generic_args: &GenericArgs<'_>,
+    ) -> String {
+        let type_ = self.type_.transpile(ctx, generic_args);
         format!("-> {type_}")
     }
 }

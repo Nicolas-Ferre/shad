@@ -41,37 +41,56 @@ pub(crate) struct NodeSourceSearchCriteria {
     pub(crate) common_parent_count: Option<usize>,
 }
 
-#[derive(Debug, Clone, Copy)]
-pub(crate) enum NodeType<'a> {
-    Source(NodeTypeSource<'a>),
-    NoReturn,
+pub(crate) type GenericArgs<'a> = Vec<Option<NodeSource<'a>>>;
+
+#[derive(Debug, Clone)]
+pub(crate) struct NodeSource<'a> {
+    pub(crate) node: NodeRef<'a>,
+    pub(crate) generic_args: GenericArgs<'a>,
 }
 
-impl<'a> NodeType<'a> {
-    pub(crate) fn is_no_return(self) -> bool {
-        matches!(self, Self::NoReturn)
-    }
-
-    pub(crate) fn source(self) -> Option<NodeTypeSource<'a>> {
-        match self {
-            NodeType::Source(source) => Some(source),
-            NodeType::NoReturn => None,
+impl<'a> NodeSource<'a> {
+    pub(crate) fn as_node(&self) -> &'a dyn Node {
+        match self.node {
+            NodeRef::Type(node) => node,
+            NodeRef::Other(node) => node,
+            NodeRef::NoReturn => unreachable!("internal error: <no return> is not a node"),
         }
     }
 
-    pub(crate) fn name_or_no_return(self, index: &NodeIndex) -> String {
-        match self {
-            NodeType::Source(source) => {
-                let ident_name = source.item.ident().slice.clone();
-                let generic_names = source
-                    .generics
+    pub(crate) fn as_type_item(&self) -> Option<&'a dyn TypeItem> {
+        match self.node {
+            NodeRef::Type(node) => Some(node),
+            NodeRef::Other(_) | NodeRef::NoReturn => None,
+        }
+    }
+
+    pub(crate) fn is_no_return(&self) -> bool {
+        matches!(self.node, NodeRef::NoReturn)
+    }
+
+    pub(crate) fn key(&self) -> NodeSourceKey {
+        NodeSourceKey {
+            node_id: self.as_node().id,
+            generic_arg_keys: self
+                .generic_args
+                .iter()
+                .map(|arg| arg.as_ref().map(NodeSource::key))
+                .collect(),
+        }
+    }
+
+    pub(crate) fn name_or_no_return(&self) -> String {
+        match self.node {
+            NodeRef::Type(type_) => {
+                let ident_name = type_.ident().slice.clone();
+                let generic_names = self
+                    .generic_args
                     .iter()
-                    .flat_map(|g| g.args())
                     .map(|type_| {
-                        type_.type_(index).map_or_else(
-                            || UNKNOWN_TYPE.into(),
-                            |type_| type_.name_or_no_return(index),
-                        )
+                        type_
+                            .as_ref()
+                            .map_or_else(|| UNKNOWN_TYPE.into(), NodeSource::name_or_no_return)
                     })
                     .join(", ");
                 if generic_names.is_empty() {
@@ -80,45 +99,53 @@ impl<'a> NodeType<'a> {
                     format!("{ident_name}<{generic_names}>")
                 }
             }
-            NodeType::NoReturn => NO_RETURN_TYPE.into(),
+            NodeRef::NoReturn => NO_RETURN_TYPE.into(),
+            NodeRef::Other(_) => unreachable!("internal error: non-type nodes have no name"),
         }
     }
 
-    pub(crate) fn are_same(self, other: NodeType<'_>, index: &NodeIndex) -> Option<bool> {
-        match (self, other) {
-            (Self::Source(source1), NodeType::Source(source2)) => {
+    pub(crate) fn transpiled_type_name(&self, index: &NodeIndex) -> String {
+        match self.node {
+            NodeRef::Type(type_) => type_.transpiled_name(index, &self.generic_args),
+            NodeRef::Other(_) | NodeRef::NoReturn => unreachable!("not transpilable type"),
+        }
+    }
+
+    pub(crate) fn are_same_types(&self, other: &NodeSource<'_>) -> Option<bool> {
+        match (self.node, other.node) {
+            (NodeRef::Type(type1), NodeRef::Type(type2)) => {
                 // Comparison of generic count is already done outside this function
-                if source1.item.id != source2.item.id {
+                if type1.id != type2.id {
                     return Some(false);
                 }
-                let args1 = source1.generics.iter().flat_map(|g| g.args());
-                let args2 = source2.generics.iter().flat_map(|g| g.args());
-                for (arg1, arg2) in args1.zip(args2) {
-                    let type1 = arg1.type_(index)?;
-                    let type2 = arg2.type_(index)?;
-                    if !type1.are_same(type2, index)? {
+                for (arg1, arg2) in self.generic_args.iter().zip(&other.generic_args) {
+                    let arg1 = arg1.as_ref()?;
+                    let arg2 = arg2.as_ref()?;
+                    if !arg1.are_same_types(arg2)? {
                         return Some(false);
                     }
                 }
                 Some(true)
             }
-            (Self::NoReturn, NodeType::NoReturn) => unreachable!("cannot compare two <no return>"),
+            (NodeRef::NoReturn, NodeRef::NoReturn) | (NodeRef::Other(_), NodeRef::Other(_)) => {
+                unreachable!("only concrete type nodes can be compared")
+            }
             (_, _) => Some(false),
-        }
-    }
-
-    pub(crate) fn transpiled_name(self, index: &NodeIndex) -> String {
-        match self {
-            NodeType::Source(source) => source.item.transpiled_name(source.generics, index),
-            NodeType::NoReturn => unreachable!("<no return> is not transpilable"),
         }
     }
 }
 
 #[derive(Debug, Clone, Copy)]
-pub(crate) struct NodeTypeSource<'a> {
-    pub(crate) item: &'a dyn TypeItem,
-    pub(crate) generics: Option<&'a TypeGenericArgs>,
+pub(crate) enum NodeRef<'a> {
+    Type(&'a dyn TypeItem),
+    Other(&'a dyn Node),
+    NoReturn,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub(crate) struct NodeSourceKey {
+    pub(crate) node_id: u32,
+    pub(crate) generic_arg_keys: Vec<Option<NodeSourceKey>>,
 }
 
 // coverage: off (most default implementations are unreachable)
@@ -136,7 +163,7 @@ pub(crate) trait NodeConfig {
         None
     }
 
-    fn source<'a>(&'a self, index: &'a NodeIndex) -> Option<&'a dyn Node> {
+    fn source<'a>(&'a self, index: &'a NodeIndex) -> Option<NodeSource<'a>> {
         None
     }
 
@@ -144,7 +171,7 @@ pub(crate) trait NodeConfig {
         unreachable!("`{}` node has no ref checking", type_name::<Self>())
     }
 
-    fn type_<'a>(&'a self, index: &'a NodeIndex) -> Option<NodeType<'a>> {
+    fn type_<'a>(&'a self, index: &'a NodeIndex) -> Option<NodeSource<'a>> {
         unreachable!("`{}` node has no type", type_name::<Self>())
     }
 
@@ -162,7 +189,11 @@ pub(crate) trait NodeConfig {
         unreachable!("`{}` node has no dependency checking", type_name::<Self>())
     }
 
-    fn transpile(&self, ctx: &mut TranspilationContext<'_>) -> String {
+    fn transpile(
+        &self,
+        ctx: &mut TranspilationContext<'_>,
+        generic_args: &GenericArgs<'_>,
+    ) -> String {
         unreachable!("`{}` node has no transpilation", type_name::<Self>())
     }
 }
@@ -177,7 +208,7 @@ pub(crate) trait Node: Any + NodeConfig + Debug + Deref<Target = NodeProps> {
 
     fn validate_nested(&self, ctx: &mut ValidationContext<'_>);
 
-    fn direct_nested_sources<'a>(&'a self, index: &'a NodeIndex) -> Vec<&'a dyn Node>;
+    fn direct_nested_sources<'a>(&'a self, index: &'a NodeIndex) -> Vec<NodeSource<'a>>;
 
     fn props(&self) -> &NodeProps {
         self
@@ -187,30 +218,40 @@ pub(crate) trait Node: Any + NodeConfig + Debug + Deref<Target = NodeProps> {
         TypeId::of::<Self>()
     }
 
-    fn nested_sources<'a>(&'a self, index: &'a NodeIndex) -> Vec<&'a dyn Node>
+    fn nested_sources<'a>(&'a self, index: &'a NodeIndex) -> Vec<NodeSource<'a>>
     where
         Self: Sized,
     {
         let mut sources = vec![];
         let mut registered_source_ids = HashSet::new();
-        let mut sources_to_process: HashMap<_, _> =
-            iter::once((self.id, self as &dyn Node)).collect();
+        let mut sources_to_process: HashMap<_, _> = iter::once((
+            NodeSourceKey {
+                node_id: self.id,
+                generic_arg_keys: vec![],
+            },
+            NodeSource {
+                node: NodeRef::Other(self as &dyn Node),
+                generic_args: vec![],
+            },
+        ))
+        .collect();
         while !sources_to_process.is_empty() {
-            for node in mem::take(&mut sources_to_process).into_values() {
-                if registered_source_ids.contains(&node.id) {
+            for source in mem::take(&mut sources_to_process).into_values() {
+                let node_key = source.key();
+                if registered_source_ids.contains(&node_key) {
                     continue;
                 }
-                registered_source_ids.insert(node.id);
-                for source in node.direct_nested_sources(index) {
-                    sources.push(source);
-                    sources_to_process.insert(source.id, source);
+                registered_source_ids.insert(node_key);
+                for source_child in source.as_node().direct_nested_sources(index) {
+                    sources.push(source_child.clone());
+                    sources_to_process.insert(source_child.key(), source_child);
                 }
             }
         }
         sources
             .into_iter()
-            .unique_by(|node| node.id)
-            .sorted_by_key(|node| node.id)
+            .unique_by(NodeSource::key)
+            .sorted_by_key(NodeSource::key)
             .collect()
     }
 }
@@ -258,8 +299,15 @@ impl<T: Node, const MIN: usize, const MAX: usize> Deref for Repeated<T, MIN, MAX
 }
 
 impl<T: Node, const MIN: usize, const MAX: usize> NodeConfig for Repeated<T, MIN, MAX> {
-    fn transpile(&self, ctx: &mut TranspilationContext<'_>) -> String {
-        self.nodes.iter().map(|node| node.transpile(ctx)).join("\n")
+    fn transpile(
+        &self,
+        ctx: &mut TranspilationContext<'_>,
+        generic_args: &GenericArgs<'_>,
+    ) -> String {
+        self.nodes
+            .iter()
+            .map(|node| node.transpile(ctx, generic_args))
+            .join("\n")
     }
 }
 
@@ -286,7 +334,7 @@ impl<T: Node, const MIN: usize, const MAX: usize> Node for Repeated<T, MIN, MAX>
         }
     }
 
-    fn direct_nested_sources<'a>(&'a self, index: &'a NodeIndex) -> Vec<&'a dyn Node> {
+    fn direct_nested_sources<'a>(&'a self, index: &'a NodeIndex) -> Vec<NodeSource<'a>> {
         self.nodes
             .iter()
             .flat_map(|node| node.direct_nested_sources(index))
@@ -326,7 +374,7 @@ impl Node for EndOfFile {
     fn validate_nested(&self, _ctx: &mut ValidationContext<'_>) {}
 
     // coverage: off (unused by needed by `Node` trait)
-    fn direct_nested_sources<'a>(&'a self, _index: &'a NodeIndex) -> Vec<&'a dyn Node> {
+    fn direct_nested_sources<'a>(&'a self, _index: &'a NodeIndex) -> Vec<NodeSource<'a>> {
         vec![]
     }
     // coverage: on
@@ -373,7 +421,7 @@ macro_rules! keyword {
             fn direct_nested_sources<'a>(
                 &'a self,
                 _index: &'a crate::compilation::index::NodeIndex,
-            ) -> Vec<&'a dyn crate::compilation::node::Node> {
+            ) -> Vec<crate::compilation::node::NodeSource<'a>> {
                 vec![]
             }
         }
@@ -430,7 +478,7 @@ macro_rules! pattern {
             fn direct_nested_sources<'a>(
                 &'a self,
                 index: &'a crate::compilation::index::NodeIndex
-            ) -> Vec<&'a dyn crate::compilation::node::Node> {
+            ) -> Vec<crate::compilation::node::NodeSource<'a>> {
                 self.source(index).into_iter().collect()
             }
         }
@@ -557,7 +605,7 @@ macro_rules! sequence {
             fn direct_nested_sources<'a>(
                 &'a self,
                 index: &'a crate::compilation::index::NodeIndex
-            ) -> Vec<&'a dyn crate::compilation::node::Node> {
+            ) -> Vec<crate::compilation::node::NodeSource<'a>> {
                 let mut sources = vec![];
                 $(
                     sources.extend(self.source(index));
@@ -653,7 +701,7 @@ macro_rules! choice {
             fn direct_nested_sources<'a>(
                 &'a self,
                 index: &'a crate::compilation::index::NodeIndex
-            ) -> Vec<&'a dyn crate::compilation::node::Node> {
+            ) -> Vec<crate::compilation::node::NodeSource<'a>> {
                 match self {
                     $(Self::$child(child) => child.direct_nested_sources(index),)*
                 }
@@ -670,7 +718,7 @@ macro_rules! choice {
             fn type_<'a>(
                 &'a self,
                 index: &'a crate::compilation::index::NodeIndex,
-            ) -> Option<crate::compilation::node::NodeType<'a>> {
+            ) -> Option<crate::compilation::node::NodeSource<'a>> {
                 match self {
                     $(Self::$child(child) => child.type_(index),)*
                 }
@@ -697,9 +745,10 @@ macro_rules! choice {
             fn transpile(
                 &self,
                 ctx: &mut crate::compilation::transpilation::TranspilationContext<'_>,
+                generic_args: &crate::compilation::node::GenericArgs<'_>,
             ) -> std::string::String {
                 match self {
-                    $(Self::$child(child) => child.transpile(ctx),)*
+                    $(Self::$child(child) => child.transpile(ctx, generic_args),)*
                 }
             }
         }
@@ -761,7 +810,7 @@ macro_rules! transform {
             fn type_<'a>(
                 &'a self,
                 index: &'a crate::compilation::index::NodeIndex,
-            ) -> Option<crate::compilation::node::NodeType<'a>> {
+            ) -> Option<crate::compilation::node::NodeSource<'a>> {
                 match self {
                     Self::Parsed(child) => child.type_(index),
                     Self::Transformed(child) => child.type_(index),
@@ -791,10 +840,11 @@ macro_rules! transform {
             fn transpile(
                 &self,
                 ctx: &mut crate::compilation::transpilation::TranspilationContext<'_>,
+                generic_args: &crate::compilation::node::GenericArgs<'_>,
             ) -> std::string::String {
                 match self {
-                    Self::Parsed(child) => child.transpile(ctx),
-                    Self::Transformed(child) => child.transpile(ctx),
+                    Self::Parsed(child) => child.transpile(ctx, generic_args),
+                    Self::Transformed(child) => child.transpile(ctx, generic_args),
                 }
             }
         }
@@ -843,7 +893,7 @@ macro_rules! transform {
             fn direct_nested_sources<'a>(
                 &'a self,
                 index: &'a crate::compilation::index::NodeIndex,
-            ) -> Vec<&'a dyn crate::compilation::node::Node> {
+            ) -> Vec<crate::compilation::node::NodeSource<'a>> {
                 match self {
                     Self::Parsed(child) => child.direct_nested_sources(index),
                     Self::Transformed(child) => child.direct_nested_sources(index),
@@ -853,7 +903,6 @@ macro_rules! transform {
     };
 }
 
-use crate::language::type_ref::TypeGenericArgs;
 pub(crate) use choice;
 pub(crate) use keyword;
 pub(crate) use pattern;

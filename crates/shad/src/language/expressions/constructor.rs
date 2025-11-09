@@ -2,13 +2,13 @@ use crate::compilation::constant::{
     ConstantContext, ConstantData, ConstantStructFieldData, ConstantValue,
 };
 use crate::compilation::index::NodeIndex;
-use crate::compilation::node::{sequence, Node, NodeConfig, NodeType, Repeated};
+use crate::compilation::node::{sequence, GenericArgs, Node, NodeConfig, NodeSource, Repeated};
 use crate::compilation::transpilation::TranspilationContext;
 use crate::compilation::validation::ValidationContext;
 use crate::language::expressions::fn_call::{FnArg, FnArgGroup};
 use crate::language::keywords::{CloseCurlyBracketSymbol, OpenCurlyBracketSymbol};
 use crate::language::type_ref::Type;
-use crate::language::{sources, validations};
+use crate::language::validations;
 use crate::ValidationError;
 use itertools::Itertools;
 
@@ -23,19 +23,11 @@ sequence!(
 );
 
 impl NodeConfig for ConstructorExpr {
-    fn source_key(&self, _index: &NodeIndex) -> Option<String> {
-        Some(sources::type_key(&self.type_.ident))
-    }
-
-    fn source<'a>(&'a self, index: &'a NodeIndex) -> Option<&'a dyn Node> {
-        index.search(self, &self.source_key(index)?, sources::type_criteria())
-    }
-
     fn is_ref(&self, _index: &NodeIndex) -> Option<bool> {
         Some(false)
     }
 
-    fn type_<'a>(&'a self, index: &'a NodeIndex) -> Option<NodeType<'a>> {
+    fn type_<'a>(&'a self, index: &'a NodeIndex) -> Option<NodeSource<'a>> {
         self.type_.type_(index)
     }
 
@@ -92,14 +84,13 @@ impl NodeConfig for ConstructorExpr {
     }
 
     fn evaluate_constant(&self, ctx: &mut ConstantContext<'_>) -> Option<ConstantValue> {
-        let type_ = self.type_.type_(ctx.index)?;
+        let type_ = self.type_.source(ctx.index)?;
         Some(ConstantValue {
-            transpiled_type_name: type_.transpiled_name(ctx.index),
+            transpiled_type_name: type_.transpiled_type_name(ctx.index),
             data: ConstantData::StructFields(
                 type_
-                    .source()
+                    .as_type_item()
                     .expect("internal error: type reference must not be <no return>")
-                    .item
                     .fields()
                     .iter()
                     .zip(self.args())
@@ -115,13 +106,20 @@ impl NodeConfig for ConstructorExpr {
         })
     }
 
-    fn transpile(&self, ctx: &mut TranspilationContext<'_>) -> String {
+    fn transpile(
+        &self,
+        ctx: &mut TranspilationContext<'_>,
+        generic_args: &GenericArgs<'_>,
+    ) -> String {
         let type_name = self
             .type_
             .type_(ctx.index)
             .expect("internal error: constructor source not found")
-            .transpiled_name(ctx.index);
-        let args = self.args().map(|arg| arg.transpile(ctx)).join(", ");
+            .transpiled_type_name(ctx.index);
+        let args = self
+            .args()
+            .map(|arg| arg.transpile(ctx, generic_args))
+            .join(", ");
         format!("{type_name}({args})")
     }
 }

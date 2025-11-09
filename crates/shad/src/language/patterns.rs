@@ -1,6 +1,6 @@
 use crate::compilation::constant::{ConstantContext, ConstantData, ConstantValue};
 use crate::compilation::index::NodeIndex;
-use crate::compilation::node::{pattern, Node, NodeConfig, NodeType, NodeTypeSource};
+use crate::compilation::node::{pattern, GenericArgs, Node, NodeConfig, NodeRef, NodeSource};
 use crate::compilation::transpilation::TranspilationContext;
 use crate::compilation::validation::ValidationContext;
 use crate::compilation::PRELUDE_PATH;
@@ -46,11 +46,11 @@ impl NodeConfig for F32Literal {
         Some(false)
     }
 
-    fn type_<'a>(&'a self, index: &'a NodeIndex) -> Option<NodeType<'a>> {
-        Some(NodeType::Source(NodeTypeSource {
-            item: self.f32_type(index),
-            generics: None,
-        }))
+    fn type_<'a>(&'a self, index: &'a NodeIndex) -> Option<NodeSource<'a>> {
+        Some(NodeSource {
+            node: NodeRef::Type(self.f32_type(index)),
+            generic_args: vec![],
+        })
     }
 
     fn validate(&self, ctx: &mut ValidationContext<'_>) {
@@ -71,12 +71,16 @@ impl NodeConfig for F32Literal {
 
     fn evaluate_constant(&self, ctx: &mut ConstantContext<'_>) -> Option<ConstantValue> {
         Some(ConstantValue {
-            transpiled_type_name: self.f32_type(ctx.index).transpiled_name(None, ctx.index),
+            transpiled_type_name: self.f32_type(ctx.index).transpiled_name(ctx.index, &vec![]),
             data: ConstantData::F32(self.value()?),
         })
     }
 
-    fn transpile(&self, _ctx: &mut TranspilationContext<'_>) -> String {
+    fn transpile(
+        &self,
+        _ctx: &mut TranspilationContext<'_>,
+        _generic_args: &GenericArgs<'_>,
+    ) -> String {
         let value = self.slice.replace('_', "");
         format!("f32({value})")
     }
@@ -117,11 +121,11 @@ impl NodeConfig for U32Literal {
         Some(false)
     }
 
-    fn type_<'a>(&'a self, index: &'a NodeIndex) -> Option<NodeType<'a>> {
-        Some(NodeType::Source(NodeTypeSource {
-            item: Self::u32_type(self, index),
-            generics: None,
-        }))
+    fn type_<'a>(&'a self, index: &'a NodeIndex) -> Option<NodeSource<'a>> {
+        Some(NodeSource {
+            node: NodeRef::Type(Self::u32_type(self, index)),
+            generic_args: vec![],
+        })
     }
 
     fn validate(&self, ctx: &mut ValidationContext<'_>) {
@@ -142,12 +146,17 @@ impl NodeConfig for U32Literal {
 
     fn evaluate_constant(&self, ctx: &mut ConstantContext<'_>) -> Option<ConstantValue> {
         Some(ConstantValue {
-            transpiled_type_name: Self::u32_type(self, ctx.index).transpiled_name(None, ctx.index),
+            transpiled_type_name: Self::u32_type(self, ctx.index)
+                .transpiled_name(ctx.index, &vec![]),
             data: ConstantData::U32(self.value()?),
         })
     }
 
-    fn transpile(&self, _ctx: &mut TranspilationContext<'_>) -> String {
+    fn transpile(
+        &self,
+        _ctx: &mut TranspilationContext<'_>,
+        _generic_args: &GenericArgs<'_>,
+    ) -> String {
         let value = self.slice.replace('_', "");
         let value_without_leading_zeros = value.trim_start_matches('0');
         if value_without_leading_zeros.len() == 1 {
@@ -193,11 +202,11 @@ impl NodeConfig for I32Literal {
         Some(false)
     }
 
-    fn type_<'a>(&'a self, index: &'a NodeIndex) -> Option<NodeType<'a>> {
-        Some(NodeType::Source(NodeTypeSource {
-            item: Self::i32_type(self, index),
-            generics: None,
-        }))
+    fn type_<'a>(&'a self, index: &'a NodeIndex) -> Option<NodeSource<'a>> {
+        Some(NodeSource {
+            node: NodeRef::Type(Self::i32_type(self, index)),
+            generic_args: vec![],
+        })
     }
 
     fn validate(&self, ctx: &mut ValidationContext<'_>) {
@@ -218,12 +227,17 @@ impl NodeConfig for I32Literal {
 
     fn evaluate_constant(&self, ctx: &mut ConstantContext<'_>) -> Option<ConstantValue> {
         Some(ConstantValue {
-            transpiled_type_name: Self::i32_type(self, ctx.index).transpiled_name(None, ctx.index),
+            transpiled_type_name: Self::i32_type(self, ctx.index)
+                .transpiled_name(ctx.index, &vec![]),
             data: ConstantData::I32(self.value()?),
         })
     }
 
-    fn transpile(&self, _ctx: &mut TranspilationContext<'_>) -> String {
+    fn transpile(
+        &self,
+        _ctx: &mut TranspilationContext<'_>,
+        _generic_args: &GenericArgs<'_>,
+    ) -> String {
         let value = self.slice.replace('_', "");
         let value_without_leading_zeros = value.trim_start_matches('0');
         if value_without_leading_zeros.is_empty() {

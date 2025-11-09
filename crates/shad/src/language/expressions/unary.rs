@@ -1,6 +1,8 @@
 use crate::compilation::constant::{ConstantContext, ConstantValue};
 use crate::compilation::index::NodeIndex;
-use crate::compilation::node::{choice, sequence, Node, NodeConfig, NodeType};
+use crate::compilation::node::{
+    choice, sequence, GenericArgs, Node, NodeConfig, NodeRef, NodeSource,
+};
 use crate::compilation::transpilation::TranspilationContext;
 use crate::compilation::validation::ValidationContext;
 use crate::language::expressions::chain::ChainExpr;
@@ -26,19 +28,24 @@ impl NodeConfig for UnaryExpr {
             UnaryOperator::Not(_) => "__not__",
         };
         let arg_type = self.operand.type_(index)?;
-        Some(sources::fn_key_from_operator(fn_name, [arg_type], index))
+        Some(sources::fn_key_from_operator(fn_name, [arg_type]))
     }
 
-    fn source<'a>(&'a self, index: &'a NodeIndex) -> Option<&'a dyn Node> {
-        index.search(self, &self.source_key(index)?, sources::fn_criteria())
+    fn source<'a>(&'a self, index: &'a NodeIndex) -> Option<NodeSource<'a>> {
+        let source = index.search(self, &self.source_key(index)?, sources::fn_criteria())?;
+        Some(NodeSource {
+            node: NodeRef::Other(source),
+            generic_args: vec![],
+        })
     }
 
     fn is_ref(&self, index: &NodeIndex) -> Option<bool> {
-        self.source(index).and_then(|source| source.is_ref(index))
+        self.source(index)
+            .and_then(|source| source.as_node().is_ref(index))
     }
 
-    fn type_<'a>(&'a self, index: &'a NodeIndex) -> Option<NodeType<'a>> {
-        self.source(index)?.type_(index)
+    fn type_<'a>(&'a self, index: &'a NodeIndex) -> Option<NodeSource<'a>> {
+        self.source(index)?.as_node().type_(index)
     }
 
     fn validate(&self, ctx: &mut ValidationContext<'_>) {
@@ -46,25 +53,29 @@ impl NodeConfig for UnaryExpr {
     }
 
     fn invalid_constant(&self, index: &NodeIndex) -> Option<&dyn Node> {
-        (!fn_::is_const(self.source(index)?))
+        (!fn_::is_const(self.source(index)?.as_node()))
             .then_some(self as _)
             .or_else(|| self.operand.invalid_constant(index))
     }
 
     fn evaluate_constant(&self, ctx: &mut ConstantContext<'_>) -> Option<ConstantValue> {
-        let args =
-            constants::evaluate_fn_args(self.source(ctx.index)?, iter::once(&*self.operand), ctx);
+        let fn_ = self.source(ctx.index)?.as_node();
+        let args = constants::evaluate_fn_args(fn_, iter::once(&*self.operand), ctx);
         ctx.start_fn(args);
-        let value = self.source(ctx.index)?.evaluate_constant(ctx);
+        let value = fn_.evaluate_constant(ctx);
         ctx.end_fn();
         value
     }
 
-    fn transpile(&self, ctx: &mut TranspilationContext<'_>) -> String {
-        let source = self
+    fn transpile(
+        &self,
+        ctx: &mut TranspilationContext<'_>,
+        generic_args: &GenericArgs<'_>,
+    ) -> String {
+        let fn_ = self
             .source(ctx.index)
             .expect("internal error: fn call source not found");
-        transpile_fn_call(ctx, source, iter::once(&*self.operand))
+        transpile_fn_call(ctx, &fn_, iter::once(&*self.operand), generic_args)
     }
 }
 

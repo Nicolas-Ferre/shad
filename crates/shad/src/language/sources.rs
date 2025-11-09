@@ -1,5 +1,5 @@
 use crate::compilation::index::NodeIndex;
-use crate::compilation::node::{NodeConfig, NodeSourceSearchCriteria, NodeType, Repeated};
+use crate::compilation::node::{NodeConfig, NodeSource, NodeSourceSearchCriteria, Repeated};
 use crate::language::expressions::binary::MaybeBinaryExpr;
 use crate::language::items::buffer::BufferItem;
 use crate::language::items::constant::ConstantItem;
@@ -37,7 +37,7 @@ pub(crate) fn fn_key_from_args<'a>(
 ) -> Option<String> {
     let name = &ident.slice;
     let arg_types = args
-        .map(|arg| arg.type_(index).map(|type_| type_.name_or_no_return(index)))
+        .map(|arg| arg.type_(index).map(|type_| type_.name_or_no_return()))
         .collect::<Option<Vec<_>>>()?
         .join(", ");
     Some(format!("`{name}({arg_types})` function"))
@@ -45,12 +45,11 @@ pub(crate) fn fn_key_from_args<'a>(
 
 pub(crate) fn fn_key_from_operator<'a>(
     name: &str,
-    arg_types: impl IntoIterator<Item = NodeType<'a>>,
-    index: &NodeIndex,
+    arg_types: impl IntoIterator<Item = NodeSource<'a>>,
 ) -> String {
     let arg_types = arg_types
         .into_iter()
-        .map(|type_| type_.name_or_no_return(index))
+        .map(|type_| type_.name_or_no_return())
         .join(", ");
     format!("`{name}({arg_types})` function")
 }

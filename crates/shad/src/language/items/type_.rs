@@ -1,5 +1,7 @@
 use crate::compilation::index::NodeIndex;
-use crate::compilation::node::{sequence, Node, NodeConfig, NodeType, NodeTypeSource, Repeated};
+use crate::compilation::node::{
+    sequence, GenericArgs, Node, NodeConfig, NodeRef, NodeSource, Repeated,
+};
 use crate::compilation::transpilation::TranspilationContext;
 use crate::compilation::validation::ValidationContext;
 use crate::language::expressions::binary::MaybeBinaryExpr;
@@ -9,7 +11,7 @@ use crate::language::keywords::{
     TypeKeyword,
 };
 use crate::language::patterns::{Ident, StringLiteral, U32Literal};
-use crate::language::type_ref::{Type, TypeGenericArgs};
+use crate::language::type_ref::Type;
 use crate::language::{sources, transpilation, validations};
 use crate::ValidationError;
 use indoc::indoc;
@@ -32,7 +34,7 @@ pub(crate) trait TypeItem: Node {
 
     fn alignment(&self, index: &NodeIndex) -> u32;
 
-    fn transpiled_name(&self, generics: Option<&TypeGenericArgs>, index: &NodeIndex) -> String;
+    fn transpiled_name(&self, index: &NodeIndex, generic_args: &GenericArgs<'_>) -> String;
 
     fn transpiled_field_name(&self, field_name: &str) -> String;
 }
@@ -67,10 +69,10 @@ impl NodeConfig for NativeStructItem {
     }
 
     fn validate(&self, ctx: &mut ValidationContext<'_>) {
-        let u32_type = NodeType::Source(NodeTypeSource {
-            item: U32Literal::u32_type(self, ctx.index),
-            generics: None,
-        });
+        let u32_type = NodeSource {
+            node: NodeRef::Type(U32Literal::u32_type(self, ctx.index)),
+            generic_args: vec![],
+        };
         let params = self
             .generics
             .iter()
@@ -79,9 +81,9 @@ impl NodeConfig for NativeStructItem {
         validations::check_duplicated_items(self, ctx);
         validations::check_recursive_items(self, ctx);
         validations::check_native_code(&self.transpilation, params, ctx);
-        validations::check_invalid_const_expr_type(u32_type, &*self.alignment, ctx);
+        validations::check_invalid_const_expr_type(&u32_type, &*self.alignment, ctx);
         validations::check_invalid_const_scope(&*self.alignment, &*self.native, ctx);
-        validations::check_invalid_const_expr_type(u32_type, &*self.size, ctx);
+        validations::check_invalid_const_expr_type(&u32_type, &*self.size, ctx);
         validations::check_invalid_const_scope(&*self.size, &*self.native, ctx);
     }
 
@@ -129,17 +131,16 @@ impl TypeItem for NativeStructItem {
         self.alignment.parse_const_u32(index)
     }
 
-    fn transpiled_name(&self, generics: Option<&TypeGenericArgs>, index: &NodeIndex) -> String {
+    fn transpiled_name(&self, index: &NodeIndex, generic_args: &GenericArgs<'_>) -> String {
         let params = self
             .generics
             .iter()
             .flat_map(|param| param.params())
             .map(|p| &p.ident.slice);
-        let args = generics.iter().flat_map(|args| args.args()).map(|a| {
-            a.type_(index)
-                .expect("internal error: invalid generic type argument")
-                .transpiled_name(index)
-        });
+        let args = generic_args
+            .iter()
+            .flatten()
+            .map(|arg| arg.transpiled_type_name(index));
         transpilation::resolve_placeholders(self.transpilation.as_str(), params, args)
     }
 
@@ -192,21 +193,25 @@ impl NodeConfig for StructItem {
         true
     }
 
-    fn transpile(&self, ctx: &mut TranspilationContext<'_>) -> String {
-        let id = self.id;
+    fn transpile(
+        &self,
+        ctx: &mut TranspilationContext<'_>,
+        generic_args: &GenericArgs<'_>,
+    ) -> String {
+        let name = self.transpiled_name(ctx.index, generic_args);
         let fields = self
             .fields
             .iter()
-            .map(|field| field.transpile(ctx))
+            .map(|field| field.transpile(ctx, generic_args))
             .join("\n");
         format!(
             indoc!(
-                "struct _{id} {{
+                "struct {name} {{
                 {fields}
                 }}
                 "
             ),
-            id = id,
+            name = name,
             fields = fields
         )
     }
@@ -253,8 +258,12 @@ impl TypeItem for StructItem {
             .expect("internal error: custom structs should have at least one field")
     }
 
-    fn transpiled_name(&self, _generics: Option<&TypeGenericArgs>, _index: &NodeIndex) -> String {
-        format!("_{}", self.id)
+    fn transpiled_name(&self, index: &NodeIndex, generic_args: &GenericArgs<'_>) -> String {
+        let mut name = format!("_{}", self.id);
+        for arg in generic_args.iter().flatten() {
+            name += &arg.transpiled_type_name(index);
+        }
+        name.replace([' ', '<', '>', ','], "_")
     }
 
     fn transpiled_field_name(&self, field_name: &str) -> String {
@@ -363,7 +372,7 @@ impl NodeConfig for StructField {
         Some(true)
     }
 
-    fn type_<'a>(&'a self, index: &'a NodeIndex) -> Option<NodeType<'a>> {
+    fn type_<'a>(&'a self, index: &'a NodeIndex) -> Option<NodeSource<'a>> {
         self.type_.type_(index)
     }
 
@@ -371,9 +380,13 @@ impl NodeConfig for StructField {
         false
     }
 
-    fn transpile(&self, ctx: &mut TranspilationContext<'_>) -> String {
+    fn transpile(
+        &self,
+        ctx: &mut TranspilationContext<'_>,
+        generic_args: &GenericArgs<'_>,
+    ) -> String {
         let id = self.id;
-        let type_ = self.type_.transpile(ctx);
+        let type_ = self.type_.transpile(ctx, generic_args);
         format!("_{id}: {type_},")
     }
 }
