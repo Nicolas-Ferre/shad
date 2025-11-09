@@ -1,6 +1,8 @@
 use crate::compilation::constant::{ConstantContext, ConstantData, ConstantValue};
 use crate::compilation::index::NodeIndex;
-use crate::compilation::node::{choice, sequence, Node, NodeConfig, NodeType, NodeTypeSource};
+use crate::compilation::node::{
+    choice, sequence, GenericArgs, Node, NodeConfig, NodeRef, NodeSource,
+};
 use crate::compilation::transpilation::TranspilationContext;
 use crate::compilation::validation::ValidationContext;
 use crate::compilation::PRELUDE_PATH;
@@ -33,11 +35,11 @@ impl NodeConfig for TrueLiteral {
         Some(false)
     }
 
-    fn type_<'a>(&'a self, index: &'a NodeIndex) -> Option<NodeType<'a>> {
-        Some(NodeType::Source(NodeTypeSource {
-            item: bool_type(self, index),
-            generics: None,
-        }))
+    fn type_<'a>(&'a self, index: &'a NodeIndex) -> Option<NodeSource<'a>> {
+        Some(NodeSource {
+            node: NodeRef::Type(bool_type(self, index)),
+            generic_args: vec![],
+        })
     }
 
     fn invalid_constant(&self, _index: &NodeIndex) -> Option<&dyn Node> {
@@ -46,12 +48,16 @@ impl NodeConfig for TrueLiteral {
 
     fn evaluate_constant(&self, ctx: &mut ConstantContext<'_>) -> Option<ConstantValue> {
         Some(ConstantValue {
-            transpiled_type_name: bool_type(self, ctx.index).transpiled_name(None, ctx.index),
+            transpiled_type_name: bool_type(self, ctx.index).transpiled_name(ctx.index, &vec![]),
             data: ConstantData::Bool(true),
         })
     }
 
-    fn transpile(&self, _ctx: &mut TranspilationContext<'_>) -> String {
+    fn transpile(
+        &self,
+        _ctx: &mut TranspilationContext<'_>,
+        _generic_args: &GenericArgs<'_>,
+    ) -> String {
         "u32(true)".into()
     }
 }
@@ -68,11 +74,11 @@ impl NodeConfig for FalseLiteral {
         Some(false)
     }
 
-    fn type_<'a>(&'a self, index: &'a NodeIndex) -> Option<NodeType<'a>> {
-        Some(NodeType::Source(NodeTypeSource {
-            item: bool_type(self, index),
-            generics: None,
-        }))
+    fn type_<'a>(&'a self, index: &'a NodeIndex) -> Option<NodeSource<'a>> {
+        Some(NodeSource {
+            node: NodeRef::Type(bool_type(self, index)),
+            generic_args: vec![],
+        })
     }
 
     fn invalid_constant(&self, _index: &NodeIndex) -> Option<&dyn Node> {
@@ -81,12 +87,16 @@ impl NodeConfig for FalseLiteral {
 
     fn evaluate_constant(&self, ctx: &mut ConstantContext<'_>) -> Option<ConstantValue> {
         Some(ConstantValue {
-            transpiled_type_name: bool_type(self, ctx.index).transpiled_name(None, ctx.index),
+            transpiled_type_name: bool_type(self, ctx.index).transpiled_name(ctx.index, &vec![]),
             data: ConstantData::Bool(false),
         })
     }
 
-    fn transpile(&self, _ctx: &mut TranspilationContext<'_>) -> String {
+    fn transpile(
+        &self,
+        _ctx: &mut TranspilationContext<'_>,
+        _generic_args: &GenericArgs<'_>,
+    ) -> String {
         "u32(false)".into()
     }
 }
@@ -116,17 +126,21 @@ impl NodeConfig for VarIdentExpr {
         Some(sources::variable_key(&self.ident))
     }
 
-    fn source<'a>(&'a self, index: &'a NodeIndex) -> Option<&'a dyn Node> {
-        index.search(self, &self.source_key(index)?, sources::variable_criteria())
+    fn source<'a>(&'a self, index: &'a NodeIndex) -> Option<NodeSource<'a>> {
+        let source = index.search(self, &self.source_key(index)?, sources::variable_criteria())?;
+        Some(NodeSource {
+            node: NodeRef::Other(source),
+            generic_args: vec![],
+        })
     }
 
     fn is_ref(&self, index: &NodeIndex) -> Option<bool> {
         self.source(index)
-            .map(|source| source.node_type_id() != TypeId::of::<ConstantItem>())
+            .map(|source| source.node().node_type_id() != TypeId::of::<ConstantItem>())
     }
 
-    fn type_<'a>(&'a self, index: &'a NodeIndex) -> Option<NodeType<'a>> {
-        self.source(index)?.type_(index)
+    fn type_<'a>(&'a self, index: &'a NodeIndex) -> Option<NodeSource<'a>> {
+        self.source(index)?.node().type_(index)
     }
 
     fn validate(&self, ctx: &mut ValidationContext<'_>) {
@@ -134,7 +148,7 @@ impl NodeConfig for VarIdentExpr {
     }
 
     fn invalid_constant(&self, index: &NodeIndex) -> Option<&dyn Node> {
-        let source = self.source(index)?;
+        let source = self.source(index)?.node();
         if source.node_type_id() == TypeId::of::<ConstantItem>()
             || source.node_type_id() == TypeId::of::<LocalVarDefStmt>()
             || source.node_type_id() == TypeId::of::<LocalRefDefStmt>()
@@ -147,18 +161,23 @@ impl NodeConfig for VarIdentExpr {
     }
 
     fn evaluate_constant(&self, ctx: &mut ConstantContext<'_>) -> Option<ConstantValue> {
-        let source = self.source(ctx.index)?;
-        if source.node_type_id() == TypeId::of::<ConstantItem>() {
-            self.source(ctx.index)?.evaluate_constant(ctx)
+        let var_def = self.source(ctx.index)?.node();
+        if var_def.node_type_id() == TypeId::of::<ConstantItem>() {
+            var_def.evaluate_constant(ctx)
         } else {
-            ctx.var_value(source.id).cloned()
+            ctx.var_value(var_def.id).cloned()
         }
     }
 
-    fn transpile(&self, ctx: &mut TranspilationContext<'_>) -> String {
+    fn transpile(
+        &self,
+        ctx: &mut TranspilationContext<'_>,
+        _generic_args: &GenericArgs<'_>,
+    ) -> String {
         let source_id = self
             .source(ctx.index)
             .expect("internal error: var ident source not found")
+            .node()
             .id;
         if let Some(mapping) = ctx.inline_mapping(source_id) {
             mapping.to_string()
@@ -178,7 +197,7 @@ sequence!(
 );
 
 impl NodeConfig for ParenthesizedExpr {
-    fn source<'a>(&'a self, index: &'a NodeIndex) -> Option<&'a dyn Node> {
+    fn source<'a>(&'a self, index: &'a NodeIndex) -> Option<NodeSource<'a>> {
         self.expr.source(index)
     }
 
@@ -186,7 +205,7 @@ impl NodeConfig for ParenthesizedExpr {
         Some(false)
     }
 
-    fn type_<'a>(&'a self, index: &'a NodeIndex) -> Option<NodeType<'a>> {
+    fn type_<'a>(&'a self, index: &'a NodeIndex) -> Option<NodeSource<'a>> {
         self.expr.type_(index)
     }
 
@@ -198,8 +217,12 @@ impl NodeConfig for ParenthesizedExpr {
         self.expr.evaluate_constant(ctx)
     }
 
-    fn transpile(&self, ctx: &mut TranspilationContext<'_>) -> String {
-        let expr = self.expr.transpile(ctx);
+    fn transpile(
+        &self,
+        ctx: &mut TranspilationContext<'_>,
+        generic_args: &GenericArgs<'_>,
+    ) -> String {
+        let expr = self.expr.transpile(ctx, generic_args);
         format!("({expr})")
     }
 }
@@ -219,11 +242,11 @@ impl NodeConfig for TypeOperationExpr {
         Some(false)
     }
 
-    fn type_<'a>(&'a self, index: &'a NodeIndex) -> Option<NodeType<'a>> {
-        Some(NodeType::Source(NodeTypeSource {
-            item: U32Literal::u32_type(self, index),
-            generics: None,
-        }))
+    fn type_<'a>(&'a self, index: &'a NodeIndex) -> Option<NodeSource<'a>> {
+        Some(NodeSource {
+            node: NodeRef::Type(U32Literal::u32_type(self, index)),
+            generic_args: vec![],
+        })
     }
 
     fn invalid_constant(&self, _index: &NodeIndex) -> Option<&dyn Node> {
@@ -237,7 +260,11 @@ impl NodeConfig for TypeOperationExpr {
         })
     }
 
-    fn transpile(&self, ctx: &mut TranspilationContext<'_>) -> String {
+    fn transpile(
+        &self,
+        ctx: &mut TranspilationContext<'_>,
+        _generic_args: &GenericArgs<'_>,
+    ) -> String {
         let value = self
             .value(ctx.index)
             .expect("internal error: cannot run type operation on an invalid type");

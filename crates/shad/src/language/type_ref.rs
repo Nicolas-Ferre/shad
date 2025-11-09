@@ -1,5 +1,5 @@
 use crate::compilation::index::NodeIndex;
-use crate::compilation::node::{sequence, Node, NodeConfig, NodeType, NodeTypeSource, Repeated};
+use crate::compilation::node::{sequence, GenericArgs, NodeConfig, NodeRef, NodeSource, Repeated};
 use crate::compilation::transpilation::TranspilationContext;
 use crate::compilation::validation::ValidationContext;
 use crate::language::items::type_;
@@ -23,15 +23,20 @@ impl NodeConfig for Type {
         Some(sources::type_key(&self.ident))
     }
 
-    fn source<'a>(&'a self, index: &'a NodeIndex) -> Option<&'a dyn Node> {
-        self.item(index).map(|item| item as _)
+    fn source<'a>(&'a self, index: &'a NodeIndex) -> Option<NodeSource<'a>> {
+        Some(NodeSource {
+            node: NodeRef::Type(self.item(index)?),
+            generic_args: self
+                .generics
+                .iter()
+                .flat_map(|generics| generics.args())
+                .map(|arg| arg.source(index))
+                .collect(),
+        })
     }
 
-    fn type_<'a>(&'a self, index: &'a NodeIndex) -> Option<NodeType<'a>> {
-        Some(NodeType::Source(NodeTypeSource {
-            item: self.item(index)?,
-            generics: self.generics.iter().next().map(|args| &**args),
-        }))
+    fn type_<'a>(&'a self, index: &'a NodeIndex) -> Option<NodeSource<'a>> {
+        self.source(index)
     }
 
     fn validate(&self, ctx: &mut ValidationContext<'_>) {
@@ -59,10 +64,14 @@ impl NodeConfig for Type {
         }
     }
 
-    fn transpile(&self, ctx: &mut TranspilationContext<'_>) -> String {
+    fn transpile(
+        &self,
+        ctx: &mut TranspilationContext<'_>,
+        _generic_args: &GenericArgs<'_>,
+    ) -> String {
         self.type_(ctx.index)
             .expect("internal error: type not found")
-            .transpiled_name(ctx.index)
+            .transpiled_type_name(ctx.index)
     }
 }
 

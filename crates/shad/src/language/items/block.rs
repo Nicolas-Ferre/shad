@@ -1,6 +1,6 @@
 use crate::compilation::constant::{ConstantContext, ConstantValue};
 use crate::compilation::index::NodeIndex;
-use crate::compilation::node::{sequence, Node, NodeConfig, Repeated};
+use crate::compilation::node::{sequence, GenericArgs, Node, NodeConfig, Repeated};
 use crate::compilation::transpilation::TranspilationContext;
 use crate::compilation::validation::ValidationContext;
 use crate::language::keywords::{CloseCurlyBracketSymbol, OpenCurlyBracketSymbol};
@@ -34,8 +34,12 @@ impl NodeConfig for NonReturnBlock {
         }
     }
 
-    fn transpile(&self, ctx: &mut TranspilationContext<'_>) -> String {
-        self.inner.transpile(ctx)
+    fn transpile(
+        &self,
+        ctx: &mut TranspilationContext<'_>,
+        generic_args: &GenericArgs<'_>,
+    ) -> String {
+        self.inner.transpile(ctx, generic_args)
     }
 }
 
@@ -79,13 +83,17 @@ impl NodeConfig for Block {
             .last()
     }
 
-    fn transpile(&self, ctx: &mut TranspilationContext<'_>) -> String {
+    fn transpile(
+        &self,
+        ctx: &mut TranspilationContext<'_>,
+        generic_args: &GenericArgs<'_>,
+    ) -> String {
         ctx.start_block();
         let transpilation = self
             .statements
             .iter()
             .flat_map(|stmt| {
-                let stmt = stmt.transpile(ctx);
+                let stmt = stmt.transpile(ctx, generic_args);
                 mem::take(&mut ctx.generated_stmts)
                     .into_iter()
                     .chain([stmt])

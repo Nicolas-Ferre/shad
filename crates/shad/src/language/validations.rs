@@ -1,4 +1,4 @@
-use crate::compilation::node::{Node, NodeType};
+use crate::compilation::node::{Node, NodeSource};
 use crate::compilation::validation::ValidationContext;
 use crate::language::items;
 use crate::language::patterns::{Ident, StringLiteral};
@@ -62,9 +62,9 @@ pub(crate) fn check_invalid_expr_type(
         if (actual_type.is_no_return() || expected_type.is_no_return()) && !check_no_return {
             return;
         }
-        if actual_type.are_same(expected_type, ctx.index) == Some(false) {
-            let expected_type_name = expected_type.name_or_no_return(ctx.index);
-            let actual_type_name = actual_type.name_or_no_return(ctx.index);
+        if actual_type.are_same_types(&expected_type) == Some(false) {
+            let expected_type_name = expected_type.name_or_no_return();
+            let actual_type_name = actual_type.name_or_no_return();
             ctx.errors.push(ValidationError::error(
                 ctx,
                 actual,
@@ -80,14 +80,14 @@ pub(crate) fn check_invalid_expr_type(
 }
 
 pub(crate) fn check_invalid_const_expr_type(
-    expected_type: NodeType<'_>,
+    expected_type: &NodeSource<'_>,
     actual: &dyn Node,
     ctx: &mut ValidationContext<'_>,
 ) {
     if let Some(actual_type) = actual.type_(ctx.index) {
-        if actual_type.are_same(expected_type, ctx.index) == Some(false) {
-            let expected_type_name = expected_type.name_or_no_return(ctx.index);
-            let actual_type_name = actual_type.name_or_no_return(ctx.index);
+        if actual_type.are_same_types(expected_type) == Some(false) {
+            let expected_type_name = expected_type.name_or_no_return();
+            let actual_type_name = actual_type.name_or_no_return();
             ctx.errors.push(ValidationError::error(
                 ctx,
                 actual,
@@ -136,7 +136,7 @@ pub(crate) fn check_arg_name(
 }
 
 pub(crate) fn check_no_return_type(expr: &impl Node, ctx: &mut ValidationContext<'_>) {
-    if expr.type_(ctx.index).is_some_and(NodeType::is_no_return) {
+    if expr.type_(ctx.index).is_some_and(|t| t.is_no_return()) {
         ctx.errors.push(ValidationError::error(
             ctx,
             expr,

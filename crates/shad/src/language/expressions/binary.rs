@@ -1,6 +1,8 @@
 use crate::compilation::constant::{ConstantContext, ConstantData, ConstantValue};
 use crate::compilation::index::NodeIndex;
-use crate::compilation::node::{choice, sequence, transform, Node, NodeConfig, NodeType, Repeated};
+use crate::compilation::node::{
+    choice, sequence, transform, GenericArgs, Node, NodeConfig, NodeRef, NodeSource, Repeated,
+};
 use crate::compilation::transpilation::TranspilationContext;
 use crate::compilation::validation::ValidationContext;
 use crate::language::expressions::chain::ChainExpr;
@@ -63,7 +65,7 @@ impl NodeConfig for ParsedMaybeBinaryExpr {
         self.left.is_ref(index)
     }
 
-    fn type_<'a>(&'a self, index: &'a NodeIndex) -> Option<NodeType<'a>> {
+    fn type_<'a>(&'a self, index: &'a NodeIndex) -> Option<NodeSource<'a>> {
         self.left.type_(index)
     }
 
@@ -79,8 +81,12 @@ impl NodeConfig for ParsedMaybeBinaryExpr {
         self.left.evaluate_constant(ctx)
     }
 
-    fn transpile(&self, ctx: &mut TranspilationContext<'_>) -> String {
-        self.left.transpile(ctx)
+    fn transpile(
+        &self,
+        ctx: &mut TranspilationContext<'_>,
+        generic_args: &GenericArgs<'_>,
+    ) -> String {
+        self.left.transpile(ctx, generic_args)
     }
 }
 
@@ -113,20 +119,24 @@ impl NodeConfig for BinaryExpr {
         Some(sources::fn_key_from_operator(
             name,
             [self.left.type_(index)?, self.right.type_(index)?],
-            index,
         ))
     }
 
-    fn source<'a>(&'a self, index: &'a NodeIndex) -> Option<&'a dyn Node> {
-        index.search(self, &self.source_key(index)?, sources::fn_criteria())
+    fn source<'a>(&'a self, index: &'a NodeIndex) -> Option<NodeSource<'a>> {
+        let source = index.search(self, &self.source_key(index)?, sources::fn_criteria())?;
+        Some(NodeSource {
+            node: NodeRef::Other(source),
+            generic_args: vec![],
+        })
     }
 
     fn is_ref(&self, index: &NodeIndex) -> Option<bool> {
-        self.source(index).and_then(|source| source.is_ref(index))
+        self.source(index)
+            .and_then(|source| source.node().is_ref(index))
     }
 
-    fn type_<'a>(&'a self, index: &'a NodeIndex) -> Option<NodeType<'a>> {
-        self.source(index)?.type_(index)
+    fn type_<'a>(&'a self, index: &'a NodeIndex) -> Option<NodeSource<'a>> {
+        self.source(index)?.node().type_(index)
     }
 
     fn validate(&self, ctx: &mut ValidationContext<'_>) {
@@ -134,29 +144,35 @@ impl NodeConfig for BinaryExpr {
     }
 
     fn invalid_constant(&self, index: &NodeIndex) -> Option<&dyn Node> {
-        (!fn_::is_const(self.source(index)?))
+        (!fn_::is_const(self.source(index)?.node()))
             .then_some(self as _)
             .or_else(|| self.left.invalid_constant(index))
             .or_else(|| self.right.invalid_constant(index))
     }
 
     fn evaluate_constant(&self, ctx: &mut ConstantContext<'_>) -> Option<ConstantValue> {
-        let args = constants::evaluate_fn_args(
-            self.source(ctx.index)?,
-            [&*self.left, &*self.right].into_iter(),
-            ctx,
-        );
+        let fn_ = self.source(ctx.index)?.node();
+        let args = constants::evaluate_fn_args(fn_, [&*self.left, &*self.right].into_iter(), ctx);
         ctx.start_fn(args);
-        let value = self.source(ctx.index)?.evaluate_constant(ctx);
+        let value = fn_.evaluate_constant(ctx);
         ctx.end_fn();
         value
     }
 
-    fn transpile(&self, ctx: &mut TranspilationContext<'_>) -> String {
+    fn transpile(
+        &self,
+        ctx: &mut TranspilationContext<'_>,
+        generic_args: &GenericArgs<'_>,
+    ) -> String {
         let source = self
             .source(ctx.index)
             .expect("internal error: fn call source not found");
-        transpile_fn_call(ctx, source, [&*self.left, &*self.right].into_iter())
+        transpile_fn_call(
+            ctx,
+            &source,
+            [&*self.left, &*self.right].into_iter(),
+            generic_args,
+        )
     }
 }
 
