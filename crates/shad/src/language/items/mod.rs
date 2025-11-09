@@ -44,13 +44,13 @@ choice!(
 pub(crate) fn is_item_recursive(item: &impl Node, index: &NodeIndex) -> bool {
     item.nested_sources(index)
         .iter()
-        .any(|source| source.as_node().id == item.id)
+        .any(|source| source.node().id == item.id)
 }
 
 fn transpiled_dependencies(ctx: &mut TranspilationContext<'_>, item: &impl Node) -> String {
     item.nested_sources(ctx.index)
         .into_iter()
-        .filter(|source| source.as_node().is_transpilable_dependency(ctx.index))
-        .map(|source| source.as_node().transpile(ctx, &source.generic_args))
+        .filter(|source| source.node().is_transpilable_dependency(ctx.index))
+        .map(|source| source.node().transpile(ctx, &source.generic_args))
         .join("\n")
 }

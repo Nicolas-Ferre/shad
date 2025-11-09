@@ -44,11 +44,11 @@ impl NodeConfig for FnCallExpr {
 
     fn is_ref(&self, index: &NodeIndex) -> Option<bool> {
         self.source(index)
-            .and_then(|source| source.as_node().is_ref(index))
+            .and_then(|source| source.node().is_ref(index))
     }
 
     fn type_<'a>(&'a self, index: &'a NodeIndex) -> Option<NodeSource<'a>> {
-        self.source(index)?.as_node().type_(index)
+        self.source(index)?.node().type_(index)
     }
 
     fn validate(&self, ctx: &mut ValidationContext<'_>) {
@@ -66,11 +66,11 @@ impl NodeConfig for FnCallExpr {
     fn invalid_constant(&self, index: &NodeIndex) -> Option<&dyn Node> {
         self.args()
             .find_map(|arg| arg.invalid_constant(index))
-            .or_else(|| (!fn_::is_const(self.source(index)?.as_node())).then_some(self))
+            .or_else(|| (!fn_::is_const(self.source(index)?.node())).then_some(self))
     }
 
     fn evaluate_constant(&self, ctx: &mut ConstantContext<'_>) -> Option<ConstantValue> {
-        let fn_ = self.source(ctx.index)?.as_node();
+        let fn_ = self.source(ctx.index)?.node();
         let args = constants::evaluate_fn_args(fn_, self.args(), ctx);
         ctx.start_fn(args);
         let value = fn_.evaluate_constant(ctx);
@@ -170,7 +170,7 @@ pub(crate) fn check_arg_names<'a>(
     arg_names: impl Iterator<Item = Option<&'a Ident>>,
     ctx: &mut ValidationContext<'_>,
 ) {
-    for (arg_name, param) in arg_names.zip(fn_::signature(fn_.as_node()).params()) {
+    for (arg_name, param) in arg_names.zip(fn_::signature(fn_.node()).params()) {
         validations::check_arg_name(arg_name, &param.ident, ctx);
     }
 }
@@ -181,7 +181,7 @@ pub(crate) fn transpile_fn_call<'a>(
     args: impl Iterator<Item = &'a impl Node>,
     generic_args: &GenericArgs<'_>,
 ) -> String {
-    let node = fn_.as_node() as &dyn Any;
+    let node = fn_.node() as &dyn Any;
     if let Some(native_fn) = node.downcast_ref::<NativeFnItem>() {
         let params = native_fn.signature.params().map(|p| &p.ident.slice);
         let args = args.map(|arg| arg.transpile(ctx, generic_args));

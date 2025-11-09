@@ -136,11 +136,11 @@ impl NodeConfig for VarIdentExpr {
 
     fn is_ref(&self, index: &NodeIndex) -> Option<bool> {
         self.source(index)
-            .map(|source| source.as_node().node_type_id() != TypeId::of::<ConstantItem>())
+            .map(|source| source.node().node_type_id() != TypeId::of::<ConstantItem>())
     }
 
     fn type_<'a>(&'a self, index: &'a NodeIndex) -> Option<NodeSource<'a>> {
-        self.source(index)?.as_node().type_(index)
+        self.source(index)?.node().type_(index)
     }
 
     fn validate(&self, ctx: &mut ValidationContext<'_>) {
@@ -148,7 +148,7 @@ impl NodeConfig for VarIdentExpr {
     }
 
     fn invalid_constant(&self, index: &NodeIndex) -> Option<&dyn Node> {
-        let source = self.source(index)?.as_node();
+        let source = self.source(index)?.node();
         if source.node_type_id() == TypeId::of::<ConstantItem>()
             || source.node_type_id() == TypeId::of::<LocalVarDefStmt>()
             || source.node_type_id() == TypeId::of::<LocalRefDefStmt>()
@@ -161,7 +161,7 @@ impl NodeConfig for VarIdentExpr {
     }
 
     fn evaluate_constant(&self, ctx: &mut ConstantContext<'_>) -> Option<ConstantValue> {
-        let var_def = self.source(ctx.index)?.as_node();
+        let var_def = self.source(ctx.index)?.node();
         if var_def.node_type_id() == TypeId::of::<ConstantItem>() {
             var_def.evaluate_constant(ctx)
         } else {
@@ -177,7 +177,7 @@ impl NodeConfig for VarIdentExpr {
         let source_id = self
             .source(ctx.index)
             .expect("internal error: var ident source not found")
-            .as_node()
+            .node()
             .id;
         if let Some(mapping) = ctx.inline_mapping(source_id) {
             mapping.to_string()

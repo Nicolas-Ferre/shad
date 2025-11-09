@@ -50,15 +50,15 @@ pub(crate) struct NodeSource<'a> {
 }
 
 impl<'a> NodeSource<'a> {
-    pub(crate) fn as_node(&self) -> &'a dyn Node {
+    pub(crate) fn node(&self) -> &'a dyn Node {
         match self.node {
             NodeRef::Type(node) => node,
             NodeRef::Other(node) => node,
-            NodeRef::NoReturn => unreachable!("internal error: <no return> is not a node"),
+            NodeRef::NoReturn => unreachable!("<no return> is not a node"),
         }
     }
 
-    pub(crate) fn as_type_item(&self) -> Option<&'a dyn TypeItem> {
+    pub(crate) fn type_item(&self) -> Option<&'a dyn TypeItem> {
         match self.node {
             NodeRef::Type(node) => Some(node),
             NodeRef::Other(_) | NodeRef::NoReturn => None,
@@ -71,7 +71,7 @@ impl<'a> NodeSource<'a> {
 
     pub(crate) fn key(&self) -> NodeSourceKey {
         NodeSourceKey {
-            node_id: self.as_node().id,
+            node_id: self.node().id,
             generic_arg_keys: self
                 .generic_args
                 .iter()
@@ -100,7 +100,7 @@ impl<'a> NodeSource<'a> {
                 }
             }
             NodeRef::NoReturn => NO_RETURN_TYPE.into(),
-            NodeRef::Other(_) => unreachable!("internal error: non-type nodes have no name"),
+            NodeRef::Other(_) => unreachable!("non-type nodes have no name"),
         }
     }
 
@@ -242,7 +242,7 @@ pub(crate) trait Node: Any + NodeConfig + Debug + Deref<Target = NodeProps> {
                     continue;
                 }
                 registered_source_ids.insert(node_key);
-                for source_child in source.as_node().direct_nested_sources(index) {
+                for source_child in source.node().direct_nested_sources(index) {
                     sources.push(source_child.clone());
                     sources_to_process.insert(source_child.key(), source_child);
                 }

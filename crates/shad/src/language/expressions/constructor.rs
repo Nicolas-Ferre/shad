@@ -84,12 +84,12 @@ impl NodeConfig for ConstructorExpr {
     }
 
     fn evaluate_constant(&self, ctx: &mut ConstantContext<'_>) -> Option<ConstantValue> {
-        let type_ = self.type_.source(ctx.index)?;
+        let type_ = self.type_.type_(ctx.index)?;
         Some(ConstantValue {
             transpiled_type_name: type_.transpiled_type_name(ctx.index),
             data: ConstantData::StructFields(
                 type_
-                    .as_type_item()
+                    .type_item()
                     .expect("internal error: type reference must not be <no return>")
                     .fields()
                     .iter()

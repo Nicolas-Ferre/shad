@@ -41,11 +41,11 @@ impl NodeConfig for UnaryExpr {
 
     fn is_ref(&self, index: &NodeIndex) -> Option<bool> {
         self.source(index)
-            .and_then(|source| source.as_node().is_ref(index))
+            .and_then(|source| source.node().is_ref(index))
     }
 
     fn type_<'a>(&'a self, index: &'a NodeIndex) -> Option<NodeSource<'a>> {
-        self.source(index)?.as_node().type_(index)
+        self.source(index)?.node().type_(index)
     }
 
     fn validate(&self, ctx: &mut ValidationContext<'_>) {
@@ -53,13 +53,13 @@ impl NodeConfig for UnaryExpr {
     }
 
     fn invalid_constant(&self, index: &NodeIndex) -> Option<&dyn Node> {
-        (!fn_::is_const(self.source(index)?.as_node()))
+        (!fn_::is_const(self.source(index)?.node()))
             .then_some(self as _)
             .or_else(|| self.operand.invalid_constant(index))
     }
 
     fn evaluate_constant(&self, ctx: &mut ConstantContext<'_>) -> Option<ConstantValue> {
-        let fn_ = self.source(ctx.index)?.as_node();
+        let fn_ = self.source(ctx.index)?.node();
         let args = constants::evaluate_fn_args(fn_, iter::once(&*self.operand), ctx);
         ctx.start_fn(args);
         let value = fn_.evaluate_constant(ctx);

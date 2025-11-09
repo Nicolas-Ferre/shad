@@ -82,7 +82,7 @@ impl NodeConfig for TransformedChainExpr {
                 sources::fn_key_from_args(&suffix.ident, self.args(suffix), index)
             }
             ChainSuffix::StructField(suffix) => {
-                let prefix_type_key = self.expr.type_(index)?.as_type_item()?.key()?;
+                let prefix_type_key = self.expr.type_(index)?.type_item()?.key()?;
                 let field_name = &suffix.ident.slice;
                 Some(format!("`{field_name}` field of {prefix_type_key}"))
             }
@@ -102,7 +102,7 @@ impl NodeConfig for TransformedChainExpr {
                 let field = self
                     .expr
                     .type_(index)?
-                    .as_type_item()?
+                    .type_item()?
                     .field(&suffix.ident.slice)?;
                 NodeSource {
                     node: NodeRef::Other(
@@ -117,7 +117,7 @@ impl NodeConfig for TransformedChainExpr {
     fn is_ref(&self, index: &NodeIndex) -> Option<bool> {
         if self.suffix.iter().next().is_some() {
             self.source(index)
-                .and_then(|source| source.as_node().is_ref(index))
+                .and_then(|source| source.node().is_ref(index))
         } else {
             self.expr.is_ref(index)
         }
@@ -125,7 +125,7 @@ impl NodeConfig for TransformedChainExpr {
 
     fn type_<'a>(&'a self, index: &'a NodeIndex) -> Option<NodeSource<'a>> {
         if self.suffix.iter().next().is_some() {
-            self.source(index)?.as_node().type_(index)
+            self.source(index)?.node().type_(index)
         } else {
             self.expr.type_(index)
         }
@@ -163,9 +163,7 @@ impl NodeConfig for TransformedChainExpr {
                     ChainSuffix::FnCall(suffix) => self
                         .args(suffix)
                         .find_map(|arg| arg.invalid_constant(index))
-                        .or_else(|| {
-                            (!fn_::is_const(self.source(index)?.as_node())).then_some(self)
-                        }),
+                        .or_else(|| (!fn_::is_const(self.source(index)?.node())).then_some(self)),
                     ChainSuffix::StructField(_) => None,
                 }
             } else {
@@ -178,7 +176,7 @@ impl NodeConfig for TransformedChainExpr {
         if let Some(suffix) = self.suffix.iter().next() {
             match &**suffix {
                 ChainSuffix::FnCall(suffix) => {
-                    let fn_ = self.source(ctx.index)?.as_node();
+                    let fn_ = self.source(ctx.index)?.node();
                     let args = constants::evaluate_fn_args(fn_, self.args(suffix), ctx);
                     ctx.start_fn(args);
                     let value = fn_.evaluate_constant(ctx);
@@ -226,7 +224,7 @@ impl NodeConfig for TransformedChainExpr {
                     .expr
                     .type_(ctx.index)
                     .expect("internal error: chain prefix type not found")
-                    .as_type_item()
+                    .type_item()
                     .expect("internal error: invalid expression type");
                 let prefix = self.expr.transpile(ctx, generic_args);
                 let suffix = type_.transpiled_field_name(&suffix.ident.slice);

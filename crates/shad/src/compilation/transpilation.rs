@@ -81,7 +81,7 @@ impl Program {
         for buffer in buffers {
             graph.add_node(buffer);
             for source in buffer.nested_sources(index) {
-                let source_node = source.as_node();
+                let source_node = source.node();
                 if let Some(source) = (source_node as &dyn Any).downcast_ref::<BufferItem>() {
                     graph.add_edge(source, buffer, ());
                 }
@@ -157,7 +157,7 @@ impl Shader {
     fn find_buffers(item: &impl Node, ctx: &TranspilationContext<'_>) -> Vec<String> {
         item.nested_sources(ctx.index)
             .iter()
-            .filter_map(|source| (source.as_node() as &dyn Any).downcast_ref::<BufferItem>())
+            .filter_map(|source| (source.node() as &dyn Any).downcast_ref::<BufferItem>())
             .map(|buffer| buffer.item_path(ctx.root_path))
             .collect()
     }

@@ -75,7 +75,7 @@ impl BufferItem {
     pub(crate) fn buffer_type<'a>(&'a self, index: &'a NodeIndex) -> &'a dyn TypeItem {
         self.type_(index)
             .expect("internal error: buffer type not found")
-            .as_type_item()
+            .type_item()
             .expect("internal error: invalid buffer type")
     }
 
